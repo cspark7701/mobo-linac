@@ -1,0 +1,126 @@
+&NEWRUN
+  Head='Gun example'
+  RUN=1
+  Distribution = 'pal_photo2.ini'
+  Xoff=0.0
+  Yoff=0.0
+  TRACK_ALL=T
+  Auto_phase=F
+  H_max=0.01
+  H_min=0.001
+  ZSTART=0.00
+  ZSTOP=16.2
+  Zemit=2500
+  Zphase=1
+  check_ref_part=F
+/
+
+&OUTPUT
+  RefS=T
+  EmitS=T
+  PhaseS=T
+  Sub_EmitS=T
+  LandFS=T
+/
+
+&CHARGE  
+  LSPCH=T
+  LSPCH3D=T
+  Loop=F
+  Nrad=32
+  Nlong_in=32
+  Nzf = 32, Nz0 = 3, Smooth_z = 1
+  Nxf = 32, Nx0 = 3, Smooth_x = 1
+  Nyf = 32, Ny0 = 3, Smooth_y = 1
+  Cell_var=1.0
+  min_grid=0.4e-6
+  Max_scale=0.01
+  Max_count=10
+  Lmirror=T
+  L2D_3D=T
+  z_trans=5.25
+  min_grid_trans=0.4e-6
+/ 
+
+&APERTURE
+  LApert=T
+  File_Aperture(1) = 'Rad'
+  Ap_Z1(1)=0.00
+  Ap_Z2(1)=17.00
+  Ap_R(1)=20.0
+  A_xoff(1)=0.0
+/
+
+&CAVITY
+  LEField=T
+  
+  File_Efield(1)='gun.dat'
+  Nue(1)=2.99804245
+  MaxE(1)=100
+  phi(1) = 35.62497684
+  C_smooth(1)=20
+  C_higher_order(1)=T 
+  C_pos(1)=0.0
+
+  FILE_EFieLD(2) = 'TWS_Sband.dat'
+  Nue(2)=3.00
+  MaxE(2)=22.264
+  phi(2) = -39.50903029
+  C_numb(2)=84
+  C_smooth(2)=50
+  C_xoff(2)=0.0
+  C_yoff(2)=0.000
+  C_pos(2) = 1.810
+
+  FILE_EFieLD(3) = 'TWS_Sband.dat'
+  Nue(3)=3.00
+  MaxE(3)=22.264
+  phi(3) = -39.50903029
+  C_numb(3)=84
+  C_smooth(3)=50
+  C_xoff(3)=0.0
+  C_yoff(3)=0.000
+  C_pos(3) = 5.61046
+
+  FILE_EFieLD(4) = 'TWS_Sband.dat'
+  Nue(4)=3.00
+  MaxE(4)=24.4672
+  phi(4) = 310.0534192
+  C_numb(4)=84
+  C_smooth(4)=50
+  C_xoff(4)=0.0
+  C_yoff(4)=0.000
+  C_pos(4) = 9.41092
+
+  FILE_EFieLD(5) = 'TWS_Sband.dat'
+  Nue(5)=3.00
+  MaxE(5)=24.4672
+  phi(5) = 310.0534192
+  C_numb(5)=84
+  C_smooth(5)=50
+  C_xoff(5)=0.0
+  C_yoff(5)=0.000
+  C_pos(5) = 13.21138
+/
+
+&SOLENOID
+  LBFieLD=T
+  FILE_BFieLD(1)='PAL_SOL_A.dat'
+  S_HIGHER_ORDER(1)=T
+  S_smooth(1)=5
+  S_pos(1)=0.110
+  MaxB(1)= 0.1947739
+/
+
+&QUADRUPOLE
+  Loop=F
+  Lquad=T
+  Q_pos(1)= 8.70046 
+  Q_grad(1)=  1.28652859
+  Q_bore(1)=0.0020
+  Q_length(1)=0.065
+  Q_pos(2)= 12.50092 
+  Q_grad(2)= -2.88668503 
+  Q_bore(2)=0.0020
+  Q_length(2)=0.065
+/
