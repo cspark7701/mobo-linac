@@ -1,5 +1,6 @@
 __pycache__
 .ipynb_checkpoints/
+.*.swp
 
 mobo_linac_backup_20250828/
 mobo_linac_backup_20260722/
