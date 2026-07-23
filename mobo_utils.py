@@ -1,99 +1,116 @@
-from run_astra import *
+"""
+Utility functions for MOBO optimization loops.
+Refactored to use centralized config, objectives, and constraint evaluations.
+"""
+
+from typing import Dict, Tuple
 import torch
 
-def evaluate_objective(params, timeout=30):
-    with torch.no_grad():
-        values = params.detach().tolist()
-        try:
-            stats = run_astra_simulation(values, timeout=timeout)
-            if stats is None or len(stats.get('norm_emit_x', [])) == 0:
-                raise ValueError("ASTRA simulation produced empty or invalid stats.")
+from mobo_linac.config import load_config
+from mobo_linac.constraints import ConstraintEvaluator
+from mobo_linac.objectives import extract_physical_objectives, transform_to_model_space
+from run_astra import run_astra_simulation, get_objectives, get_diagnostics
 
-            emit_x, emit_y, sigma_energy = get_objectives(stats)
-            diags = get_diagnostics(stats)
+# Load centralized config and constraint evaluator
+_CONFIG = load_config()
+_CONSTRAINT_EVALUATOR = ConstraintEvaluator(_CONFIG.constraints)
 
-            # Check feasibility based on diagnostics
-            is_feasible_bool = (
-                bool(diags['sigma_x'] <= 1.0e-3) and
-                bool(diags['sigma_y'] <= 1.0e-3) and
-                bool(diags['sigma_xp'] <= 1.0e-3) and
-                bool(diags['sigma_yp'] <= 1.0e-3) and
-                bool(diags['sigma_z'] <= 1.0e-3) and
-                bool(diags['mean_kinetic_energy'] >= 195e6) and # Lower bound
-                bool(diags['mean_kinetic_energy'] <= 205e6)    # Upper bound
-            )
-        except Exception as e:
-            print(f"Simulation error/timeout for params {values}: {e}")
-            emit_x, emit_y, sigma_energy = 1.0e-3, 1.0e-3, 1.0e8
-            diags = {
-                'emit_x': emit_x, 'emit_y': emit_y, 'sigma_energy': sigma_energy,
-                'sigma_x': 999.0, 'sigma_y': 999.0, 'sigma_xp': 999.0, 'sigma_yp': 999.0, 'sigma_z': 999.0,
-                'mean_kinetic_energy': 0.0
-            }
-            is_feasible_bool = False
 
-def evaluate_constrained_objective(params, timeout=30):
+def evaluate_objective(params: torch.Tensor, timeout: int = 30) -> Tuple[torch.Tensor, torch.Tensor, Dict[str, float]]:
     """
-    Evaluates simulation and returns 9 outcomes:
-    [emit_x_neg, emit_y_neg, sigma_energy_neg, sigma_x, sigma_y, sigma_xp, sigma_yp, sigma_z, mean_kinetic_energy]
+    Evaluates a candidate parameter set and returns model-space objectives, feasibility, and diagnostics.
     """
     with torch.no_grad():
         values = params.detach().tolist()
         try:
             stats = run_astra_simulation(values, timeout=timeout)
-            if stats is None or len(stats.get('norm_emit_x', [])) == 0:
+            if stats is None or len(stats.get("norm_emit_x", [])) == 0:
                 raise ValueError("ASTRA simulation produced empty or invalid stats.")
 
-            emit_x, emit_y, sigma_energy = get_objectives(stats)
+            phys_objs = get_objectives(stats)
             diags = get_diagnostics(stats)
-
-            is_feasible_bool = (
-                bool(diags['sigma_x'] <= 1.0e-3) and
-                bool(diags['sigma_y'] <= 1.0e-3) and
-                bool(diags['sigma_xp'] <= 1.0e-3) and
-                bool(diags['sigma_yp'] <= 1.0e-3) and
-                bool(diags['sigma_z'] <= 1.0e-3) and
-                bool(diags['mean_kinetic_energy'] >= 195e6) and
-                bool(diags['mean_kinetic_energy'] <= 205e6)
-            )
+            is_feasible = _CONSTRAINT_EVALUATOR.check_feasibility(diags)
         except Exception as e:
             print(f"Simulation error/timeout for params {values}: {e}")
-            emit_x, emit_y, sigma_energy = 1.0e-3, 1.0e-3, 1.0e8
+            phys_objs = (1.0e-3, 1.0e-3, 1.0e8)
             diags = {
-                'emit_x': emit_x, 'emit_y': emit_y, 'sigma_energy': sigma_energy,
-                'sigma_x': 999.0, 'sigma_y': 999.0, 'sigma_xp': 999.0, 'sigma_yp': 999.0, 'sigma_z': 999.0,
-                'mean_kinetic_energy': 0.0
+                "emit_x": 1.0e-3,
+                "emit_y": 1.0e-3,
+                "sigma_energy": 1.0e8,
+                "sigma_x": 999.0,
+                "sigma_y": 999.0,
+                "sigma_xp": 999.0,
+                "sigma_yp": 999.0,
+                "sigma_z": 999.0,
+                "mean_kinetic_energy": 0.0,
             }
-            is_feasible_bool = False
+            is_feasible = False
 
-        feasible = torch.tensor(is_feasible_bool, dtype=torch.bool)
-        objectives_neg = torch.tensor([-emit_x, -emit_y, -sigma_energy], dtype=torch.double)
-        outcomes_9 = torch.tensor([
-            -emit_x, -emit_y, -sigma_energy,
-            diags['sigma_x'], diags['sigma_y'], diags['sigma_xp'],
-            diags['sigma_yp'], diags['sigma_z'], diags['mean_kinetic_energy']
-        ], dtype=torch.double)
-
-        return objectives_neg, outcomes_9, feasible, diags
+        feasible = torch.tensor(is_feasible, dtype=torch.bool)
+        objs_model = transform_to_model_space(phys_objs, _CONFIG)
+        return objs_model, feasible, diags
 
 
-
-def compute_ref_point(train_Y):
+def evaluate_constrained_objective(params: torch.Tensor, timeout: int = 30):
     """
-    Computes a reference point for Hypervolume calculation.
-    For minimization (negated objectives), the reference point should be
-    "worse" (i.e., smaller) than all observed negated objectives.
+    Evaluates simulation and returns model-space objectives, 9-outcome tensor, feasibility, and diagnostics.
+    """
+    with torch.no_grad():
+        values = params.detach().tolist()
+        try:
+            stats = run_astra_simulation(values, timeout=timeout)
+            if stats is None or len(stats.get("norm_emit_x", [])) == 0:
+                raise ValueError("ASTRA simulation produced empty or invalid stats.")
+
+            phys_objs = get_objectives(stats)
+            diags = get_diagnostics(stats)
+            is_feasible = _CONSTRAINT_EVALUATOR.check_feasibility(diags)
+        except Exception as e:
+            print(f"Simulation error/timeout for params {values}: {e}")
+            phys_objs = (1.0e-3, 1.0e-3, 1.0e8)
+            diags = {
+                "emit_x": 1.0e-3,
+                "emit_y": 1.0e-3,
+                "sigma_energy": 1.0e8,
+                "sigma_x": 999.0,
+                "sigma_y": 999.0,
+                "sigma_xp": 999.0,
+                "sigma_yp": 999.0,
+                "sigma_z": 999.0,
+                "mean_kinetic_energy": 0.0,
+            }
+            is_feasible = False
+
+        feasible = torch.tensor(is_feasible, dtype=torch.bool)
+        objs_model = transform_to_model_space(phys_objs, _CONFIG)
+        outcomes_9 = torch.tensor(
+            [
+                objs_model[0].item(),
+                objs_model[1].item(),
+                objs_model[2].item(),
+                diags["sigma_x"],
+                diags["sigma_y"],
+                diags["sigma_xp"],
+                diags["sigma_yp"],
+                diags["sigma_z"],
+                diags["mean_kinetic_energy"],
+            ],
+            dtype=torch.double,
+        )
+
+        return objs_model, outcomes_9, feasible, diags
+
+
+def compute_ref_point(train_Y: torch.Tensor) -> torch.Tensor:
+    """
+    Computes a reference point for Hypervolume calculation in model (maximization) space.
     """
     min_vals_negated = train_Y.min(dim=0).values
     max_vals_negated = train_Y.max(dim=0).values
-    
-    # Calculate range in the negated space
-    ranges_negated = max_vals_negated - min_vals_negated
-    
-    # Add a small epsilon to ranges to prevent division by zero or very small ranges
-    epsilon = 1e-6 
-    offset = 0.05 * (ranges_negated + epsilon) # Use 5% of the range as offset
 
-    # The reference point for maximization should be below the minimum observed negated values
+    ranges_negated = max_vals_negated - min_vals_negated
+    epsilon = 1e-6
+    offset = 0.05 * (ranges_negated + epsilon)
+
     ref_point = min_vals_negated - offset
     return ref_point

@@ -1,0 +1,91 @@
+version: "1.0"
+description: "Centralized configuration for 200 MeV electron injector linac MOBO"
+
+design_variables:
+  - name: "solenoid_field_T"
+    astra_key: "solenoid:maxb(1)"
+    unit: "T"
+    nominal_value: 0.1947739
+    ratio: 0.50
+    lower_bound: 0.09738695
+    upper_bound: 0.29216085
+    is_coupled: false
+  - name: "quad_1_gradient_T_m"
+    astra_key: "quadrupole:q_grad(1)"
+    unit: "T/m"
+    nominal_value: 1.28652859
+    ratio: 0.50
+    lower_bound: 0.643264295
+    upper_bound: 1.929792885
+    is_coupled: false
+  - name: "quad_2_gradient_T_m"
+    astra_key: "quadrupole:q_grad(2)"
+    unit: "T/m"
+    nominal_value: -2.88668503
+    ratio: 0.50
+    lower_bound: -4.330027545
+    upper_bound: -1.443342515
+    is_coupled: false
+  - name: "gun_phase_deg"
+    astra_key: "cavity:phi(1)"
+    unit: "deg"
+    nominal_value: 35.62497684
+    ratio: 0.10
+    lower_bound: 32.062479156
+    upper_bound: 39.187474524
+    is_coupled: false
+  - name: "acc1_acc2_phase_deg"
+    astra_key: "cavity:phi(2)"
+    unit: "deg"
+    nominal_value: -39.50903029
+    ratio: 0.10
+    lower_bound: -43.459933319
+    upper_bound: -35.558127261
+    is_coupled: true
+    coupled_targets:
+      - "cavity:phi(2)"
+      - "cavity:phi(3)"
+  - name: "acc3_acc4_phase_deg"
+    astra_key: "cavity:phi(4)"
+    unit: "deg"
+    nominal_value: 310.0534192
+    ratio: 0.10
+    lower_bound: 279.04807728
+    upper_bound: 341.05876112
+    is_coupled: true
+    coupled_targets:
+      - "cavity:phi(4)"
+      - "cavity:phi(5)"
+
+objectives:
+  - name: "norm_emit_x"
+    explicit_name: "norm_emit_x_m_rad"
+    unit: "m*rad"
+    physical_direction: "minimize"
+    model_sign: -1
+  - name: "norm_emit_y"
+    explicit_name: "norm_emit_y_m_rad"
+    unit: "m*rad"
+    physical_direction: "minimize"
+    model_sign: -1
+  - name: "sigma_energy"
+    explicit_name: "sigma_energy_eV"
+    unit: "eV"
+    physical_direction: "minimize"
+    model_sign: -1
+
+constraints:
+  max_sigma_x_m: 1.0e-3
+  max_sigma_y_m: 1.0e-3
+  max_sigma_xp_rad: 1.0e-3
+  max_sigma_yp_rad: 1.0e-3
+  max_sigma_z_m: 1.0e-3
+  min_mean_kinetic_energy_eV: 195.0e6
+  max_mean_kinetic_energy_eV: 205.0e6
+  min_transmission: 0.90
+
+execution:
+  timeout_sec: 30
+  max_workers: 4
+  retries: 0
+  clean_on_success: false
