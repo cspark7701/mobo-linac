@@ -39,33 +39,63 @@ def get_weights_from_filename(filename):
 
 ###########################################################################################
 
-def save_results(train_X, train_Y, file_prefix="mobo_results/mobo_results"):
-    """Saves the optimization results to JSON and CSV files."""
-    data = {
-        "parameters": train_X.tolist(),
-        "objectives": train_Y.tolist()
-    }
-    with open(f"{file_prefix}.json", "w") as f:
-        json.dump(data, f, indent=2)
+from datetime import datetime
 
-    # Note: These CSVs will contain negated objectives if train_Y is negated
-    # You might want to save the original scale if needed for external analysis
+def create_run_directory(base_dir="results"):
+    """Creates a timestamped results directory structured according to AGENTS.md."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    run_dir = os.path.join(base_dir, timestamp)
+    os.makedirs(os.path.join(run_dir, "gp_checkpoint"), exist_ok=True)
+    os.makedirs(os.path.join(run_dir, "figures"), exist_ok=True)
+    return run_dir
+
+def save_results(train_X, train_Y, run_dir="mobo_results", hypervolumes=None, constraints_list=None, config=None):
+    """Saves the optimization results to JSON and CSV files following AGENTS.md format."""
+    os.makedirs(run_dir, exist_ok=True)
+    
+    if config:
+        with open(os.path.join(run_dir, "config.json"), "w") as f:
+            json.dump(config, f, indent=2)
+
+    # Save train_X and train_Y
+    np.savetxt(os.path.join(run_dir, "train_X.csv"), train_X.numpy(), delimiter=",",
+               header=','.join([f"param_{i}" for i in range(train_X.shape[1])]))
+    np.savetxt(os.path.join(run_dir, "train_Y.csv"), train_Y.numpy(), delimiter=",",
+               header="emit_x_neg,emit_y_neg,sigma_energy_neg")
+
+    # Save Pareto front (un-negated objectives and negated)
     pareto_mask = is_non_dominated(train_Y)
-    pareto_Y = train_Y[pareto_mask]
-    np.savetxt(f"{file_prefix}_pareto_negated.csv", pareto_Y.numpy(), delimiter=",", 
-               header="emit_x_neg,emit_y_neg,sigma_energy_neg") # Removed .cpu()
-    np.savetxt(f"{file_prefix}_params.csv", train_X.numpy(), delimiter=",", 
-               header=','.join([f"param_{i}" for i in range(train_X.shape[1])])) # Removed .cpu()
-    np.savetxt(f"{file_prefix}_objectives_negated.csv", train_Y.numpy(), delimiter=",", 
-               header="emit_x_neg,emit_y_neg,sigma_energy_neg") # Removed .cpu()
-    print (f"Results saved to {file_prefix}.json, {file_prefix}_pareto_negated.csv, {file_prefix}_params.csv, {file_prefix}_objectives_negated.csv")
+    pareto_Y_neg = train_Y[pareto_mask]
+    pareto_Y_orig = -pareto_Y_neg
+    pareto_X = train_X[pareto_mask]
+    
+    pareto_data = np.hstack([pareto_X.numpy(), pareto_Y_orig.numpy()])
+    headers_X = [f"param_{i}" for i in range(train_X.shape[1])]
+    headers_Y = ["emit_x", "emit_y", "sigma_energy"]
+    np.savetxt(os.path.join(run_dir, "pareto.csv"), pareto_data, delimiter=",",
+               header=','.join(headers_X + headers_Y))
+
+    # Save hypervolume history if provided
+    if hypervolumes is not None:
+        np.savetxt(os.path.join(run_dir, "hypervolume.csv"), np.array(hypervolumes), delimiter=",",
+                   header="hypervolume")
+
+    # Save constraints diagnostics if provided
+    if constraints_list is not None and len(constraints_list) > 0:
+        import pandas as pd
+        df_c = pd.DataFrame(constraints_list)
+        df_c.to_csv(os.path.join(run_dir, "constraints.csv"), index=False)
+
+    print(f"All optimization results saved to {run_dir}/")
 
 ###########################################################################################
 
 def save_checkpoint(iteration, train_X, train_Y, train_feas_mask, hypervolumes, 
-                    train_constraints_list, acquisition_mode, 
+                    train_constraints_list=None, acquisition_mode='qLogNEHVI', 
                     checkpoint_file="mobo_results/mobo_checkpoint.pt"):
     """Saves the current state of the Bayesian Optimization."""
+    # Ensure directory exists for checkpoint_file
+    os.makedirs(os.path.dirname(checkpoint_file), exist_ok=True)
     checkpoint_data = {
         'iteration': iteration,
         'train_X': train_X,
@@ -90,4 +120,5 @@ def load_checkpoint(checkpoint_file="mobo_results/mobo_checkpoint.pt"):
     else:
         print("No checkpoint found. Starting new optimization.")
         return None
+
     

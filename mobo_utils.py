@@ -1,33 +1,42 @@
 from run_astra import *
 import torch
 
-def evaluate_objective(params):
+def evaluate_objective(params, timeout=30):
     with torch.no_grad():
-        # Ensure params are on CPU for external simulation call
-        values = params.detach().tolist() # Removed .cpu() as device is now always CPU
-        
-        # Run Astra simulation
-        stats = run_astra_simulation(values)
-        emit_x, emit_y, sigma_energy = get_objectives(stats)
-        diags = get_diagnostics(stats)
+        values = params.detach().tolist()
+        try:
+            stats = run_astra_simulation(values, timeout=timeout)
+            if stats is None or len(stats.get('norm_emit_x', [])) == 0:
+                raise ValueError("ASTRA simulation produced empty or invalid stats.")
 
-        # Check feasibility based on diagnostics
-        is_feasible_bool = (
-            bool(diags['sigma_x'] <= 1.0e-3) and
-            bool(diags['sigma_y'] <= 1.0e-3) and
-            bool(diags['sigma_xp'] <= 1.0e-3) and
-            bool(diags['sigma_yp'] <= 1.0e-3) and
-            bool(diags['sigma_z'] <= 1.0e-3) and
-            bool(diags['mean_kinetic_energy'] >= 195e6) and # Lower bound
-            bool(diags['mean_kinetic_energy'] <= 205e6)    # Upper bound
-        )
-        # Return a single boolean tensor for consistent stacking
+            emit_x, emit_y, sigma_energy = get_objectives(stats)
+            diags = get_diagnostics(stats)
+
+            # Check feasibility based on diagnostics
+            is_feasible_bool = (
+                bool(diags['sigma_x'] <= 1.0e-3) and
+                bool(diags['sigma_y'] <= 1.0e-3) and
+                bool(diags['sigma_xp'] <= 1.0e-3) and
+                bool(diags['sigma_yp'] <= 1.0e-3) and
+                bool(diags['sigma_z'] <= 1.0e-3) and
+                bool(diags['mean_kinetic_energy'] >= 195e6) and # Lower bound
+                bool(diags['mean_kinetic_energy'] <= 205e6)    # Upper bound
+            )
+        except Exception as e:
+            print(f"Simulation error/timeout for params {values}: {e}")
+            emit_x, emit_y, sigma_energy = 1.0e-3, 1.0e-3, 1.0e8
+            diags = {
+                'emit_x': emit_x, 'emit_y': emit_y, 'sigma_energy': sigma_energy,
+                'sigma_x': 999.0, 'sigma_y': 999.0, 'sigma_xp': 999.0, 'sigma_yp': 999.0, 'sigma_z': 999.0,
+                'mean_kinetic_energy': 0.0
+            }
+            is_feasible_bool = False
+
         feasible = torch.tensor(is_feasible_bool, dtype=torch.bool) 
-
-        # Negate objectives for minimization (BoTorch maximizes by default)
         objective = torch.tensor([-emit_x, -emit_y, -sigma_energy], dtype=torch.double)
         
         return objective, feasible, diags
+
 
 def compute_ref_point(train_Y):
     """

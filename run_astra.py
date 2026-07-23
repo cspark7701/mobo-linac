@@ -1,7 +1,13 @@
+import os
+if "ASTRA_BIN" not in os.environ:
+    os.environ["ASTRA_BIN"] = "/home/cspark/Work/simulation_codes-working/lume-astra/bin/astra"
+if "GENERATOR_BIN" not in os.environ:
+    os.environ["GENERATOR_BIN"] = "/home/cspark/Work/simulation_codes-working/lume-astra/bin/generator"
+
 from astra import Astra
 from utils import *
 
-def run_astra_simulation(parameters, verbose=False):
+def run_astra_simulation(parameters, verbose=False, timeout=30):
     """
     Runs an Astra simulation with the given parameters and returns objectives and diagnostics.
 
@@ -9,12 +15,13 @@ def run_astra_simulation(parameters, verbose=False):
         parameters (list): A list of 6 independent parameters for the Astra simulation:
                            [solenoid:maxb(1), quad:q_grad(1), quad:q_grad(2),
                             cavity:phi(1), common_phi_2_3, common_phi_4_5]
+        timeout (int): Timeout in seconds for ASTRA execution.
     Returns:
-        tuple: (norm_emit_x, norm_emit_y, sigma_energy), diagnostics_dict
+        dict or None: ASTRA statistics dictionary if successful, None if timed out/failed.
     """
     astra_sim = Astra('astra.in') # Ensure astra.in is accessible
-    astra_sim.timeout = None
-    astra_sim.verbose = False
+    astra_sim.timeout = timeout
+    astra_sim.verbose = verbose
 
     print(f"Running simulation with parameters: {parameters}")
 
@@ -28,9 +35,13 @@ def run_astra_simulation(parameters, verbose=False):
     astra_sim['cavity:phi(4)'] = parameters[5] # Common phase for cavity 4 & 5
     astra_sim['cavity:phi(5)'] = parameters[5] # Common phase for cavity 4 & 5
 
-    astra_sim.run()
+    try:
+        astra_sim.run()
+        return astra_sim.output['stats']
+    except Exception as e:
+        print(f"ASTRA simulation execution failed/timed out: {e}")
+        return None
 
-    return astra_sim.output['stats']
 
 def get_objectives(stats):
     norm_emit_x = stats['norm_emit_x'][-1]
