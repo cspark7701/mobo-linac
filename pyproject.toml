@@ -1,0 +1,36 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mobo-linac"
+version = "0.1.0"
+description = "Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+  { name = "PAL Injector Linac Team" }
+]
+dependencies = [
+    "torch>=2.0.0",
+    "botorch>=0.10.0",
+    "gpytorch>=1.10",
+    "numpy>=1.24.0",
+    "pandas>=2.0.0",
+    "pyyaml>=6.0",
+    "matplotlib>=3.5.0",
+]
+
+[project.scripts]
+mobo-linac = "mobo_linac.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+markers = [
+    "integration: mark test as an integration test running real ASTRA simulations.",
+]

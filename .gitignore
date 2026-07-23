@@ -1,6 +1,38 @@
-__pycache__
-.ipynb_checkpoints/
+
+# Bytecode files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environment
+env/
+venv/
+.venv/
+env-bak/
+*~
+# Distribution / packaging
+build/
+dist/
+*.egg-info/
+*.tar.gz
+*.zip
+
+# IDE specific files
+.idea/
+.project
+.pydevproject.xml
+
+# OS
+.DS_Store
+Thumbs.db
+
+# swap files
 .*.swp
+
+# jupyter checkpoint
+.ipynb_checkpoints
+*checkpoint.ipynb
 
 mobo_linac_backup_20250828/
 mobo_linac_backup_20260722/
