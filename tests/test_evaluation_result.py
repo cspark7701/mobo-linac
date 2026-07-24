@@ -102,7 +102,7 @@ def test_nan_inf_failure_result(sample_config):
         "parameters": [0.20, 1.2, -1.2, 0.0, 0.0, 0.0],
         "status": "success",
         "objectives": {"norm_emit_x": math.nan, "norm_emit_y": 1.2e-6, "sigma_energy": 5.0e4},
-        "diagnostics": {"sigma_x": 0.8e-3, "mean_kinetic_energy": 200e6},
+        "diagnostics": {"sigma_x": 0.8e-3, "mean_kinetic_energy": 200e6, "transmission": 1.0},
     }
 
     res = create_evaluation_result(raw_res, config=sample_config)

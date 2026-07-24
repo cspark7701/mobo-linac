@@ -110,33 +110,60 @@ def create_evaluation_result(
         failure_category = FailureCategory.MISSING_OUTPUT.value
         failure_reason = error_msg or "Simulation output or diagnostics missing"
     else:
-        # Check for NaN or Inf in diagnostics
+        # 1. Check for NaN or Inf in objectives and diagnostics first
+        all_vals = list(raw_objs.values()) + list(raw_diags.values())
         has_nan_inf = any(
-            math.isnan(v) or math.isinf(v)
-            for v in list(raw_objs.values()) + list(raw_diags.values())
+            v is None or not isinstance(v, (int, float)) or math.isnan(float(v)) or math.isinf(float(v))
+            for v in all_vals
         )
+
+        # 2. Check for missing transmission
+        transmission_val = raw_diags.get("transmission_fraction", raw_diags.get("transmission"))
+
         if has_nan_inf:
             failure_category = FailureCategory.NAN_INF_DIAGNOSTICS.value
-            failure_reason = "Diagnostics contain NaN or Infinite values"
+            failure_reason = "Diagnostics contain NaN, Infinite, or non-numeric values"
+        elif transmission_val is None:
+            failure_category = FailureCategory.MISSING_OUTPUT.value
+            failure_reason = "Required transmission_fraction diagnostic is missing"
         else:
-            transmission = raw_diags.get("transmission", 1.0)
-            if transmission < config.constraints.min_transmission:
+            transmission = float(transmission_val)
+            # Check for negative RMS quantities or unphysical transmission range
+            rms_vals = [
+                raw_diags.get("sigma_x_m", raw_diags.get("sigma_x", 0.0)),
+                raw_diags.get("sigma_y_m", raw_diags.get("sigma_y", 0.0)),
+                raw_diags.get("sigma_xp_rad", raw_diags.get("sigma_xp", 0.0)),
+                raw_diags.get("sigma_yp_rad", raw_diags.get("sigma_yp", 0.0)),
+                raw_diags.get("sigma_z_m", raw_diags.get("sigma_z", 0.0)),
+                raw_diags.get("sigma_energy_eV", raw_diags.get("sigma_energy", 0.0)),
+            ]
+            has_negative_rms = any(float(v) < 0.0 for v in rms_vals)
+
+            if has_negative_rms:
+                failure_category = FailureCategory.NAN_INF_DIAGNOSTICS.value
+                failure_reason = "Diagnostics contain negative RMS beam parameters"
+            elif transmission < 0.0 or transmission > 1.0:
                 failure_category = FailureCategory.INVALID_TRANSMISSION.value
-                failure_reason = f"Transmission ({transmission:.3f}) below minimum threshold ({config.constraints.min_transmission:.3f})"
+                failure_reason = f"Transmission fraction ({transmission}) out of physical bounds [0.0, 1.0]"
             else:
                 # Simulation is numerically valid
                 simulation_valid = True
 
-                # Evaluate physical beam feasibility
-                is_feasible = constraint_evaluator.check_feasibility(raw_diags)
-                if is_feasible:
-                    physically_feasible = True
-                    failure_category = FailureCategory.SUCCESS.value
-                    failure_reason = None
-                else:
+                if transmission < config.constraints.min_transmission:
                     physically_feasible = False
-                    failure_category = FailureCategory.INFEASIBLE_BEAM.value
-                    failure_reason = "Beam diagnostics violated constraint thresholds"
+                    failure_category = FailureCategory.INVALID_TRANSMISSION.value
+                    failure_reason = f"Transmission ({transmission:.3f}) below minimum threshold ({config.constraints.min_transmission:.3f})"
+                else:
+                    # Evaluate full physical beam feasibility
+                    is_feasible = constraint_evaluator.check_feasibility(raw_diags)
+                    if is_feasible:
+                        physically_feasible = True
+                        failure_category = FailureCategory.SUCCESS.value
+                        failure_reason = None
+                    else:
+                        physically_feasible = False
+                        failure_category = FailureCategory.INFEASIBLE_BEAM.value
+                        failure_reason = "Beam diagnostics violated constraint thresholds"
 
     # Extract physical and model objectives if valid/available
     objs_phys: Optional[List[float]] = None

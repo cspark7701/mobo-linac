@@ -74,12 +74,20 @@ def results_to_dataframe(results: List[EvaluationResult]) -> pd.DataFrame:
 
         # Add diagnostics if available
         diags = res.diagnostics or {}
-        row["sigma_x_m"] = diags.get("sigma_x", diags.get("sigma_x_m", np.nan))
-        row["sigma_y_m"] = diags.get("sigma_y", diags.get("sigma_y_m", np.nan))
-        row["sigma_xp_rad"] = diags.get("sigma_xp", diags.get("sigma_xp_rad", np.nan))
-        row["sigma_yp_rad"] = diags.get("sigma_yp", diags.get("sigma_yp_rad", np.nan))
-        row["sigma_z_m"] = diags.get("sigma_z", diags.get("sigma_z_m", np.nan))
-        row["mean_kinetic_energy_eV"] = diags.get("mean_kinetic_energy", diags.get("mean_kinetic_energy_eV", np.nan))
+        sigma_energy_val = diags.get("sigma_energy_eV", diags.get("sigma_energy", np.nan))
+        if pd.isna(sigma_energy_val) and res.objectives_physical and len(res.objectives_physical) > 2:
+            sigma_energy_val = float(res.objectives_physical[2])
+
+        row["sigma_x_m"] = diags.get("sigma_x_m", diags.get("sigma_x", np.nan))
+        row["sigma_y_m"] = diags.get("sigma_y_m", diags.get("sigma_y", np.nan))
+        row["sigma_xp_rad"] = diags.get("sigma_xp_rad", diags.get("sigma_xp", np.nan))
+        row["sigma_yp_rad"] = diags.get("sigma_yp_rad", diags.get("sigma_yp", np.nan))
+        row["sigma_z_m"] = diags.get("sigma_z_m", diags.get("sigma_z", np.nan))
+        row["mean_kinetic_energy_eV"] = diags.get("mean_kinetic_energy_eV", diags.get("mean_kinetic_energy", np.nan))
+        row["sigma_energy_eV"] = sigma_energy_val
+        row["n_particles_initial"] = diags.get("n_particles_initial", np.nan)
+        row["n_particles_final"] = diags.get("n_particles_final", np.nan)
+        row["transmission_fraction"] = diags.get("transmission_fraction", diags.get("transmission", np.nan))
 
         rows.append(row)
 

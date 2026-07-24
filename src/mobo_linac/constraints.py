@@ -5,6 +5,7 @@ Evaluates beam quality constraints and feasibility status using centralized
 configuration thresholds.
 """
 
+import math
 from typing import Dict, Optional, Tuple, Union
 import torch
 
@@ -29,9 +30,8 @@ class ConstraintEvaluator:
 
         Args:
             diagnostics: Dictionary containing diagnostic statistics:
-                ['sigma_x'/'sigma_x_m', 'sigma_y'/'sigma_y_m', 'sigma_xp'/'sigma_xp_rad',
-                 'sigma_yp'/'sigma_yp_rad', 'sigma_z'/'sigma_z_m',
-                 'mean_kinetic_energy'/'mean_kinetic_energy_eV']
+                ['sigma_x_m', 'sigma_y_m', 'sigma_xp_rad', 'sigma_yp_rad',
+                 'sigma_z_m', 'mean_kinetic_energy_eV', 'transmission_fraction']
 
         Returns:
             True if all constraints are satisfied, False otherwise.
@@ -39,13 +39,20 @@ class ConstraintEvaluator:
         if not diagnostics:
             return False
 
-        sigma_x = diagnostics.get("sigma_x", diagnostics.get("sigma_x_m", 999.0))
-        sigma_y = diagnostics.get("sigma_y", diagnostics.get("sigma_y_m", 999.0))
-        sigma_xp = diagnostics.get("sigma_xp", diagnostics.get("sigma_xp_rad", 999.0))
-        sigma_yp = diagnostics.get("sigma_yp", diagnostics.get("sigma_yp_rad", 999.0))
-        sigma_z = diagnostics.get("sigma_z", diagnostics.get("sigma_z_m", 999.0))
-        energy = diagnostics.get("mean_kinetic_energy", diagnostics.get("mean_kinetic_energy_eV", 0.0))
-        transmission = diagnostics.get("transmission", 1.0)
+        # Require explicit or alias transmission field
+        if "transmission_fraction" not in diagnostics and "transmission" not in diagnostics:
+            return False
+
+        transmission = diagnostics.get("transmission_fraction", diagnostics.get("transmission"))
+        if transmission is None or math.isnan(transmission) or math.isinf(transmission):
+            return False
+
+        sigma_x = diagnostics.get("sigma_x_m", diagnostics.get("sigma_x", 999.0))
+        sigma_y = diagnostics.get("sigma_y_m", diagnostics.get("sigma_y", 999.0))
+        sigma_xp = diagnostics.get("sigma_xp_rad", diagnostics.get("sigma_xp", 999.0))
+        sigma_yp = diagnostics.get("sigma_yp_rad", diagnostics.get("sigma_yp", 999.0))
+        sigma_z = diagnostics.get("sigma_z_m", diagnostics.get("sigma_z", 999.0))
+        energy = diagnostics.get("mean_kinetic_energy_eV", diagnostics.get("mean_kinetic_energy", 0.0))
 
         is_feasible = (
             (sigma_x <= self.config.max_sigma_x_m)
@@ -69,13 +76,13 @@ class ConstraintEvaluator:
         Returns:
             Dictionary of violation amounts for each constraint.
         """
-        sigma_x = diagnostics.get("sigma_x", diagnostics.get("sigma_x_m", 999.0))
-        sigma_y = diagnostics.get("sigma_y", diagnostics.get("sigma_y_m", 999.0))
-        sigma_xp = diagnostics.get("sigma_xp", diagnostics.get("sigma_xp_rad", 999.0))
-        sigma_yp = diagnostics.get("sigma_yp", diagnostics.get("sigma_yp_rad", 999.0))
-        sigma_z = diagnostics.get("sigma_z", diagnostics.get("sigma_z_m", 999.0))
-        energy = diagnostics.get("mean_kinetic_energy", diagnostics.get("mean_kinetic_energy_eV", 0.0))
-        transmission = diagnostics.get("transmission", 1.0)
+        transmission = diagnostics.get("transmission_fraction", diagnostics.get("transmission", 0.0))
+        sigma_x = diagnostics.get("sigma_x_m", diagnostics.get("sigma_x", 999.0))
+        sigma_y = diagnostics.get("sigma_y_m", diagnostics.get("sigma_y", 999.0))
+        sigma_xp = diagnostics.get("sigma_xp_rad", diagnostics.get("sigma_xp", 999.0))
+        sigma_yp = diagnostics.get("sigma_yp_rad", diagnostics.get("sigma_yp", 999.0))
+        sigma_z = diagnostics.get("sigma_z_m", diagnostics.get("sigma_z", 999.0))
+        energy = diagnostics.get("mean_kinetic_energy_eV", diagnostics.get("mean_kinetic_energy", 0.0))
 
         return {
             "sigma_x_m": max(0.0, sigma_x - self.config.max_sigma_x_m),
