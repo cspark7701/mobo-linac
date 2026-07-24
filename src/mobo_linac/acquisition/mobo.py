@@ -7,6 +7,7 @@ Constructs and optimizes qLogNEHVI and qEHVI acquisition functions.
 from typing import Any, Dict, Optional, Tuple, Union
 import torch
 from botorch.acquisition.multi_objective.logei import (
+    qLogExpectedHypervolumeImprovement,
     qLogNoisyExpectedHypervolumeImprovement,
 )
 from botorch.acquisition.multi_objective.monte_carlo import (
@@ -32,7 +33,7 @@ def build_acquisition_function(
     sampler: Optional[Any] = None,
 ) -> Any:
     """
-    Constructs a multi-objective acquisition function (qLogNEHVI or qEHVI).
+    Constructs a multi-objective acquisition function (qLogNEHVI, qLogEHVI, qEHVI, or qNEHVI).
 
     Args:
         model: Fitted ModelListGP surrogate model.
@@ -40,7 +41,7 @@ def build_acquisition_function(
         train_Y: (N, M) PyTorch double tensor of model-space objectives.
         ref_point: 1D PyTorch double tensor reference point in model space.
         train_feas_mask: Optional boolean feasibility mask.
-        acq_type: Acquisition function type ('qLogNEHVI' or 'qEHVI').
+        acq_type: Acquisition function type ('qLogNEHVI', 'qLogEHVI', 'qEHVI', 'qNEHVI').
         sampler: Optional Monte Carlo sampler.
 
     Returns:
@@ -50,31 +51,47 @@ def build_acquisition_function(
     train_X_dbl = train_X.to(dtype=torch.double)
     train_Y_dbl = train_Y.to(dtype=torch.double)
 
-    if acq_type == "qLogNEHVI":
-        acq_func = qLogNoisyExpectedHypervolumeImprovement(
-            model=model,
-            ref_point=ref_point_dbl,
-            X_baseline=train_X_dbl,
-            prune_baseline=True,
-            sampler=sampler,
-        )
-    elif acq_type == "qEHVI":
-        # Partition non-dominated set for qEHVI
-        feasible_mask = train_feas_mask if train_feas_mask is not None else torch.ones(train_Y_dbl.shape[0], dtype=torch.bool)
-        if feasible_mask.sum().item() > 0:
-            feas_Y = train_Y_dbl[feasible_mask]
-            partitioning = FastNondominatedPartitioning(ref_point=ref_point_dbl, Y=feas_Y)
-        else:
-            partitioning = FastNondominatedPartitioning(ref_point=ref_point_dbl, Y=train_Y_dbl)
-
-        acq_func = qExpectedHypervolumeImprovement(
-            model=model,
-            ref_point=ref_point_dbl,
-            partitioning=partitioning,
-            sampler=sampler,
-        )
+    feasible_mask = train_feas_mask if train_feas_mask is not None else torch.ones(train_Y_dbl.shape[0], dtype=torch.bool)
+    if feasible_mask.sum().item() > 0:
+        feas_Y = train_Y_dbl[feasible_mask]
     else:
-        raise ValueError(f"Unsupported acquisition type: '{acq_type}'. Choose 'qLogNEHVI' or 'qEHVI'.")
+        feas_Y = train_Y_dbl
+
+    if acq_type in ("qLogEHVI", "qEHVI"):
+        partitioning = FastNondominatedPartitioning(ref_point=ref_point_dbl, Y=feas_Y)
+        if acq_type == "qLogEHVI":
+            acq_func = qLogExpectedHypervolumeImprovement(
+                model=model,
+                ref_point=ref_point_dbl,
+                partitioning=partitioning,
+                sampler=sampler,
+            )
+        else:
+            acq_func = qExpectedHypervolumeImprovement(
+                model=model,
+                ref_point=ref_point_dbl,
+                partitioning=partitioning,
+                sampler=sampler,
+            )
+    elif acq_type in ("qLogNEHVI", "qNEHVI"):
+        if acq_type == "qLogNEHVI":
+            acq_func = qLogNoisyExpectedHypervolumeImprovement(
+                model=model,
+                ref_point=ref_point_dbl,
+                X_baseline=train_X_dbl,
+                prune_baseline=True,
+                sampler=sampler,
+            )
+        else:
+            acq_func = qNoisyExpectedHypervolumeImprovement(
+                model=model,
+                ref_point=ref_point_dbl,
+                X_baseline=train_X_dbl,
+                prune_baseline=True,
+                sampler=sampler,
+            )
+    else:
+        raise ValueError(f"Unsupported acquisition type: '{acq_type}'. Choose 'qLogNEHVI', 'qLogEHVI', 'qEHVI', or 'qNEHVI'.")
 
     return acq_func
 
