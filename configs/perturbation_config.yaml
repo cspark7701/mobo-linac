@@ -1,0 +1,42 @@
+version: "1.0"
+description: "Realistic machine and beam perturbation distributions for linac robustness analysis"
+
+num_perturbations: 50
+seed: 42
+
+perturbations:
+  gun_phase_error_deg:
+    distribution: "normal"
+    std: 0.10
+    unit: "deg"
+    basis: "RF phase stability of S-band gun klystron drive"
+  cavity_phase_error_deg:
+    distribution: "normal"
+    std: 0.10
+    unit: "deg"
+    basis: "RF phase stability of main accelerating structures"
+  solenoid_field_relative_error:
+    distribution: "normal"
+    std: 0.001
+    unit: "dimensionless"
+    basis: "Solenoid power supply current ripple (0.1%)"
+  quad_gradient_relative_error:
+    distribution: "normal"
+    std: 0.001
+    unit: "dimensionless"
+    basis: "Quadrupole power supply stability and field gradient calibration (0.1%)"
+  bunch_charge_relative_jitter:
+    distribution: "normal"
+    std: 0.010
+    unit: "dimensionless"
+    basis: "Photocathode laser pulse energy fluctuation (1.0%)"
+  laser_spot_size_relative_jitter:
+    distribution: "normal"
+    std: 0.010
+    unit: "dimensionless"
+    basis: "Laser transport beam size jitter on cathode (1.0%)"
+  laser_pulse_duration_relative_jitter:
+    distribution: "normal"
+    std: 0.010
+    unit: "dimensionless"
+    basis: "Laser pulse duration fluctuation (1.0%)"

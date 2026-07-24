@@ -535,6 +535,15 @@ def main() -> None:
     analyze_bm_parser = subparsers.add_parser("analyze-benchmark", help="Aggregate and analyze completed benchmark campaign results")
     analyze_bm_parser.add_argument("--output-dir", type=str, default="results/publication_benchmark", help="Benchmark campaign directory")
 
+    # Subcommand: run-robustness
+    run_rob_parser = subparsers.add_parser("run-robustness", help="Perform robustness and sensitivity analysis over Pareto candidates")
+    run_rob_parser.add_argument("--config", type=str, default="configs/publication_200mev.yaml", help="Path to config file")
+    run_rob_parser.add_argument("--perturb-config", type=str, default="configs/perturbation_config.yaml", help="Path to perturbation config")
+    run_rob_parser.add_argument("--history-path", type=str, default="results/pareto/pareto_candidates.csv", help="Path to Pareto candidates CSV/JSON")
+    run_rob_parser.add_argument("--output-dir", type=str, default="results/robustness", help="Output directory")
+    run_rob_parser.add_argument("--num-perturbations", type=int, default=50, help="Number of perturbations per candidate")
+    run_rob_parser.add_argument("--seed", type=int, default=42, help="Random seed")
+
     args = parser.parse_args()
 
     if args.command in ("run", "run-unconstrained"):
@@ -566,6 +575,8 @@ def main() -> None:
         runner = BenchmarkCampaignRunner(config=config, output_dir=args.output_dir)
         agg_df, summary_df = runner.analyze_completed_results()
         print(f"Benchmark analysis complete. Aggregate metrics saved in {args.output_dir}")
+    elif args.command == "run-robustness":
+        print(f"Robustness analysis configuration initialized. Artifacts directory: {args.output_dir}")
 
 
 if __name__ == "__main__":
