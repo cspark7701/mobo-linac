@@ -1,0 +1,7 @@
+algorithm,seed,budget,n_sobol_init,batch_size,run_dir,status
+constrained_qlognehvi,42,40,10,4,results/publication_benchmark/per_seed/constrained_qlognehvi_seed_42,completed
+constrained_qlognehvi,43,40,10,4,results/publication_benchmark/per_seed/constrained_qlognehvi_seed_43,completed
+unconstrained_qlognehvi,42,40,10,4,results/publication_benchmark/per_seed/unconstrained_qlognehvi_seed_42,completed
+unconstrained_qlognehvi,43,40,10,4,results/publication_benchmark/per_seed/unconstrained_qlognehvi_seed_43,completed
+sobol,42,40,10,4,results/publication_benchmark/per_seed/sobol_seed_42,completed
+sobol,43,40,10,4,results/publication_benchmark/per_seed/sobol_seed_43,completed

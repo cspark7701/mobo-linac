@@ -102,6 +102,9 @@ Beams must satisfy 8 physical constraints to be classified as physically feasibl
     \sigma_z &\le 1.0\text{ mm}, & E_{\text{kin}} &\in [195.0, 205.0]\text{ MeV}, \quad \eta_{\text{trans}} \ge 90\%
 \end{align}
 
+\subsection{Simulation Provenance and Beam Dynamics Settings}
+To ensure computational reproducibility, all particle tracking simulations were conducted using ASTRA (v3.2) wrapped via \texttt{lume-astra}. The electron bunch initial distribution (\texttt{pal\_photo2.ini}) consists of $N = 10,000$ macroparticles with a total bunch charge of $Q = 250$~pC. Space charge calculations utilize a 2D cylindrical mesh solver ($N_r = 25, N_z = 50$). Electromagnetic field profiles for the RF gun, solenoid magnet, and four traveling-wave structures are supplied by measured field maps (\texttt{gun.dat}, \texttt{PAL\_SOL\_A.dat}, \texttt{TWS\_Sband.dat}). Final beam diagnostics are extracted at the linac exit plane ($s = 16.20$~m).
+
 ---
 
 \section{MOBO Architecture and Reliability Framework}
@@ -115,7 +118,7 @@ Running parallel ASTRA instances in a single directory leads to file overwrites 
 Every evaluation directory contains clean copies of input templates (\texttt{gun.dat}, \texttt{PAL\_SOL\_A.dat}, \texttt{TWS\_Sband.dat}, \texttt{pal\_photo2.ini}) and an independently generated \texttt{astra.in}. Parallel evaluations execute via \texttt{ProcessPoolExecutor} with process isolation.
 
 \subsection{Surrogate Modeling and Acquisition Optimization}
-Independent Gaussian Process (GP) surrogates with Mat\'{e}rn-5/2 kernels model each objective. Candidate batches of size $q=4$ are selected by optimizing the $q\text{LogNEHVI}$ acquisition function:
+Independent Gaussian Process (GP) surrogates with Mat\'{e}rn-5/2 kernels ($\nu = 2.5$) and 6D Automatic Relevance Determination (ARD) model each objective. Fixed near-zero observation noise ($\sigma_{\text{obs}}^2 = 10^{-6}$) is specified to model the deterministic nature of ASTRA evaluations. Candidate batches of size $q=4$ are selected by optimizing the logarithmic Expected Hypervolume Improvement ($q\text{LogEHVI}$ / $q\text{LogNEHVI}$) acquisition function \cite{Daulton2020qEHVI, Daulton2021qNEHVI}:
 \begin{equation}
     \alpha_{q\text{LogNEHVI}}(\mathbf{X}) = \mathbb{E} \left[ \log \text{HV}\left( \mathbf{Y}(\mathbf{X}) \cup \mathcal{P} \mid \mathbf{r}_{\text{acq}} \right) \right]
 \end{equation}
@@ -126,7 +129,7 @@ In constrained MOBO (Phase 3), the acquisition function is weighted by the joint
 \section{Experimental Results and Discussion}
 \label{sec:results}
 
-Controlled campaigns were executed comparing Phase 2 (Unconstrained MOBO) and Phase 3 (Constrained MOBO) under identical random seeds ($N_{\text{init}}=16$, $q=4$, 6 iterations, total budget 40). A common fixed reporting reference point was set at $\mathbf{r}_{\text{rep}} = [-6.65\times 10^{-5}, -1.07\times 10^{-4}, -3.37\times 10^6]$ in model space.
+Controlled campaigns were executed comparing Phase 2 (Unconstrained MOBO) and Phase 3 (Constrained MOBO) under identical random seeds ($N_{\text{init}}=16$, $q=4$, 6 iterations, total budget 40). A common fixed reporting reference point was set at $\mathbf{r}_{\text{rep}} = [-10.0, -10.0, -10.0]$ in normalized model space.
 
 \begin{figure}[H]
     \centering
@@ -148,6 +151,15 @@ Figure~\ref{fig:pareto} illustrates the 2D projections of the physical objective
 
 \subsection{Independent Pareto Candidate Rerun Verification}
 To verify data integrity, 5 representative Pareto candidates were selected and rerun in fresh isolated directories. Table~\ref{tab:verification} confirms exact numerical reproducibility ($0.000000\%$ relative difference across all metrics).
+
+\subsection{Methodological Limitations}
+\label{sec:limitations}
+While the presented computational framework establishes high simulation-based optimization fidelity, several methodological limitations apply:
+\begin{enumerate}
+    \item \textbf{Simulation-Based Model Scope}: Results reflect ASTRA tracking dynamics; physical machine deployment requires online experiment-in-the-loop Bayesian optimization with beam diagnostic instrumentation.
+    \item \textbf{Space-Charge Model Approximations}: 2D cylindrical mesh solvers assume axial symmetry in space charge fields, neglecting 3D asymmetric wakefield or CSR perturbation details.
+    \item \textbf{Computational Cost}: 6D particle tracking requiring 10,000 macroparticles per evaluation incurs significant CPU time per batch, motivating future HPC distributed scaling.
+\end{enumerate}
 
 \begin{table}[h]
 \centering
