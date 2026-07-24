@@ -15,38 +15,48 @@ Research on initial scalarized Bayesian Optimization was presented at **ICABU 20
 
 ---
 
+## Quick Links & Documentation
+
+- 📖 **[Step-by-Step Simulation Guide](file:///home/cspark/Work/projects/mobo_linac/docs/simulation_guide.md)**: Detailed execution guide for CLI, scripts, and notebooks.
+- 📄 **[Journal Paper Draft (LaTeX)](file:///home/cspark/Work/projects/mobo_linac/docs/paper/main.tex)**: Journal manuscript draft and figures in `docs/paper/`.
+- 📋 **[Completed & Active Milestone Execution Plans](file:///home/cspark/Work/projects/mobo_linac/docs/exec-plans/completed/00_milestone_refactor_summary.md)**: Refactoring task logs and roadmap.
+
+---
+
 ## Repository Structure
 
 ```
 mobo_linac/
 ├── README.md                          # Project documentation
 ├── AGENTS.md                          # Developer & agent design specifications
-├── LICENSE                            # License file
+├── pyproject.toml                     # Package dependencies & CLI entry points
 │
-├── astra.in                           # Main ASTRA simulation configuration
-├── gun.dat                            # RF gun electromagnetic field map
-├── PAL_SOL_A.dat                      # Solenoid field map
-├── TWS_Sband.dat                      # Traveling-wave cavity field map
-├── pal_photo2.ini                     # Initial particle distribution
+├── src/mobo_linac/                    # Core Python package
+│   ├── astra/                         # Isolated workdir manager & runner
+│   ├── execution/                     # ProcessPoolExecutor parallel batch evaluator
+│   ├── config.py                      # Centralized YAML configuration parser
+│   ├── evaluation.py                  # EvaluationResult & FailureCategory schema
+│   ├── objectives.py                  # Physical <-> Model space conversions
+│   ├── constraints.py                 # Beam quality constraint evaluator
+│   ├── metrics/                       # Fixed reporting reference point & hypervolume
+│   ├── io/                            # Results dataframes & CSV export
+│   └── plotting/                      # Pareto, hypervolume, & diagnostic figures
 │
-├── run_astra.py                       # ASTRA simulation runner & objective extractor
-├── mobo_utils.py                      # MOBO objective evaluation & feasibility checks
-├── file_io.py                         # Structured result logging & GP checkpointing
-├── plot_utils.py                      # Visualization utilities (Pareto, Hypervolume, etc.)
-├── utils.py                           # Relativistic & emittance helper physics routines
+├── configs/
+│   └── mobo_200mev.yaml               # Centralized configuration file
 │
-├── scripts/
-│   ├── run_mobo.py                    # Phase 2: MOBO script (qLogNEHVI)
-│   └── run_constrained_mobo.py        # Phase 3: Constraint-Aware MOBO (GP constraints)
+├── docs/
+│   ├── simulation_guide.md            # Step-by-step execution guide
+│   ├── paper/                         # LaTeX journal manuscript (main.tex, main.pdf)
+│   ├── exec-plans/                    # Active and completed task plans
+│   └── results/                       # Validation reports and figures
 │
-├── notebooks/
-│   ├── phase2_mobo.ipynb              # Phase 2 MOBO interactive notebook
-│   └── phase3_constrained_mobo.ipynb  # Phase 3 Constrained MOBO notebook
-│
-├── data/                              # Data export directory
-├── img/                               # Optimization output plots
-└── results/                           # Output directory for optimization runs
+├── scripts/                           # Campaign & comparison execution scripts
+├── notebooks/                         # Interactive analysis notebooks
+├── tests/                             # Pytest test suite (31 unit tests)
+└── results/                           # Optimization run output directories
 ```
+
 
 ---
 

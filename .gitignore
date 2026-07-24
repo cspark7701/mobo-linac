@@ -34,6 +34,14 @@ Thumbs.db
 .ipynb_checkpoints
 *checkpoint.ipynb
 
+# latex
+*.aux
+*.bbl
+*.blg
+*.log
+*.out
+*.toc
+
 mobo_linac_backup_20250828/
 mobo_linac_backup_20260722/
 
