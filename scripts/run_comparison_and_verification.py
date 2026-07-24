@@ -22,11 +22,6 @@ import pandas as pd
 import torch
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
-# Ensure src is in sys.path
-src_dir = Path(__file__).resolve().parents[1] / "src"
-if str(src_dir) not in sys.path:
-    sys.path.insert(0, str(src_dir))
-
 from mobo_linac.acquisition.mobo import (
     build_acquisition_function,
     generate_next_candidates,
