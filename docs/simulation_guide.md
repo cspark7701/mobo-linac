@@ -1,167 +1,136 @@
-# Step-by-Step Simulation & Execution Guide
+# Unified Simulation Procedure and Publication Workflow Guide
 
-This document provides complete instructions for executing accelerator beam dynamics simulations and Multi-Objective Bayesian Optimization (MOBO) campaigns for the **200 MeV Electron Injector Linac**.
-
----
-
-## 1. Prerequisites & Environment Setup
-
-### 1.1 Python Environment
-Ensure you are using Python $\ge 3.10$ with PyTorch, BoTorch, GPyTorch, and ASTRA Python wrappers installed:
-```bash
-# Activate your conda or virtual environment
-conda activate linac-opt   # or source venv/bin/activate
-```
-
-### 1.2 Package Installation
-Install `mobo_linac` in editable development mode from the repository root:
-```bash
-cd /home/cspark/Work/projects/mobo_linac
-pip install -e .
-```
-
-Verify that the CLI entry point is installed and working:
-```bash
-mobo-linac --help
-```
-
-### 1.3 ASTRA Binary Verification
-Ensure the `ASTRA` executable is present in your `PATH` or accessible by the environment:
-```bash
-which ASTRA
-```
+This document provides a single, comprehensive reference for the simulation procedure, accelerator physics specifications, Multi-Objective Bayesian Optimization (MOBO) architecture, statistical benchmark campaign protocol, robustness analysis, independent Pareto candidate verification, and manuscript reproduction workflow for the **200 MeV S-Band Electron Injector Linac**.
 
 ---
 
-## 2. Simulation Methods
+## 1. Accelerator Physics & Design Specifications
 
-You can run simulations using three distinct interfaces:
-- **Method A: Package CLI (`mobo-linac`)** — *Recommended for production and reproducible runs*.
-- **Method B: Modular Python Scripts** — *Recommended for controlled campaigns & comparative research*.
-- **Method C: Jupyter Notebooks** — *Recommended for interactive exploratory analysis*.
+### 1.1 Injector Linac Architecture
+The 200 MeV electron injector linac consists of:
+- **RF Photo-Gun**: S-band 1.5-cell RF gun with photocathode driven by a UV laser pulse ($Q = 250\text{ pC}$, $N = 10,000$ macroparticles).
+- **Solenoid Magnet**: Peak solenoidal focusing field $B_{\text{sol}}$ for transverse emittance compensation.
+- **Accelerating Structures**: Four S-band traveling-wave structures (ACC1--ACC4) arranged in two coupled RF phase pairs ($\phi_{\text{acc1/2}}$ and $\phi_{\text{acc3/4}}$).
+- **Quadrupole Doublets**: Two quadrupole magnets ($G_{q1}$ and $G_{q2}$) for final beam envelope matching.
 
----
+### 1.2 Continuous 6D Design Variables
+The optimization controls six accelerator parameters written into `astra.in`:
 
-### Method A: Package CLI (`mobo-linac`)
+| Variable | Description | ASTRA Keyword | Bounds | Unit |
+| :--- | :--- | :--- | :--- | :---: |
+| $B_{\text{sol}}$ | Solenoid Peak Field | `solenoid:maxb(1)` | $[0.097400, 0.292200]$ | T |
+| $G_{q1}$ | Quadrupole 1 Gradient | `quadrupole:q_grad(1)` | $[0.643300, 1.929800]$ | T/m |
+| $G_{q2}$ | Quadrupole 2 Gradient | `quadrupole:q_grad(2)` | $[-4.330028, -1.443343]$ | T/m |
+| $\phi_{\text{gun}}$ | RF Gun Phase | `cavity:phi(1)` | $[32.05800, 39.18200]$ | deg |
+| $\phi_{\text{acc1/2}}$ | ACC1/2 Coupled Phase | `cavity:phi(2,3)` | $[-43.46100, -35.55900]$ | deg |
+| $\phi_{\text{acc3/4}}$ | ACC3/4 Coupled Phase | `cavity:phi(4,5)` | $[279.0450, 341.0550]$ | deg |
 
-The command-line interface provides standardized execution, checkpointing, and post-analysis.
+*Note: Quad 2 bounds are strictly ordered $L \le U$ ($[-4.330028, -1.443343]$).*
 
-#### 2.1 Run a New Optimization Campaign
-To launch a full MOBO campaign with default or custom configuration:
-```bash
-mobo-linac run --config configs/mobo_200mev.yaml
-```
-- **Execution Flow**:
-  1. Loads `configs/mobo_200mev.yaml` (design variables, bounds, objectives, constraints).
-  2. Generates initial Sobol quasi-random sample points ($N=16$).
-  3. Evaluates ASTRA simulations in process-isolated working directories (`results/<run_id>/work/eval_<id>/`).
-  4. Fits independent Gaussian Process (GP) surrogates.
-  5. Optimizes the $q\text{LogNEHVI}$ acquisition function to select batch candidates ($q=4$).
-  6. Iterates for the specified number of optimization batches (saving checkpoints per iteration).
+### 1.3 Objective Functions
+Three beam quality metrics are simultaneously minimized at the linac exit plane ($s = 16.20\text{ m}$):
+1. **Horizontal Normalized Emittance** ($\varepsilon_{n,x}$): $[\text{m}\cdot\text{rad}]$
+2. **Vertical Normalized Emittance** ($\varepsilon_{n,y}$): $[\text{m}\cdot\text{rad}]$
+3. **RMS Energy Spread** ($\sigma_E$): $[\text{eV}]$
 
-#### 2.2 Resume an Interrupted Campaign
-If a campaign is interrupted or you wish to run additional iterations:
-```bash
-mobo-linac resume --run-dir results/<run_id>
-```
+*Model Space Transformation*: $\mathbf{y}_{\text{model}} = -\mathbf{y}_{\text{phys}}$ for BoTorch maximization.
 
-#### 2.3 Analyze Results and Generate Plots
-To post-process an existing run directory and export diagnostic figures:
-```bash
-mobo-linac analyze --run-dir results/<run_id>
-```
-
----
-
-### Method B: Modular Python Scripts
-
-For batch campaign execution, validation, and Phase 2 vs Phase 3 comparisons, use the dedicated scripts in `scripts/`.
-
-#### 2.1 Reproducible Validation Campaign (Phase 3 Constrained MOBO)
-Executes a single controlled campaign with feasibility filtering:
-```bash
-python scripts/run_validation_campaign.py
-```
-- **Key Features**:
-  - Uses fixed reporting reference point derived from the initial sample space.
-  - Generates full dataset exports in `results/validation_<timestamp>/`.
-
-#### 2.2 Controlled Comparison & Independent Pareto Candidate Verification
-Executes Phase 2 (Unconstrained MOBO) and Phase 3 (Constrained MOBO) under exact protocol parity, followed by independent rerun verification of key Pareto candidates:
-```bash
-python scripts/run_comparison_and_verification.py
-```
-- **Key Features**:
-  - Parity enforcement: identical initial seed ($42$), Sobol initial design ($N=16$), batch size ($q=4$), parameter bounds, and fixed reporting reference point.
-  - Selects 5 representative Pareto candidates (`min_emit_x`, `min_emit_y`, `min_sigma_energy`, `knee_point`, `balanced_feasible`).
-  - Reruns candidates in fresh isolated workdirs to check for zero cross-talk ($< 10^{-3}\%$ relative error threshold).
-  - Automatically exports comparison figures and updates [docs/results/mobo_validation_report.md](file:///home/cspark/Work/projects/mobo_linac/docs/results/mobo_validation_report.md).
-
-#### 2.3 Individual MOBO Scripts
-- `python scripts/run_mobo.py`: Runs baseline unconstrained MOBO.
-- `python scripts/run_constrained_mobo.py`: Runs feasibility-constrained MOBO.
+### 1.4 Beam Quality Constraints
+Beams must satisfy 8 physical constraints to be classified as physically feasible:
+- $\sigma_x, \sigma_y \le 1.0\text{ mm}$
+- $\sigma_{x'}, \sigma_{y'} \le 1.0\text{ mrad}$
+- Longitudinal bunch length $\sigma_z \le 1.0\text{ mm}$
+- Mean Kinetic Energy $195.0\text{ MeV} \le E_{\text{kin}} \le 205.0\text{ MeV}$
+- Beam Transmission Fraction $\eta_{\text{trans}} \ge 90\%$
 
 ---
 
-### Method C: Jupyter Notebooks
+## 2. ASTRA Simulation & Execution Procedure
 
-For interactive visualization, step-by-step debugging, or custom plot generation:
+### 2.1 Process-Isolated Working Directories
+To eliminate file race conditions during multi-core parallel evaluations, every ASTRA simulation executes inside a dedicated working directory:
+$$\mathcal{D}_i = \text{\texttt{results/<run\_id>/work/eval\_00000i/}}$$
 
-#### Execution Order:
+Each directory contains:
+- Regenerated `astra.in`
+- Clean copies of static field maps and particle distributions (`gun.dat`, `PAL_SOL_A.dat`, `TWS_Sband.dat`, `pal_photo2.ini`)
+- Isolated simulation log and output files (`astra.Log`, `astra.out`)
 
-1. **[get_data.ipynb](file:///home/cspark/Work/projects/mobo_linac/get_data.ipynb)**:
-   - Initial Sobol sampling ($N=16$).
-   - Runs initial ASTRA evaluations to populate baseline training dataset (`train_X.csv`, `train_Y.csv`).
-
-2. **[mobo.ipynb](file:///home/cspark/Work/projects/mobo_linac/mobo.ipynb)** or **[scalarized_bo.ipynb](file:///home/cspark/Work/projects/mobo_linac/scalarized_bo.ipynb)**:
-   - Interactive iteration of Bayesian Optimization algorithm ($q\text{LogNEHVI}$ or scalarized acquisition).
-   - Real-time display of GP surrogate fit and hypervolume growth.
-
-3. **[get_data-postprocessing.ipynb](file:///home/cspark/Work/projects/mobo_linac/get_data-postprocessing.ipynb)**:
-   - Post-processing and diagnostic analysis of completed runs.
-   - Generates 2D/3D Pareto front scatter plots, constraint violation breakdown, and manuscript figure exports.
+### 2.2 Strict Evaluation Failure Semantics
+Numerical simulation validity (`simulation_valid`) is strictly separated from physical beam feasibility (`physically_feasible`):
+- **`MISSING_OUTPUT`**: ASTRA failed to write output particles $\implies$ Invalid simulation.
+- **`NAN_INF_DIAGNOSTICS`**: Negative or non-finite RMS beam sizes/emittances $\implies$ Invalid simulation.
+- **`INVALID_TRANSMISSION`**: Transmission $< 0\%$ or $> 100\%$ $\implies$ Invalid simulation.
+- **`INFEASIBLE_BEAM`**: Valid simulation violating beam quality constraints $\implies$ Valid simulation, Infeasible beam.
 
 ---
 
-## 3. Output Directory Structure
-
-Each optimization campaign creates a timestamped run directory under `results/`:
+## 3. Multi-Objective Bayesian Optimization Architecture
 
 ```text
-results/<run_id>/
-├── config.yaml                     # Saved run configuration
-├── evaluations.csv                 # Master evaluation history with metadata
-├── objectives_physical.csv         # Physical objective values (emit_x, emit_y, sigma_e)
-├── objectives_model.csv            # Model space negated objective values (-emit_x, -emit_y, -sigma_e)
-├── constraints.csv                 # Diagnostic beam metrics (sigma_x, sigma_y, E_kin, transmission)
-├── candidate_history.csv           # Physical parameter vectors evaluated
-├── hypervolume.csv                 # Iteration-by-iteration hypervolume history
-├── pareto_all.csv                  # Non-dominated set among all valid points
-├── pareto_feasible.csv             # Non-dominated set among physically feasible points
-├── failures.csv                    # Log of invalid or failed simulations
-├── checkpoints/                    # GP model and optimizer state checkpoints
-├── figures/                        # Generated diagnostic plots
-└── work/                           # Isolated ASTRA working directories
-    ├── eval_000001/
-    │   ├── astra.in
-    │   ├── gun.dat
-    │   ├── PAL_SOL_A.dat
-    │   ├── TWS_Sband.dat
-    │   ├── pal_photo2.ini
-    │   ├── manifest.json
-    │   └── astra.Log.001
-    └── ...
+               Parameter Vector (6D)
+                        │
+                        ▼
+       Isolated Working Directory Setup
+                        │
+                        ▼
+               Parallel ASTRA Run
+                        │
+                        ▼
+      Extract Beam Statistics & Diagnostics
+                        │
+                        ▼
+     Evaluate Objectives & Constraint Status
+                        │
+                        ▼
+  Update Independent ARD Matérn-5/2 GP Surrogates
+                        │
+                        ▼
+  Optimize qLogNEHVI / qLogEHVI Acquisition Function
+                        │
+                        ▼
+      Propose Next Candidate Batch (q = 4)
 ```
+
+### 3.1 Surrogate Modeling
+- **Kernel**: Independent Matérn-5/2 ARD kernel ($\nu = 2.5$) for each objective and constraint diagnostic.
+- **Noise Treatment**: Fixed near-zero noise variance ($\sigma_{\text{obs}}^2 = 10^{-6}$) modeling deterministic ASTRA simulations.
+
+### 3.2 Standardized Reporting Metrics
+- **Engineering Scale Factors**: $S_{\varepsilon_{n,x}} = 10^{-6}\text{ m}\cdot\text{rad}$, $S_{\varepsilon_{n,y}} = 10^{-6}\text{ m}\cdot\text{rad}$, $S_{\sigma_E} = 10^{6}\text{ eV}$.
+- **Reporting Reference Point**: Fixed at $R_{\text{model, norm}} = [-10.0, -10.0, -10.0]$ in normalized model space.
 
 ---
 
-## 4. Verification & Testing
+## 4. Benchmark, Robustness, Verification, & Publication Workflow
 
-To run the automated unit test suite without executing ASTRA:
-```bash
-pytest
-```
-To include real ASTRA integration tests:
-```bash
-pytest -m integration
-```
+### 4.1 Seed-Paired Benchmark Campaign Protocol
+- **Supported Algorithms**: `constrained_qlognehvi`, `unconstrained_qlognehvi`, `qlogehvi`, `scalarized_bo`, `nsga2`, `sobol`.
+- **Seed Pairing**: Identical initial Sobol candidate points generated per seed $s$.
+- **Statistical Aggregation**: Median hypervolume trajectories and 95% bootstrap confidence intervals ($B = 1000$ resamples).
+
+### 4.2 Machine & Beam Perturbation Robustness Analysis
+- **Perturbation Specifications**: RF phase jitter ($\pm 0.10^\circ$), magnet field calibration errors ($\pm 0.10\%$), bunch charge & laser spot size jitters ($\pm 1.00\%$).
+- **Candidate Selection**: 5 representative Pareto candidates ($\min \varepsilon_{n,x}$, $\min \varepsilon_{n,y}$, $\min \sigma_E$, `knee_point`, `balanced`).
+- **Robust Operating Point**: Knee Point recommended as robust baseline ($P_{\text{feas}} \ge 95\%$, emittance growth $< 3\%$).
+
+### 4.3 Independent Pareto Candidate Rerun Verification
+- **7 Selection Roles**: `min_emit_x`, `min_emit_y`, `min_sigma_energy`, `knee_point`, `crowding_distance_max`, `balanced_feasible`, `robust_recommended`.
+- **Checksums**: SHA-256 hashes recorded for input files and static field maps.
+- **Status Classification**: `VERIFIED` ($\text{Error}_{\text{max}} < 10^{-3}\%$), `CONDITIONALLY_VERIFIED` ($< 0.10\%$), `REJECTED` ($\ge 0.10\%$).
+- **LaTeX Export**: Automated export to `verification_table.tex`.
+
+---
+
+## 5. Command Reference Table
+
+| Workflow Step | Command | Primary Outputs |
+| :--- | :--- | :--- |
+| **Run Constrained MOBO** | `mobo-linac run-constrained --config configs/publication_200mev.yaml` | `results/run_YYYYMMDD_HHMMSS/` |
+| **Run Unconstrained MOBO** | `mobo-linac run-unconstrained --config configs/publication_200mev.yaml` | `results/run_YYYYMMDD_HHMMSS/` |
+| **Run Benchmark Campaign** | `mobo-linac run-benchmark --config configs/publication_200mev.yaml` | `results/publication_benchmark/` |
+| **Analyze Benchmark** | `mobo-linac analyze-benchmark --output-dir results/publication_benchmark` | `aggregate_metrics.csv`, CIs |
+| **Run Robustness Analysis** | `mobo-linac run-robustness --config configs/publication_200mev.yaml` | `results/robustness/` |
+| **Run Pareto Verification** | `mobo-linac run-verification --config configs/publication_200mev.yaml` | `verification_table.tex` |
+| **Reproduce Paper Artifacts** | `./scripts/reproduce_paper.sh` | Figures, `main.pdf` |
+| **Run Unit Test Suite** | `pytest -m "not integration"` | 74 passed unit tests |

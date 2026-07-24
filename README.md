@@ -17,9 +17,9 @@ Research on initial scalarized Bayesian Optimization was presented at **ICABU 20
 
 ## Quick Links & Documentation
 
-- 📖 **[Step-by-Step Simulation Guide](file:///home/cspark/Work/projects/mobo_linac/docs/simulation_guide.md)**: Detailed execution guide for CLI, scripts, and notebooks.
-- 📄 **[Journal Paper Draft (LaTeX)](file:///home/cspark/Work/projects/mobo_linac/docs/paper/main.tex)**: Journal manuscript draft and figures in `docs/paper/`.
-- 📋 **[Completed & Active Milestone Execution Plans](file:///home/cspark/Work/projects/mobo_linac/docs/exec-plans/completed/00_milestone_refactor_summary.md)**: Refactoring task logs and roadmap.
+- 📖 **[Unified Simulation Procedure & Publication Workflow Guide](file:///home/cspark/Work/projects/mobo_linac/docs/simulation_guide.md)**: Master guide for ASTRA simulation procedure, MOBO architecture, benchmark protocol, robustness analysis, Pareto verification, and paper reproduction.
+- 📄 **[Journal Paper Draft (LaTeX)](file:///home/cspark/Work/projects/mobo_linac/docs/paper/main.tex)**: Journal manuscript draft, figures, and compiled PDF in `docs/paper/`.
+- 📋 **[Completed Milestone Execution Plans](file:///home/cspark/Work/projects/mobo_linac/docs/exec-plans/completed/TASK_20_final_audit.md)**: Refactoring and publication task logs (Tasks 01--20).
 
 ---
 
