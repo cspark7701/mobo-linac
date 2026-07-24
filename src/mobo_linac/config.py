@@ -118,6 +118,7 @@ class MoboConfig:
     design_variables: List[DesignVariableConfig]
     objectives: List[ObjectiveConfig]
     constraints: ConstraintsConfig
+    sensitivity_profiles: Dict[str, ConstraintsConfig] = field(default_factory=dict)
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
 
     def validate(self) -> None:
@@ -134,6 +135,14 @@ class MoboConfig:
             obj.validate()
 
         self.constraints.validate()
+        for name, profile in self.sensitivity_profiles.items():
+            profile.validate()
+
+    def get_constraint_profile(self, profile_name: str = "nominal") -> ConstraintsConfig:
+        """Returns the specified constraint sensitivity profile, falling back to main constraints."""
+        if profile_name in self.sensitivity_profiles:
+            return self.sensitivity_profiles[profile_name]
+        return self.constraints
 
     def get_parameter_bounds_tensor(self) -> torch.Tensor:
         """
@@ -167,13 +176,17 @@ class MoboConfig:
         return path
 
 
-def load_config(config_path: Union[str, Path] = "configs/mobo_200mev.yaml") -> MoboConfig:
+def load_config(config_path: Union[str, Path] = "configs/publication_200mev.yaml") -> MoboConfig:
     """
     Load configuration from YAML file.
     """
     path = Path(config_path).resolve()
     if not path.exists():
-        raise FileNotFoundError(f"Configuration file not found: {path}")
+        fallback_path = Path("configs/publication.yaml").resolve()
+        if fallback_path.exists():
+            path = fallback_path
+        else:
+            path = Path("configs/mobo_200mev.yaml").resolve()
 
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)
@@ -181,6 +194,12 @@ def load_config(config_path: Union[str, Path] = "configs/mobo_200mev.yaml") -> M
     design_vars = [DesignVariableConfig(**dv) for dv in data["design_variables"]]
     objs = [ObjectiveConfig(**obj) for obj in data["objectives"]]
     constraints = ConstraintsConfig(**data["constraints"])
+    
+    sens_profiles = {}
+    if "sensitivity_profiles" in data:
+        for pname, pdata in data["sensitivity_profiles"].items():
+            sens_profiles[pname] = ConstraintsConfig(**pdata)
+
     execution = ExecutionConfig(**data.get("execution", {}))
 
     config = MoboConfig(
@@ -189,6 +208,7 @@ def load_config(config_path: Union[str, Path] = "configs/mobo_200mev.yaml") -> M
         design_variables=design_vars,
         objectives=objs,
         constraints=constraints,
+        sensitivity_profiles=sens_profiles,
         execution=execution,
     )
     config.validate()
