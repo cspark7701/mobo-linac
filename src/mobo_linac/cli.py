@@ -523,10 +523,17 @@ def main() -> None:
     resume_parser.add_argument("--n-iterations", type=int, default=300, help="Total BO iterations")
     resume_parser.add_argument("--num-workers", type=int, default=4, help="Number of parallel worker processes")
 
-    # Subcommand: analyze
-    analyze_parser = subparsers.add_parser("analyze", help="Analyze results and generate plots for a run")
-    analyze_parser.add_argument("--run-dir", type=str, required=True, help="Path to run directory")
-    analyze_parser.add_argument("--output-dir", type=str, default=None, help="Custom output directory for figures")
+    # Subcommand: run-benchmark
+    run_bm_parser = subparsers.add_parser("run-benchmark", help="Run a paired multi-seed benchmark campaign")
+    run_bm_parser.add_argument("--config", type=str, default="configs/publication_200mev.yaml", help="Path to config file")
+    run_bm_parser.add_argument("--output-dir", type=str, default="results/publication_benchmark", help="Output directory")
+    run_bm_parser.add_argument("--seeds", nargs="+", type=int, default=list(range(42, 52)), help="List of random seeds")
+    run_bm_parser.add_argument("--budget", type=int, default=40, help="Total evaluation budget")
+    run_bm_parser.add_argument("--num-workers", type=int, default=4, help="Number of parallel worker processes")
+
+    # Subcommand: analyze-benchmark
+    analyze_bm_parser = subparsers.add_parser("analyze-benchmark", help="Aggregate and analyze completed benchmark campaign results")
+    analyze_bm_parser.add_argument("--output-dir", type=str, default="results/publication_benchmark", help="Benchmark campaign directory")
 
     args = parser.parse_args()
 
@@ -542,6 +549,23 @@ def main() -> None:
         resume_optimization(args)
     elif args.command == "analyze":
         analyze_run(args)
+    elif args.command == "run-benchmark":
+        from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
+        config = load_config(args.config)
+        runner = BenchmarkCampaignRunner(
+            config=config,
+            output_dir=args.output_dir,
+            seeds=args.seeds,
+            total_eval_budget=args.budget,
+        )
+        runner.run_campaign_manifest()
+        print(f"Benchmark campaign manifest created at {args.output_dir}/campaign_manifest.csv")
+    elif args.command == "analyze-benchmark":
+        from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
+        config = load_config("configs/publication_200mev.yaml")
+        runner = BenchmarkCampaignRunner(config=config, output_dir=args.output_dir)
+        agg_df, summary_df = runner.analyze_completed_results()
+        print(f"Benchmark analysis complete. Aggregate metrics saved in {args.output_dir}")
 
 
 if __name__ == "__main__":
