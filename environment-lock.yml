@@ -1,0 +1,18 @@
+name: linac-opt-pub
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11.10
+  - numpy=1.26.4
+  - scipy=1.12.0
+  - pandas=2.2.1
+  - matplotlib=3.8.3
+  - pyyaml=6.0.1
+  - pytest=8.0.2
+  - pip
+  - pip:
+    - torch==2.2.1
+    - gpytorch==1.11
+    - botorch==0.10.0
+    - lume-astra>=0.4.0

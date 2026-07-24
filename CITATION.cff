@@ -1,0 +1,20 @@
+cff-version: 1.2.0
+message: "If you use this software or computational framework in your research, please cite it as below."
+authors:
+  - family-names: "Park"
+    given-names: "Chong Shik"
+    orcid: "https://orcid.org/0000-0000-0000-0000"
+    affiliation: "Department of Accelerator Science, Korea University, Sejong, South Korea"
+    email: "kuphy@korea.ac.kr"
+title: "Multi-Objective Bayesian Optimization and Independent Pareto Candidate Verification for a 200 MeV Electron Injector Linac"
+version: 1.0.0
+doi: 10.5281/zenodo.1234567
+date-released: 2026-07-25
+url: "https://github.com/cspark7701/mobo_linac"
+keywords:
+  - electron injector linac
+  - multi-objective bayesian optimization
+  - ASTRA beam dynamics
+  - pareto front verification
+  - qLogNEHVI
+  - hypervolume
