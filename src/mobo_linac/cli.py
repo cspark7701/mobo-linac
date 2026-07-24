@@ -544,6 +544,12 @@ def main() -> None:
     run_rob_parser.add_argument("--num-perturbations", type=int, default=50, help="Number of perturbations per candidate")
     run_rob_parser.add_argument("--seed", type=int, default=42, help="Random seed")
 
+    # Subcommand: run-verification
+    run_ver_parser = subparsers.add_parser("run-verification", help="Rerun Pareto candidates independently for verification")
+    run_ver_parser.add_argument("--config", type=str, default="configs/publication_200mev.yaml", help="Path to config file")
+    run_ver_parser.add_argument("--history-path", type=str, default="results/pareto/pareto_candidates.csv", help="Path to Pareto candidates CSV/JSON")
+    run_ver_parser.add_argument("--output-dir", type=str, default="results/verification", help="Output directory")
+
     args = parser.parse_args()
 
     if args.command in ("run", "run-unconstrained"):
@@ -577,6 +583,8 @@ def main() -> None:
         print(f"Benchmark analysis complete. Aggregate metrics saved in {args.output_dir}")
     elif args.command == "run-robustness":
         print(f"Robustness analysis configuration initialized. Artifacts directory: {args.output_dir}")
+    elif args.command == "run-verification":
+        print(f"Pareto candidate verification initialized. Output directory: {args.output_dir}")
 
 
 if __name__ == "__main__":
