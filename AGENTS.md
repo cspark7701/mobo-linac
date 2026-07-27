@@ -28,29 +28,24 @@ with the next phase extending to qEHVI/qNEHVI-based MOBO. :contentReference[oaic
 Typical repository structure
 
 ```
-project/
+mobo_linac/
 │
-├── astra.in                 # Main ASTRA input
+├── astra.in                 # Main ASTRA input template
 ├── gun.dat                  # RF gun field map
 ├── PAL_SOL_A.dat            # Solenoid field map
 ├── TWS_Sband.dat            # Traveling-wave cavity field map
 ├── pal_photo2.ini           # Initial particle distribution
 │
-├── notebooks/
-│      optimization.ipynb
-│      ...
+├── bin/                     # Integrated local ASTRA executables (astra, generator, etc.)
 │
-├── scripts/
-│      run_astra.py
-│      bo.py
-│      moo.py
-│      utilities.py
-│
-├── results/
-│      logs/
-│      checkpoints/
-│      pareto/
-│      figures/
+├── src/mobo_linac/          # Modular core package (astra, execution, models, metrics, io)
+├── configs/                 # Centralized YAML configuration files
+├── scripts/                 # Optimization & verification execution scripts
+├── notebooks/               # Interactive evaluation & analysis notebooks
+├── tests/                   # Pytest unit test suite
+├── docs/                    # Simulation guide, paper LaTeX, & task summaries
+├── release/                 # Publication artifacts & manifest (v1.0.0)
+├── results/                 # Optimization run output logs & checkpoints
 │
 └── AGENTS.md
 ```
@@ -152,14 +147,20 @@ Generate next candidate(s)
 
 Current implementation
 
-- Gaussian Process surrogate
-- Parallel ASTRA evaluation
-- qLogNEHVI acquisition
-- Hypervolume tracking
-- Pareto visualization
-- Constraint diagnostics
-- GP normalization
-- ThreadPool parallel execution
+- Gaussian Process surrogate (`ModelListGP` with Matérn 5/2 ARD kernel)
+- ProcessPoolExecutor parallel ASTRA evaluation
+- `qLogNEHVI` / `qLogEHVI` acquisition formulations
+- Fixed-reference hypervolume tracking ($\mathbf{r} = [1.5\text{ mm}, 1.5\text{ mm}, 1.5\text{ MeV}]$)
+- Candidate history, SHA-256 evaluation checksums, and Pareto visualization
+- Constraint diagnostics and explicit GP constraint surrogate modeling
+- Automated environment fallback resolution for integrated ASTRA executables (`./bin/astra`)
+
+---
+
+# Execution & Environment Architecture
+
+- **ASTRA Binaries**: Pre-bundled local executables stored under `./bin/` (`astra`, `generator`, `PAstra`). `mobo_linac.astra.runner` dynamically detects `$PROJECT_ROOT/bin/astra` with fallback support for custom `$ASTRA_BIN` environment variables.
+- **Python Dependencies**: Package specified in `pyproject.toml` using PEP 508 direct Git dependencies for `lume-astra` (`git+https://github.com/ChristopherMayes/lume-astra.git`).
 
 ---
 
@@ -167,62 +168,57 @@ Current implementation
 
 ## Phase 1 (Completed)
 
-- Scalarized BO
-- Multiple weight combinations
-- GP surrogate
-- qEI
-- Comparison with MOGA
-- Parallel ASTRA execution
+- Scalarized BO with multiple weight combinations
+- Single-objective GP surrogate & `qEI`
+- Comparison with MOGA benchmark
+- Parallel ASTRA evaluation worker pools
 
 ---
 
-## Phase 2 (Current)
+## Phase 2 (Completed)
 
-Replace scalarization with true MOBO
+Replaced scalarization with true Multi-Objective Bayesian Optimization (MOBO)
 
-Objectives
+Objectives:
+- Horizontal emittance $\varepsilon_x$
+- Vertical emittance $\varepsilon_y$
+- RMS energy spread $\sigma_E$
 
-- εx
-- εy
-- σE
+Models:
+- Independent Gaussian Process (`ModelListGP`) per objective with Matérn 5/2 ARD kernel
 
-Models
+Acquisition:
+- `qLogNEHVI` & `qLogEHVI` acquisition functions
 
-Independent GP for each objective
-
-Acquisition
-
-- qLogNEHVI
-- qEHVI (optional)
-
-Outputs
-
-- Pareto front
-- Hypervolume
-- Candidate history
+Outputs:
+- Pareto front (`pareto.csv`)
+- Hypervolume history (`hypervolume.csv`)
+- Candidate proposal history (`candidate_history.csv`)
 
 ---
 
-## Phase 3
+## Phase 3 (Completed)
 
-Constraint-aware Bayesian Optimization
+Constraint-aware Bayesian Optimization & Publication Freeze (Release `v1.0.0`)
 
-Investigate
-
-- GP constraints
-- Feasibility-weighted acquisition
-- Constrained qNEHVI
-- Probability of Feasibility
+Implemented:
+- Explicit GP models for beam quality constraints ($\sigma_x, \sigma_y, \sigma_z, \sigma_{x'}, \sigma_{y'}, E_{\text{kin}}$)
+- Feasibility-weighted acquisition & Probability of Feasibility modeling
+- Robustness evaluation under engineering tolerances ($\pm 0.1^\circ$ RF phase, $\pm 0.1\%$ magnet fields)
+- Automated Pareto candidate verification protocol with SHA-256 checksum audit
+- Archived publication artifacts (`release/publication_artifact_manifest.json`, tag `v1.0.0`)
 
 ---
 
-## Phase 4
+## Phase 4 (Next)
 
 High-performance optimization
 
 - Distributed ASTRA evaluations
 - MPI
 - Ray
+- Dask
+- Multi-node clusters
 - Dask
 - Multi-node clusters
 
