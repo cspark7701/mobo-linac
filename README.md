@@ -30,6 +30,7 @@ mobo_linac/
 ├── README.md                          # Project documentation
 ├── AGENTS.md                          # Developer & agent design specifications
 ├── pyproject.toml                     # Package dependencies & CLI entry points
+├── bin/                               # Integrated local ASTRA binaries (astra, generator)
 │
 ├── src/mobo_linac/                    # Core Python package
 │   ├── astra/                         # Isolated workdir manager & runner
@@ -152,31 +153,31 @@ results/YYYYMMDD_HHMMSS/
 
 ## Prerequisites & Installation
 
-Running beam dynamics simulations requires both the compiled **ASTRA binaries** and the **`lume-astra` Python interface**.
+The repository is self-contained with **pre-bundled ASTRA binaries** in `./bin/` and automated **`lume-astra` Python interface integration**.
 
-### 1. ASTRA Binary Executables
+### 1. Quick Setup (Single Command)
 
-ASTRA (*A Space Charge Tracking Algorithm*) simulation software requires the compiled execution binaries:
-- `astra`: Main ASTRA tracking simulation executable.
-- `generator`: Particle distribution generator executable.
-
-Ensure these binaries are built/installed on your system and set their file paths in your environment variables (or configure them in `run_astra.py`):
+Clone the repository and install the package with all Python dependencies (including `lume-astra` directly from source):
 
 ```bash
-export ASTRA_BIN="/home/cspark/Work/projects/mobo_linac/bin/astra"
-export GENERATOR_BIN="/home/cspark/Work/projects/mobo_linac/bin/generator"
+git clone https://github.com/cspark7701/mobo_linac.git
+cd mobo_linac
+pip install -e .
 ```
 
-> **Note**: Default fallback paths in `mobo_linac.astra.runner` check the project's local `./bin/astra` and `./bin/generator` binaries automatically.
+### 2. ASTRA Binary Executables
 
-### 2. `lume-astra` Python Package
+The compiled ASTRA simulation binaries are integrated into the local `./bin/` directory:
+- `bin/astra`: Main ASTRA tracking simulation executable.
+- `bin/generator`: Particle distribution generator executable.
 
-The [`lume-astra`](https://github.com/linac-group/lume-astra) package acts as the programmatic Python wrapper for executing ASTRA, parsing parameters into `astra.in`, running tracking calculations, and gathering output beam statistics.
+By default, `mobo_linac.astra.runner` automatically detects and uses the local `./bin/astra` and `./bin/generator` binaries without requiring manual environment variables.
 
-Install `lume-astra` along with all required dependencies:
+If you wish to override these binaries with custom external builds, you can set the environment variables:
 
 ```bash
-pip install lume-astra torch botorch gpytorch scipy pandas matplotlib numpy scikit-optimize
+export ASTRA_BIN="/path/to/custom/bin/astra"
+export GENERATOR_BIN="/path/to/custom/bin/generator"
 ```
 
 ---
