@@ -12,10 +12,15 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 # Default ASTRA binary path fallbacks if environment variables are not set
+_PROJECT_ROOT = Path(__file__).resolve().parents[3]
+_LOCAL_BIN_DIR = _PROJECT_ROOT / "bin"
+
 if "ASTRA_BIN" not in os.environ:
-    os.environ["ASTRA_BIN"] = "/home/cspark/Work/simulation_codes-working/lume-astra/bin/astra"
+    _local_astra = _LOCAL_BIN_DIR / "astra"
+    os.environ["ASTRA_BIN"] = str(_local_astra) if _local_astra.exists() else str(_PROJECT_ROOT / "bin" / "astra")
 if "GENERATOR_BIN" not in os.environ:
-    os.environ["GENERATOR_BIN"] = "/home/cspark/Work/simulation_codes-working/lume-astra/bin/generator"
+    _local_gen = _LOCAL_BIN_DIR / "generator"
+    os.environ["GENERATOR_BIN"] = str(_local_gen) if _local_gen.exists() else str(_PROJECT_ROOT / "bin" / "generator")
 
 from astra import Astra
 from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id

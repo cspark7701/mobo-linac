@@ -163,11 +163,11 @@ ASTRA (*A Space Charge Tracking Algorithm*) simulation software requires the com
 Ensure these binaries are built/installed on your system and set their file paths in your environment variables (or configure them in `run_astra.py`):
 
 ```bash
-export ASTRA_BIN="/path/to/bin/astra"
-export GENERATOR_BIN="/path/to/bin/generator"
+export ASTRA_BIN="/home/cspark/Work/projects/mobo_linac/bin/astra"
+export GENERATOR_BIN="/home/cspark/Work/projects/mobo_linac/bin/generator"
 ```
 
-> **Note**: Default fallback paths in `run_astra.py` check `/home/cspark/Work/simulation_codes-working/lume-astra/bin/astra` and `generator`.
+> **Note**: Default fallback paths in `mobo_linac.astra.runner` check the project's local `./bin/astra` and `./bin/generator` binaries automatically.
 
 ### 2. `lume-astra` Python Package
 

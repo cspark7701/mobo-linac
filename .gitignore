@@ -50,3 +50,7 @@ img/
 
 00_mobo_linac_tasks_refactor/
 01_mobo_linac_publication_tasks/
+
+# Local binaries
+bin/*
+!bin/.gitkeep
