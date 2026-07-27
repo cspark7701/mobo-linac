@@ -20,7 +20,7 @@ dependencies = [
     "pandas>=2.0.0",
     "pyyaml>=6.0",
     "matplotlib>=3.5.0",
-    "lume-astra @ git+https://github.com/slaclab/lume-astra.git",
+    "lume-astra @ git+https://github.com/ChristopherMayes/lume-astra.git",
 ]
 
 [project.scripts]
