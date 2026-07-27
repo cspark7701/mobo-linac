@@ -28,7 +28,7 @@ Prior initial studies utilized tight idealized constraints ($0.3\text{ mm}$ beam
 
 ### Resolution & Justification:
 1. **Nominal Operational Baseline ($1.0\text{ mm} / 1.0\text{ mrad} / 90\%$ transmission)**: Adopted as the primary publication baseline. This reflects realistic operational beam acceptance in S-band electron linac injectors before downstream collimation.
-2. **Sensitivity Profiles (Stringent, Nominal, Relaxed)**: Implemented directly in `configs/publication_200mev.yaml` to enable systematic constraint-sensitivity analyses comparing hypervolume coverage and Pareto front shift across tight vs nominal vs relaxed design spaces.
+2. **Sensitivity Profiles (Stringent, Nominal, Relaxed)**: Implemented directly in `configs/publication_200MeV.yaml` to enable systematic constraint-sensitivity analyses comparing hypervolume coverage and Pareto front shift across tight vs nominal vs relaxed design spaces.
 
 ---
 

@@ -17,7 +17,7 @@ from mobo_linac.io.results import get_train_tensors
 
 @pytest.fixture
 def sample_config():
-    return load_config("configs/mobo_200mev.yaml")
+    return load_config("configs/mobo_200MeV.yaml")
 
 
 def test_success_evaluation_result(sample_config):

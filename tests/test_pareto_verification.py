@@ -88,7 +88,7 @@ def test_select_verification_candidates(sample_pareto_results):
 
 def test_independent_verification_rerun(sample_pareto_results, tmp_path):
     """Verify independent candidate rerun, relative error calculation, and status classification."""
-    config = load_config("configs/publication_200mev.yaml")
+    config = load_config("configs/publication_200MeV.yaml")
     candidate = sample_pareto_results[0]
 
     # 1. Exact match -> VERIFIED
@@ -128,7 +128,7 @@ def test_independent_verification_rerun(sample_pareto_results, tmp_path):
 
 def test_export_verification_latex_table(sample_pareto_results, tmp_path):
     """Verify export of LaTeX verification table."""
-    config = load_config("configs/publication_200mev.yaml")
+    config = load_config("configs/publication_200MeV.yaml")
     candidate = sample_pareto_results[0]
 
     rec = run_independent_verification_rerun(

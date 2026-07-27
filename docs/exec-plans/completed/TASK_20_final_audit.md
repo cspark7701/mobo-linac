@@ -7,7 +7,7 @@
 
 ## Reproducibility Guide & Artifact Manifest
 - Created [REPRODUCIBILITY.md](file:///home/cspark/Work/projects/mobo_linac/REPRODUCIBILITY.md): Fresh-clone setup instructions, environment activation, one-command paper reproduction (`./scripts/reproduce_paper.sh`), benchmark campaign commands, and contact info.
-- Created [release/publication_artifact_manifest.json](file:///home/cspark/Work/projects/mobo_linac/release/publication_artifact_manifest.json): JSON artifact manifest mapping source code, canonical configurations (`configs/publication_200mev.yaml`), reproduction scripts, protocols, and compiled manuscript PDF (`docs/paper/main.pdf`).
+- Created [release/publication_artifact_manifest.json](file:///home/cspark/Work/projects/mobo_linac/release/publication_artifact_manifest.json): JSON artifact manifest mapping source code, canonical configurations (`configs/publication_200MeV.yaml`), reproduction scripts, protocols, and compiled manuscript PDF (`docs/paper/main.pdf`).
 
 ## Cleaned Build Intermediates
 - Removed all temporary LaTeX build files (`.aux`, `.out`, `.log`).

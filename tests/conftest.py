@@ -15,7 +15,7 @@ from mobo_linac.evaluation import EvaluationResult, FailureCategory, create_eval
 @pytest.fixture
 def sample_config() -> MoboConfig:
     """Fixture providing loaded canonical MoboConfig instance."""
-    return load_config("configs/mobo_200mev.yaml")
+    return load_config("configs/mobo_200MeV.yaml")
 
 
 @pytest.fixture

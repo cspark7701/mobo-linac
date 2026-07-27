@@ -14,7 +14,7 @@
 
 ## CLI Integration & Production Scripts
 - Updated `src/mobo_linac/cli.py` with subcommands:
-  - `mobo-linac run-benchmark --config configs/publication_200mev.yaml`
+  - `mobo-linac run-benchmark --config configs/publication_200MeV.yaml`
   - `mobo-linac analyze-benchmark --output-dir results/publication_benchmark`
 - Created script entry point: `scripts/run_benchmark_campaign.py`.
 

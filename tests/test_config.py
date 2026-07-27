@@ -19,7 +19,7 @@ from mobo_linac.config import (
 
 def test_load_default_yaml_config():
     """Verify loading default YAML configuration file."""
-    config = load_config("configs/mobo_200mev.yaml")
+    config = load_config("configs/mobo_200MeV.yaml")
     assert config.version == "1.0"
     assert len(config.design_variables) == 6
     assert len(config.objectives) == 3
@@ -29,7 +29,7 @@ def test_load_default_yaml_config():
 
 def test_bounds_ordering_negative_parameters():
     """Verify that bounds for negative parameters are ordered lower_bound <= upper_bound."""
-    config = load_config("configs/mobo_200mev.yaml")
+    config = load_config("configs/mobo_200MeV.yaml")
     bounds_tensor = config.get_parameter_bounds_tensor()
 
     assert bounds_tensor.shape == (2, 6)
@@ -48,7 +48,7 @@ def test_bounds_ordering_negative_parameters():
 
 def test_coupled_phase_mapping():
     """Verify that coupled cavity phases are explicitly declared."""
-    config = load_config("configs/mobo_200mev.yaml")
+    config = load_config("configs/mobo_200MeV.yaml")
 
     acc1_2 = config.design_variables[4]
     assert acc1_2.is_coupled is True
@@ -76,7 +76,7 @@ def test_invalid_bounds_rejected():
 
 def test_config_serialization(tmp_path):
     """Verify JSON and YAML serialization and deserialization."""
-    config = load_config("configs/mobo_200mev.yaml")
+    config = load_config("configs/mobo_200MeV.yaml")
 
     json_path = tmp_path / "config.json"
     config.save_json(json_path)

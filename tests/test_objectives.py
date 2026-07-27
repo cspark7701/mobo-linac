@@ -16,7 +16,7 @@ from mobo_linac.objectives import (
 
 def test_transform_to_model_space_and_back():
     """Verify objective negation for minimization and restoration idempotency."""
-    config = load_config("configs/mobo_200mev.yaml")
+    config = load_config("configs/mobo_200MeV.yaml")
     phys_objs = [1.5e-6, 1.2e-6, 5.0e4]  # emit_x, emit_y, sigma_energy
 
     # Model space should negate minimization objectives

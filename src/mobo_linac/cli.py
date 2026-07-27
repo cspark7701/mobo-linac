@@ -75,7 +75,7 @@ def run_unconstrained(args: argparse.Namespace) -> None:
     """Executes Phase 2 Unconstrained MOBO campaign."""
     config_path = args.config if args.config else "configs/publication.yaml"
     if not Path(config_path).exists():
-        config_path = "configs/mobo_200mev.yaml"
+        config_path = "configs/mobo_200MeV.yaml"
     config = load_config(config_path)
 
     seed = args.seed
@@ -197,7 +197,7 @@ def run_constrained(args: argparse.Namespace) -> None:
     """Executes Phase 3 Constrained MOBO campaign."""
     config_path = args.config if args.config else "configs/publication.yaml"
     if not Path(config_path).exists():
-        config_path = "configs/mobo_200mev.yaml"
+        config_path = "configs/mobo_200MeV.yaml"
     config = load_config(config_path)
 
     seed = args.seed
@@ -317,7 +317,7 @@ def run_scalarized(args: argparse.Namespace) -> None:
     """Executes Scalarized BO campaign (weighted sum scalarization)."""
     config_path = args.config if args.config else "configs/publication.yaml"
     if not Path(config_path).exists():
-        config_path = "configs/mobo_200mev.yaml"
+        config_path = "configs/mobo_200MeV.yaml"
     config = load_config(config_path)
 
     seed = args.seed
@@ -417,7 +417,7 @@ def run_validation(args: argparse.Namespace) -> None:
     """Executes full reproducible validation campaign."""
     config_path = args.config if args.config else "configs/publication.yaml"
     if not Path(config_path).exists():
-        config_path = "configs/mobo_200mev.yaml"
+        config_path = "configs/mobo_200MeV.yaml"
     
     from scripts.run_validation_campaign import run_campaign
     run_campaign(
@@ -525,7 +525,7 @@ def main() -> None:
 
     # Subcommand: run-benchmark
     run_bm_parser = subparsers.add_parser("run-benchmark", help="Run a paired multi-seed benchmark campaign")
-    run_bm_parser.add_argument("--config", type=str, default="configs/publication_200mev.yaml", help="Path to config file")
+    run_bm_parser.add_argument("--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file")
     run_bm_parser.add_argument("--output-dir", type=str, default="results/publication_benchmark", help="Output directory")
     run_bm_parser.add_argument("--seeds", nargs="+", type=int, default=list(range(42, 52)), help="List of random seeds")
     run_bm_parser.add_argument("--budget", type=int, default=40, help="Total evaluation budget")
@@ -537,7 +537,7 @@ def main() -> None:
 
     # Subcommand: run-robustness
     run_rob_parser = subparsers.add_parser("run-robustness", help="Perform robustness and sensitivity analysis over Pareto candidates")
-    run_rob_parser.add_argument("--config", type=str, default="configs/publication_200mev.yaml", help="Path to config file")
+    run_rob_parser.add_argument("--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file")
     run_rob_parser.add_argument("--perturb-config", type=str, default="configs/perturbation_config.yaml", help="Path to perturbation config")
     run_rob_parser.add_argument("--history-path", type=str, default="results/pareto/pareto_candidates.csv", help="Path to Pareto candidates CSV/JSON")
     run_rob_parser.add_argument("--output-dir", type=str, default="results/robustness", help="Output directory")
@@ -546,7 +546,7 @@ def main() -> None:
 
     # Subcommand: run-verification
     run_ver_parser = subparsers.add_parser("run-verification", help="Rerun Pareto candidates independently for verification")
-    run_ver_parser.add_argument("--config", type=str, default="configs/publication_200mev.yaml", help="Path to config file")
+    run_ver_parser.add_argument("--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file")
     run_ver_parser.add_argument("--history-path", type=str, default="results/pareto/pareto_candidates.csv", help="Path to Pareto candidates CSV/JSON")
     run_ver_parser.add_argument("--output-dir", type=str, default="results/verification", help="Output directory")
 
@@ -577,7 +577,7 @@ def main() -> None:
         print(f"Benchmark campaign manifest created at {args.output_dir}/campaign_manifest.csv")
     elif args.command == "analyze-benchmark":
         from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
-        config = load_config("configs/publication_200mev.yaml")
+        config = load_config("configs/publication_200MeV.yaml")
         runner = BenchmarkCampaignRunner(config=config, output_dir=args.output_dir)
         agg_df, summary_df = runner.analyze_completed_results()
         print(f"Benchmark analysis complete. Aggregate metrics saved in {args.output_dir}")

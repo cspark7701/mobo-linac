@@ -85,7 +85,7 @@ def test_aggregate_benchmark_metrics_computation():
 
 def test_benchmark_campaign_manifest_generation(tmp_path):
     """Verify benchmark campaign manifest generation."""
-    config = load_config("configs/publication_200mev.yaml")
+    config = load_config("configs/publication_200MeV.yaml")
     runner = BenchmarkCampaignRunner(
         config=config,
         output_dir=tmp_path / "benchmark",

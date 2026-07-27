@@ -9,8 +9,8 @@ from mobo_linac.objectives import transform_to_model_space, transform_to_physica
 
 
 def test_publication_config_loading():
-    """Verify loading of canonical publication_200mev.yaml configuration."""
-    config = load_config("configs/publication_200mev.yaml")
+    """Verify loading of canonical publication_200MeV.yaml configuration."""
+    config = load_config("configs/publication_200MeV.yaml")
     assert config.version == "1.0"
     assert len(config.design_variables) == 6
     assert len(config.objectives) == 3
@@ -18,7 +18,7 @@ def test_publication_config_loading():
 
 def test_design_variable_bounds_and_negative_ordering():
     """Verify design variable bounds ordering, especially for negative quadrupole gradients."""
-    config = load_config("configs/publication_200mev.yaml")
+    config = load_config("configs/publication_200MeV.yaml")
 
     for dv in config.design_variables:
         assert dv.lower_bound <= dv.upper_bound, f"Variable {dv.name} lower_bound > upper_bound"
@@ -37,7 +37,7 @@ def test_design_variable_bounds_and_negative_ordering():
 
 def test_coupled_phase_configurations():
     """Verify coupled RF phase declarations."""
-    config = load_config("configs/publication_200mev.yaml")
+    config = load_config("configs/publication_200MeV.yaml")
 
     coupled_vars = [dv for dv in config.design_variables if dv.is_coupled]
     assert len(coupled_vars) == 2
@@ -51,7 +51,7 @@ def test_coupled_phase_configurations():
 
 def test_objective_transformations():
     """Verify minimization <-> maximization transformation roundtrips."""
-    config = load_config("configs/publication_200mev.yaml")
+    config = load_config("configs/publication_200MeV.yaml")
     phys_objs = [1.2e-6, 1.5e-6, 4.0e5]
 
     model_tensor = transform_to_model_space(phys_objs, config)
@@ -63,7 +63,7 @@ def test_objective_transformations():
 
 def test_sensitivity_profiles():
     """Verify loading and retrieval of stringent, nominal, and relaxed constraint profiles."""
-    config = load_config("configs/publication_200mev.yaml")
+    config = load_config("configs/publication_200MeV.yaml")
 
     stringent = config.get_constraint_profile("stringent")
     assert stringent.max_sigma_x_m == pytest.approx(0.3e-3)

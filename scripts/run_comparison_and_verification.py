@@ -430,7 +430,7 @@ Five representative Pareto optimal candidates were selected from the feasible fr
 
 
 def main():
-    config = load_config("configs/mobo_200mev.yaml")
+    config = load_config("configs/mobo_200MeV.yaml")
     seed = 42
     num_initial = 16
     num_batches = 6

@@ -6,7 +6,7 @@ Task 04 removed duplicated constants and hardcoded limits across the codebase by
 
 ## Accomplishments
 
-1. **Central YAML Config**: Created `configs/mobo_200mev.yaml` defining:
+1. **Central YAML Config**: Created `configs/mobo_200MeV.yaml` defining:
    - 6 design variables with explicit bounds, units, nominal values, and coupled phase targets (`cavity:phi(2)` coupled to `cavity:phi(3)`, `cavity:phi(4)` coupled to `cavity:phi(5)`).
    - 3 physical objectives ($\varepsilon_{n,x}$, $\varepsilon_{n,y}$, $\sigma_E$) with physical minimization directions and model space negation conventions.
    - Constraint thresholds ($\sigma_{x,y} \le 1.0$ mm, $\sigma_{xp,yp} \le 1.0$ mrad, $\sigma_z \le 1.0$ mm, $E_{\text{kin}} \in [195, 205]$ MeV, transmission $\ge 90\%$).

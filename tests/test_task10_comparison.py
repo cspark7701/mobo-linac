@@ -37,7 +37,7 @@ def test_compute_target_distance():
 
 def test_verify_pareto_candidates_mock(tmp_path, monkeypatch):
     """Test Pareto candidate selection and relative difference verification with mocked run_astra_eval."""
-    config = load_config("configs/mobo_200mev.yaml")
+    config = load_config("configs/mobo_200MeV.yaml")
 
     mock_results = []
     for i in range(1, 10):
@@ -85,7 +85,7 @@ def test_verify_pareto_candidates_mock(tmp_path, monkeypatch):
 
 def test_generate_comparison_report(tmp_path):
     """Test generating mobo_validation_report.md."""
-    config = load_config("configs/mobo_200mev.yaml")
+    config = load_config("configs/mobo_200MeV.yaml")
     ref_point = torch.tensor([-5.0e-6, -5.0e-6, -2.0e6], dtype=torch.double)
 
     tracker_p2 = HypervolumeTracker(reporting_ref_point=ref_point, config=config)

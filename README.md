@@ -44,7 +44,7 @@ mobo_linac/
 │   └── plotting/                      # Pareto, hypervolume, & diagnostic figures
 │
 ├── configs/
-│   └── mobo_200mev.yaml               # Centralized configuration file
+│   └── mobo_200MeV.yaml               # Centralized configuration file
 │
 ├── docs/
 │   ├── simulation_guide.md            # Step-by-step execution guide

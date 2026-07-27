@@ -176,7 +176,7 @@ class MoboConfig:
         return path
 
 
-def load_config(config_path: Union[str, Path] = "configs/publication_200mev.yaml") -> MoboConfig:
+def load_config(config_path: Union[str, Path] = "configs/publication_200MeV.yaml") -> MoboConfig:
     """
     Load configuration from YAML file.
     """
@@ -186,7 +186,7 @@ def load_config(config_path: Union[str, Path] = "configs/publication_200mev.yaml
         if fallback_path.exists():
             path = fallback_path
         else:
-            path = Path("configs/mobo_200mev.yaml").resolve()
+            path = Path("configs/mobo_200MeV.yaml").resolve()
 
     with open(path, "r", encoding="utf-8") as f:
         data = yaml.safe_load(f)

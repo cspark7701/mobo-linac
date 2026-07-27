@@ -51,18 +51,18 @@ pytest -m "not integration"
 
 ### Run Benchmark Campaign
 ```bash
-mobo-linac run-benchmark --config configs/publication_200mev.yaml --output-dir results/publication_benchmark --seeds 42 43 44 --budget 40
+mobo-linac run-benchmark --config configs/publication_200MeV.yaml --output-dir results/publication_benchmark --seeds 42 43 44 --budget 40
 mobo-linac analyze-benchmark --output-dir results/publication_benchmark
 ```
 
 ### Run Independent Pareto Candidate Rerun Verification
 ```bash
-mobo-linac run-verification --config configs/publication_200mev.yaml --output-dir results/verification
+mobo-linac run-verification --config configs/publication_200MeV.yaml --output-dir results/verification
 ```
 
 ### Run Perturbation Robustness Analysis
 ```bash
-mobo-linac run-robustness --config configs/publication_200mev.yaml --output-dir results/robustness
+mobo-linac run-robustness --config configs/publication_200MeV.yaml --output-dir results/robustness
 ```
 
 ---

@@ -132,11 +132,11 @@ Numerical simulation validity (`simulation_valid`) is strictly separated from ph
 | Workflow Step | Command | Primary Outputs |
 | :--- | :--- | :--- |
 | **Run Phase 1 Scalarized BO** | `python scripts/run_scalarized_bo.py --weights 1.0 1.0 1.0` | `results/scalarized_YYYYMMDD_HHMMSS/` |
-| **Run Constrained MOBO** | `mobo-linac run-constrained --config configs/publication_200mev.yaml` | `results/run_YYYYMMDD_HHMMSS/` |
-| **Run Unconstrained MOBO** | `mobo-linac run-unconstrained --config configs/publication_200mev.yaml` | `results/run_YYYYMMDD_HHMMSS/` |
-| **Run Benchmark Campaign** | `mobo-linac run-benchmark --config configs/publication_200mev.yaml` | `results/publication_benchmark/` |
+| **Run Constrained MOBO** | `mobo-linac run-constrained --config configs/publication_200MeV.yaml` | `results/run_YYYYMMDD_HHMMSS/` |
+| **Run Unconstrained MOBO** | `mobo-linac run-unconstrained --config configs/publication_200MeV.yaml` | `results/run_YYYYMMDD_HHMMSS/` |
+| **Run Benchmark Campaign** | `mobo-linac run-benchmark --config configs/publication_200MeV.yaml` | `results/publication_benchmark/` |
 | **Analyze Benchmark** | `mobo-linac analyze-benchmark --output-dir results/publication_benchmark` | `aggregate_metrics.csv`, CIs |
-| **Run Robustness Analysis** | `mobo-linac run-robustness --config configs/publication_200mev.yaml` | `results/robustness/` |
-| **Run Pareto Verification** | `mobo-linac run-verification --config configs/publication_200mev.yaml` | `verification_table.tex` |
+| **Run Robustness Analysis** | `mobo-linac run-robustness --config configs/publication_200MeV.yaml` | `results/robustness/` |
+| **Run Pareto Verification** | `mobo-linac run-verification --config configs/publication_200MeV.yaml` | `verification_table.tex` |
 | **Reproduce Paper Artifacts** | `./scripts/reproduce_paper.sh` | Figures, `main.pdf` |
 | **Run Unit Test Suite** | `pytest -m "not integration"` | 76 passed unit tests |

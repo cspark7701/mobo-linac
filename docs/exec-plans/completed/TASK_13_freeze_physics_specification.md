@@ -1,7 +1,7 @@
 # Task 03 Summary: Freeze Constraints, Objectives, Units, and Design Space
 
 ## Canonical Publication Configuration
-- Created canonical publication configuration `configs/publication_200mev.yaml`.
+- Created canonical publication configuration `configs/publication_200MeV.yaml`.
 - Defined 6 design variables with ASTRA key mappings, units, nominal values, and bounds:
   1. `solenoid_field_T`: `solenoid:maxb(1)` $[0.097387, 0.292161]\text{ T}$
   2. `quad_1_gradient_T_m`: `quadrupole:q_grad(1)` $[0.643264, 1.929793]\text{ T/m}$
@@ -23,7 +23,7 @@
 
 ## Tests & Verification
 - Created `tests/test_physics_specification.py`:
-  - `test_publication_config_loading`: Verified `publication_200mev.yaml` parsing.
+  - `test_publication_config_loading`: Verified `publication_200MeV.yaml` parsing.
   - `test_design_variable_bounds_and_negative_ordering`: Verified $L \le U$ ordering, including negative quadrupole 2 gradient bounds.
   - `test_coupled_phase_configurations`: Verified coupled phase target declarations.
   - `test_objective_transformations`: Verified minimization <-> model maximization roundtrips.

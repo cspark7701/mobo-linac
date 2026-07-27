@@ -168,7 +168,7 @@ def generate_validation_plots(results, tracker, figures_dir: Path) -> None:
 
 
 def run_campaign(
-    config_path: str = "configs/mobo_200mev.yaml",
+    config_path: str = "configs/mobo_200MeV.yaml",
     num_initial_samples: int = 16,
     num_batches: int = 6,
     batch_size: int = 4,

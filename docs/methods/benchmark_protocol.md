@@ -25,7 +25,7 @@ Within each random seed ($s \in \{42, 43, \dots, 51\}$), all algorithms adhere t
 
 - **Seed-Paired Initial Sobol Design**: Generated using a deterministic scrambled Sobol sequence (`SobolEngine(dimension=6, scramble=True, seed=s)`). Initial candidates are identical across algorithms for seed $s$.
 - **Identical ASTRA Model Files**: Standard `astra.in`, field maps, and particle distribution.
-- **Identical Search Bounds**: 6D bounds specified in `configs/publication_200mev.yaml`.
+- **Identical Search Bounds**: 6D bounds specified in `configs/publication_200MeV.yaml`.
 - **Equal Simulation Budget**: Identical total evaluation budget ($N = 40, 100, 200, 400$).
 - **Identical Reporting Reference Point**: Fixed $R_{\text{model, norm}} = [-10.0, -10.0, -10.0]$ in normalized model space.
 - **Identical Objective Normalization**: Fixed engineering scale factors ($1\ \mu\text{m}\cdot\text{rad}, 1\ \mu\text{m}\cdot\text{rad}, 1\text{ MeV}$).

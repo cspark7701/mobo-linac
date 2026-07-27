@@ -17,7 +17,7 @@ All 10 milestone tasks have been fully executed, tested, and validated.
 | **Task 01** | Repository Audit & Baseline | Architecture diagrams, risk register, environment specification (`docs/architecture/`, `docs/environment/`) | **Completed** |
 | **Task 02** | Isolated ASTRA Work Directories | Isolated directory manager (`src/mobo_linac/astra/workdir.py`, `runner.py`) preventing output overwrite | **Completed** |
 | **Task 03** | Process-Safe Parallel Evaluation | Multiprocessing batch evaluator (`src/mobo_linac/execution/parallel.py`) with process isolation | **Completed** |
-| **Task 04** | Centralized Config, Units, & Objectives | Central configuration (`configs/mobo_200mev.yaml`, `src/mobo_linac/config.py`, `objectives.py`, `constraints.py`) | **Completed** |
+| **Task 04** | Centralized Config, Units, & Objectives | Central configuration (`configs/mobo_200MeV.yaml`, `src/mobo_linac/config.py`, `objectives.py`, `constraints.py`) | **Completed** |
 | **Task 05** | Structured Evaluation Results Schema | Typed `EvaluationResult` dataclass & `FailureCategory` enum (`src/mobo_linac/evaluation.py`, `io/results.py`) | **Completed** |
 | **Task 06** | Fixed Reporting Reference Point | Dual reference point system (`acquisition_ref_point` vs `reporting_ref_point`) in `src/mobo_linac/metrics/hypervolume.py` | **Completed** |
 | **Task 07** | Python Package Layout & CLI | Standard `src/` layout with `pyproject.toml` and CLI entry points (`mobo-linac`) | **Completed** |

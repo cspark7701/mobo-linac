@@ -24,7 +24,7 @@ def test_scalarized_bo_argument_parser():
 
 def test_scalarized_bo_execution(tmp_path, monkeypatch):
     """Test scalarized BO execution with mock ASTRA evaluation."""
-    config_path = Path("configs/mobo_200mev.yaml")
+    config_path = Path("configs/mobo_200MeV.yaml")
     assert config_path.exists()
 
     target_dir = tmp_path / "scalarized_test_run"
