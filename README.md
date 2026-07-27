@@ -184,6 +184,16 @@ export GENERATOR_BIN="/path/to/custom/bin/generator"
 
 ## Usage Examples
 
+### Run Phase 1 Scalarized BO (Weighted Sum)
+
+To execute scalarized Bayesian Optimization using single-objective GP surrogates and weight combinations:
+
+```bash
+python scripts/run_scalarized_bo.py --n-iterations 300 --batch-size 8 --weights 1.0 1.0 1.0 --num-workers 12
+```
+
+Interactive exploration is available in notebook [`notebooks/phase1_scalarized_bo.ipynb`](notebooks/phase1_scalarized_bo.ipynb).
+
 ### Run Phase 2 MOBO (Parallel qLogNEHVI)
 
 To execute Multi-Objective Bayesian Optimization with parallel ASTRA evaluation workers:

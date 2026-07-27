@@ -96,9 +96,14 @@ Numerical simulation validity (`simulation_valid`) is strictly separated from ph
 - **Kernel**: Independent Matérn-5/2 ARD kernel ($\nu = 2.5$) for each objective and constraint diagnostic.
 - **Noise Treatment**: Fixed near-zero noise variance ($\sigma_{\text{obs}}^2 = 10^{-6}$) modeling deterministic ASTRA simulations.
 
-### 3.2 Standardized Reporting Metrics
-- **Engineering Scale Factors**: $S_{\varepsilon_{n,x}} = 10^{-6}\text{ m}\cdot\text{rad}$, $S_{\varepsilon_{n,y}} = 10^{-6}\text{ m}\cdot\text{rad}$, $S_{\sigma_E} = 10^{6}\text{ eV}$.
-- **Reporting Reference Point**: Fixed at $R_{\text{model, norm}} = [-10.0, -10.0, -10.0]$ in normalized model space.
+### 3.3 Phase 1: Scalarized Bayesian Optimization Procedure
+- **Objective Scalarization**: Linear weighted sum formulation:
+  $$f(\mathbf{x}) = \sum_{i=1}^3 w_i \cdot y_{i,\text{norm}}(\mathbf{x}) = w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$$
+  where weight combinations $\mathbf{w} \in \Delta^2$ control the optimization priority along the Pareto trade-off curve.
+- **Single-Objective GP Surrogate**: Single `SingleTaskGP` with Matérn-5/2 ARD kernel modeling the scalarized merit function.
+- **Acquisition Function**: `qLogNoisyExpectedImprovement` (`qLogNEI`) for parallel candidate selection ($q \ge 1$).
+- **Interactive Notebook**: [`notebooks/phase1_scalarized_bo.ipynb`](file:///home/cspark/Work/projects/mobo_linac/notebooks/phase1_scalarized_bo.ipynb).
+- **Execution Script**: [`scripts/run_scalarized_bo.py`](file:///home/cspark/Work/projects/mobo_linac/scripts/run_scalarized_bo.py).
 
 ---
 
@@ -126,6 +131,7 @@ Numerical simulation validity (`simulation_valid`) is strictly separated from ph
 
 | Workflow Step | Command | Primary Outputs |
 | :--- | :--- | :--- |
+| **Run Phase 1 Scalarized BO** | `python scripts/run_scalarized_bo.py --weights 1.0 1.0 1.0` | `results/scalarized_YYYYMMDD_HHMMSS/` |
 | **Run Constrained MOBO** | `mobo-linac run-constrained --config configs/publication_200mev.yaml` | `results/run_YYYYMMDD_HHMMSS/` |
 | **Run Unconstrained MOBO** | `mobo-linac run-unconstrained --config configs/publication_200mev.yaml` | `results/run_YYYYMMDD_HHMMSS/` |
 | **Run Benchmark Campaign** | `mobo-linac run-benchmark --config configs/publication_200mev.yaml` | `results/publication_benchmark/` |
@@ -133,4 +139,4 @@ Numerical simulation validity (`simulation_valid`) is strictly separated from ph
 | **Run Robustness Analysis** | `mobo-linac run-robustness --config configs/publication_200mev.yaml` | `results/robustness/` |
 | **Run Pareto Verification** | `mobo-linac run-verification --config configs/publication_200mev.yaml` | `verification_table.tex` |
 | **Reproduce Paper Artifacts** | `./scripts/reproduce_paper.sh` | Figures, `main.pdf` |
-| **Run Unit Test Suite** | `pytest -m "not integration"` | 74 passed unit tests |
+| **Run Unit Test Suite** | `pytest -m "not integration"` | 76 passed unit tests |

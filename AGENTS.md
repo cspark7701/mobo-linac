@@ -168,8 +168,10 @@ Current implementation
 
 ## Phase 1 (Completed)
 
-- Scalarized BO with multiple weight combinations
-- Single-objective GP surrogate & `qEI`
+- Scalarized BO with multiple weight combinations ($w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$)
+- Single-objective GP surrogate (`SingleTaskGP` with Matérn 5/2 ARD kernel) & `qLogNEI`
+- Standalone production script `scripts/run_scalarized_bo.py`
+- Interactive evaluation & analysis notebook `notebooks/phase1_scalarized_bo.ipynb`
 - Comparison with MOGA benchmark
 - Parallel ASTRA evaluation worker pools
 
