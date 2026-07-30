@@ -81,23 +81,28 @@ cd "${PROJECT_ROOT}"
 # Detect total system CPU cores and compute 90% allocation (minimum 1 worker)
 NUM_WORKERS=$(python3 -c "import os; print(max(1, int(os.cpu_count() * 0.9)))")
 
-# Helper function to print logs depending on VERBOSE flag
+# Helper function to print high-level step progress (always printed)
+log_step() {
+  echo -e "$1"
+}
+
+# Helper function to print detailed logs (printed when VERBOSE=1)
 log_info() {
   if [ "${VERBOSE}" -eq 1 ]; then
     echo -e "$1"
   fi
 }
 
-log_info "======================================================================"
-log_info " Starting Full Production Linac MOBO Simulation & Analysis Pipeline"
-log_info "======================================================================"
-log_info "  Project Root:        ${PROJECT_ROOT}"
-log_info "  Allocated CPU Cores: ${NUM_WORKERS} (90% capacity)"
-log_info "  BO Iterations:       ${N_ITERATIONS}"
-log_info "  Batch Size (q):      ${BATCH_SIZE}"
-log_info "  Verbose Screen:      $([ ${VERBOSE} -eq 1 ] && echo 'ON' || echo 'OFF (Quiet Mode)')"
-log_info "  Output Base Dir:     ${OUTPUT_BASE_DIR}"
-log_info "======================================================================"
+log_step "======================================================================"
+log_step " Starting Full Production Linac MOBO Simulation & Analysis Pipeline"
+log_step "======================================================================"
+log_step "  Project Root:        ${PROJECT_ROOT}"
+log_step "  Allocated CPU Cores: ${NUM_WORKERS} (90% capacity)"
+log_step "  BO Iterations:       ${N_ITERATIONS}"
+log_step "  Batch Size (q):      ${BATCH_SIZE}"
+log_step "  Verbose Screen:      $([ ${VERBOSE} -eq 1 ] && echo 'ON (Full)' || echo 'OFF (Quiet Mode - Step Progress Only)')"
+log_step "  Output Base Dir:     ${OUTPUT_BASE_DIR}"
+log_step "======================================================================"
 
 # Create output structure
 P2_DIR="${OUTPUT_BASE_DIR}/phase2_unconstrained"
@@ -109,7 +114,7 @@ mkdir -p "${P2_DIR}" "${P3_DIR}" "${ANALYSIS_DIR}"
 # Step 2: Environment & Binary Verification
 # ------------------------------------------------------------------------------
 # Ensure local ASTRA binaries in bin/ are executable and environment is loaded
-log_info "[Step 1/6] Verifying environment & executable permissions..."
+log_step "[Step 1/6] Verifying environment & executable permissions..."
 chmod +x bin/* 2>/dev/null || true
 export ASTRA_BIN="${PROJECT_ROOT}/bin/astra"
 export GENERATOR_BIN="${PROJECT_ROOT}/bin/generator"
@@ -119,7 +124,7 @@ export PATH="${PROJECT_ROOT}/bin:${PATH}"
 # Step 3: Execute Phase 2 Unconstrained MOBO Production Simulation
 # ------------------------------------------------------------------------------
 # Runs unconstrained MOBO with qLogNEHVI acquisition and 90% CPU worker pool
-log_info "[Step 2/6] Running Phase 2 Unconstrained MOBO Simulation..."
+log_step "[Step 2/6] Running Phase 2 Unconstrained MOBO Simulation..."
 RUN_P2_CMD="python3 scripts/run_validation_campaign.py \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
@@ -133,13 +138,13 @@ else
   # Redirect output to log file to avoid screen verbosity & token consumption
   eval "${RUN_P2_CMD}" > "${P2_DIR}/simulation.log" 2>&1
 fi
-log_info "  Phase 2 Simulation complete -> Saved in ${P2_DIR}"
+log_step "  ✓ Phase 2 Simulation complete -> Saved in ${P2_DIR}"
 
 # ------------------------------------------------------------------------------
 # Step 4: Execute Phase 3 Constrained MOBO Production Simulation
 # ------------------------------------------------------------------------------
 # Runs constraint-aware MOBO with explicit GP constraint models & feasibility weighting
-log_info "[Step 3/6] Running Phase 3 Constraint-Aware MOBO Simulation..."
+log_step "[Step 3/6] Running Phase 3 Constraint-Aware MOBO Simulation..."
 RUN_P3_CMD="python3 scripts/run_validation_campaign.py \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
@@ -152,13 +157,13 @@ if [ "${VERBOSE}" -eq 1 ]; then
 else
   eval "${RUN_P3_CMD}" > "${P3_DIR}/simulation.log" 2>&1
 fi
-log_info "  Phase 3 Simulation complete -> Saved in ${P3_DIR}"
+log_step "  ✓ Phase 3 Simulation complete -> Saved in ${P3_DIR}"
 
 # ------------------------------------------------------------------------------
 # Step 5: Execute Comparative Analysis & Pareto Verification
 # ------------------------------------------------------------------------------
 # Compares Phase 2 & 3 results, tracks hypervolume, and reruns 5 Pareto candidates
-log_info "[Step 4/6] Executing Comparative Analysis & Independent Rerun Audit..."
+log_step "[Step 4/6] Executing Comparative Analysis & Independent Rerun Audit..."
 ANALYSIS_CMD="python3 scripts/run_comparison_and_verification.py \
     --phase2-dir ${P2_DIR} \
     --phase3-dir ${P3_DIR} \
@@ -169,13 +174,13 @@ if [ "${VERBOSE}" -eq 1 ]; then
 else
   eval "${ANALYSIS_CMD}" > "${ANALYSIS_DIR}/analysis.log" 2>&1
 fi
-log_info "  Analysis complete -> Saved in ${ANALYSIS_DIR}"
+log_step "  ✓ Comparative analysis complete -> Saved in ${ANALYSIS_DIR}"
 
 # ------------------------------------------------------------------------------
 # Step 6: Engineering Tolerance Robustness Analysis
 # ------------------------------------------------------------------------------
 # Evaluates sensitivity under RF phase (+/-0.1 deg) and magnet gradient (+/-0.1%) perturbations
-log_info "[Step 5/6] Running Engineering Tolerance Robustness Analysis..."
+log_step "[Step 5/6] Running Engineering Tolerance Robustness Analysis..."
 ROBUST_CMD="python3 scripts/run_robustness_analysis.py \
     --pareto-csv ${P3_DIR}/pareto.csv \
     --output-dir ${ANALYSIS_DIR}/robustness \
@@ -186,17 +191,18 @@ if [ "${VERBOSE}" -eq 1 ]; then
 else
   eval "${ROBUST_CMD}" > "${ANALYSIS_DIR}/robustness.log" 2>&1
 fi
-log_info "  Robustness analysis complete -> Saved in ${ANALYSIS_DIR}/robustness"
+log_step "  ✓ Robustness analysis complete -> Saved in ${ANALYSIS_DIR}/robustness"
 
 # ------------------------------------------------------------------------------
 # Step 7: Final Summary & Verification Report Generation
 # ------------------------------------------------------------------------------
-log_info "[Step 6/6] Pipeline Execution Finished Successfully!"
-log_info "======================================================================"
-log_info " Summary of Output Directories:"
-log_info "   Phase 2 MOBO:  ${P2_DIR}"
-log_info "   Phase 3 MOBO:  ${P3_DIR}"
-log_info "   Analysis:      ${ANALYSIS_DIR}"
-log_info "   Robustness:    ${ANALYSIS_DIR}/robustness"
-log_info "   Report:        ${ANALYSIS_DIR}/comparison_report.md"
-log_info "======================================================================"
+log_step "[Step 6/6] Pipeline Execution Finished Successfully!"
+log_step "======================================================================"
+log_step " Summary of Output Directories:"
+log_step "   Phase 2 MOBO:  ${P2_DIR}"
+log_step "   Phase 3 MOBO:  ${P3_DIR}"
+log_step "   Analysis:      ${ANALYSIS_DIR}"
+log_step "   Robustness:    ${ANALYSIS_DIR}/robustness"
+log_step "   Report:        ${ANALYSIS_DIR}/comparison_report.md"
+log_step "======================================================================"
+
