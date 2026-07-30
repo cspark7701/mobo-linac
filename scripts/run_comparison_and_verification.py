@@ -333,7 +333,7 @@ def generate_comparison_report(
     dist_p2 = compute_target_distance(knee_p2["norm_emit_x_m_rad"], knee_p2["norm_emit_y_m_rad"], knee_p2["sigma_energy_eV"]) if knee_p2 is not None else float("nan")
     dist_p3 = compute_target_distance(knee_p3["norm_emit_x_m_rad"], knee_p3["norm_emit_y_m_rad"], knee_p3["sigma_energy_eV"]) if knee_p3 is not None else float("nan")
 
-    report_content = f"""# Multi-Objective Bayesian Optimization Validation & Comparison Report
+    report_content = rf"""# Multi-Objective Bayesian Optimization Validation & Comparison Report
 
 ## Executive Summary
 

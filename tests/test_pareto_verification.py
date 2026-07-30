@@ -145,5 +145,5 @@ def test_export_verification_latex_table(sample_pareto_results, tmp_path):
     assert tex_path.exists()
     content = tex_path.read_text(encoding="utf-8")
     assert r"\begin{table}" in content
-    assert "knee\_point" in content
+    assert r"knee\_point" in content
     assert "VERIFIED" in content
