@@ -22,6 +22,14 @@ if "GENERATOR_BIN" not in os.environ:
     _local_gen = _LOCAL_BIN_DIR / "generator"
     os.environ["GENERATOR_BIN"] = str(_local_gen) if _local_gen.exists() else str(_PROJECT_ROOT / "bin" / "generator")
 
+try:
+    import distgen
+    if not hasattr(distgen, "Generator"):
+        from distgen.generator import Generator
+        setattr(distgen, "Generator", Generator)
+except Exception:
+    pass
+
 from astra import Astra
 from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id
 
