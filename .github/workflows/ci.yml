@@ -27,10 +27,9 @@ jobs:
         run: |
           python -m pip install --upgrade pip setuptools wheel
           pip install pytest pytest-cov
+          pip install git+https://github.com/ColwynGulliford/distgen.git
           pip install git+https://github.com/ChristopherMayes/lume-astra.git
           pip install -e .
-          pip install --force-reinstall --no-deps "distgen<=1.19"
-          python -c "import distgen; f=distgen.__file__; open(f,'a').write('\ntry:\n    from distgen.generator import Generator\nexcept ImportError:\n    pass\n')"
 
       - name: Run unit test suite (without ASTRA binary requirement)
         run: |

@@ -20,7 +20,7 @@ dependencies = [
     "pandas>=2.0.0",
     "pyyaml>=6.0",
     "matplotlib>=3.5.0",
-    "distgen<=1.19",
+    "distgen @ git+https://github.com/ColwynGulliford/distgen.git",
     "lume-astra @ git+https://github.com/ChristopherMayes/lume-astra.git",
 ]
 
