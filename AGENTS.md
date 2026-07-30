@@ -19,9 +19,28 @@ Pareto front.
 
 Current research was presented at ICABU 2025 and demonstrated
 scalarized Bayesian Optimization using multiple weight combinations,
-with the next phase extending to qEHVI/qNEHVI-based MOBO. :contentReference[oaicite:1]{index=1}
+with the next phase extending to qEHVI/qNEHVI-based MOBO.
 
 ---
+
+# Project Metadata & Authorship
+
+- **Author**: Chong Shik Park
+- **Affiliation**: Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea
+
+---
+
+# Agent Execution Guidelines & Operational Rules
+
+- **Git & GitHub Actions Policy**:
+  - Do NOT perform `git push` and do NOT check remote GitHub Actions status or query remote workflow executions.
+  - Modifying GitHub Actions workflows in the local repository only is permitted.
+- **Task Summary & Execution Plan Persistence**:
+  - All executed tasks must be summarized and saved into `docs/exec-plans/completed/` following continuous numerical ordering (e.g., `TASK_01_...` through `TASK_20_...`, `TASK_21_...`, `TASK_22_...`, `TASK_23_...`, etc.).
+  - Every completed task must follow the structured markdown summary format established in `docs/exec-plans/completed/`.
+- **Web Interface & Document Design Standard**:
+  - Created HTML documents should follow a github.io project webpage style (dark mode glassmorphism UI, Outfit/Inter typography, MathJax formulas, Chart.js visualizations), adhering to existing project templates where available.
+
 
 # Repository Contents
 
