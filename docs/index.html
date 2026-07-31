@@ -1,879 +1,253 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac — mobo_linac documentation</title>
-    <meta name="description" content="Machine Learning framework for optimizing a 200 MeV S-band electron injector linac using Multi-Objective Bayesian Optimization (MOBO) with ASTRA beam dynamics simulation.">
-    <meta name="keywords" content="Bayesian Optimization, MOBO, Accelerator Physics, ASTRA, Electron Linac, BoTorch, qLogNEHVI, Pareto Front, Sphinx, ReadTheDocs">
-    <meta name="author" content="Chong Shik Park">
-
-    <!-- Google Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&family=Lato:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet">
-    
-    <!-- Chart.js & MathJax -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-
-    <style>
-        :root {
-            /* Sphinx Read the Docs Theme Color Palette */
-            --rtd-sidebar-bg: #1e293b;
-            --rtd-sidebar-header: #0f172a;
-            --rtd-sidebar-active: #2563eb;
-            --rtd-sidebar-hover: #334155;
-            --rtd-sidebar-text: #cbd5e1;
-            --rtd-sidebar-text-active: #ffffff;
-            
-            --rtd-body-bg: #0f172a;
-            --rtd-card-bg: #1e293b;
-            --rtd-card-border: #334155;
-            --rtd-text-main: #f8fafc;
-            --rtd-text-muted: #94a3b8;
-            --rtd-link: #38bdf8;
-            --rtd-link-hover: #7dd3fc;
-            --rtd-accent-blue: #2563eb;
-            --rtd-accent-cyan: #00f2fe;
-            --rtd-accent-green: #10b981;
-            --rtd-code-bg: #090d16;
-            --rtd-table-header: #1e293b;
-            --rtd-table-border: #334155;
-
-            --font-head: 'Outfit', 'Lato', sans-serif;
-            --font-body: 'Inter', 'Lato', sans-serif;
-            --font-code: 'Fira Code', monospace;
-            --sidebar-width: 300px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        body {
-            background-color: var(--rtd-body-bg);
-            color: var(--rtd-text-main);
-            font-family: var(--font-body);
-            line-height: 1.65;
-            display: flex;
-            min-height: 100vh;
-        }
-
-        /* Sidebar Styling (Read the Docs Navigation) */
-        .rtd-sidebar {
-            width: var(--sidebar-width);
-            background-color: var(--rtd-sidebar-bg);
-            border-right: 1px solid var(--rtd-card-border);
-            position: fixed;
-            top: 0;
-            bottom: 0;
-            left: 0;
-            display: flex;
-            flex-direction: column;
-            z-index: 1000;
-            transition: transform 0.3s ease;
-        }
-
-        .rtd-sidebar-header {
-            background-color: var(--rtd-sidebar-header);
-            padding: 1.5rem 1.25rem;
-            border-bottom: 1px solid var(--rtd-card-border);
-            text-align: center;
-        }
-
-        .rtd-sidebar-header .logo {
-            font-family: var(--font-head);
-            font-size: 1.4rem;
-            font-weight: 800;
-            color: #ffffff;
-            text-decoration: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.5rem;
-        }
-
-        .rtd-sidebar-header .version-badge {
-            display: inline-block;
-            margin-top: 0.4rem;
-            padding: 0.2rem 0.6rem;
-            background: rgba(37, 99, 235, 0.2);
-            border: 1px solid var(--rtd-accent-blue);
-            color: var(--rtd-link);
-            border-radius: 12px;
-            font-size: 0.75rem;
-            font-weight: 600;
-        }
-
-        .rtd-search-box {
-            padding: 1rem 1.25rem;
-            border-bottom: 1px solid var(--rtd-card-border);
-        }
-
-        .rtd-search-box input {
-            width: 100%;
-            padding: 0.55rem 0.85rem;
-            background: var(--rtd-sidebar-header);
-            border: 1px solid var(--rtd-card-border);
-            border-radius: 6px;
-            color: #ffffff;
-            font-family: var(--font-body);
-            font-size: 0.85rem;
-            outline: none;
-            transition: border-color 0.2s;
-        }
-
-        .rtd-search-box input:focus {
-            border-color: var(--rtd-link);
-        }
-
-        .rtd-nav {
-            flex: 1;
-            overflow-y: auto;
-            padding: 1rem 0;
-        }
-
-        .rtd-nav-section-title {
-            font-size: 0.75rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.8px;
-            color: var(--rtd-text-muted);
-            padding: 0.75rem 1.5rem 0.35rem;
-        }
-
-        .rtd-nav ul {
-            list-style: none;
-        }
-
-        .rtd-nav a {
-            display: flex;
-            align-items: center;
-            padding: 0.55rem 1.5rem;
-            color: var(--rtd-sidebar-text);
-            text-decoration: none;
-            font-size: 0.9rem;
-            font-weight: 500;
-            border-left: 3px solid transparent;
-            transition: all 0.2s;
-        }
-
-        .rtd-nav a:hover {
-            background-color: var(--rtd-sidebar-hover);
-            color: #ffffff;
-        }
-
-        .rtd-nav a.active {
-            background-color: rgba(37, 99, 235, 0.15);
-            color: var(--rtd-link);
-            border-left-color: var(--rtd-accent-blue);
-            font-weight: 600;
-        }
-
-        .rtd-sidebar-footer {
-            padding: 1rem 1.25rem;
-            background-color: var(--rtd-sidebar-header);
-            border-top: 1px solid var(--rtd-card-border);
-            font-size: 0.78rem;
-            color: var(--rtd-text-muted);
-            text-align: center;
-        }
-
-        .rtd-sidebar-footer a {
-            color: var(--rtd-link);
-            text-decoration: none;
-        }
-
-        /* Main Content Layout */
-        .rtd-content-wrapper {
-            margin-left: var(--sidebar-width);
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            min-width: 0;
-        }
-
-        /* Breadcrumb Top Bar */
-        .rtd-topbar {
-            background-color: var(--rtd-sidebar-header);
-            border-bottom: 1px solid var(--rtd-card-border);
-            padding: 0.85rem 2.5rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: sticky;
-            top: 0;
-            z-index: 900;
-        }
-
-        .rtd-breadcrumbs {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.85rem;
-            color: var(--rtd-text-muted);
-        }
-
-        .rtd-breadcrumbs a {
-            color: var(--rtd-link);
-            text-decoration: none;
-        }
-
-        .rtd-topbar-actions {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .btn-rtd {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            padding: 0.4rem 0.85rem;
-            border-radius: 6px;
-            font-size: 0.82rem;
-            font-weight: 600;
-            text-decoration: none;
-            transition: all 0.2s;
-            border: 1px solid var(--rtd-card-border);
-            color: var(--rtd-text-main);
-            background: var(--rtd-sidebar-bg);
-        }
-
-        .btn-rtd:hover {
-            border-color: var(--rtd-link);
-            color: var(--rtd-link);
-        }
-
-        .btn-rtd-primary {
-            background: var(--rtd-accent-blue);
-            color: #ffffff;
-            border-color: var(--rtd-accent-blue);
-        }
-
-        .btn-rtd-primary:hover {
-            background: #1d4ed8;
-            color: #ffffff;
-        }
-
-        .mobile-menu-btn {
-            display: none;
-            background: none;
-            border: none;
-            color: #ffffff;
-            font-size: 1.4rem;
-            cursor: pointer;
-        }
-
-        /* Main Article Container */
-        main.rtd-main-content {
-            padding: 2.5rem 3.5rem;
-            max-width: 1150px;
-            width: 100%;
-            margin: 0 auto;
-        }
-
-        /* Documentation Headers */
-        h1.page-title {
-            font-family: var(--font-head);
-            font-size: 2.4rem;
-            font-weight: 800;
-            line-height: 1.25;
-            margin-bottom: 0.75rem;
-            color: #ffffff;
-            border-bottom: 2px solid var(--rtd-card-border);
-            padding-bottom: 0.75rem;
-        }
-
-        h2.section-header {
-            font-family: var(--font-head);
-            font-size: 1.65rem;
-            font-weight: 700;
-            margin: 2.5rem 0 1rem;
-            padding-bottom: 0.4rem;
-            border-bottom: 1px solid var(--rtd-card-border);
-            color: #ffffff;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        h2.section-header a.headerlink {
-            color: var(--rtd-text-muted);
-            text-decoration: none;
-            font-size: 1.2rem;
-            visibility: hidden;
-        }
-
-        h2.section-header:hover a.headerlink {
-            visibility: visible;
-        }
-
-        p.lead {
-            font-size: 1.05rem;
-            color: var(--rtd-text-muted);
-            margin-bottom: 1.5rem;
-        }
-
-        /* Sphinx Read the Docs Admonitions / Callout Boxes */
-        .admonition {
-            margin: 1.5rem 0;
-            padding: 1.2rem 1.4rem;
-            border-radius: 8px;
-            background-color: var(--rtd-card-bg);
-            border-left: 5px solid var(--rtd-accent-blue);
-            border: 1px solid var(--rtd-card-border);
-            border-left-width: 5px;
-        }
-
-        .admonition.note {
-            border-left-color: var(--rtd-accent-blue);
-            background-color: rgba(37, 99, 235, 0.08);
-        }
-
-        .admonition.tip {
-            border-left-color: var(--rtd-accent-green);
-            background-color: rgba(16, 185, 129, 0.08);
-        }
-
-        .admonition.important {
-            border-left-color: #f59e0b;
-            background-color: rgba(245, 158, 11, 0.08);
-        }
-
-        .admonition-title {
-            font-family: var(--font-head);
-            font-weight: 700;
-            font-size: 0.95rem;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .admonition.note .admonition-title { color: var(--rtd-link); }
-        .admonition.tip .admonition-title { color: var(--rtd-accent-green); }
-        .admonition.important .admonition-title { color: #fbbf24; }
-
-        .admonition p {
-            margin: 0;
-            font-size: 0.95rem;
-            color: var(--rtd-text-main);
-        }
-
-        /* Read the Docs Styled Data Tables */
-        .table-responsive {
-            width: 100%;
-            overflow-x: auto;
-            margin: 1.5rem 0 2rem;
-            border-radius: 8px;
-            border: 1px solid var(--rtd-table-border);
-            background-color: var(--rtd-card-bg);
-        }
-
-        table.docutils {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.9rem;
-            text-align: left;
-        }
-
-        table.docutils th {
-            background-color: var(--rtd-sidebar-header);
-            color: var(--rtd-link);
-            padding: 0.85rem 1rem;
-            font-weight: 600;
-            font-family: var(--font-head);
-            border-bottom: 1px solid var(--rtd-table-border);
-        }
-
-        table.docutils td {
-            padding: 0.8rem 1rem;
-            border-bottom: 1px solid var(--rtd-table-border);
-            color: var(--rtd-text-main);
-        }
-
-        table.docutils tr:last-child td {
-            border-bottom: none;
-        }
-
-        table.docutils tr:nth-child(even) {
-            background-color: rgba(255, 255, 255, 0.02);
-        }
-
-        table.docutils tr:hover td {
-            background-color: rgba(37, 99, 235, 0.08);
-        }
-
-        .status-badge {
-            display: inline-block;
-            padding: 0.2rem 0.5rem;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: 700;
-            background: rgba(16, 185, 129, 0.15);
-            color: var(--rtd-accent-green);
-            border: 1px solid rgba(16, 185, 129, 0.4);
-        }
-
-        /* Read the Docs Code Blocks */
-        pre.highlight {
-            background-color: var(--rtd-code-bg);
-            border: 1px solid var(--rtd-card-border);
-            border-radius: 8px;
-            padding: 1.25rem;
-            overflow-x: auto;
-            margin: 1.25rem 0;
-        }
-
-        pre.highlight code {
-            font-family: var(--font-code);
-            font-size: 0.88rem;
-            color: #7dd3fc;
-            line-height: 1.5;
-        }
-
-        code.literal {
-            background: rgba(255, 255, 255, 0.08);
-            color: #38bdf8;
-            padding: 0.15rem 0.4rem;
-            border-radius: 4px;
-            font-family: var(--font-code);
-            font-size: 0.85em;
-        }
-
-        /* Grid Layouts for Feature Cards */
-        .grid-cards {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-            gap: 1.25rem;
-            margin: 1.5rem 0;
-        }
-
-        .rtd-card {
-            background-color: var(--rtd-card-bg);
-            border: 1px solid var(--rtd-card-border);
-            border-radius: 8px;
-            padding: 1.4rem;
-            transition: transform 0.2s, border-color 0.2s;
-        }
-
-        .rtd-card:hover {
-            border-color: var(--rtd-link);
-            transform: translateY(-2px);
-        }
-
-        .rtd-card-title {
-            font-family: var(--font-head);
-            font-size: 1.15rem;
-            font-weight: 700;
-            color: #ffffff;
-            margin-bottom: 0.75rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .rtd-card p {
-            font-size: 0.92rem;
-            color: var(--rtd-text-muted);
-        }
-
-        /* Chart Canvas Containers */
-        .chart-card {
-            background-color: var(--rtd-card-bg);
-            border: 1px solid var(--rtd-card-border);
-            border-radius: 8px;
-            padding: 1.25rem;
-            margin-bottom: 1.5rem;
-        }
-
-        .chart-container {
-            position: relative;
-            height: 350px;
-            width: 100%;
-        }
-
-        /* Next/Prev Navigation Footer */
-        .rtd-footer-nav {
-            display: flex;
-            justify-content: space-between;
-            margin-top: 4rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--rtd-card-border);
-        }
-
-        .rtd-footer-nav-btn {
-            display: inline-flex;
-            flex-direction: column;
-            text-decoration: none;
-            color: var(--rtd-text-muted);
-            font-size: 0.85rem;
-        }
-
-        .rtd-footer-nav-btn strong {
-            color: var(--rtd-link);
-            font-size: 1rem;
-            margin-top: 0.2rem;
-        }
-
-        .rtd-footer-nav-btn:hover strong {
-            color: var(--rtd-link-hover);
-        }
-
-        /* Footer Copyright */
-        footer.rtd-page-footer {
-            margin-top: 3rem;
-            padding-top: 1.5rem;
-            border-top: 1px solid var(--rtd-card-border);
-            text-align: center;
-            font-size: 0.82rem;
-            color: var(--rtd-text-muted);
-        }
-
-        footer.rtd-page-footer a {
-            color: var(--rtd-link);
-            text-decoration: none;
-        }
-
-        /* Responsive Breakpoints */
-        @media (max-width: 992px) {
-            .rtd-sidebar {
-                transform: translateX(-100%);
-            }
-            .rtd-sidebar.open {
-                transform: translateX(0);
-            }
-            .rtd-content-wrapper {
-                margin-left: 0;
-            }
-            .mobile-menu-btn {
-                display: block;
-            }
-            main.rtd-main-content {
-                padding: 1.5rem;
-            }
-        }
-    </style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="author" content="Chong Shik Park" />
+  <title>mobo_linac Documentation — Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://polyfill.io/v3/polyfill.min.js?features=es6"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" type="text/javascript"></script>
 </head>
 <body>
+<header class="site-header">
+  <div class="rtd-brand">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <h1>mobo_linac</h1>
+      <p>200 MeV Linac MOBO Framework</p>
+    </div>
+  </div>
+  <label class="rtd-search" aria-label="Search documentation">
+    <span>Search docs</span>
+    <input type="search" id="rtd-search-input" placeholder="Search docs" onkeyup="filterDocsNav()" />
+  </label>
+  <div class="rtd-version">v1.0.0 (latest)</div>
+  <div class="rtd-downloads">
+    <a href="consolidated_report/consolidated_report.pdf" target="_blank">PDF Report</a>
+    <a href="https://github.com/cspark7701/mobo_linac" target="_blank">GitHub</a>
+  </div>
+  <p class="byline">Chong Shik Park<br />Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea</p>
+</header>
+<div class="layout">
+<nav id="TOC" role="doc-toc">
+  <ul>
+    <li><a class="current" href="#overview">1. Framework Overview</a></li>
+    <li><a href="#physics">2. Physics & Design Parameters</a></li>
+    <li><a href="#architecture">3. Software Architecture</a></li>
+    <li><a href="#results">4. Optimization Results</a></li>
+    <li><a href="#verification">5. Independent Pareto Verification</a></li>
+    <li><a href="#installation">6. Quick Setup & Execution</a></li>
+    <li><a href="consolidated_report/consolidated_report.pdf" target="_blank">PDF Technical Report</a></li>
+  </ul>
+</nav>
+<main>
+  <div class="page-tools">
+    <a href="#">Docs home</a>
+    <span>Multi-Objective Bayesian Optimization for a 200 MeV Linac</span>
+  </div>
 
-    <!-- Read the Docs Left Sidebar Navigation -->
-    <aside class="rtd-sidebar" id="rtd-sidebar">
-        <div class="rtd-sidebar-header">
-            <a href="#" class="logo">
-                ⚡ mobo_linac
-            </a>
-            <span class="version-badge">v1.0.0 (latest)</span>
-        </div>
+  <h1 id="title">Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac</h1>
 
-        <div class="rtd-search-box">
-            <input type="text" id="rtd-search-input" placeholder="Search docs..." onkeyup="filterDocsNav()">
-        </div>
+  <div class="source-note">
+    <strong>Author:</strong> Chong Shik Park — Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea.<br />
+    <strong>Publication Context:</strong> Presented at ICABU 2025 • <strong>Release Tag:</strong> <code>v1.0.0</code>
+  </div>
 
-        <nav class="rtd-nav" id="rtd-nav-tree">
-            <div class="rtd-nav-section-title">Documentation</div>
-            <ul>
-                <li><a href="#overview" class="active">1. Framework Overview</a></li>
-                <li><a href="#physics">2. Physics & Design Variables</a></li>
-                <li><a href="#architecture">3. Software Architecture</a></li>
-                <li><a href="#results">4. Optimization Results</a></li>
-                <li><a href="#verification">5. Independent Pareto Verification</a></li>
-                <li><a href="#installation">6. Quick Setup & Execution</a></li>
-            </ul>
+  <p>This documentation presents a Machine Learning framework combining BoTorch \(q\text{LogNEHVI}\) acquisition functions with process-safe ASTRA beam dynamics simulations to learn true non-dominated Pareto fronts under physical beam quality constraints.</p>
 
-            <div class="rtd-nav-section-title">Project Resources</div>
-            <ul>
-                <li><a href="consolidated_report/consolidated_report.pdf" target="_blank">📄 Consolidated PDF Report</a></li>
-                <li><a href="https://github.com/cspark7701/mobo_linac" target="_blank">⭐ GitHub Repository</a></li>
-            </ul>
-        </nav>
+  <!-- Section 1: Framework Overview -->
+  <h1 id="overview">1. Framework Overview</h1>
+  <p>The repository develops a Multi-Objective Bayesian Optimization (MOBO) pipeline for an S-band electron injector linac. It replaces scalarized weighted objective optimization with direct Pareto front learning using Gaussian Process (GP) surrogates and hypervolume maximization.</p>
 
-        <div class="rtd-sidebar-footer">
-            Developed by <strong>Chong Shik Park</strong><br>
-            <a href="http://accelerator.korea.ac.kr" target="_blank">Korea University</a>
-        </div>
-    </aside>
+  <div class="grid-cards">
+    <div class="rtd-card">
+      <h3>🔬 Accelerator Physics Model</h3>
+      <p>High-fidelity particle tracking with ASTRA (v3.2) using 2D cylindrical space-charge field solvers (\(N=10,000\) macroparticles, \(Q=250\text{ pC}\)) across a 200 MeV linac featuring RF gun, solenoid, 4 ACC cavities, and quad doublets.</p>
+    </div>
+    <div class="rtd-card">
+      <h3>🛡️ Process-Safe Isolation</h3>
+      <p>Every parallel simulation worker executes inside a dedicated evaluation directory (<code>results/&lt;run_id&gt;/work/eval_00000i/</code>), eliminating multi-threaded file race conditions.</p>
+    </div>
+    <div class="rtd-card">
+      <h3>🎯 Constrained \(q\text{LogNEHVI}\)</h3>
+      <p>Parallel candidate batch proposals (\(q=4\)) driven by Noisy Expected Hypervolume Improvement, weighted by explicit Gaussian Process Probability of Feasibility constraint models.</p>
+    </div>
+  </div>
 
-    <!-- Main Content Area -->
-    <div class="rtd-content-wrapper">
+  <!-- Section 2: Physics & Design Parameters -->
+  <h1 id="physics">2. Physics Models and Machine Conventions</h1>
+  <p>The optimization controls 6 continuous design parameters written directly into <code>astra.in</code>, optimizing 3 physical beam objectives subject to 8 beam quality diagnostic constraints.</p>
 
-        <!-- Top Breadcrumbs Header -->
-        <header class="rtd-topbar">
-            <div class="rtd-breadcrumbs">
-                <button class="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-                <span>Docs</span> » <span>Overview</span> » <strong>200 MeV Linac MOBO Framework</strong>
-            </div>
-            <div class="rtd-topbar-actions">
-                <a href="consolidated_report/consolidated_report.pdf" class="btn-rtd" target="_blank">📄 PDF Report</a>
-                <a href="https://github.com/cspark7701/mobo_linac" class="btn-rtd btn-rtd-primary" target="_blank">⭐ GitHub</a>
-            </div>
-        </header>
+  <table>
+    <thead>
+      <tr>
+        <th>Design Variable Description</th>
+        <th>ASTRA Input Key</th>
+        <th>Nominal</th>
+        <th>Lower Bound</th>
+        <th>Upper Bound</th>
+        <th>Unit</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Solenoid Peak Field (\(B_{\text{sol}}\))</td>
+        <td><code>solenoid:maxb(1)</code></td>
+        <td>0.1948</td>
+        <td>0.0974</td>
+        <td>0.2922</td>
+        <td>T</td>
+      </tr>
+      <tr>
+        <td>Quadrupole 1 Gradient (\(G_{q1}\))</td>
+        <td><code>quadrupole:q_grad(1)</code></td>
+        <td>1.2865</td>
+        <td>0.6433</td>
+        <td>1.9298</td>
+        <td>T/m</td>
+      </tr>
+      <tr>
+        <td>Quadrupole 2 Gradient (\(G_{q2}\))</td>
+        <td><code>quadrupole:q_grad(2)</code></td>
+        <td>-2.8867</td>
+        <td>-4.3300</td>
+        <td>-1.4433</td>
+        <td>T/m</td>
+      </tr>
+      <tr>
+        <td>RF Gun Phase (\(\phi_{\text{gun}}\))</td>
+        <td><code>cavity:phi(1)</code></td>
+        <td>35.62</td>
+        <td>32.06</td>
+        <td>39.19</td>
+        <td>deg</td>
+      </tr>
+      <tr>
+        <td>ACC1/ACC2 Coupled Phase (\(\phi_{\text{acc1/2}}\))</td>
+        <td><code>cavity:phi(2,3)</code></td>
+        <td>-39.51</td>
+        <td>-43.46</td>
+        <td>-35.56</td>
+        <td>deg</td>
+      </tr>
+      <tr>
+        <td>ACC3/ACC4 Coupled Phase (\(\phi_{\text{acc3/4}}\))</td>
+        <td><code>cavity:phi(4,5)</code></td>
+        <td>310.05</td>
+        <td>279.05</td>
+        <td>341.06</td>
+        <td>deg</td>
+      </tr>
+    </tbody>
+  </table>
 
-        <!-- Main Article Body -->
-        <main class="rtd-main-content">
+  <div class="source-note important">
+    <strong>Objective Conventions & Constraints:</strong><br />
+    <strong>Physical Objectives (Minimize):</strong> Horizontal emittance (\(\varepsilon_{n,x}\)), Vertical emittance (\(\varepsilon_{n,y}\)), and RMS energy spread (\(\sigma_E\)). Objectives are negated in model space (\(\mathbf{Y}_{\text{model}} = -\mathbf{Y}_{\text{phys}}\)).<br />
+    <strong>Beam Constraints:</strong> \(\sigma_x, \sigma_y \le 1.0\text{ mm}\), \(\sigma_{x'}, \sigma_{y'} \le 1.0\text{ mrad}\), \(\sigma_z \le 1.0\text{ mm}\), \(195.0 \le E_{\text{kin}} \le 205.0\text{ MeV}\), and \(\eta_{\text{trans}} \ge 90.0\%\).
+  </div>
 
-            <h1 class="page-title">Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac</h1>
-            
-            <p class="lead">
-                A high-performance Machine Learning framework combining BoTorch \(q\text{LogNEHVI}\) acquisition functions with process-safe ASTRA beam dynamics simulations to learn true non-dominated Pareto fronts under physical beam constraints.
-            </p>
+  <!-- Section 3: Architecture -->
+  <h1 id="architecture">3. Simulation Code Structure and Architecture</h1>
+  <p>The framework separates optimization routines from simulation-specific details via modular architecture.</p>
 
-            <!-- Sphinx Note Admonition for Author & Affiliation -->
-            <div class="admonition note">
-                <div class="admonition-title">📌 Project Metadata & Authorship</div>
-                <p>
-                    <strong>Author:</strong> Chong Shik Park<br>
-                    <strong>Affiliation:</strong> Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea<br>
-                    <strong>Presented at:</strong> ICABU 2025 • <strong>Release Tag:</strong> <code class="literal">v1.0.0</code>
-                </p>
-            </div>
-
-            <!-- Section 1: Framework Overview -->
-            <section id="overview">
-                <h2 class="section-header">
-                    1. Framework Overview
-                    <a href="#overview" class="headerlink" title="Permalink to this headline">¶</a>
-                </h2>
-                <p>
-                    This repository implements a multi-objective Bayesian optimization (MOBO) pipeline for an S-band electron injector accelerator. It replaces traditional scalarized weighted objectives with direct Pareto front learning using Gaussian Process (GP) surrogates and hypervolume maximization.
-                </p>
-
-                <div class="grid-cards">
-                    <div class="rtd-card">
-                        <div class="rtd-card-title">🔬 Accelerator Physics Model</div>
-                        <p>High-fidelity particle tracking with ASTRA (v3.2) using 2D cylindrical space-charge field solvers (\(N=10,000\) macroparticles, \(Q=250\text{ pC}\)) across a 200 MeV linac featuring RF gun, solenoid, 4 ACC cavities, and quad doublets.</p>
-                    </div>
-                    <div class="rtd-card">
-                        <div class="rtd-card-title">🛡️ Process-Safe Isolation</div>
-                        <p>Every parallel simulation worker executes inside a dedicated, isolated evaluation directory (<code class="literal">results/&lt;run_id&gt;/work/eval_00000i/</code>), completely eliminating multi-threaded file race conditions.</p>
-                    </div>
-                    <div class="rtd-card">
-                        <div class="rtd-card-title">🎯 Constrained \(q\text{LogNEHVI}\)</div>
-                        <p>Parallel candidate batch proposals (\(q=4\)) driven by Noisy Expected Hypervolume Improvement, weighted by explicit Gaussian Process Probability of Feasibility constraint models.</p>
-                    </div>
-                </div>
-            </section>
-
-            <!-- Section 2: Physics & Design Variables -->
-            <section id="physics">
-                <h2 class="section-header">
-                    2. Physics & Design Parameters
-                    <a href="#physics" class="headerlink" title="Permalink to this headline">¶</a>
-                </h2>
-                <p>
-                    The optimization controls 6 continuous design parameters written directly into <code class="literal">astra.in</code>, optimizing 3 physical beam objectives subject to 8 beam quality diagnostic constraints.
-                </p>
-
-                <div class="table-responsive">
-                    <table class="docutils">
-                        <thead>
-                            <tr>
-                                <th>Design Variable Description</th>
-                                <th>ASTRA Input Key</th>
-                                <th>Nominal</th>
-                                <th>Lower Bound</th>
-                                <th>Upper Bound</th>
-                                <th>Unit</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Solenoid Peak Field (\(B_{\text{sol}}\))</td>
-                                <td><code class="literal">solenoid:maxb(1)</code></td>
-                                <td>0.1948</td>
-                                <td>0.0974</td>
-                                <td>0.2922</td>
-                                <td>T</td>
-                            </tr>
-                            <tr>
-                                <td>Quadrupole 1 Gradient (\(G_{q1}\))</td>
-                                <td><code class="literal">quadrupole:q_grad(1)</code></td>
-                                <td>1.2865</td>
-                                <td>0.6433</td>
-                                <td>1.9298</td>
-                                <td>T/m</td>
-                            </tr>
-                            <tr>
-                                <td>Quadrupole 2 Gradient (\(G_{q2}\))</td>
-                                <td><code class="literal">quadrupole:q_grad(2)</code></td>
-                                <td>-2.8867</td>
-                                <td>-4.3300</td>
-                                <td>-1.4433</td>
-                                <td>T/m</td>
-                            </tr>
-                            <tr>
-                                <td>RF Gun Phase (\(\phi_{\text{gun}}\))</td>
-                                <td><code class="literal">cavity:phi(1)</code></td>
-                                <td>35.62</td>
-                                <td>32.06</td>
-                                <td>39.19</td>
-                                <td>deg</td>
-                            </tr>
-                            <tr>
-                                <td>ACC1/ACC2 Coupled Phase (\(\phi_{\text{acc1/2}}\))</td>
-                                <td><code class="literal">cavity:phi(2,3)</code></td>
-                                <td>-39.51</td>
-                                <td>-43.46</td>
-                                <td>-35.56</td>
-                                <td>deg</td>
-                            </tr>
-                            <tr>
-                                <td>ACC3/ACC4 Coupled Phase (\(\phi_{\text{acc3/4}}\))</td>
-                                <td><code class="literal">cavity:phi(4,5)</code></td>
-                                <td>310.05</td>
-                                <td>279.05</td>
-                                <td>341.06</td>
-                                <td>deg</td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-
-                <div class="admonition important">
-                    <div class="admonition-title">⚡ Objective Conventions & Constraint Rules</div>
-                    <p>
-                        <strong>Physical Objectives (Minimize):</strong> Horizontal emittance (\(\varepsilon_{n,x}\)), Vertical emittance (\(\varepsilon_{n,y}\)), and RMS energy spread (\(\sigma_E\)). In BoTorch model space, objectives are negated (\(\mathbf{Y}_{\text{model}} = -\mathbf{Y}_{\text{phys}}\)).<br>
-                        <strong>Constraints:</strong> \(\sigma_x, \sigma_y \le 1.0\text{ mm}\), \(\sigma_{x'}, \sigma_{y'} \le 1.0\text{ mrad}\), \(\sigma_z \le 1.0\text{ mm}\), \(195.0 \le E_{\text{kin}} \le 205.0\text{ MeV}\), and \(\eta_{\text{trans}} \ge 90.0\%\).
-                    </p>
-                </div>
-            </section>
-
-            <!-- Section 3: Architecture -->
-            <section id="architecture">
-                <h2 class="section-header">
-                    3. Software Architecture & Execution Pipeline
-                    <a href="#architecture" class="headerlink" title="Permalink to this headline">¶</a>
-                </h2>
-                <p>
-                    Modular execution pipeline decoupling simulation management from Bayesian optimization algorithms.
-                </p>
-                
-                <pre class="highlight"><code>Parameter Vector (6D) ➔ Modify astra.in ➔ ProcessPoolExecutor Worker ➔ Run ASTRA Simulation 
+  <pre><code>Parameter Vector (6D) ➔ Modify astra.in ➔ ProcessPoolExecutor Worker ➔ Run ASTRA Simulation 
     ➔ Parse Statistics ➔ Compute Objectives & Constraints ➔ Update ModelListGP Surrogates 
     ➔ Optimize qLogNEHVI ➔ Propose Next Candidate Batch (q=4)</code></pre>
-            </section>
 
-            <!-- Section 4: Optimization Benchmark Results -->
-            <section id="results">
-                <h2 class="section-header">
-                    4. Optimization Benchmark Results
-                    <a href="#results" class="headerlink" title="Permalink to this headline">¶</a>
-                </h2>
-                <p>
-                    Comparative campaign tracking feasible hypervolume growth and non-dominated Pareto trade-offs.
-                </p>
+  <!-- Section 4: Results -->
+  <h1 id="results">4. Optimization Benchmark Results</h1>
+  <p>Feasible hypervolume growth history and 2D Pareto front projections across campaign evaluations.</p>
 
-                <div class="grid-cards">
-                    <div class="chart-card">
-                        <div class="rtd-card-title">📈 Feasible Hypervolume Progression</div>
-                        <div class="chart-container">
-                            <canvas id="hvChart"></canvas>
-                        </div>
-                    </div>
-                    <div class="chart-card">
-                        <div class="rtd-card-title">🌌 2D Pareto Front Projections</div>
-                        <div class="chart-container">
-                            <canvas id="paretoChart"></canvas>
-                        </div>
-                    </div>
-                </div>
-            </section>
+  <div class="chart-card">
+    <h3>📈 Feasible Hypervolume Progression</h3>
+    <div class="chart-container">
+      <canvas id="hvChart"></canvas>
+    </div>
+  </div>
 
-            <!-- Section 5: Independent Pareto Rerun Verification -->
-            <section id="verification">
-                <h2 class="section-header">
-                    5. Independent Pareto Candidate Verification
-                    <a href="#verification" class="headerlink" title="Permalink to this headline">¶</a>
-                </h2>
-                
-                <div class="admonition tip">
-                    <div class="admonition-title">✅ Deterministic Reproducibility Audit</div>
-                    <p>
-                        5 representative Pareto candidates were independently re-simulated in clean working directories, confirming exact numerical reproducibility with <strong>0.000000% maximum relative error</strong> across all objective diagnostics.
-                    </p>
-                </div>
+  <div class="chart-card">
+    <h3>🌌 2D Pareto Objective Projections</h3>
+    <div class="chart-container">
+      <canvas id="paretoChart"></canvas>
+    </div>
+  </div>
 
-                <div class="table-responsive">
-                    <table class="docutils">
-                        <thead>
-                            <tr>
-                                <th>Candidate Role</th>
-                                <th>Stored \(\varepsilon_{n,x}\) [\(\mu\)m]</th>
-                                <th>Rerun \(\varepsilon_{n,x}\) [\(\mu\)m]</th>
-                                <th>Stored \(\sigma_E\) [MeV]</th>
-                                <th>Rerun \(\sigma_E\) [MeV]</th>
-                                <th>Max Rel. Diff [%]</th>
-                                <th>Status</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td><code class="literal">min_emit_x</code></td>
-                                <td>3.7629</td>
-                                <td>3.7629</td>
-                                <td>0.7733</td>
-                                <td>0.7733</td>
-                                <td>0.000000</td>
-                                <td><span class="status-badge">VERIFIED</span></td>
-                            </tr>
-                            <tr>
-                                <td><code class="literal">min_emit_y</code></td>
-                                <td>3.7629</td>
-                                <td>3.7629</td>
-                                <td>0.7733</td>
-                                <td>0.7733</td>
-                                <td>0.000000</td>
-                                <td><span class="status-badge">VERIFIED</span></td>
-                            </tr>
-                            <tr>
-                                <td><code class="literal">min_sigma_energy</code></td>
-                                <td>5.6884</td>
-                                <td>5.6884</td>
-                                <td>0.3701</td>
-                                <td>0.3701</td>
-                                <td>0.000000</td>
-                                <td><span class="status-badge">VERIFIED</span></td>
-                            </tr>
-                            <tr>
-                                <td><code class="literal">knee_point</code></td>
-                                <td>4.6763</td>
-                                <td>4.6763</td>
-                                <td>0.4124</td>
-                                <td>0.4124</td>
-                                <td>0.000000</td>
-                                <td><span class="status-badge">VERIFIED</span></td>
-                            </tr>
-                            <tr>
-                                <td><code class="literal">balanced_feasible</code></td>
-                                <td>4.6763</td>
-                                <td>4.6763</td>
-                                <td>0.4124</td>
-                                <td>0.4124</td>
-                                <td>0.000000</td>
-                                <td><span class="status-badge">VERIFIED</span></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-            </section>
+  <!-- Section 5: Verification -->
+  <h1 id="verification">5. Independent Pareto Candidate Rerun Verification</h1>
 
-            <!-- Section 6: Quick Setup & Installation -->
-            <section id="installation">
-                <h2 class="section-header">
-                    6. Quick Setup & Execution
-                    <a href="#installation" class="headerlink" title="Permalink to this headline">¶</a>
-                </h2>
-                <p>
-                    Set up environment and verify installation on Linux 64-bit platforms:
-                </p>
+  <div class="source-note tip">
+    <strong>Deterministic Verification Protocol:</strong> 5 representative Pareto candidates were independently re-simulated in clean directories, confirming exact numerical reproducibility with <strong>0.000000% maximum relative error</strong>.
+  </div>
 
-                <pre class="highlight"><code># 1. Clone Repository
+  <table>
+    <thead>
+      <tr>
+        <th>Candidate Role</th>
+        <th>Stored \(\varepsilon_{n,x}\) [\(\mu\)m]</th>
+        <th>Rerun \(\varepsilon_{n,x}\) [\(\mu\)m]</th>
+        <th>Stored \(\sigma_E\) [MeV]</th>
+        <th>Rerun \(\sigma_E\) [MeV]</th>
+        <th>Max Rel. Diff [%]</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>min_emit_x</code></td>
+        <td>3.7629</td>
+        <td>3.7629</td>
+        <td>0.7733</td>
+        <td>0.7733</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+      <tr>
+        <td><code>min_emit_y</code></td>
+        <td>3.7629</td>
+        <td>3.7629</td>
+        <td>0.7733</td>
+        <td>0.7733</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+      <tr>
+        <td><code>min_sigma_energy</code></td>
+        <td>5.6884</td>
+        <td>5.6884</td>
+        <td>0.3701</td>
+        <td>0.3701</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+      <tr>
+        <td><code>knee_point</code></td>
+        <td>4.6763</td>
+        <td>4.6763</td>
+        <td>0.4124</td>
+        <td>0.4124</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+      <tr>
+        <td><code>balanced_feasible</code></td>
+        <td>4.6763</td>
+        <td>4.6763</td>
+        <td>0.4124</td>
+        <td>0.4124</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section 6: Installation -->
+  <h1 id="installation">6. New User Installation and Local Operation</h1>
+  <p>Installation instructions for fresh system setup and local execution:</p>
+
+  <pre><code># 1. Clone Repository
 git clone https://github.com/cspark7701/mobo_linac.git
 cd mobo_linac
 
@@ -884,130 +258,126 @@ cd mobo_linac
 conda activate linac-opt
 source env_setup.sh
 
-# 4. Run Pytest Suite Verification
+# 4. Run Pytest Verification Suite
 pytest -v -m "not integration"</code></pre>
-            </section>
+</main>
+</div>
 
-            <!-- Footer Navigation -->
-            <div class="rtd-footer-nav">
-                <a href="#physics" class="rtd-footer-nav-btn">
-                    « Previous
-                    <strong>2. Physics & Design Parameters</strong>
-                </a>
-                <a href="consolidated_report/consolidated_report.pdf" class="rtd-footer-nav-btn" target="_blank" style="text-align: right;">
-                    Next »
-                    <strong>Consolidated Technical Report (PDF)</strong>
-                </a>
-            </div>
+<script>
+  // Live Search Filter for Navigation Links
+  function filterDocsNav() {
+    const input = document.getElementById('rtd-search-input').value.toLowerCase();
+    const links = document.querySelectorAll('#TOC li');
+    links.forEach(li => {
+      const text = li.textContent.toLowerCase();
+      li.style.display = text.includes(input) ? '' : 'none';
+    });
+  }
 
-            <!-- Page Footer -->
-            <footer class="rtd-page-footer">
-                <p>&copy; Copyright 2026, <strong>Chong Shik Park</strong>. Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea.</p>
-                <p style="margin-top: 0.4rem;">Revision <code class="literal">v1.0.0</code> • Built with Sphinx & Read the Docs theme.</p>
-            </footer>
+  // Active Navigation Link Highlighting on Scroll
+  window.addEventListener('DOMContentLoaded', () => {
+    const navLinks = document.querySelectorAll('#TOC a');
+    const sections = document.querySelectorAll('main h1[id]');
 
-        </main>
-    </div>
-
-    <!-- Scripts for Read the Docs Interactive Features & Charts -->
-    <script>
-        // Responsive Sidebar Toggle
-        function toggleSidebar() {
-            document.getElementById('rtd-sidebar').classList.toggle('open');
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (window.scrollY >= sectionTop) {
+          current = section.getAttribute('id');
         }
-
-        // Live Search Filter for Sidebar Navigation
-        function filterDocsNav() {
-            const input = document.getElementById('rtd-search-input').value.toLowerCase();
-            const links = document.querySelectorAll('#rtd-nav-tree li');
-            links.forEach(li => {
-                const text = li.textContent.toLowerCase();
-                li.style.display = text.includes(input) ? '' : 'none';
-            });
+      });
+      navLinks.forEach(link => {
+        link.classList.remove('current');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('current');
         }
+      });
+    });
+  });
 
-        // Hypervolume Chart
-        const hvCtx = document.getElementById('hvChart').getContext('2d');
-        new Chart(hvCtx, {
-            type: 'line',
-            data: {
-                labels: ['Init (Sobol)', 'Iter 1', 'Iter 2', 'Iter 3', 'Iter 4', 'Iter 5', 'Iter 6'],
-                datasets: [{
-                    label: 'Phase 3 (Constrained MOBO)',
-                    data: [0.0082, 0.0125, 0.0158, 0.0179, 0.0188, 0.0192, 0.01939],
-                    borderColor: '#38bdf8',
-                    backgroundColor: 'rgba(56, 189, 248, 0.15)',
-                    fill: true,
-                    tension: 0.3,
-                    borderWidth: 3
-                }, {
-                    label: 'Phase 2 (Unconstrained MOBO)',
-                    data: [0.0079, 0.0118, 0.0149, 0.0172, 0.0184, 0.0190, 0.01939],
-                    borderColor: '#a855f7',
-                    borderDash: [5, 5],
-                    fill: false,
-                    tension: 0.3,
-                    borderWidth: 2
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#cbd5e1', font: { family: 'Inter' } } }
-                },
-                scales: {
-                    x: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } },
-                    y: { grid: { color: '#334155' }, ticks: { color: '#94a3b8' } }
-                }
-            }
-        });
+  // Hypervolume Progression Chart
+  const hvCtx = document.getElementById('hvChart').getContext('2d');
+  new Chart(hvCtx, {
+    type: 'line',
+    data: {
+      labels: ['Init (Sobol)', 'Iter 1', 'Iter 2', 'Iter 3', 'Iter 4', 'Iter 5', 'Iter 6'],
+      datasets: [{
+        label: 'Phase 3 (Constrained MOBO)',
+        data: [0.0082, 0.0125, 0.0158, 0.0179, 0.0188, 0.0192, 0.01939],
+        borderColor: '#2980b9',
+        backgroundColor: 'rgba(41, 128, 185, 0.15)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 3
+      }, {
+        label: 'Phase 2 (Unconstrained MOBO)',
+        data: [0.0079, 0.0118, 0.0149, 0.0172, 0.0184, 0.0190, 0.01939],
+        borderColor: '#8e44ad',
+        borderDash: [5, 5],
+        fill: false,
+        tension: 0.3,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#404040', font: { family: 'Lato' } } }
+      },
+      scales: {
+        x: { grid: { color: '#e1e4e5' }, ticks: { color: '#555' } },
+        y: { grid: { color: '#e1e4e5' }, ticks: { color: '#555' } }
+      }
+    }
+  });
 
-        // Pareto Front Chart
-        const paretoCtx = document.getElementById('paretoChart').getContext('2d');
-        new Chart(paretoCtx, {
-            type: 'scatter',
-            data: {
-                datasets: [{
-                    label: 'Pareto Front Candidates',
-                    data: [
-                        { x: 3.76, y: 0.77 },
-                        { x: 4.12, y: 0.58 },
-                        { x: 4.68, y: 0.41 },
-                        { x: 5.15, y: 0.38 },
-                        { x: 5.69, y: 0.37 }
-                    ],
-                    backgroundColor: '#38bdf8',
-                    pointRadius: 7,
-                    pointHoverRadius: 10
-                }, {
-                    label: 'Knee Point Selection',
-                    data: [{ x: 4.68, y: 0.41 }],
-                    backgroundColor: '#10b981',
-                    pointRadius: 11,
-                    pointStyle: 'rectRot'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { labels: { color: '#cbd5e1', font: { family: 'Inter' } } }
-                },
-                scales: {
-                    x: {
-                        title: { display: true, text: 'Emittance ε_n,x [μm rad]', color: '#94a3b8' },
-                        grid: { color: '#334155' },
-                        ticks: { color: '#94a3b8' }
-                    },
-                    y: {
-                        title: { display: true, text: 'Energy Spread σ_E [MeV]', color: '#94a3b8' },
-                        grid: { color: '#334155' },
-                        ticks: { color: '#94a3b8' }
-                    }
-                }
-            }
-        });
-    </script>
+  // Pareto Front Chart
+  const paretoCtx = document.getElementById('paretoChart').getContext('2d');
+  new Chart(paretoCtx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Pareto Front Candidates',
+        data: [
+          { x: 3.76, y: 0.77 },
+          { x: 4.12, y: 0.58 },
+          { x: 4.68, y: 0.41 },
+          { x: 5.15, y: 0.38 },
+          { x: 5.69, y: 0.37 }
+        ],
+        backgroundColor: '#2980b9',
+        pointRadius: 7,
+        pointHoverRadius: 10
+      }, {
+        label: 'Knee Point Selection',
+        data: [{ x: 4.68, y: 0.41 }],
+        backgroundColor: '#27ae60',
+        pointRadius: 11,
+        pointStyle: 'rectRot'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#404040', font: { family: 'Lato' } } }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Emittance ε_n,x [μm rad]', color: '#555' },
+          grid: { color: '#e1e4e5' },
+          ticks: { color: '#555' }
+        },
+        y: {
+          title: { display: true, text: 'Energy Spread σ_E [MeV]', color: '#555' },
+          grid: { color: '#e1e4e5' },
+          ticks: { color: '#555' }
+        }
+      }
+    }
+  });
+</script>
 </body>
 </html>
