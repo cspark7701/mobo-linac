@@ -33,12 +33,12 @@
 <div class="layout">
 <nav id="TOC" role="doc-toc">
   <ul>
-    <li><a class="current" href="#overview">1. Framework Overview</a></li>
-    <li><a href="#physics">2. Physics & Design Parameters</a></li>
-    <li><a href="#architecture">3. Software Architecture</a></li>
-    <li><a href="#results">4. Optimization Results</a></li>
-    <li><a href="#verification">5. Independent Pareto Verification</a></li>
-    <li><a href="#installation">6. Quick Setup & Execution</a></li>
+    <li><a class="current" href="#overview">Framework Overview</a></li>
+    <li><a href="#physics">Physics Models and Machine Conventions</a></li>
+    <li><a href="#architecture">Simulation Code Structure and Architecture</a></li>
+    <li><a href="#results">Optimization Benchmark Results</a></li>
+    <li><a href="#verification">Independent Pareto Verification</a></li>
+    <li><a href="#installation">New User Installation and Local Operation</a></li>
     <li><a href="consolidated_report/consolidated_report.pdf" target="_blank">PDF Technical Report</a></li>
   </ul>
 </nav>
@@ -57,8 +57,8 @@
 
   <p>This documentation presents a Machine Learning framework combining BoTorch \(q\text{LogNEHVI}\) acquisition functions with process-safe ASTRA beam dynamics simulations to learn true non-dominated Pareto fronts under physical beam quality constraints.</p>
 
-  <!-- Section 1: Framework Overview -->
-  <h1 id="overview">1. Framework Overview</h1>
+  <!-- Section: Framework Overview -->
+  <h1 id="overview">Framework Overview</h1>
   <p>The repository develops a Multi-Objective Bayesian Optimization (MOBO) pipeline for an S-band electron injector linac. It replaces scalarized weighted objective optimization with direct Pareto front learning using Gaussian Process (GP) surrogates and hypervolume maximization.</p>
 
   <div class="grid-cards">
@@ -76,8 +76,8 @@
     </div>
   </div>
 
-  <!-- Section 2: Physics & Design Parameters -->
-  <h1 id="physics">2. Physics Models and Machine Conventions</h1>
+  <!-- Section: Physics & Design Parameters -->
+  <h1 id="physics">Physics Models and Machine Conventions</h1>
   <p>The optimization controls 6 continuous design parameters written directly into <code>astra.in</code>, optimizing 3 physical beam objectives subject to 8 beam quality diagnostic constraints.</p>
 
   <table>
@@ -149,16 +149,16 @@
     <strong>Beam Constraints:</strong> \(\sigma_x, \sigma_y \le 1.0\text{ mm}\), \(\sigma_{x'}, \sigma_{y'} \le 1.0\text{ mrad}\), \(\sigma_z \le 1.0\text{ mm}\), \(195.0 \le E_{\text{kin}} \le 205.0\text{ MeV}\), and \(\eta_{\text{trans}} \ge 90.0\%\).
   </div>
 
-  <!-- Section 3: Architecture -->
-  <h1 id="architecture">3. Simulation Code Structure and Architecture</h1>
+  <!-- Section: Architecture -->
+  <h1 id="architecture">Simulation Code Structure and Architecture</h1>
   <p>The framework separates optimization routines from simulation-specific details via modular architecture.</p>
 
   <pre><code>Parameter Vector (6D) ➔ Modify astra.in ➔ ProcessPoolExecutor Worker ➔ Run ASTRA Simulation 
     ➔ Parse Statistics ➔ Compute Objectives & Constraints ➔ Update ModelListGP Surrogates 
     ➔ Optimize qLogNEHVI ➔ Propose Next Candidate Batch (q=4)</code></pre>
 
-  <!-- Section 4: Results -->
-  <h1 id="results">4. Optimization Benchmark Results</h1>
+  <!-- Section: Results -->
+  <h1 id="results">Optimization Benchmark Results</h1>
   <p>Feasible hypervolume growth history and 2D Pareto front projections across campaign evaluations.</p>
 
   <div class="chart-card">
@@ -175,8 +175,8 @@
     </div>
   </div>
 
-  <!-- Section 5: Verification -->
-  <h1 id="verification">5. Independent Pareto Candidate Rerun Verification</h1>
+  <!-- Section: Verification -->
+  <h1 id="verification">Independent Pareto Candidate Rerun Verification</h1>
 
   <div class="source-note tip">
     <strong>Deterministic Verification Protocol:</strong> 5 representative Pareto candidates were independently re-simulated in clean directories, confirming exact numerical reproducibility with <strong>0.000000% maximum relative error</strong>.
@@ -243,8 +243,8 @@
     </tbody>
   </table>
 
-  <!-- Section 6: Installation -->
-  <h1 id="installation">6. New User Installation and Local Operation</h1>
+  <!-- Section: Installation -->
+  <h1 id="installation">New User Installation and Local Operation</h1>
   <p>Installation instructions for fresh system setup and local execution:</p>
 
   <pre><code># 1. Clone Repository
