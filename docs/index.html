@@ -38,6 +38,7 @@
     <li><a href="#architecture">Simulation Code Structure and Architecture</a></li>
     <li><a href="#results">Optimization Benchmark Results</a></li>
     <li><a href="#verification">Independent Pareto Verification</a></li>
+    <li><a href="#production-pipeline">Full Production Simulations & Analysis Procedure</a></li>
     <li><a href="#installation">New User Installation and Local Operation</a></li>
     <li><a href="consolidated_report/consolidated_report.pdf" target="_blank">PDF Technical Report</a></li>
   </ul>
@@ -242,6 +243,79 @@
       </tr>
     </tbody>
   </table>
+
+  <!-- Section: Full Production Simulations & Analysis Procedure -->
+  <h1 id="production-pipeline">Full Production Simulations and Analysis Procedure</h1>
+  <p>The repository provides a single, process-safe pipeline script <code>scripts/run_full_production.sh</code> that executes full production-grade MOBO simulations followed by automated post-processing analysis. An interactive 1-to-1 Jupyter notebook mirror is available at <code>notebooks/full_production_pipeline.ipynb</code>.</p>
+
+  <div class="source-note tip">
+    <strong>Key Features of Full Production Pipeline Script:</strong><br />
+    • <strong>Automatic 90% CPU Parallelization:</strong> Dynamically calculates available CPU core capacity (<code>NUM_WORKERS = max(1, int(os.cpu_count() * 0.9))</code>) for parallel worker pools.<br />
+    • <strong>Token-Efficient Quiet Mode (<code>--quiet</code>):</strong> Redirects heavy process logs to <code>simulation.log</code> and <code>analysis.log</code> while displaying high-level step progress on screen.<br />
+    • <strong>Parameter Scanning CLI Options:</strong> Supports custom iteration counts (<code>-i</code>), batch sizes (<code>-b</code>), seeds, and output directories (<code>-o</code>).
+  </div>
+
+  <h3>Step-by-Step Production Execution Pipeline</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Pipeline Step</th>
+        <th>Stage Description</th>
+        <th>Executed Script / Module</th>
+        <th>Output Directory & Primary Artifacts</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Step 1/6</strong></td>
+        <td>Environment & Executable Verification</td>
+        <td><code>chmod +x bin/*</code> & <code>env_setup.sh</code></td>
+        <td>Verified binaries in <code>./bin/</code> and environment flags</td>
+      </tr>
+      <tr>
+        <td><strong>Step 2/6</strong></td>
+        <td>Phase 2 Unconstrained MOBO Simulation</td>
+        <td><code>scripts/run_validation_campaign.py</code></td>
+        <td><code>results/.../phase2_unconstrained/</code> (<code>train_X.csv</code>, <code>train_Y.csv</code>, <code>pareto.csv</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 3/6</strong></td>
+        <td>Phase 3 Constraint-Aware MOBO Simulation</td>
+        <td><code>scripts/run_validation_campaign.py</code></td>
+        <td><code>results/.../phase3_constrained/</code> (<code>constraints.csv</code>, <code>hypervolume.csv</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 4/6</strong></td>
+        <td>Comparative Analysis & Pareto Audit</td>
+        <td><code>scripts/run_comparison_and_verification.py</code></td>
+        <td><code>results/.../analysis/</code> (<code>verification_records.csv</code>, <code>comparison_report.md</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 5/6</strong></td>
+        <td>Engineering Tolerance Robustness Analysis</td>
+        <td><code>scripts/run_robustness_analysis.py</code></td>
+        <td><code>results/.../analysis/robustness/</code> (\(\pm 0.1^\circ\) RF phase, \(\pm 0.1\%\) magnet gradient)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 6/6</strong></td>
+        <td>Report Export & Execution Summary</td>
+        <td>Pipeline status check & report generator</td>
+        <td>Finalized PDF report and summary statistics</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Production Command Examples</h3>
+
+  <pre><code># 1. Execute Full Production Campaign with 90% CPU Core Parallelization
+./scripts/run_full_production.sh --quiet --iterations 15 --batch-size 4 --output-dir results/production_campaign
+
+# 2. Execute Lightweight Dry-Run Verification (1 Iteration)
+./scripts/run_full_production.sh --quiet --iterations 1 --batch-size 2 --output-dir results/dryrun_test
+
+# 3. Execute 1-to-1 Interactive Jupyter Notebook
+jupyter notebook notebooks/full_production_pipeline.ipynb</code></pre>
 
   <!-- Section: Installation -->
   <h1 id="installation">New User Installation and Local Operation</h1>
