@@ -59,16 +59,11 @@ from mobo_linac.plotting.visualizations import (
     plot_pareto_front,
 )
 
-# Constraint evaluators for constrained MOBO
-def c_sigma_x(Y): return Y[..., 3] - 1.0e-3
-def c_sigma_y(Y): return Y[..., 4] - 1.0e-3
-def c_sigma_xp(Y): return Y[..., 5] - 1.0e-3
-def c_sigma_yp(Y): return Y[..., 6] - 1.0e-3
-def c_sigma_z(Y): return Y[..., 7] - 1.0e-3
-def c_E_min(Y): return 195e6 - Y[..., 8]
-def c_E_max(Y): return Y[..., 8] - 205e6
+from mobo_linac.constraints import get_botorch_constraint_functions
 
-CONSTRAINT_FUNCTIONS = [c_sigma_x, c_sigma_y, c_sigma_xp, c_sigma_yp, c_sigma_z, c_E_min, c_E_max]
+# Dynamic constraint evaluators for constrained MOBO
+CONSTRAINT_FUNCTIONS = get_botorch_constraint_functions()
+
 
 
 def run_unconstrained(args: argparse.Namespace) -> None:

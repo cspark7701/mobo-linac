@@ -94,3 +94,64 @@ class ConstraintEvaluator:
             "energy_upper_eV": max(0.0, energy - self.config.max_mean_kinetic_energy_eV),
             "transmission": max(0.0, self.config.min_transmission - transmission),
         }
+
+
+def get_botorch_constraint_functions(
+    config: Optional[Union[ConstraintsConfig, MoboConfig]] = None,
+) -> list:
+    """
+    Dynamically constructs a list of BoTorch tensor constraint functions c_i(Y) <= 0
+    from configuration thresholds.
+
+    Args:
+        config: MoboConfig or ConstraintsConfig instance.
+
+    Returns:
+        List of callable constraint functions returning Tensors where <= 0 indicates feasibility.
+    """
+    if isinstance(config, MoboConfig):
+        c_config = config.constraints
+    elif isinstance(config, ConstraintsConfig):
+        c_config = config
+    else:
+        c_config = ConstraintsConfig()
+
+    max_sigma_x = c_config.max_sigma_x_m
+    max_sigma_y = c_config.max_sigma_y_m
+    max_sigma_xp = c_config.max_sigma_xp_rad
+    max_sigma_yp = c_config.max_sigma_yp_rad
+    max_sigma_z = c_config.max_sigma_z_m
+    min_energy = c_config.min_mean_kinetic_energy_eV
+    max_energy = c_config.max_mean_kinetic_energy_eV
+
+    def c_sigma_x(Y: torch.Tensor) -> torch.Tensor:
+        return Y[..., 3] - max_sigma_x
+
+    def c_sigma_y(Y: torch.Tensor) -> torch.Tensor:
+        return Y[..., 4] - max_sigma_y
+
+    def c_sigma_xp(Y: torch.Tensor) -> torch.Tensor:
+        return Y[..., 5] - max_sigma_xp
+
+    def c_sigma_yp(Y: torch.Tensor) -> torch.Tensor:
+        return Y[..., 6] - max_sigma_yp
+
+    def c_sigma_z(Y: torch.Tensor) -> torch.Tensor:
+        return Y[..., 7] - max_sigma_z
+
+    def c_energy_min(Y: torch.Tensor) -> torch.Tensor:
+        return min_energy - Y[..., 8]
+
+    def c_energy_max(Y: torch.Tensor) -> torch.Tensor:
+        return Y[..., 8] - max_energy
+
+    return [
+        c_sigma_x,
+        c_sigma_y,
+        c_sigma_xp,
+        c_sigma_yp,
+        c_sigma_z,
+        c_energy_min,
+        c_energy_max,
+    ]
+

@@ -65,3 +65,24 @@ def test_compute_constraint_violations():
     assert violations["sigma_y_m"] == 0.0
     assert violations["energy_lower_eV"] == pytest.approx(5.0e6)
     assert violations["energy_upper_eV"] == 0.0
+
+
+def test_get_botorch_constraint_functions():
+    """Test dynamic generation of BoTorch tensor constraint functions."""
+    import torch
+    from mobo_linac.constraints import get_botorch_constraint_functions
+
+    c_funcs = get_botorch_constraint_functions()
+    assert len(c_funcs) == 7
+
+    # Dummy outcome tensor Y (batch size 1, 9 outcome metrics)
+    # Objectives: Y[0..2], Constraints: Y[3..8]
+    Y_feasible = torch.tensor([[0.0, 0.0, 0.0, 0.5e-3, 0.5e-3, 0.5e-3, 0.5e-3, 0.5e-3, 200.0e6]], dtype=torch.double)
+    for c_func in c_funcs:
+        val = c_func(Y_feasible)
+        assert val.item() <= 0.0  # All <= 0 means feasible
+
+    # Test infeasible tensor (sigma_x = 1.5e-3 > 1.0e-3 threshold)
+    Y_infeasible_x = torch.tensor([[0.0, 0.0, 0.0, 1.5e-3, 0.5e-3, 0.5e-3, 0.5e-3, 0.5e-3, 200.0e6]], dtype=torch.double)
+    assert c_funcs[0](Y_infeasible_x).item() > 0.0
+
