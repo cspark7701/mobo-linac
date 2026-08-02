@@ -252,7 +252,8 @@
     <strong>Key Features of Full Production Pipeline Script:</strong><br />
     • <strong>Automatic 90% CPU Parallelization:</strong> Dynamically calculates available CPU core capacity (<code>NUM_WORKERS = max(1, int(os.cpu_count() * 0.9))</code>) for parallel worker pools.<br />
     • <strong>Token-Efficient Quiet Mode (<code>--quiet</code>):</strong> Redirects heavy process logs to <code>simulation.log</code> and <code>analysis.log</code> while displaying high-level step progress on screen.<br />
-    • <strong>Parameter Scanning CLI Options:</strong> Supports custom iteration counts (<code>-i</code>), batch sizes (<code>-b</code>), seeds, and output directories (<code>-o</code>).
+    • <strong>Parameter Scanning CLI Options:</strong> Supports custom worker core counts (<code>-w</code> / <code>--workers</code>), iteration counts (<code>-i</code>), batch sizes (<code>-b</code>), seeds, and output directories (<code>-o</code>).
+
   </div>
 
   <h3>Step-by-Step Production Execution Pipeline</h3>

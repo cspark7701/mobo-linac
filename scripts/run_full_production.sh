@@ -25,6 +25,7 @@ set -euo pipefail
 VERBOSE=1
 N_ITERATIONS=10
 BATCH_SIZE=4
+NUM_WORKERS=""
 SEED=42
 OUTPUT_BASE_DIR="results/full_production"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -50,6 +51,11 @@ while [[ $# -gt 0 ]]; do
       BATCH_SIZE="$2"
       shift 2
       ;;
+    -w|--workers)
+      # Set custom number of parallel CPU worker processes
+      NUM_WORKERS="$2"
+      shift 2
+      ;;
     -o|--output-dir)
       # Set custom base output directory
       OUTPUT_BASE_DIR="$2"
@@ -61,6 +67,7 @@ while [[ $# -gt 0 ]]; do
       echo "  -q, --quiet          Suppress screen output (token-efficient mode)"
       echo "  -i, --iterations N   Number of BO iterations (default: 10)"
       echo "  -b, --batch-size Q   Batch size q (default: 4)"
+      echo "  -w, --workers W      Number of parallel CPU worker cores (default: 90% system capacity)"
       echo "  -o, --output-dir DIR Output directory (default: results/full_production)"
       echo "  -h, --help           Show this help message"
       exit 0
@@ -76,10 +83,13 @@ done
 cd "${PROJECT_ROOT}"
 
 # ------------------------------------------------------------------------------
-# Step 1: Calculate 90% Available CPU Cores for Parallel Simulation
+# Step 1: Calculate Available CPU Cores for Parallel Simulation
 # ------------------------------------------------------------------------------
-# Detect total system CPU cores and compute 90% allocation (minimum 1 worker)
-NUM_WORKERS=$(python3 -c "import os; print(max(1, int(os.cpu_count() * 0.9)))")
+if [ -z "${NUM_WORKERS}" ]; then
+  # Detect total system CPU cores and compute 90% allocation (minimum 1 worker)
+  NUM_WORKERS=$(python3 -c "import os; print(max(1, int(os.cpu_count() * 0.9)))")
+fi
+
 
 # Helper function to print high-level step progress (always printed)
 log_step() {
