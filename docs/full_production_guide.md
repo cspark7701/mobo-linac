@@ -9,9 +9,10 @@ This document provides complete instructions and architecture documentation for 
 The `run_full_production.sh` script automates the complete 200 MeV electron injector linac optimization and scientific analysis pipeline in a single, robust bash script.
 
 ### Key Capabilities:
-1. **Automated 90% CPU Parallelization**: Dynamically detects available CPU cores (`os.cpu_count()`) and allocates 90% capacity to `ProcessPoolExecutor` worker pools for maximum throughput without overloading the host OS.
+### Key Capabilities:
+1. **Automated 90% CPU Parallelization**: Dynamically detects available CPU cores (`os.cpu_count()`) and allocates 90% capacity to `ProcessPoolExecutor` worker pools for maximum throughput without overloading the host OS. Custom worker counts can be specified via `-w` / `--workers`.
 2. **Screen Verbose Toggle (`-q` / `--quiet`)**: Provides a quiet execution mode that suppresses screen output and redirects progress logs to dedicated files. This prevents token explosion when running under AI agent prompts (e.g. Antigravity / Codex).
-3. **End-to-End Execution**: Automatically runs Phase 2 (Unconstrained MOBO) and Phase 3 (Constraint-Aware MOBO) campaigns, computes hypervolume progression, reruns independent Pareto candidate verifications, and performs engineering tolerance robustness analysis.
+3. **End-to-End Execution**: Automatically runs Phase 1 (Scalarized BO), Phase 2 (Unconstrained MOBO), and Phase 3 (Constraint-Aware MOBO) campaigns, computes hypervolume progression, reruns independent Pareto candidate verifications, and performs engineering tolerance robustness analysis.
 4. **Clean Directory Separation**: Organizes all generated datasets, CSVs, checkpoints, LaTeX tables, and figures into distinct output subdirectories under `results/`.
 
 ---
@@ -35,8 +36,8 @@ The `run_full_production.sh` script automates the complete 200 MeV electron inje
 ### Advanced Parameter Scanning
 
 ```bash
-# Custom iteration budget, batch size, and output directory
-./scripts/run_full_production.sh --iterations 20 --batch-size 8 --output-dir results/production_campaign_v1
+# Custom worker core count, iteration budget, batch size, and output directory
+./scripts/run_full_production.sh -w 8 --iterations 20 --batch-size 8 --output-dir results/production_campaign_v1
 ```
 
 ---
@@ -48,6 +49,7 @@ The `run_full_production.sh` script automates the complete 200 MeV electron inje
 | `-q` | `--quiet` | Off (`VERBOSE=1`) | Suppresses screen output and logs directly to files. |
 | `-i` | `--iterations` | `10` | Total number of Bayesian Optimization iterations ($N$). |
 | `-b` | `--batch-size` | `4` | Number of candidate parameter vectors proposed per iteration ($q$). |
+| `-w` | `--workers` | `90% CPU` | Custom number of parallel worker processes. |
 | `-o` | `--output-dir` | `results/full_production` | Base directory for storing all simulation and analysis artifacts. |
 | `-h` | `--help` | N/A | Displays CLI usage help message. |
 
@@ -59,6 +61,13 @@ Each pipeline run populates the specified output directory as follows:
 
 ```
 results/full_production/
+├── phase1_scalarized/
+│   ├── simulation.log            # Execution log (quiet mode)
+│   ├── config.json               # Run configuration & parameters
+│   ├── evaluations.csv           # Evaluated design vectors & scalar outcomes
+│   ├── pareto.csv                # Non-dominated front under scalar weights
+│   └── hypervolume.csv           # Hypervolume tracking
+│
 ├── phase2_unconstrained/
 │   ├── simulation.log            # Execution log (quiet mode)
 │   ├── config.json               # Run configuration & parameters
@@ -87,6 +96,7 @@ results/full_production/
     ├── pareto_front_comparison.png# 2D physical objective projections
     └── robustness/               # Sensitivity analysis under perturbed RF phase & magnet fields
 ```
+
 
 ---
 
