@@ -73,244 +73,51 @@ CONSTRAINT_FUNCTIONS = [c_sigma_x, c_sigma_y, c_sigma_xp, c_sigma_yp, c_sigma_z,
 
 def run_unconstrained(args: argparse.Namespace) -> None:
     """Executes Phase 2 Unconstrained MOBO campaign."""
-    config_path = args.config if args.config else "configs/publication.yaml"
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+
+    config_path = args.config if hasattr(args, "config") and args.config else "configs/publication.yaml"
     if not Path(config_path).exists():
         config_path = "configs/mobo_200MeV.yaml"
-    config = load_config(config_path)
 
-    seed = args.seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    torch.set_default_dtype(torch.double)
-
-    if args.output_dir:
-        run_dir = Path(args.output_dir)
-    else:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        run_dir = Path("results") / f"unconstrained_{timestamp}"
-
-    run_dir.mkdir(parents=True, exist_ok=True)
-    run_id = run_dir.name
-
-    config.save_json(run_dir / "config.json")
-    config.save_yaml(run_dir / "config.yaml")
-
-    bounds = config.get_parameter_bounds_tensor()
-    num_workers = args.num_workers or config.execution.max_workers
-
-    evaluator = BatchEvaluator(
-        base_results_dir=run_dir.parent,
-        template_dir=".",
-        max_workers=num_workers,
-        timeout=config.execution.timeout_sec,
-        retries=config.execution.retries,
-        clean_on_success=config.execution.clean_on_success,
+    runner = MoboCampaignRunner(
+        config=config_path,
+        run_name="unconstrained",
+        output_dir=getattr(args, "output_dir", None),
+        num_initial_samples=getattr(args, "num_initial_samples", 16),
+        num_batches=getattr(args, "n_iterations", 6),
+        batch_size=getattr(args, "batch_size", 4),
+        num_workers=getattr(args, "num_workers", None),
+        seed=getattr(args, "seed", 42),
+        acq_type=getattr(args, "acquisition", "qLogNEHVI"),
+        constrained=False,
+        export_plots=True,
     )
-
-    print(f"Generating {args.num_initial_samples} initial Sobol samples...")
-    sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=seed)
-    sobol_samples = sobol_engine.draw(args.num_initial_samples).to(dtype=torch.double)
-    lower_b, upper_b = bounds[0], bounds[1]
-    initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
-
-    print(f"Evaluating {args.num_initial_samples} initial samples across {num_workers} processes...")
-    raw_results = evaluator.evaluate_batch(initial_candidates, run_id=run_id)
-    results = [create_evaluation_result(res, config) for res in raw_results]
-
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-    feasible_count = int(train_feas_mask.sum().item())
-    print(f"Initial sampling complete. Valid: {train_X.shape[0]}, Feasible: {feasible_count} / {len(results)}")
-
-    reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
-    tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=config)
-
-    tracker.track_iteration(0, train_Y, train_feas_mask)
-    save_evaluation_results(results, run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
-    tracker.save_csv(run_dir / "hypervolume.csv")
-
-    print(f"\nStarting Unconstrained MOBO loop for {args.n_iterations} iterations (q={args.batch_size}, acq={args.acquisition})...")
-
-    for iteration in range(1, args.n_iterations + 1):
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        if train_X.shape[0] < 2:
-            new_sobol = sobol_engine.draw(args.batch_size).to(dtype=torch.double)
-            next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
-        else:
-            gp_model = build_gp_models(train_X, train_Y, bounds)
-            gp_model = fit_gp_models(gp_model)
-
-            acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05)
-            acq_func = build_acquisition_function(
-                model=gp_model,
-                train_X=train_X,
-                train_Y=train_Y,
-                ref_point=acq_ref_point,
-                train_feas_mask=train_feas_mask,
-                acq_type=args.acquisition,
-            )
-
-            next_candidates_tensor, _ = generate_next_candidates(
-                acq_func=acq_func,
-                bounds=bounds,
-                batch_size=args.batch_size,
-            )
-            next_cand_list = next_candidates_tensor.tolist()
-
-        start_eval_id = len(results) + 1
-        eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]
-
-        raw_batch_res = evaluator.evaluate_batch(next_cand_list, run_id=run_id, eval_ids=eval_ids)
-        batch_results = [create_evaluation_result(res, config) for res in raw_batch_res]
-        results.extend(batch_results)
-
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        hv_record = tracker.track_iteration(iteration, train_Y, train_feas_mask)
-
-        print(
-            f"Iter {iteration:03d}/{args.n_iterations:03d} | "
-            f"Valid: {train_X.shape[0]} | Feasible: {hv_record['num_feasible_points']} | "
-            f"HV: {hv_record['feasible_hypervolume']:.6e}"
-        )
-
-        save_evaluation_results(results, run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
-        tracker.save_csv(run_dir / "hypervolume.csv")
-
-        ckpt_path = run_dir / "gp_checkpoint" / "checkpoint.pt"
-        save_run_checkpoint(
-            iteration=iteration,
-            results=results,
-            hypervolumes=tracker.to_dataframe()["feasible_hypervolume"].tolist(),
-            checkpoint_path=ckpt_path,
-            acquisition_mode=args.acquisition,
-        )
-
-    figures_dir = run_dir / "figures"
-    plot_hypervolume_progress(tracker.to_dataframe(), figures_dir / "hypervolume_progress.png")
-    plot_pareto_front(results, figures_dir / "pareto_front.png")
-    plot_objective_evolution(results, figures_dir / "objective_evolution.png")
-    plot_constraint_diagnostics(results, figures_dir / "constraint_diagnostics.png")
-
-    print(f"\nUnconstrained MOBO Campaign finished successfully! Artifacts in: {run_dir.resolve()}")
+    runner.run()
 
 
 def run_constrained(args: argparse.Namespace) -> None:
     """Executes Phase 3 Constrained MOBO campaign."""
-    config_path = args.config if args.config else "configs/publication.yaml"
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+
+    config_path = args.config if hasattr(args, "config") and args.config else "configs/publication.yaml"
     if not Path(config_path).exists():
         config_path = "configs/mobo_200MeV.yaml"
-    config = load_config(config_path)
 
-    seed = args.seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    torch.set_default_dtype(torch.double)
-
-    if args.output_dir:
-        run_dir = Path(args.output_dir)
-    else:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        run_dir = Path("results") / f"constrained_{timestamp}"
-
-    run_dir.mkdir(parents=True, exist_ok=True)
-    run_id = run_dir.name
-
-    config.save_json(run_dir / "config.json")
-    config.save_yaml(run_dir / "config.yaml")
-
-    bounds = config.get_parameter_bounds_tensor()
-    num_workers = args.num_workers or config.execution.max_workers
-
-    evaluator = BatchEvaluator(
-        base_results_dir=run_dir.parent,
-        template_dir=".",
-        max_workers=num_workers,
-        timeout=config.execution.timeout_sec,
-        retries=config.execution.retries,
-        clean_on_success=config.execution.clean_on_success,
+    runner = MoboCampaignRunner(
+        config=config_path,
+        run_name="constrained",
+        output_dir=getattr(args, "output_dir", None),
+        num_initial_samples=getattr(args, "num_initial_samples", 16),
+        num_batches=getattr(args, "n_iterations", 6),
+        batch_size=getattr(args, "batch_size", 4),
+        num_workers=getattr(args, "num_workers", None),
+        seed=getattr(args, "seed", 42),
+        acq_type=getattr(args, "acquisition", "qLogNEHVI"),
+        constrained=True,
+        export_plots=True,
     )
+    runner.run()
 
-    print(f"Generating {args.num_initial_samples} initial Sobol samples...")
-    sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=seed)
-    sobol_samples = sobol_engine.draw(args.num_initial_samples).to(dtype=torch.double)
-    lower_b, upper_b = bounds[0], bounds[1]
-    initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
-
-    raw_results = evaluator.evaluate_batch(initial_candidates, run_id=run_id)
-    results = [create_evaluation_result(res, config) for res in raw_results]
-
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-    reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
-    tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=config)
-
-    tracker.track_iteration(0, train_Y, train_feas_mask)
-    save_evaluation_results(results, run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
-    tracker.save_csv(run_dir / "hypervolume.csv")
-
-    objective_mapping = IdentityMCMultiOutputObjective(outcomes=[0, 1, 2])
-
-    print(f"\nStarting Constrained MOBO loop for {args.n_iterations} iterations...")
-
-    for iteration in range(1, args.n_iterations + 1):
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        if train_X.shape[0] < 2:
-            new_sobol = sobol_engine.draw(args.batch_size).to(dtype=torch.double)
-            next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
-        else:
-            gp_model = build_gp_models(train_X, train_Y, bounds)
-            gp_model = fit_gp_models(gp_model)
-
-            acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05)
-            acq_func = build_acquisition_function(
-                model=gp_model,
-                train_X=train_X,
-                train_Y=train_Y,
-                ref_point=acq_ref_point,
-                train_feas_mask=train_feas_mask,
-                acq_type=args.acquisition,
-            )
-
-            next_candidates_tensor, _ = generate_next_candidates(
-                acq_func=acq_func,
-                bounds=bounds,
-                batch_size=args.batch_size,
-            )
-            next_cand_list = next_candidates_tensor.tolist()
-
-        start_eval_id = len(results) + 1
-        eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]
-
-        raw_batch_res = evaluator.evaluate_batch(next_cand_list, run_id=run_id, eval_ids=eval_ids)
-        batch_results = [create_evaluation_result(res, config) for res in raw_batch_res]
-        results.extend(batch_results)
-
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        hv_record = tracker.track_iteration(iteration, train_Y, train_feas_mask)
-
-        print(
-            f"Iter {iteration:03d}/{args.n_iterations:03d} | "
-            f"Valid: {train_X.shape[0]} | Feasible: {hv_record['num_feasible_points']} | "
-            f"HV: {hv_record['feasible_hypervolume']:.6e}"
-        )
-
-        save_evaluation_results(results, run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
-        tracker.save_csv(run_dir / "hypervolume.csv")
-
-        ckpt_path = run_dir / "gp_checkpoint" / "checkpoint.pt"
-        save_run_checkpoint(
-            iteration=iteration,
-            results=results,
-            hypervolumes=tracker.to_dataframe()["feasible_hypervolume"].tolist(),
-            checkpoint_path=ckpt_path,
-            acquisition_mode=args.acquisition,
-        )
-
-    figures_dir = run_dir / "figures"
-    plot_hypervolume_progress(tracker.to_dataframe(), figures_dir / "hypervolume_progress.png")
-    plot_pareto_front(results, figures_dir / "pareto_front.png")
-    plot_objective_evolution(results, figures_dir / "objective_evolution.png")
-    plot_constraint_diagnostics(results, figures_dir / "constraint_diagnostics.png")
-
-    print(f"\nConstrained MOBO Campaign finished successfully! Artifacts in: {run_dir.resolve()}")
 
 
 def run_scalarized(args: argparse.Namespace) -> None:

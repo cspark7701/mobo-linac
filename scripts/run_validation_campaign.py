@@ -176,171 +176,28 @@ def run_campaign(
     seed: int = 42,
     base_results_dir: str = "results",
 ) -> Path:
-    """Executes the validation campaign."""
-    config = load_config(config_path)
+    """Executes the validation campaign using MoboCampaignRunner."""
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
 
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    torch.set_default_dtype(torch.double)
-
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_id = f"validation_{timestamp}"
-    run_dir = Path(base_results_dir) / run_id
-    run_dir.mkdir(parents=True, exist_ok=True)
-
-    print(f"=== Starting Validation Campaign: {run_id} ===")
-    print(f"Initial samples: {num_initial_samples}, Batches: {num_batches}, Batch size: {batch_size}, Workers: {num_workers}")
-
-    # Export environment.txt and configs
-    export_environment_info(run_dir / "environment.txt")
-    config.save_yaml(run_dir / "config.yaml")
-    config.save_json(run_dir / "config.json")
-
-    bounds = config.get_parameter_bounds_tensor()
-
-    evaluator = BatchEvaluator(
-        base_results_dir=run_dir.parent,
-        template_dir=".",
-        max_workers=num_workers,
-        timeout=config.execution.timeout_sec,
-        retries=config.execution.retries,
+    runner = MoboCampaignRunner(
+        config=config_path,
+        run_name="validation",
+        base_results_dir=base_results_dir,
+        num_initial_samples=num_initial_samples,
+        num_batches=num_batches,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        seed=seed,
+        acq_type="qLogNEHVI",
+        export_plots=False,
     )
+    results, tracker, run_dir = runner.run()
 
-    # Sobol initial sampling
-    sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=seed)
-    sobol_samples = sobol_engine.draw(num_initial_samples).to(dtype=torch.double)
-    lower_b, upper_b = bounds[0], bounds[1]
-    initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
-
-    raw_initial = evaluator.evaluate_batch(initial_candidates, run_id=run_id)
-    results = [create_evaluation_result(r, config) for r in raw_initial]
-
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-
-    # Establish fixed reporting reference point from initial set
-    reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
-    tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=config)
-
-    tracker.track_iteration(0, train_Y, train_feas_mask)
-    save_evaluation_results(results, run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
-
-    # Iterative MOBO Loop with Checkpoints
-    total_iterations = num_batches
-    for iteration in range(1, total_iterations + 1):
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-
-        if train_X.shape[0] < 2:
-            new_sobol = sobol_engine.draw(batch_size).to(dtype=torch.double)
-            next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
-        else:
-            gp_model = build_gp_models(train_X, train_Y, bounds)
-            gp_model = fit_gp_models(gp_model)
-
-            acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05)
-            acq_func = build_acquisition_function(
-                model=gp_model,
-                train_X=train_X,
-                train_Y=train_Y,
-                ref_point=acq_ref_point,
-                train_feas_mask=train_feas_mask,
-                acq_type="qLogNEHVI",
-            )
-
-            next_cand_tensor, _ = generate_next_candidates(
-                acq_func=acq_func,
-                bounds=bounds,
-                batch_size=batch_size,
-            )
-            next_cand_list = next_cand_tensor.tolist()
-
-        start_eval_id = len(results) + 1
-        eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]
-
-        raw_batch = evaluator.evaluate_batch(next_cand_list, run_id=run_id, eval_ids=eval_ids)
-        batch_results = [create_evaluation_result(r, config) for r in raw_batch]
-        results.extend(batch_results)
-
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        hv_record = tracker.track_iteration(iteration, train_Y, train_feas_mask)
-
-        print(
-            f"Iter {iteration:02d}/{total_iterations:02d} | "
-            f"Evaluations: {len(results):02d} | "
-            f"Valid: {train_X.shape[0]:02d} | "
-            f"Feasible: {hv_record['num_feasible_points']:02d} | "
-            f"HV: {hv_record['feasible_hypervolume']:.6e}"
-        )
-
-        # Save checkpoint after every batch
-        ckpt_dir = run_dir / "checkpoints"
-        ckpt_dir.mkdir(parents=True, exist_ok=True)
-        ckpt_path = ckpt_dir / f"checkpoint_iter_{iteration:02d}.pt"
-        save_run_checkpoint(
-            iteration=iteration,
-            results=results,
-            hypervolumes=tracker.to_dataframe()["feasible_hypervolume"].tolist(),
-            checkpoint_path=ckpt_path,
-        )
-
-    # Save all required CSV files
-    df_all = results_to_dataframe(results)
-    df_all.to_csv(run_dir / "evaluations.csv", index=False)
-    df_all.to_csv(run_dir / "candidate_history.csv", index=False)
-
-    # Objectives CSVs
-    valid_mask = df_all["simulation_valid"] == True
-    df_valid = df_all[valid_mask]
-
-    df_valid[PHYSICAL_OBJ_COLUMNS].to_csv(run_dir / "objectives_physical.csv", index=False)
-    df_valid[MODEL_OBJ_COLUMNS].to_csv(run_dir / "objectives_model.csv", index=False)
-
-    # Constraints CSV
-    diag_cols = [c for c in df_all.columns if "sigma" in c or "energy" in c or "transmission" in c or "feasible" in c]
-    df_all[diag_cols].to_csv(run_dir / "constraints.csv", index=False)
-
-    # Hypervolume CSV
-    tracker.save_csv(run_dir / "hypervolume.csv")
-
-    # Pareto CSVs
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-    if train_X.shape[0] > 0:
-        pareto_mask_all = is_non_dominated(train_Y)
-        p_X_all = train_X[pareto_mask_all]
-        p_Y_all_phys = -train_Y[pareto_mask_all]
-        df_p_all = pd.DataFrame(
-            np.hstack([p_X_all.numpy(), p_Y_all_phys.numpy()]),
-            columns=DESIGN_VAR_COLUMNS + PHYSICAL_OBJ_COLUMNS,
-        )
-        df_p_all.to_csv(run_dir / "pareto_all.csv", index=False)
-
-        if train_feas_mask.sum().item() > 0:
-            feas_X = train_X[train_feas_mask]
-            feas_Y = train_Y[train_feas_mask]
-            pareto_mask_feas = is_non_dominated(feas_Y)
-            p_X_feas = feas_X[pareto_mask_feas]
-            p_Y_feas_phys = -feas_Y[pareto_mask_feas]
-            df_p_feas = pd.DataFrame(
-                np.hstack([p_X_feas.numpy(), p_Y_feas_phys.numpy()]),
-                columns=DESIGN_VAR_COLUMNS + PHYSICAL_OBJ_COLUMNS,
-            )
-            df_p_feas.to_csv(run_dir / "pareto_feasible.csv", index=False)
-
-    # Failures CSV
-    df_failures = df_all[(df_all["simulation_valid"] == False) | (df_all["physically_feasible"] == False)]
-    df_failures.to_csv(run_dir / "failures.csv", index=False)
-
-    # Generate required plots
+    # Generate custom validation plots for campaign report
     generate_validation_plots(results, tracker, run_dir / "figures")
 
-    # Print Campaign Summary
-    print(f"\n=== Validation Campaign Complete ===")
-    print(f"Total Evaluations: {len(results)}")
-    print(f"Valid Simulations: {train_X.shape[0]}")
-    print(f"Physically Feasible: {train_feas_mask.sum().item()}")
-    print(f"Infeasible / Failures: {len(df_failures)}")
-    print(f"All output files written to: {run_dir.resolve()}")
-
     return run_dir
+
 
 
 if __name__ == "__main__":
