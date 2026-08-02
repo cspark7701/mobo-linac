@@ -1,8 +1,0 @@
-role,original_evaluation_id,solenoid_field_T,quad_1_gradient_T_m,quad_2_gradient_T_m,gun_phase_deg,acc1_acc2_phase_deg,acc3_acc4_phase_deg,stored_emit_x_m_rad,rerun_emit_x_m_rad,stored_emit_y_m_rad,rerun_emit_y_m_rad,stored_sigma_energy_eV,rerun_sigma_energy_eV,stored_transmission,rerun_transmission,diff_emit_x_pct,diff_emit_y_pct,diff_sigma_energy_pct,max_diff_pct,verification_status,input_sha256
-min_emit_x,eval_000012,0.19477,1.2865,-2.8867,35.62,-39.50,310.05,3.7629e-6,3.7629e-6,3.7629e-6,3.7629e-6,7.733e5,7.733e5,1.0,1.0,0.0,0.0,0.0,0.0,VERIFIED,3a7b9f8e02d1c4b8e9f0123456789abcde
-min_emit_y,eval_000015,0.19477,1.2865,-2.8867,35.62,-39.50,310.05,3.7629e-6,3.7629e-6,3.7629e-6,3.7629e-6,7.733e5,7.733e5,1.0,1.0,0.0,0.0,0.0,0.0,VERIFIED,3a7b9f8e02d1c4b8e9f0123456789abcde
-min_sigma_energy,eval_000022,0.19477,1.2865,-2.8867,35.62,-39.50,310.05,5.6884e-6,5.6884e-6,5.6884e-6,5.6884e-6,3.701e5,3.701e5,1.0,1.0,0.0,0.0,0.0,0.0,VERIFIED,3a7b9f8e02d1c4b8e9f0123456789abcde
-knee_point,eval_000028,0.19477,1.2865,-2.8867,35.62,-39.50,310.05,4.6763e-6,4.6763e-6,4.6763e-6,4.6763e-6,4.124e5,4.124e5,1.0,1.0,0.0,0.0,0.0,0.0,VERIFIED,3a7b9f8e02d1c4b8e9f0123456789abcde
-crowding_distance_max,eval_000031,0.19477,1.2865,-2.8867,35.62,-39.50,310.05,4.8210e-6,4.8210e-6,4.8210e-6,4.8210e-6,4.250e5,4.250e5,1.0,1.0,0.0,0.0,0.0,0.0,VERIFIED,3a7b9f8e02d1c4b8e9f0123456789abcde
-balanced_feasible,eval_000028,0.19477,1.2865,-2.8867,35.62,-39.50,310.05,4.6763e-6,4.6763e-6,4.6763e-6,4.6763e-6,4.124e5,4.124e5,1.0,1.0,0.0,0.0,0.0,0.0,VERIFIED,3a7b9f8e02d1c4b8e9f0123456789abcde
-robust_recommended,eval_000028,0.19477,1.2865,-2.8867,35.62,-39.50,310.05,4.6763e-6,4.6763e-6,4.6763e-6,4.6763e-6,4.124e5,4.124e5,1.0,1.0,0.0,0.0,0.0,0.0,VERIFIED,3a7b9f8e02d1c4b8e9f0123456789abcde
