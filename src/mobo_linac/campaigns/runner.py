@@ -36,13 +36,15 @@ from mobo_linac.metrics.hypervolume import (
     HypervolumeTracker,
     compute_reference_point,
 )
-from mobo_linac.models.gp import build_gp_models, fit_gp_models
+from mobo_linac.models.pipeline import SurrogatePipeline
+
 from mobo_linac.plotting.visualizations import (
     plot_constraint_diagnostics,
     plot_hypervolume_progress,
     plot_objective_evolution,
     plot_pareto_front,
 )
+
 
 
 class MoboCampaignRunner:
@@ -178,10 +180,12 @@ class MoboCampaignRunner:
                 new_sobol = sobol_engine.draw(self.batch_size).to(dtype=torch.double)
                 next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
             else:
-                gp_model = build_gp_models(train_X, train_Y, bounds)
-                gp_model = fit_gp_models(gp_model)
+                pipeline = SurrogatePipeline(bounds=bounds)
+                pipeline.fit(train_X, train_Y)
+                gp_model = pipeline.objective_model
 
                 acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05)
+
                 acq_func = build_acquisition_function(
                     model=gp_model,
                     train_X=train_X,
