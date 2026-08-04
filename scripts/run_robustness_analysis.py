@@ -188,12 +188,13 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
 
     summaries = []
     for label, candidate_res in rep_candidates.items():
-        nom_x = [candidate_res.design_parameters[col] for col in DESIGN_VAR_COLUMNS]
+        nom_x = candidate_res.x_physical
         perturbed_xs = generate_perturbed_parameters(
             nominal_x=nom_x,
             num_perturbations=args.num_perturbations,
             seed=args.seed,
         )
+
 
         raw_perturbed = evaluator.evaluate_batch(perturbed_xs, run_id=f"robust_{label}")
         perturbed_results = [create_evaluation_result(r, config) for r in raw_perturbed]
