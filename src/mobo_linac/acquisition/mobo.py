@@ -4,7 +4,8 @@ Multi-Objective Bayesian Optimization Acquisition Functions.
 Constructs and optimizes qLogNEHVI and qEHVI acquisition functions.
 """
 
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import torch
 from botorch.acquisition.multi_objective.logei import (
     qLogExpectedHypervolumeImprovement,
@@ -20,7 +21,21 @@ from botorch.utils.multi_objective.box_decompositions.non_dominated import (
     FastNondominatedPartitioning,
 )
 
+from botorch.acquisition.multi_objective.objective import IdentityMCMultiOutputObjective
 from mobo_linac.metrics.hypervolume import compute_reference_point
+
+
+class SliceObjective(IdentityMCMultiOutputObjective):
+    """
+    Slices the first num_objectives outputs from posterior samples for multi-objective evaluation.
+    """
+
+    def __init__(self, num_objectives: int = 3):
+        super().__init__()
+        self.num_objectives = num_objectives
+
+    def forward(self, samples: torch.Tensor, X: Optional[torch.Tensor] = None) -> torch.Tensor:
+        return samples[..., :self.num_objectives]
 
 
 def build_acquisition_function(
@@ -31,6 +46,8 @@ def build_acquisition_function(
     train_feas_mask: Optional[torch.Tensor] = None,
     acq_type: str = "qLogNEHVI",
     sampler: Optional[Any] = None,
+    constraints: Optional[List[Any]] = None,
+    objective: Optional[Any] = None,
 ) -> Any:
     """
     Constructs a multi-objective acquisition function (qLogNEHVI, qLogEHVI, qEHVI, or qNEHVI).
@@ -43,6 +60,8 @@ def build_acquisition_function(
         train_feas_mask: Optional boolean feasibility mask.
         acq_type: Acquisition function type ('qLogNEHVI', 'qLogEHVI', 'qEHVI', 'qNEHVI').
         sampler: Optional Monte Carlo sampler.
+        constraints: Optional list of BoTorch tensor constraint functions c_i(Y) <= 0.
+        objective: Optional MCMultiOutputObjective for slicing model outputs.
 
     Returns:
         Instantiated acquisition function.
@@ -57,6 +76,12 @@ def build_acquisition_function(
     else:
         feas_Y = train_Y_dbl
 
+    kw_args = {}
+    if constraints is not None:
+        kw_args["constraints"] = constraints
+    if objective is not None:
+        kw_args["objective"] = objective
+
     if acq_type in ("qLogEHVI", "qEHVI"):
         partitioning = FastNondominatedPartitioning(ref_point=ref_point_dbl, Y=feas_Y)
         if acq_type == "qLogEHVI":
@@ -65,6 +90,7 @@ def build_acquisition_function(
                 ref_point=ref_point_dbl,
                 partitioning=partitioning,
                 sampler=sampler,
+                **kw_args,
             )
         else:
             acq_func = qExpectedHypervolumeImprovement(
@@ -72,6 +98,7 @@ def build_acquisition_function(
                 ref_point=ref_point_dbl,
                 partitioning=partitioning,
                 sampler=sampler,
+                **kw_args,
             )
     elif acq_type in ("qLogNEHVI", "qNEHVI"):
         if acq_type == "qLogNEHVI":
@@ -81,6 +108,7 @@ def build_acquisition_function(
                 X_baseline=train_X_dbl,
                 prune_baseline=True,
                 sampler=sampler,
+                **kw_args,
             )
         else:
             acq_func = qNoisyExpectedHypervolumeImprovement(
@@ -89,11 +117,13 @@ def build_acquisition_function(
                 X_baseline=train_X_dbl,
                 prune_baseline=True,
                 sampler=sampler,
+                **kw_args,
             )
     else:
         raise ValueError(f"Unsupported acquisition type: '{acq_type}'. Choose 'qLogNEHVI', 'qLogEHVI', 'qEHVI', or 'qNEHVI'.")
 
     return acq_func
+
 
 
 def generate_next_candidates(

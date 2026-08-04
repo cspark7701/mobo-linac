@@ -123,6 +123,7 @@ def get_botorch_constraint_functions(
     max_sigma_z = c_config.max_sigma_z_m
     min_energy = c_config.min_mean_kinetic_energy_eV
     max_energy = c_config.max_mean_kinetic_energy_eV
+    min_transmission = c_config.min_transmission
 
     def c_sigma_x(Y: torch.Tensor) -> torch.Tensor:
         return Y[..., 3] - max_sigma_x
@@ -145,6 +146,9 @@ def get_botorch_constraint_functions(
     def c_energy_max(Y: torch.Tensor) -> torch.Tensor:
         return Y[..., 8] - max_energy
 
+    def c_transmission(Y: torch.Tensor) -> torch.Tensor:
+        return min_transmission - Y[..., 9]
+
     return [
         c_sigma_x,
         c_sigma_y,
@@ -153,5 +157,7 @@ def get_botorch_constraint_functions(
         c_sigma_z,
         c_energy_min,
         c_energy_max,
+        c_transmission,
     ]
+
 

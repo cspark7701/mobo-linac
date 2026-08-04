@@ -118,3 +118,32 @@ def test_predictive_diagnostics_calculation():
         assert "rmse" in obj_diag
         assert "r2" in obj_diag
         assert "mean_standardized_residual" in obj_diag
+
+
+def test_constrained_acquisition_construction():
+    """Verify construction of constrained acquisition functions with SliceObjective and 8 tensor constraints."""
+    from botorch.models import ModelListGP
+    from mobo_linac.acquisition.mobo import SliceObjective
+    from mobo_linac.constraints import get_botorch_constraint_functions
+
+    train_X = torch.rand(15, 6, dtype=torch.double)
+    train_Y = torch.rand(15, 10, dtype=torch.double)
+    bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
+    ref_point = torch.tensor([-1.0, -1.0, -1.0], dtype=torch.double)
+
+    joint_model = build_gp_models(train_X, train_Y, bounds)
+    c_funcs = get_botorch_constraint_functions()
+    slice_obj = SliceObjective(num_objectives=3)
+
+    acq_func = build_acquisition_function(
+        model=joint_model,
+        train_X=train_X,
+        train_Y=train_Y[:, :3],
+        ref_point=ref_point,
+        acq_type="qLogNEHVI",
+        constraints=c_funcs,
+        objective=slice_obj,
+    )
+    assert acq_func is not None
+    assert len(c_funcs) == 8
+

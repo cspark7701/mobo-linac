@@ -15,18 +15,22 @@ import pandas as pd
 import torch
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
+from botorch.models import ModelListGP
 from mobo_linac import __version__
 from mobo_linac.acquisition.mobo import (
+    SliceObjective,
     build_acquisition_function,
     generate_next_candidates,
 )
 from mobo_linac.config import MoboConfig, load_config
+from mobo_linac.constraints import get_botorch_constraint_functions
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
 from mobo_linac.io.results import (
     DESIGN_VAR_COLUMNS,
     MODEL_OBJ_COLUMNS,
     PHYSICAL_OBJ_COLUMNS,
+    get_constraint_tensors,
     get_train_tensors,
     results_to_dataframe,
     save_evaluation_results,
@@ -44,7 +48,6 @@ from mobo_linac.plotting.visualizations import (
     plot_objective_evolution,
     plot_pareto_front,
 )
-
 
 
 class MoboCampaignRunner:
@@ -132,11 +135,13 @@ class MoboCampaignRunner:
         """
         Executes the optimization campaign.
         """
-        print(f"=== Starting MOBO Campaign: {self.run_id} ===")
+        mode_str = "Constrained MOBO (Feasibility-Aware)" if self.constrained else "Unconstrained MOBO"
+        print(f"=== Starting MOBO Campaign: {self.run_id} ({mode_str}) ===")
         print(
             f"Initial samples: {self.num_initial_samples}, "
             f"Batches: {self.num_batches}, Batch size: {self.batch_size}, "
-            f"Workers: {self.num_workers}, Acquisition: {self.acq_type}"
+            f"Workers: {self.num_workers}, Acquisition: {self.acq_type}, "
+            f"Constrained: {self.constrained}"
         )
 
         if self.export_env_info:
@@ -181,8 +186,22 @@ class MoboCampaignRunner:
                 next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
             else:
                 pipeline = SurrogatePipeline(bounds=bounds)
-                pipeline.fit(train_X, train_Y)
-                gp_model = pipeline.objective_model
+                if self.constrained:
+                    train_constraints = get_constraint_tensors(results, exclude_invalid=True)
+                    pipeline.fit(train_X, train_Y, train_constraints)
+                    if pipeline.constraint_model is not None:
+                        gp_model = ModelListGP(*pipeline.objective_model.models, *pipeline.constraint_model.models)
+                        botorch_constraints = get_botorch_constraint_functions(self.config)
+                        objective_slice = SliceObjective(num_objectives=3)
+                    else:
+                        gp_model = pipeline.objective_model
+                        botorch_constraints = None
+                        objective_slice = None
+                else:
+                    pipeline.fit(train_X, train_Y)
+                    gp_model = pipeline.objective_model
+                    botorch_constraints = None
+                    objective_slice = None
 
                 acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05)
 
@@ -193,6 +212,8 @@ class MoboCampaignRunner:
                     ref_point=acq_ref_point,
                     train_feas_mask=train_feas_mask,
                     acq_type=self.acq_type,
+                    constraints=botorch_constraints,
+                    objective=objective_slice,
                 )
 
                 next_cand_tensor, _ = generate_next_candidates(
@@ -201,6 +222,7 @@ class MoboCampaignRunner:
                     batch_size=self.batch_size,
                 )
                 next_cand_list = next_cand_tensor.tolist()
+
 
             start_eval_id = len(results) + 1
             eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]

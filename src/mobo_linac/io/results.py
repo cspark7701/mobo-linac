@@ -134,6 +134,45 @@ def get_train_tensors(
     return train_X, train_Y, train_feas_mask
 
 
+def get_constraint_tensors(
+    results: List[EvaluationResult],
+    exclude_invalid: bool = True,
+) -> torch.Tensor:
+    """
+    Generates (N, 7) double tensor of diagnostic constraint metrics for GP model fitting.
+    Columns: [sigma_x_m, sigma_y_m, sigma_xp_rad, sigma_yp_rad, sigma_z_m, mean_kinetic_energy_eV, transmission_fraction]
+
+    Args:
+        results: List of EvaluationResult records.
+        exclude_invalid: If True, excludes invalid simulations.
+
+    Returns:
+        (N, 7) PyTorch double tensor of constraint metrics.
+    """
+    c_list = []
+    for res in results:
+        if exclude_invalid and not res.simulation_valid:
+            continue
+        if res.x_physical is None or res.objectives_model is None:
+            continue
+
+        diags = res.diagnostics or {}
+        sigma_x = float(diags.get("sigma_x_m", diags.get("sigma_x", 0.5e-3)))
+        sigma_y = float(diags.get("sigma_y_m", diags.get("sigma_y", 0.5e-3)))
+        sigma_xp = float(diags.get("sigma_xp_rad", diags.get("sigma_xp", 0.5e-3)))
+        sigma_yp = float(diags.get("sigma_yp_rad", diags.get("sigma_yp", 0.5e-3)))
+        sigma_z = float(diags.get("sigma_z_m", diags.get("sigma_z", 0.5e-3)))
+        energy = float(diags.get("mean_kinetic_energy_eV", diags.get("mean_kinetic_energy", 200.0e6)))
+        trans = float(diags.get("transmission_fraction", diags.get("transmission", 1.0)))
+
+        c_list.append([sigma_x, sigma_y, sigma_xp, sigma_yp, sigma_z, energy, trans])
+
+    if len(c_list) == 0:
+        return torch.empty((0, 7), dtype=torch.double)
+    return torch.tensor(c_list, dtype=torch.double)
+
+
+
 def save_evaluation_results(
     results: List[EvaluationResult],
     run_dir: Union[str, Path],
