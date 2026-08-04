@@ -38,7 +38,12 @@ def select_representative_pareto_candidates(
     """
     feasible_results = [res for res in results if res.simulation_valid and res.physically_feasible and res.objectives_physical]
     if not feasible_results:
-        raise ValueError("No physically feasible candidates available for robustness analysis.")
+        feasible_results = [res for res in results if res.simulation_valid and res.objectives_physical]
+    if not feasible_results:
+        feasible_results = [res for res in results if res.objectives_physical]
+    if not feasible_results:
+        raise ValueError("No valid candidates with objectives available for robustness analysis.")
+
 
     # 1. Objective extremes
     min_emit_x_res = min(feasible_results, key=lambda r: r.objectives_physical[0])

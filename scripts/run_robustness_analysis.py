@@ -150,22 +150,29 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
         raw_res = {
             "eval_id": idx + 1,
             "status": "SUCCESS",
+            "parameters": design_x,
             "design_parameters": dict(zip(DESIGN_VAR_COLUMNS, design_x)),
+            "objectives": {
+                "norm_emit_x": float(row.get("norm_emit_x_m_rad", 1.0e-6)),
+                "norm_emit_y": float(row.get("norm_emit_y_m_rad", 1.0e-6)),
+                "sigma_energy": float(row.get("sigma_energy_eV", 1.0e6)),
+            },
             "diagnostics": {
-                "norm_emit_x_m_rad": row.get("norm_emit_x_m_rad", 1.0e-6),
-                "norm_emit_y_m_rad": row.get("norm_emit_y_m_rad", 1.0e-6),
-                "sigma_energy_eV": row.get("sigma_energy_eV", 1.0e6),
-                "sigma_x_m": 0.5e-3,
-                "sigma_y_m": 0.5e-3,
-                "sigma_xp_rad": 0.5e-3,
-                "sigma_yp_rad": 0.5e-3,
-                "sigma_z_m": 0.5e-3,
-                "mean_kinetic_energy_eV": 200.0e6,
-                "transmission_fraction": 1.0,
+                "norm_emit_x_m_rad": float(row.get("norm_emit_x_m_rad", 1.0e-6)),
+                "norm_emit_y_m_rad": float(row.get("norm_emit_y_m_rad", 1.0e-6)),
+                "sigma_energy_eV": float(row.get("sigma_energy_eV", 1.0e6)),
+                "sigma_x_m": float(row.get("sigma_x_m", 0.5e-3)),
+                "sigma_y_m": float(row.get("sigma_y_m", 0.5e-3)),
+                "sigma_xp_rad": float(row.get("sigma_xp_rad", 0.5e-3)),
+                "sigma_yp_rad": float(row.get("sigma_yp_rad", 0.5e-3)),
+                "sigma_z_m": float(row.get("sigma_z_m", 0.5e-3)),
+                "mean_kinetic_energy_eV": float(row.get("mean_kinetic_energy_eV", 200.0e6)),
+                "transmission_fraction": float(row.get("transmission_fraction", 1.0)),
             },
         }
         res = create_evaluation_result(raw_res, config)
         results.append(res)
+
 
     if not results:
         print("WARNING: Could not parse EvaluationResults from pareto.csv.")
