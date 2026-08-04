@@ -386,9 +386,55 @@ def main() -> None:
     elif args.command == "run-robustness":
         print(f"Robustness analysis configuration initialized. Artifacts directory: {args.output_dir}")
     elif args.command == "run-verification":
-        print(f"Pareto candidate verification initialized. Output directory: {args.output_dir}")
+        run_verification(args)
+
+
+def run_verification(args: argparse.Namespace) -> None:
+    """Executes Pareto candidate verification pipeline with fresh ASTRA reruns."""
+    from mobo_linac.verification.verifier import run_verification_pipeline
+    from mobo_linac.io.results import load_evaluation_results
+
+    config_path = getattr(args, "config", "configs/publication.yaml")
+    if not Path(config_path).exists():
+        config_path = "configs/mobo_200MeV.yaml"
+    config = load_config(config_path)
+
+    output_dir = getattr(args, "output_dir", "results/verification")
+    input_path = getattr(args, "input", None)
+
+    results = []
+    if input_path and Path(input_path).exists():
+        p = Path(input_path)
+        if p.is_dir():
+            target_file = p / "candidate_history.json"
+            if not target_file.exists():
+                target_file = p / "pareto.csv"
+            if not target_file.exists():
+                target_file = p / "candidate_history.csv"
+            results = load_evaluation_results(target_file)
+        else:
+            results = load_evaluation_results(p)
+    else:
+        results_dir = Path("results")
+        candidates_files = list(results_dir.glob("**/candidate_history.json")) + list(results_dir.glob("**/pareto.csv"))
+        if candidates_files:
+            latest_file = max(candidates_files, key=lambda f: f.stat().st_mtime)
+            print(f"Loading evaluation results from {latest_file} for verification...")
+            results = load_evaluation_results(latest_file)
+
+    if not results:
+        print("No evaluation results found for verification.")
+        return
+
+    records, manifest_path, tex_path = run_verification_pipeline(
+        results=results,
+        config=config,
+        output_dir=output_dir,
+    )
+    print(f"Pareto verification completed successfully for {len(records)} candidates.")
 
 
 if __name__ == "__main__":
     main()
+
 

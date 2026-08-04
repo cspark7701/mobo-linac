@@ -147,3 +147,30 @@ def test_export_verification_latex_table(sample_pareto_results, tmp_path):
     assert r"\begin{table}" in content
     assert r"knee\_point" in content
     assert "VERIFIED" in content
+
+
+def test_run_verification_pipeline(sample_pareto_results, tmp_path):
+    """Verify full verification pipeline with mock rerun data map."""
+    from mobo_linac.verification.verifier import run_verification_pipeline
+
+    config = load_config("configs/publication_200MeV.yaml")
+
+    def mock_eval(x, run_id, eval_id):
+        return {
+            "status": "success",
+            "objectives": {"norm_emit_x": 1.0e-6, "norm_emit_y": 1.0e-6, "sigma_energy": 0.1e6},
+            "diagnostics": {"transmission_fraction": 1.0, "sigma_x_m": 0.5e-3},
+        }
+
+    records, manifest_path, tex_path = run_verification_pipeline(
+        results=sample_pareto_results,
+        config=config,
+        output_dir=tmp_path / "pipeline_verify",
+        mock_evaluator=mock_eval,
+    )
+
+    assert len(records) == 7
+    assert manifest_path.exists()
+    assert tex_path.exists()
+    assert (tmp_path / "pipeline_verify" / "verification_summary.csv").exists()
+
