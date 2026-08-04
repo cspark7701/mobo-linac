@@ -185,6 +185,15 @@ While the presented computational framework establishes high simulation-based op
     \label{fig:verification_bar}
 \end{figure}
 
+\subsection{Engineering Tolerance and Robustness Analysis}
+\label{sec:robustness}
+To evaluate the operational resilience of Pareto-optimal candidates under real-world machine instabilities, we conduct perturbation sensitivity studies simulating $\pm 0.1^\circ$ RF phase jitter and $\pm 0.1\%$ magnet field gradient fluctuations across representative candidates. Candidate stability is quantified using a composite \textit{Robust Score} ($S_{\text{robust}}$):
+\begin{equation}
+    S_{\text{robust}} = \frac{P_{\text{feas}}}{\max\left(1.0, \, \frac{\langle \varepsilon_{n,x} \rangle}{\varepsilon_{n,x}^{\text{nominal}}}\right)}
+\end{equation}
+where $P_{\text{feas}} = N_{\text{feasible}} / N_{\text{total}}$ represents the joint Probability of Feasibility across all 8 beam quality constraints over $N_{\text{total}}$ perturbed evaluations, and $\langle \varepsilon_{n,x} \rangle / \varepsilon_{n,x}^{\text{nominal}}$ denotes the mean horizontal emittance growth factor under jitter. Candidates with $S_{\text{robust}} \ge 0.80$ demonstrate high operational stability, whereas extreme Pareto candidates operating near tight constraint boundaries exhibit lower scores ($S_{\text{robust}} < 0.80$), confirming the trade-off between absolute peak physical performance and machine robustness.
+
+
 ---
 
 \section{Conclusion and Future Work}
