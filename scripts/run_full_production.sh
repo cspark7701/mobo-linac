@@ -121,10 +121,31 @@ P3_DIR="${OUTPUT_BASE_DIR}/phase3_constrained"
 ANALYSIS_DIR="${OUTPUT_BASE_DIR}/analysis"
 mkdir -p "${P1_DIR}" "${P2_DIR}" "${P3_DIR}" "${ANALYSIS_DIR}"
 
+# Helper function to execute a step with error handling
+execute_step() {
+  local step_title="$1"
+  local cmd="$2"
+  local log_file="$3"
+
+  log_step "${step_title}"
+  if [ "${VERBOSE}" -eq 1 ]; then
+    if ! eval "${cmd}"; then
+      echo -e "\n\033[1;31m[ERROR] ${step_title} FAILED!\033[0m" >&2
+      exit 1
+    fi
+  else
+    if ! eval "${cmd}" > "${log_file}" 2>&1; then
+      echo -e "\n\033[1;31m[ERROR] ${step_title} FAILED!\033[0m" >&2
+      echo -e "\033[1;31mError Log Snippet (${log_file}):\033[0m" >&2
+      tail -n 25 "${log_file}" >&2
+      exit 1
+    fi
+  fi
+}
+
 # ------------------------------------------------------------------------------
 # Step 2: Environment & Binary Verification
 # ------------------------------------------------------------------------------
-# Ensure local ASTRA binaries in bin/ are executable and environment is loaded
 log_step "[Step 1/7] Verifying environment & executable permissions..."
 chmod +x bin/* 2>/dev/null || true
 export ASTRA_BIN="${PROJECT_ROOT}/bin/astra"
@@ -134,8 +155,6 @@ export PATH="${PROJECT_ROOT}/bin:${PATH}"
 # ------------------------------------------------------------------------------
 # Step 3: Execute Phase 1 Scalarized BO Production Simulation
 # ------------------------------------------------------------------------------
-# Runs Phase 1 Scalarized BO using single-objective GP surrogates (SingleTaskGP / qLogNEI)
-log_step "[Step 2/7] Running Phase 1 Scalarized BO Simulation..."
 RUN_P1_CMD="python3 scripts/run_scalarized_bo.py \
     --config configs/mobo_200MeV.yaml \
     --n-iterations ${N_ITERATIONS} \
@@ -144,19 +163,12 @@ RUN_P1_CMD="python3 scripts/run_scalarized_bo.py \
     --seed ${SEED} \
     --output-dir ${P1_DIR}"
 
-if [ "${VERBOSE}" -eq 1 ]; then
-  eval "${RUN_P1_CMD}"
-else
-  # Redirect output to log file to avoid screen verbosity & token consumption
-  eval "${RUN_P1_CMD}" > "${P1_DIR}/simulation.log" 2>&1
-fi
+execute_step "[Step 2/7] Running Phase 1 Scalarized BO Simulation..." "${RUN_P1_CMD}" "${P1_DIR}/simulation.log"
 log_step "  ✓ Phase 1 Simulation complete -> Saved in ${P1_DIR}"
 
 # ------------------------------------------------------------------------------
 # Step 4: Execute Phase 2 Unconstrained MOBO Production Simulation
 # ------------------------------------------------------------------------------
-# Runs unconstrained MOBO with qLogNEHVI acquisition and worker pool
-log_step "[Step 3/7] Running Phase 2 Unconstrained MOBO Simulation..."
 RUN_P2_CMD="python3 scripts/run_validation_campaign.py \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
@@ -164,18 +176,12 @@ RUN_P2_CMD="python3 scripts/run_validation_campaign.py \
     --seed ${SEED} \
     --output-dir ${P2_DIR}"
 
-if [ "${VERBOSE}" -eq 1 ]; then
-  eval "${RUN_P2_CMD}"
-else
-  eval "${RUN_P2_CMD}" > "${P2_DIR}/simulation.log" 2>&1
-fi
+execute_step "[Step 3/7] Running Phase 2 Unconstrained MOBO Simulation..." "${RUN_P2_CMD}" "${P2_DIR}/simulation.log"
 log_step "  ✓ Phase 2 Simulation complete -> Saved in ${P2_DIR}"
 
 # ------------------------------------------------------------------------------
 # Step 5: Execute Phase 3 Constrained MOBO Production Simulation
 # ------------------------------------------------------------------------------
-# Runs constraint-aware MOBO with explicit GP constraint models & feasibility weighting
-log_step "[Step 4/7] Running Phase 3 Constraint-Aware MOBO Simulation..."
 RUN_P3_CMD="python3 scripts/run_validation_campaign.py \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
@@ -183,46 +189,32 @@ RUN_P3_CMD="python3 scripts/run_validation_campaign.py \
     --seed ${SEED} \
     --output-dir ${P3_DIR}"
 
-if [ "${VERBOSE}" -eq 1 ]; then
-  eval "${RUN_P3_CMD}"
-else
-  eval "${RUN_P3_CMD}" > "${P3_DIR}/simulation.log" 2>&1
-fi
+execute_step "[Step 4/7] Running Phase 3 Constraint-Aware MOBO Simulation..." "${RUN_P3_CMD}" "${P3_DIR}/simulation.log"
 log_step "  ✓ Phase 3 Simulation complete -> Saved in ${P3_DIR}"
 
 # ------------------------------------------------------------------------------
 # Step 6: Execute Comparative Analysis & Pareto Verification
 # ------------------------------------------------------------------------------
-# Compares Phase 1, Phase 2, & Phase 3 results, tracks hypervolume, and reruns Pareto candidates
-log_step "[Step 5/7] Executing Comparative Analysis & Independent Rerun Audit..."
 ANALYSIS_CMD="python3 scripts/run_comparison_and_verification.py \
     --phase2-dir ${P2_DIR} \
     --phase3-dir ${P3_DIR} \
     --output-dir ${ANALYSIS_DIR}"
 
-if [ "${VERBOSE}" -eq 1 ]; then
-  eval "${ANALYSIS_CMD}"
-else
-  eval "${ANALYSIS_CMD}" > "${ANALYSIS_DIR}/analysis.log" 2>&1
-fi
+execute_step "[Step 5/7] Executing Comparative Analysis & Independent Rerun Audit..." "${ANALYSIS_CMD}" "${ANALYSIS_DIR}/analysis.log"
 log_step "  ✓ Comparative analysis complete -> Saved in ${ANALYSIS_DIR}"
 
 # ------------------------------------------------------------------------------
 # Step 7: Engineering Tolerance Robustness Analysis
 # ------------------------------------------------------------------------------
-# Evaluates sensitivity under RF phase (+/-0.1 deg) and magnet gradient (+/-0.1%) perturbations
-log_step "[Step 6/7] Running Engineering Tolerance Robustness Analysis..."
+mkdir -p ${ANALYSIS_DIR}/robustness
 ROBUST_CMD="python3 scripts/run_robustness_analysis.py \
     --pareto-csv ${P3_DIR}/pareto.csv \
     --output-dir ${ANALYSIS_DIR}/robustness \
     --num-workers ${NUM_WORKERS}"
 
-if [ "${VERBOSE}" -eq 1 ]; then
-  eval "${ROBUST_CMD}"
-else
-  eval "${ROBUST_CMD}" > "${ANALYSIS_DIR}/robustness.log" 2>&1
-fi
+execute_step "[Step 6/7] Running Engineering Tolerance Robustness Analysis..." "${ROBUST_CMD}" "${ANALYSIS_DIR}/robustness.log"
 log_step "  ✓ Robustness analysis complete -> Saved in ${ANALYSIS_DIR}/robustness"
+
 
 # ------------------------------------------------------------------------------
 # Step 8: Final Summary & Verification Report Generation
