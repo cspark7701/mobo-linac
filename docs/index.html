@@ -38,7 +38,9 @@
     <li><a href="#architecture">Simulation Code Structure and Architecture</a></li>
     <li><a href="#results">Optimization Benchmark Results</a></li>
     <li><a href="#verification">Independent Pareto Verification</a></li>
+    <li><a href="#robustness">Engineering Tolerance & Robust Score</a></li>
     <li><a href="#production-pipeline">Full Production Simulations & Analysis Procedure</a></li>
+
     <li><a href="#installation">New User Installation and Local Operation</a></li>
     <li><a href="consolidated_report/consolidated_report.pdf" target="_blank">PDF Technical Report</a></li>
   </ul>
@@ -244,7 +246,22 @@
     </tbody>
   </table>
 
+  <!-- Section: Engineering Tolerance & Robust Score Analysis -->
+  <h1 id="robustness">Engineering Tolerance and Robust Score Analysis</h1>
+  <p>To evaluate candidate stability against real-world machine instabilities (\(\pm 0.1^\circ\) RF phase jitter, \(\pm 0.1\%\) magnet field gradient fluctuations), candidates undergo perturbed sensitivity evaluations and are quantified using a composite metric named the <strong>Robust Score</strong> (\(S_{\text{robust}}\)):</p>
+
+  <p>\[
+    S_{\text{robust}} = \frac{P_{\text{feas}}}{\max\left(1.0, \, \frac{\langle \varepsilon_{n,x} \rangle}{\varepsilon_{n,x}^{\text{nominal}}}\right)}
+  \]</p>
+
+  <div class="source-note tip">
+    <strong>Robust Score Classification:</strong><br />
+    • <strong>\(S_{\text{robust}} \ge 0.80\) (Robust Operating Point):</strong> High joint probability of feasibility (\(P_{\text{feas}} \ge 80\%\)) with minimal emittance degradation under engineering tolerances.<br />
+    • <strong>\(S_{\text{robust}} &lt; 0.80\) (Fragile Operating Point):</strong> Solution operates too close to tight constraint boundaries and is prone to beam loss under machine jitter.
+  </div>
+
   <!-- Section: Full Production Simulations & Analysis Procedure -->
+
   <h1 id="production-pipeline">Full Production Simulations and Analysis Procedure</h1>
   <p>The repository provides a single, process-safe pipeline script <code>scripts/run_full_production.sh</code> that executes full production-grade MOBO simulations followed by automated post-processing analysis. An interactive 1-to-1 Jupyter notebook mirror is available at <code>notebooks/full_production_pipeline.ipynb</code>.</p>
 
