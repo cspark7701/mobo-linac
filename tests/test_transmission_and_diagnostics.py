@@ -163,3 +163,34 @@ def test_nonfinite_diagnostics():
     res_oob = create_evaluation_result(raw_oob, config)
     assert res_oob.simulation_valid is False
     assert res_oob.failure_category == FailureCategory.INVALID_TRANSMISSION.value
+
+
+def test_transmission_zero():
+    """Verify zero transmission evaluation (valid simulation, physically infeasible)."""
+    config = load_config()
+    raw = get_valid_raw_output()
+    raw["diagnostics"]["n_particles_initial"] = 10000
+    raw["diagnostics"]["n_particles_final"] = 0
+    raw["diagnostics"]["transmission_fraction"] = 0.0
+
+    res = create_evaluation_result(raw, config)
+    assert res.simulation_valid is True
+    assert res.physically_feasible is False
+    assert res.failure_category == FailureCategory.INVALID_TRANSMISSION.value
+
+
+def test_invalid_particle_counts():
+    """Verify invalid initial particle counts (<= 0) fail validation."""
+    config = load_config()
+    raw = get_valid_raw_output()
+    raw["diagnostics"]["n_particles_initial"] = 0
+    raw["diagnostics"]["n_particles_final"] = 0
+    del raw["diagnostics"]["transmission_fraction"]
+    if "transmission" in raw["diagnostics"]:
+        del raw["diagnostics"]["transmission"]
+
+    res = create_evaluation_result(raw, config)
+    assert res.simulation_valid is False
+    assert res.physically_feasible is False
+    assert res.failure_category == FailureCategory.MISSING_OUTPUT.value
+
