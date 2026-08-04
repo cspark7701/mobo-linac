@@ -182,7 +182,7 @@ def run_campaign(
     runner = MoboCampaignRunner(
         config=config_path,
         run_name="validation",
-        base_results_dir=base_results_dir,
+        output_dir=base_results_dir,
         num_initial_samples=num_initial_samples,
         num_batches=num_batches,
         batch_size=batch_size,
@@ -191,6 +191,7 @@ def run_campaign(
         acq_type="qLogNEHVI",
         export_plots=False,
     )
+
     results, tracker, run_dir = runner.run()
 
     # Generate custom validation plots for campaign report

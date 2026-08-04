@@ -9,7 +9,9 @@ import argparse
 import json
 from pathlib import Path
 import sys
+from typing import Dict, List, Optional, Tuple
 import numpy as np
+
 import pandas as pd
 import torch
 
@@ -68,23 +70,45 @@ def parse_args():
     return parser.parse_args()
 
 
+def find_pareto_csv(user_path_str: Optional[str]) -> Optional[Path]:
+    """Finds pareto.csv supporting files, directories, and subdirectories."""
+    search_paths = []
+    if user_path_str:
+        p = Path(user_path_str)
+        search_paths.append(p)
+        if p.is_dir():
+            search_paths.append(p / "pareto.csv")
+            search_paths.extend(list(p.rglob("pareto.csv")))
+            search_paths.extend(list(p.rglob("pareto_feasible.csv")))
+
+    fallbacks = [
+        Path("results/full_production/phase3_constrained/pareto.csv"),
+        Path("results/full_production/phase3_constrained"),
+        Path("results/phase3_constrained"),
+        Path("results/pareto.csv"),
+        Path("results"),
+    ]
+    for fb in fallbacks:
+        search_paths.append(fb)
+        if fb.is_dir():
+            search_paths.append(fb / "pareto.csv")
+            search_paths.extend(list(fb.rglob("pareto.csv")))
+            search_paths.extend(list(fb.rglob("pareto_feasible.csv")))
+
+    for candidate in search_paths:
+        if candidate.is_file() and candidate.exists() and candidate.stat().st_size > 0:
+            return candidate
+
+    return None
+
+
 def run_robustness_analysis(args: argparse.Namespace) -> Path:
     config = load_config(args.config)
     output_dir = Path(args.output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
-    # Find pareto.csv
-    pareto_path = Path(args.pareto_csv) if args.pareto_csv else None
-    if pareto_path is None or not pareto_path.exists():
-        candidates_search = [
-            Path("results/full_production/phase3_constrained/pareto.csv"),
-            Path("results/phase3_constrained/pareto.csv"),
-            Path("results/pareto.csv"),
-        ]
-        for cand in candidates_search:
-            if cand.exists():
-                pareto_path = cand
-                break
+    # Find pareto.csv dynamically
+    pareto_path = find_pareto_csv(args.pareto_csv)
 
     print(f"=== Starting Robustness & Sensitivity Analysis ===")
     print(f"  Config:        {args.config}")
@@ -92,6 +116,7 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
     print(f"  Output Dir:    {output_dir}")
     print(f"  Perturbations: {args.num_perturbations}")
     print(f"  Workers:       {args.num_workers}")
+
 
     if pareto_path is None or not pareto_path.exists():
         print(f"WARNING: No pareto.csv found at {pareto_path}. Creating fallback robustness summary.")
