@@ -16,72 +16,12 @@ import yaml
 
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
+from mobo_linac.metrics.pareto import (
+    select_representative_pareto_candidates,
+    extract_pareto_sets,
+    detect_and_report_candidate_duplicates,
+)
 from mobo_linac.metrics.reporting import normalize_objectives_physical
-
-
-def select_representative_pareto_candidates(
-    results: List[EvaluationResult],
-) -> Dict[str, EvaluationResult]:
-    """
-    Selects representative Pareto candidates:
-    - min_emit_x: Objective extreme for horizontal emittance
-    - min_emit_y: Objective extreme for vertical emittance
-    - min_sigma_energy: Objective extreme for energy spread
-    - knee_point: Solution closest to origin in normalized objective space
-    - balanced: Solution closest to centroid of Pareto set
-
-    Args:
-        results: List of EvaluationResult objects.
-
-    Returns:
-        Dict mapping candidate label -> EvaluationResult.
-    """
-    feasible_results = [
-        res for res in results
-        if res.simulation_valid and res.physically_feasible and res.objectives_physical and res.x_physical and len(res.x_physical) == 6
-    ]
-    if not feasible_results:
-        feasible_results = [
-            res for res in results
-            if res.simulation_valid and res.objectives_physical and res.x_physical and len(res.x_physical) == 6
-        ]
-    if not feasible_results:
-        feasible_results = [
-            res for res in results
-            if res.objectives_physical and res.x_physical and len(res.x_physical) == 6
-        ]
-    if not feasible_results:
-        raise ValueError("No valid candidates with 6D design parameters and objectives available for robustness analysis.")
-
-
-
-    # 1. Objective extremes
-    min_emit_x_res = min(feasible_results, key=lambda r: r.objectives_physical[0])
-    min_emit_y_res = min(feasible_results, key=lambda r: r.objectives_physical[1])
-    min_sigma_e_res = min(feasible_results, key=lambda r: r.objectives_physical[2])
-
-    # Extract all physical objective vectors
-    objs_arr = np.array([r.objectives_physical for r in feasible_results])
-    norm_objs = objs_arr / np.array([1.0e-6, 1.0e-6, 1.0e6])
-
-    # 2. Knee point (closest to ideal minimum [0, 0, 0] in normalized space)
-    dist_to_ideal = np.linalg.norm(norm_objs, axis=1)
-    knee_idx = int(np.argmin(dist_to_ideal))
-    knee_res = feasible_results[knee_idx]
-
-    # 3. Balanced point (closest to centroid of Pareto set)
-    centroid = np.mean(norm_objs, axis=0)
-    dist_to_centroid = np.linalg.norm(norm_objs - centroid, axis=1)
-    balanced_idx = int(np.argmin(dist_to_centroid))
-    balanced_res = feasible_results[balanced_idx]
-
-    return {
-        "min_emit_x": min_emit_x_res,
-        "min_emit_y": min_emit_y_res,
-        "min_sigma_energy": min_sigma_e_res,
-        "knee_point": knee_res,
-        "balanced": balanced_res,
-    }
 
 
 def generate_perturbed_parameters(
@@ -112,7 +52,7 @@ def generate_perturbed_parameters(
         field_relative_std,  # solenoid
         field_relative_std,  # quad 1
         field_relative_std,  # quad 2
-        0.0,                 # gun phase (absolute std added below)
+        0.0,                 # gun phase
         0.0,                 # acc1_2 phase
         0.0,                 # acc3_4 phase
     ])
@@ -179,16 +119,32 @@ def compute_robustness_summary(
         mean_emit_y = std_emit_y = np.nan
         mean_sigma_e = std_sigma_e = np.nan
 
-    # Robust score: feasibility probability divided by normalized emittance growth factor
+    # Robust score: feasibility probability, 3-objective degradation, and worst constraint margin
     nom_objs = nominal_result.objectives_physical if nominal_result.objectives_physical else [1e-6, 1e-6, 1e6]
     growth_x = mean_emit_x / nom_objs[0] if not np.isnan(mean_emit_x) and nom_objs[0] > 0 else 2.0
-    robust_score = float(prob_feasibility / max(1.0, growth_x))
+    growth_y = mean_emit_y / nom_objs[1] if not np.isnan(mean_emit_y) and nom_objs[1] > 0 else 2.0
+    growth_e = mean_sigma_e / nom_objs[2] if not np.isnan(mean_sigma_e) and nom_objs[2] > 0 else 2.0
+
+    mean_degradation = float((growth_x + growth_y + growth_e) / 3.0)
+
+    margins = []
+    for r in valid_results:
+        trans = r.diagnostics.get("transmission_fraction", 1.0)
+        margin = (trans - 0.90) / 0.90
+        margins.append(margin)
+
+    worst_margin = float(min(margins)) if margins else 0.0
+    margin_factor = float(max(0.5, 1.0 + worst_margin))
+
+    robust_score = float((prob_feasibility * margin_factor) / max(1.0, mean_degradation))
 
     return {
         "candidate_label": candidate_label,
         "evaluation_id": nominal_result.evaluation_id,
         "probability_of_feasibility": prob_feasibility,
         "robust_score": robust_score,
+        "worst_constraint_margin": worst_margin,
+        "mean_objective_degradation": mean_degradation,
         "nominal_emit_x": nom_objs[0],
         "mean_emit_x": mean_emit_x,
         "std_emit_x": std_emit_x,
@@ -202,3 +158,4 @@ def compute_robustness_summary(
         "std_sigma_energy": std_sigma_e,
         "is_fragile": prob_feasibility < 0.80,
     }
+

@@ -60,14 +60,7 @@ def select_verification_candidates(
     results: List[EvaluationResult],
 ) -> Dict[str, EvaluationResult]:
     """
-    Selects 7 representative Pareto candidates for verification:
-    - min_emit_x: Objective extreme for norm_emit_x
-    - min_emit_y: Objective extreme for norm_emit_y
-    - min_sigma_energy: Objective extreme for sigma_energy
-    - knee_point: Solution closest to origin in normalized space
-    - crowding_distance_max: Solution with maximum crowding distance
-    - balanced_feasible: Solution nearest centroid of Pareto set
-    - robust_recommended: Recommended robust solution
+    Selects representative Pareto candidates for verification strictly from the feasible Pareto set.
 
     Args:
         results: List of EvaluationResult records.
@@ -75,56 +68,20 @@ def select_verification_candidates(
     Returns:
         Dict mapping candidate role -> EvaluationResult.
     """
-    feasible = [r for r in results if r.simulation_valid and r.physically_feasible and r.objectives_physical]
-    if not feasible:
-        feasible = [r for r in results if r.simulation_valid and r.objectives_physical]
-    if not feasible:
-        feasible = [r for r in results if r.objectives_physical]
-    if not feasible:
-        raise ValueError("No physically feasible candidates available for verification.")
+    from mobo_linac.metrics.pareto import select_representative_pareto_candidates
 
-
-    objs_arr = np.array([r.objectives_physical for r in feasible])
-    norm_objs = objs_arr / np.array([1.0e-6, 1.0e-6, 1.0e6])
-
-    # 1. Objective extremes
-    min_ex = min(feasible, key=lambda r: r.objectives_physical[0])
-    min_ey = min(feasible, key=lambda r: r.objectives_physical[1])
-    min_se = min(feasible, key=lambda r: r.objectives_physical[2])
-
-    # 2. Knee point
-    dist_origin = np.linalg.norm(norm_objs, axis=1)
-    knee_res = feasible[int(np.argmin(dist_origin))]
-
-    # 3. Crowding distance max
-    crowd_dists = compute_crowding_distances(norm_objs)
-    # Find max crowding distance excluding infinite boundary points
-    finite_mask = ~np.isinf(crowd_dists)
-    if finite_mask.any():
-        max_cd_idx = int(np.argmax(np.where(finite_mask, crowd_dists, -1.0)))
-    else:
-        max_cd_idx = int(np.argmin(dist_origin))
-    crowd_res = feasible[max_cd_idx]
-
-    # 4. Balanced solution
-    centroid = np.mean(norm_objs, axis=0)
-    dist_centroid = np.linalg.norm(norm_objs - centroid, axis=1)
-    balanced_res = feasible[int(np.argmin(dist_centroid))]
-
-    # 5. Robust recommended (knee point baseline)
-    robust_res = knee_res
-
+    cands = select_representative_pareto_candidates(results)
     candidates = {
-        "min_emit_x": min_ex,
-        "min_emit_y": min_ey,
-        "min_sigma_energy": min_se,
-        "knee_point": knee_res,
-        "crowding_distance_max": crowd_res,
-        "balanced_feasible": balanced_res,
-        "robust_recommended": robust_res,
+        "min_emit_x": cands["min_emit_x"],
+        "min_emit_y": cands["min_emit_y"],
+        "min_sigma_energy": cands["min_sigma_energy"],
+        "knee_point": cands["knee_point"],
+        "crowding_distance_max": cands["crowding_distance_max"],
+        "balanced_feasible": cands["balanced"],
+        "robust_recommended": cands["knee_point"],
     }
-
     return candidates
+
 
 
 def run_independent_verification_rerun(
