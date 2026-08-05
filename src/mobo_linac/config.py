@@ -110,6 +110,27 @@ class ExecutionConfig:
 
 
 @dataclass
+class GpModelConfig:
+    """Configuration for GP surrogate modeling and noise treatment."""
+
+    covar_type: str = "matern52"
+    noise_mode: str = "deterministic_fixed"  # "deterministic_fixed", "fixed", "inferred", or "measured_fixed"
+    fixed_noise_variance: float = 1.0e-6
+    objective_noise_variances: Optional[List[float]] = None
+
+    def validate(self) -> None:
+        """Validate GP model config fields."""
+        if self.covar_type not in ("matern52", "rbf"):
+            raise ValueError(f"Invalid covar_type '{self.covar_type}'. Must be 'matern52' or 'rbf'.")
+        if self.noise_mode not in ("deterministic_fixed", "fixed", "inferred", "measured_fixed"):
+            raise ValueError(
+                f"Invalid noise_mode '{self.noise_mode}'. Must be 'deterministic_fixed', 'fixed', 'inferred', or 'measured_fixed'."
+            )
+        if self.fixed_noise_variance <= 0:
+            raise ValueError("fixed_noise_variance must be positive.")
+
+
+@dataclass
 class MoboConfig:
     """Master configuration container for linac optimization."""
 
@@ -120,6 +141,7 @@ class MoboConfig:
     constraints: ConstraintsConfig
     sensitivity_profiles: Dict[str, ConstraintsConfig] = field(default_factory=dict)
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
+    model: GpModelConfig = field(default_factory=GpModelConfig)
 
     def validate(self) -> None:
         """Validate entire configuration system."""
@@ -137,6 +159,8 @@ class MoboConfig:
         self.constraints.validate()
         for name, profile in self.sensitivity_profiles.items():
             profile.validate()
+
+        self.model.validate()
 
     def get_constraint_profile(self, profile_name: str = "nominal") -> ConstraintsConfig:
         """Returns the specified constraint sensitivity profile, falling back to main constraints."""
@@ -194,13 +218,14 @@ def load_config(config_path: Union[str, Path] = "configs/publication_200MeV.yaml
     design_vars = [DesignVariableConfig(**dv) for dv in data["design_variables"]]
     objs = [ObjectiveConfig(**obj) for obj in data["objectives"]]
     constraints = ConstraintsConfig(**data["constraints"])
-    
+
     sens_profiles = {}
     if "sensitivity_profiles" in data:
         for pname, pdata in data["sensitivity_profiles"].items():
             sens_profiles[pname] = ConstraintsConfig(**pdata)
 
     execution = ExecutionConfig(**data.get("execution", {}))
+    model_cfg = GpModelConfig(**data.get("model", {}))
 
     config = MoboConfig(
         version=str(data.get("version", "1.0")),
@@ -210,6 +235,8 @@ def load_config(config_path: Union[str, Path] = "configs/publication_200MeV.yaml
         constraints=constraints,
         sensitivity_profiles=sens_profiles,
         execution=execution,
+        model=model_cfg,
     )
     config.validate()
     return config
+

@@ -22,13 +22,15 @@ class SurrogatePipeline:
         self,
         bounds: Tensor,
         covar_type: str = "matern52",
-        noise_mode: str = "fixed",
+        noise_mode: str = "deterministic_fixed",
         fixed_noise_val: float = 1e-6,
+        objective_noise_variances: Optional[List[float]] = None,
     ):
         self.bounds = bounds.to(dtype=torch.double)
         self.covar_type = covar_type
         self.noise_mode = noise_mode
         self.fixed_noise_val = fixed_noise_val
+        self.objective_noise_variances = objective_noise_variances
         self.objective_model: Optional[ModelListGP] = None
         self.constraint_model: Optional[ModelListGP] = None
         self.is_fitted: bool = False
@@ -38,6 +40,7 @@ class SurrogatePipeline:
         train_X: Tensor,
         train_Y: Tensor,
         train_constraints: Optional[Tensor] = None,
+        train_Yvar: Optional[Tensor] = None,
     ) -> "SurrogatePipeline":
         """
         Fits GP models for both objectives and optional constraint metrics.
@@ -46,6 +49,7 @@ class SurrogatePipeline:
             train_X: (N, D) PyTorch double tensor of design variables.
             train_Y: (N, M) PyTorch double tensor of model-space objectives.
             train_constraints: Optional (N, K) PyTorch double tensor of constraint metrics.
+            train_Yvar: Optional (N, M) PyTorch double tensor of observation noise variances.
 
         Returns:
             Fitted SurrogatePipeline instance.
@@ -64,6 +68,8 @@ class SurrogatePipeline:
             covar_type=self.covar_type,
             noise_mode=self.noise_mode,
             fixed_noise_val=self.fixed_noise_val,
+            objective_noise_variances=self.objective_noise_variances,
+            train_Yvar=train_Yvar,
         )
         self.objective_model = fit_gp_models(self.objective_model)
 
@@ -84,6 +90,7 @@ class SurrogatePipeline:
 
         self.is_fitted = True
         return self
+
 
     def predict_objectives(self, X: Tensor) -> Tuple[Tensor, Tensor]:
         """

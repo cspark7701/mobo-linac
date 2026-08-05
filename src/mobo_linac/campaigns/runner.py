@@ -292,7 +292,14 @@ class MoboCampaignRunner:
                 new_sobol = sobol_engine.draw(self.batch_size).to(dtype=torch.double)
                 next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
             else:
-                pipeline = SurrogatePipeline(bounds=bounds)
+                pipeline = SurrogatePipeline(
+                    bounds=bounds,
+                    covar_type=self.config.model.covar_type,
+                    noise_mode=self.config.model.noise_mode,
+                    fixed_noise_val=self.config.model.fixed_noise_variance,
+                    objective_noise_variances=self.config.model.objective_noise_variances,
+                )
+
                 if self.constrained:
                     train_constraints = get_constraint_tensors(results, exclude_invalid=True)
                     pipeline.fit(train_X, train_Y, train_constraints)
@@ -329,6 +336,7 @@ class MoboCampaignRunner:
                     batch_size=self.batch_size,
                 )
                 next_cand_list = next_cand_tensor.tolist()
+
 
             start_eval_id = len(results) + 1
             eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]

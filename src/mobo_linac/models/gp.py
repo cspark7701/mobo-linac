@@ -24,8 +24,10 @@ def build_gp_models(
     train_Y: torch.Tensor,
     bounds: torch.Tensor,
     covar_type: str = "matern52",
-    noise_mode: str = "fixed",
+    noise_mode: str = "deterministic_fixed",
     fixed_noise_val: float = 1e-6,
+    objective_noise_variances: Optional[List[float]] = None,
+    train_Yvar: Optional[torch.Tensor] = None,
 ) -> ModelListGP:
     """
     Builds a ModelListGP containing an independent SingleTaskGP for each objective
@@ -36,8 +38,10 @@ def build_gp_models(
         train_Y: (N, M) PyTorch double tensor of model-space objectives.
         bounds: (2, D) PyTorch double tensor of parameter bounds.
         covar_type: Covariance kernel type ('matern52' or 'rbf').
-        noise_mode: Noise treatment ('fixed' near-zero for deterministic or 'inferred').
-        fixed_noise_val: Fixed observation noise variance when noise_mode == 'fixed'.
+        noise_mode: Noise treatment ('deterministic_fixed', 'fixed', 'measured_fixed', or 'inferred').
+        fixed_noise_val: Fixed observation noise variance when noise_mode == 'deterministic_fixed'.
+        objective_noise_variances: Optional list of noise variances per objective.
+        train_Yvar: Optional (N, M) tensor of observation noise variances.
 
     Returns:
         Constructed ModelListGP instance.
@@ -53,6 +57,9 @@ def build_gp_models(
     num_objectives = train_Y_dbl.shape[-1]
     input_transform = Normalize(d=input_dim, bounds=bounds_dbl)
 
+    # Normalize noise_mode alias
+    mode = "deterministic_fixed" if noise_mode == "fixed" else noise_mode
+
     models = []
     for idx in range(num_objectives):
         y_col = train_Y_dbl[:, idx : idx + 1]
@@ -67,27 +74,41 @@ def build_gp_models(
 
         covar_module = ScaleKernel(base_kernel)
 
-        # Noise Likelihood Construction
-        if noise_mode == "fixed":
-            likelihood = GaussianLikelihood(noise_constraint=GreaterThan(1e-8))
-            likelihood.noise = torch.tensor([fixed_noise_val], dtype=torch.double)
-        elif noise_mode == "inferred":
-            likelihood = GaussianLikelihood()
-        else:
-            raise ValueError(f"Unsupported noise_mode: '{noise_mode}'. Choose 'fixed' or 'inferred'.")
+        # Noise Treatment Construction
+        if mode in ("deterministic_fixed", "measured_fixed"):
+            if train_Yvar is not None and train_Yvar.shape[0] == train_Y_dbl.shape[0]:
+                yvar_col = train_Yvar[:, idx : idx + 1].to(dtype=torch.double)
+            elif objective_noise_variances is not None and len(objective_noise_variances) > idx:
+                yvar_col = torch.full_like(y_col, fill_value=float(objective_noise_variances[idx]))
+            else:
+                yvar_col = torch.full_like(y_col, fill_value=float(fixed_noise_val))
 
-        gp = SingleTaskGP(
-            train_X=train_X_dbl,
-            train_Y=y_col,
-            likelihood=likelihood,
-            covar_module=covar_module,
-            input_transform=input_transform,
-            outcome_transform=Standardize(m=1),
-        )
+            gp = SingleTaskGP(
+                train_X=train_X_dbl,
+                train_Y=y_col,
+                train_Yvar=yvar_col,
+                covar_module=covar_module,
+                input_transform=input_transform,
+                outcome_transform=Standardize(m=1),
+            )
+        elif mode == "inferred":
+            gp = SingleTaskGP(
+                train_X=train_X_dbl,
+                train_Y=y_col,
+                covar_module=covar_module,
+                input_transform=input_transform,
+                outcome_transform=Standardize(m=1),
+            )
+        else:
+            raise ValueError(
+                f"Unsupported noise_mode: '{noise_mode}'. Choose 'deterministic_fixed', 'measured_fixed', or 'inferred'."
+            )
+
         models.append(gp)
 
     model_list = ModelListGP(*models)
     return model_list
+
 
 
 def fit_gp_models(model_list: ModelListGP) -> ModelListGP:
