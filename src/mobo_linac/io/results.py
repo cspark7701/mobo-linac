@@ -274,9 +274,13 @@ def save_run_checkpoint(
     iteration: int,
     results: List[EvaluationResult],
     hypervolumes: List[float],
-    checkpoint_path: Union[str, Path] = "mobo_results/mobo_checkpoint.pt",
+    checkpoint_path: Union[str, Path] = "results/checkpoints/checkpoint.pt",
     acquisition_mode: str = "qLogNEHVI",
     config: Any = None,
+    reporting_ref_point: Optional[torch.Tensor] = None,
+    seed: Optional[int] = None,
+    batch_size: Optional[int] = None,
+    constrained: Optional[bool] = None,
 ) -> Path:
     """
     Saves stateful checkpoint containing structured EvaluationResult records.
@@ -284,26 +288,74 @@ def save_run_checkpoint(
     path = Path(checkpoint_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
+    ref_point_list = reporting_ref_point.tolist() if reporting_ref_point is not None else None
+    config_dict = config.to_dict() if hasattr(config, "to_dict") else config
+
     checkpoint_data = {
         "iteration": iteration,
         "results_serialized": [res.to_dict() for res in results],
         "hypervolumes": hypervolumes,
         "acquisition_mode": acquisition_mode,
-        "config": config,
+        "reporting_ref_point": ref_point_list,
+        "seed": seed,
+        "batch_size": batch_size,
+        "constrained": constrained,
+        "torch_rng_state": torch.get_rng_state(),
+        "numpy_rng_state": np.random.get_state(),
+        "config": config_dict,
     }
+
     torch.save(checkpoint_data, path)
+
+    # If saving an iteration checkpoint, also update latest checkpoint link/copy
+    if path.name.startswith("checkpoint_iter_"):
+        latest_path = path.parent / "checkpoint.pt"
+        torch.save(checkpoint_data, latest_path)
+
     return path
 
 
 def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
     """
     Loads stateful checkpoint and reconstructs EvaluationResult records.
+    Auto-detects directory vs file input.
     """
     path = Path(checkpoint_path)
-    if not path.exists():
+    target_file: Optional[Path] = None
+
+    if path.is_dir():
+        candidates = [
+            path / "checkpoints" / "checkpoint.pt",
+            path / "gp_checkpoint" / "checkpoint.pt",
+            path / "checkpoint.pt",
+        ]
+        for c in candidates:
+            if c.exists():
+                target_file = c
+                break
+        if target_file is None:
+            # Check for latest iteration checkpoint in checkpoints/
+            ckpt_dir = path / "checkpoints"
+            if ckpt_dir.exists():
+                iter_files = sorted(ckpt_dir.glob("checkpoint_iter_*.pt"))
+                if iter_files:
+                    target_file = iter_files[-1]
+    elif path.exists():
+        target_file = path
+
+    if target_file is None or not target_file.exists():
         return None
 
-    checkpoint_data = torch.load(path, weights_only=False)
+    try:
+        checkpoint_data = torch.load(target_file, weights_only=False)
+    except Exception as e:
+        raise ValueError(f"Corrupted or unreadable checkpoint file at {target_file}: {e}")
+
+    if not isinstance(checkpoint_data, dict) or "iteration" not in checkpoint_data:
+        raise ValueError(f"Invalid checkpoint structure at {target_file}")
+
     serialized = checkpoint_data.get("results_serialized", [])
     checkpoint_data["results"] = [EvaluationResult.from_dict(d) for d in serialized]
+    checkpoint_data["checkpoint_file"] = str(target_file)
     return checkpoint_data
+

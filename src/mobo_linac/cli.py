@@ -234,29 +234,39 @@ def run_validation(args: argparse.Namespace) -> None:
 
 
 def resume_optimization(args: argparse.Namespace) -> None:
-    """Resumes an existing optimization run from checkpoint."""
-    run_dir = Path(args.run_dir)
-    ckpt_path = run_dir / "gp_checkpoint" / "checkpoint.pt"
+    """Resumes an existing optimization campaign from checkpoint."""
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.io.results import load_run_checkpoint
 
-    ckpt_data = load_run_checkpoint(ckpt_path)
+    run_dir = Path(getattr(args, "run_dir", getattr(args, "output_dir", "results")))
+    ckpt_data = load_run_checkpoint(run_dir)
     if not ckpt_data:
-        raise FileNotFoundError(f"Checkpoint not found at: {ckpt_path}")
-
-    start_iteration = ckpt_data["iteration"]
-    results = ckpt_data["results"]
-    print(f"Resuming run '{run_dir.name}' from iteration {start_iteration} with {len(results)} total samples...")
+        raise FileNotFoundError(f"No valid checkpoint found in: {run_dir}")
 
     config_path = run_dir / "config.yaml"
     if not config_path.exists():
         config_path = run_dir / "config.json"
+    if not config_path.exists():
+        config_path = getattr(args, "config", "configs/publication.yaml")
 
-    args.config = str(config_path)
-    args.output_dir = str(run_dir)
-    args.seed = 42
-    args.num_initial_samples = len(results)
-    args.batch_size = 8
-    args.acquisition = ckpt_data.get("acquisition_mode", "qLogNEHVI")
-    run_unconstrained(args)
+    acq_type = ckpt_data.get("acquisition_mode", getattr(args, "acquisition", "qLogNEHVI"))
+    constrained = ckpt_data.get("constrained", False)
+    seed = ckpt_data.get("seed", getattr(args, "seed", 42))
+    batch_size = ckpt_data.get("batch_size", getattr(args, "batch_size", 4))
+
+    runner = MoboCampaignRunner(
+        config=config_path,
+        output_dir=run_dir,
+        num_batches=getattr(args, "n_iterations", 6),
+        batch_size=batch_size,
+        num_workers=getattr(args, "num_workers", None),
+        seed=seed,
+        acq_type=acq_type,
+        constrained=constrained,
+        resume=True,
+    )
+    runner.run()
+
 
 
 def analyze_run(args: argparse.Namespace) -> None:

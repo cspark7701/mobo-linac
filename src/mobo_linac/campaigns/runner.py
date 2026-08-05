@@ -9,7 +9,8 @@ from datetime import datetime
 import os
 from pathlib import Path
 import platform
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Tuple, Union
+
 import numpy as np
 import pandas as pd
 import torch
@@ -32,6 +33,7 @@ from mobo_linac.io.results import (
     PHYSICAL_OBJ_COLUMNS,
     get_constraint_tensors,
     get_train_tensors,
+    load_run_checkpoint,
     results_to_dataframe,
     save_evaluation_results,
     save_run_checkpoint,
@@ -70,6 +72,9 @@ class MoboCampaignRunner:
         constrained: bool = False,
         export_plots: bool = True,
         export_env_info: bool = True,
+        resume: bool = False,
+        resume_from: Optional[Union[str, Path]] = None,
+        evaluator: Optional[Any] = None,
     ):
         if isinstance(config, (str, Path)):
             config_path = Path(config)
@@ -91,6 +96,9 @@ class MoboCampaignRunner:
         self.constrained = constrained
         self.export_plots = export_plots
         self.export_env_info = export_env_info
+        self.resume = resume
+        self.resume_from = resume_from
+        self.custom_evaluator = evaluator
 
         if output_dir:
             self.run_dir = Path(output_dir)
@@ -152,33 +160,132 @@ class MoboCampaignRunner:
 
         bounds = self.config.get_parameter_bounds_tensor()
 
-        evaluator = BatchEvaluator(
-            base_results_dir=self.run_dir.parent,
-            template_dir=".",
-            max_workers=self.num_workers,
-            timeout=self.config.execution.timeout_sec,
-            retries=self.config.execution.retries,
-            clean_on_success=self.config.execution.clean_on_success,
-        )
+        if self.custom_evaluator is not None:
+            evaluator = self.custom_evaluator
+        else:
+            evaluator = BatchEvaluator(
+                base_results_dir=self.run_dir.parent,
+                template_dir=".",
+                max_workers=self.num_workers,
+                timeout=self.config.execution.timeout_sec,
+                retries=self.config.execution.retries,
+                clean_on_success=self.config.execution.clean_on_success,
+            )
 
         sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=self.seed)
-        sobol_samples = sobol_engine.draw(self.num_initial_samples).to(dtype=torch.double)
+
+        start_iteration = 1
+        results: List[EvaluationResult] = []
+
+        # Check for checkpoint resume
+        if self.resume or self.resume_from:
+            target_ckpt = self.resume_from or self.run_dir
+            ckpt_data = load_run_checkpoint(target_ckpt)
+            if not ckpt_data:
+                raise FileNotFoundError(f"No valid checkpoint found to resume at '{target_ckpt}'")
+
+            # Check config compatibility
+            ckpt_cfg_dict = ckpt_data.get("config")
+            if isinstance(ckpt_cfg_dict, dict) and "parameters" in ckpt_cfg_dict:
+                ckpt_params = ckpt_cfg_dict["parameters"]
+                curr_params = self.config.to_dict().get("parameters", {})
+                if len(ckpt_params) != len(curr_params):
+                    raise ValueError(f"Incompatible checkpoint configuration: parameter count mismatch ({len(ckpt_params)} vs {len(curr_params)})")
+
+            results = ckpt_data["results"]
+            completed_iteration = int(ckpt_data.get("iteration", 0))
+            start_iteration = completed_iteration + 1
+            print(f"Resuming campaign '{self.run_id}' from iteration {start_iteration} ({len(results)} existing evaluations)...")
+
+            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
+
+            stored_ref_point = ckpt_data.get("reporting_ref_point")
+            if stored_ref_point is not None:
+                reporting_ref_point = torch.tensor(stored_ref_point, dtype=torch.double)
+            else:
+                reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
+
+            # Restore PyTorch & NumPy random states if saved in checkpoint
+            t_state = ckpt_data.get("torch_rng_state")
+            if t_state is not None:
+                if isinstance(t_state, torch.Tensor):
+                    torch.set_rng_state(t_state.cpu())
+                elif isinstance(t_state, (bytes, bytearray)):
+                    torch.set_rng_state(torch.frombuffer(t_state, dtype=torch.uint8))
+
+            n_state = ckpt_data.get("numpy_rng_state")
+            if n_state is not None and isinstance(n_state, (list, tuple)) and len(n_state) == 5:
+                try:
+                    np.random.set_state((
+                        str(n_state[0]),
+                        np.array(n_state[1], dtype=np.uint32),
+                        int(n_state[2]),
+                        int(n_state[3]),
+                        float(n_state[4]),
+                    ))
+                except Exception:
+                    pass
+
+            # Advance Sobol engine random state past initial and completed iterations
+            sobol_engine.draw(self.num_initial_samples)
+            for _ in range(1, start_iteration):
+                sobol_engine.draw(self.batch_size)
+
+            tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
+
+
+
+            # Re-track hypervolume history
+            stored_hvs = ckpt_data.get("hypervolumes")
+            if stored_hvs and len(stored_hvs) == completed_iteration + 1:
+                # Use stored hypervolume values directly
+                for it_idx, hv_val in enumerate(stored_hvs):
+                    n_pts = self.num_initial_samples + it_idx * self.batch_size
+                    curr_y = train_Y[:n_pts] if train_Y.shape[0] >= n_pts else train_Y
+                    curr_mask = train_feas_mask[:n_pts] if train_feas_mask.shape[0] >= n_pts else train_feas_mask
+                    tracker.track_iteration(it_idx, curr_y, curr_mask)
+            else:
+                tracker.track_iteration(0, train_Y[:self.num_initial_samples], train_feas_mask[:self.num_initial_samples])
+                for it_idx in range(1, start_iteration):
+                    n_pts = self.num_initial_samples + it_idx * self.batch_size
+                    curr_y = train_Y[:n_pts] if train_Y.shape[0] >= n_pts else train_Y
+                    curr_mask = train_feas_mask[:n_pts] if train_feas_mask.shape[0] >= n_pts else train_feas_mask
+                    tracker.track_iteration(it_idx, curr_y, curr_mask)
+        else:
+            sobol_samples = sobol_engine.draw(self.num_initial_samples).to(dtype=torch.double)
+            lower_b, upper_b = bounds[0], bounds[1]
+            initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
+
+            raw_initial = evaluator.evaluate_batch(initial_candidates, run_id=self.run_id)
+            results = [create_evaluation_result(r, self.config) for r in raw_initial]
+
+            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
+
+            reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
+            tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
+
+            tracker.track_iteration(0, train_Y, train_feas_mask)
+            save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
+            tracker.save_csv(self.run_dir / "hypervolume.csv")
+
+            ckpt_dir = self.run_dir / "checkpoints"
+            ckpt_dir.mkdir(parents=True, exist_ok=True)
+            save_run_checkpoint(
+                iteration=0,
+                results=results,
+                hypervolumes=tracker.to_dataframe()["feasible_hypervolume"].tolist(),
+                checkpoint_path=ckpt_dir / "checkpoint_iter_00.pt",
+                acquisition_mode=self.acq_type,
+                config=self.config,
+                reporting_ref_point=reporting_ref_point,
+                seed=self.seed,
+                batch_size=self.batch_size,
+                constrained=self.constrained,
+            )
+
         lower_b, upper_b = bounds[0], bounds[1]
-        initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
 
-        raw_initial = evaluator.evaluate_batch(initial_candidates, run_id=self.run_id)
-        results = [create_evaluation_result(r, self.config) for r in raw_initial]
-
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-
-        reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
-        tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
-
-        tracker.track_iteration(0, train_Y, train_feas_mask)
-        save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
-        tracker.save_csv(self.run_dir / "hypervolume.csv")
-
-        for iteration in range(1, self.num_batches + 1):
+        for iteration in range(start_iteration, self.num_batches + 1):
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
 
             if train_X.shape[0] < 2:
@@ -223,7 +330,6 @@ class MoboCampaignRunner:
                 )
                 next_cand_list = next_cand_tensor.tolist()
 
-
             start_eval_id = len(results) + 1
             eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]
 
@@ -254,7 +360,13 @@ class MoboCampaignRunner:
                 hypervolumes=tracker.to_dataframe()["feasible_hypervolume"].tolist(),
                 checkpoint_path=ckpt_path,
                 acquisition_mode=self.acq_type,
+                config=self.config,
+                reporting_ref_point=reporting_ref_point,
+                seed=self.seed,
+                batch_size=self.batch_size,
+                constrained=self.constrained,
             )
+
 
         # Export CSV datasets
         df_all = results_to_dataframe(results)
