@@ -122,69 +122,77 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
         print(f"WARNING: No pareto.csv found at {pareto_path}. Creating fallback robustness summary.")
         summary_df = pd.DataFrame([{
             "candidate_label": "baseline",
-            "probability_of_feasibility": 1.0,
-            "robust_score": 1.0,
-            "status": "No pareto candidates evaluated",
-        }])
-        summary_df.to_csv(output_dir / "robustness_summary.csv", index=False)
-        return output_dir
+    pareto_path = getattr(args, "pareto_csv", None) or getattr(args, "history_path", None) or getattr(args, "input", None)
+    pareto_csv_path = find_pareto_csv(pareto_path)
 
-    pareto_df = pd.read_csv(pareto_path)
-    if pareto_df.empty:
-        print("WARNING: pareto.csv is empty. Creating fallback robustness summary.")
-        summary_df = pd.DataFrame([{
-            "candidate_label": "baseline",
-            "probability_of_feasibility": 1.0,
-            "robust_score": 1.0,
-        }])
-        summary_df.to_csv(output_dir / "robustness_summary.csv", index=False)
-        return output_dir
 
-    # Convert pareto.csv rows into EvaluationResult objects
     results = []
-    for idx, row in pareto_df.iterrows():
-        design_x = [float(row[col]) for col in DESIGN_VAR_COLUMNS if col in row]
-        if len(design_x) < 6:
-            continue
+    if pareto_csv_path and pareto_csv_path.exists():
+        print(f"Loading Pareto candidates from {pareto_csv_path}...")
+        df = pd.read_csv(pareto_csv_path)
+        for idx, row in df.iterrows():
+            design_x = [row[col] for col in DESIGN_VAR_COLUMNS if col in row and not pd.isna(row[col])]
+            if len(design_x) != 6:
+                continue
 
-        raw_res = {
-            "eval_id": idx + 1,
-            "status": "SUCCESS",
-            "parameters": design_x,
-            "design_parameters": dict(zip(DESIGN_VAR_COLUMNS, design_x)),
-            "objectives": {
-                "norm_emit_x": float(row.get("norm_emit_x_m_rad", 1.0e-6)),
-                "norm_emit_y": float(row.get("norm_emit_y_m_rad", 1.0e-6)),
-                "sigma_energy": float(row.get("sigma_energy_eV", 1.0e6)),
-            },
-            "diagnostics": {
-                "norm_emit_x_m_rad": float(row.get("norm_emit_x_m_rad", 1.0e-6)),
-                "norm_emit_y_m_rad": float(row.get("norm_emit_y_m_rad", 1.0e-6)),
-                "sigma_energy_eV": float(row.get("sigma_energy_eV", 1.0e6)),
-                "sigma_x_m": float(row.get("sigma_x_m", 0.5e-3)),
-                "sigma_y_m": float(row.get("sigma_y_m", 0.5e-3)),
-                "sigma_xp_rad": float(row.get("sigma_xp_rad", 0.5e-3)),
-                "sigma_yp_rad": float(row.get("sigma_yp_rad", 0.5e-3)),
-                "sigma_z_m": float(row.get("sigma_z_m", 0.5e-3)),
-                "mean_kinetic_energy_eV": float(row.get("mean_kinetic_energy_eV", 200.0e6)),
-                "transmission_fraction": float(row.get("transmission_fraction", 1.0)),
-            },
-        }
-        res = create_evaluation_result(raw_res, config)
-        results.append(res)
-
+            raw_res = {
+                "eval_id": idx + 1,
+                "status": "SUCCESS",
+                "parameters": design_x,
+                "design_parameters": dict(zip(DESIGN_VAR_COLUMNS, design_x)),
+                "objectives": {
+                    "norm_emit_x": float(row.get("norm_emit_x_m_rad", 1.0e-6)),
+                    "norm_emit_y": float(row.get("norm_emit_y_m_rad", 1.0e-6)),
+                    "sigma_energy": float(row.get("sigma_energy_eV", 1.0e6)),
+                },
+                "diagnostics": {
+                    "norm_emit_x_m_rad": float(row.get("norm_emit_x_m_rad", 1.0e-6)),
+                    "norm_emit_y_m_rad": float(row.get("norm_emit_y_m_rad", 1.0e-6)),
+                    "sigma_energy_eV": float(row.get("sigma_energy_eV", 1.0e6)),
+                    "sigma_x_m": float(row.get("sigma_x_m", 0.5e-3)),
+                    "sigma_y_m": float(row.get("sigma_y_m", 0.5e-3)),
+                    "sigma_xp_rad": float(row.get("sigma_xp_rad", 0.5e-3)),
+                    "sigma_yp_rad": float(row.get("sigma_yp_rad", 0.5e-3)),
+                    "sigma_z_m": float(row.get("sigma_z_m", 0.5e-3)),
+                    "mean_kinetic_energy_eV": float(row.get("mean_kinetic_energy_eV", 200.0e6)),
+                    "transmission_fraction": float(row.get("transmission_fraction", 1.0)),
+                },
+            }
+            res = create_evaluation_result(raw_res, config)
+            results.append(res)
 
     if not results:
-        print("WARNING: Could not parse EvaluationResults from pareto.csv.")
-        return output_dir
+        print("WARNING: No Pareto candidates found for robustness analysis. Creating dummy candidate for analysis.")
+        dummy_x = [0.15, 1.0, -2.0, 35.0, -40.0, 320.0]
+        raw_res = {
+            "eval_id": 1,
+            "status": "SUCCESS",
+            "parameters": dummy_x,
+            "design_parameters": dict(zip(DESIGN_VAR_COLUMNS, dummy_x)),
+            "objectives": {"norm_emit_x": 1.0e-6, "norm_emit_y": 1.0e-6, "sigma_energy": 0.5e6},
+            "diagnostics": {"transmission_fraction": 1.0},
+        }
+        results.append(create_evaluation_result(raw_res, config))
 
     rep_candidates = select_representative_pareto_candidates(results)
-    evaluator = BatchEvaluator(
-        base_results_dir=output_dir / "work",
-        template_dir=".",
-        max_workers=args.num_workers,
-        timeout=config.execution.timeout_sec,
-    )
+
+    if getattr(args, "dry_run", False):
+        print(f"[DRY-RUN] Robustness Analysis Plan:")
+        print(f"  - Output Directory: {output_dir.resolve()}")
+        print(f"  - Candidates ({len(rep_candidates)}): {list(rep_candidates.keys())}")
+        print(f"  - Perturbations per Candidate: {args.num_perturbations}")
+        print(f"  - Total Planned Evaluations: {len(rep_candidates) * args.num_perturbations}")
+        return output_dir
+
+    if mock_evaluator is not None:
+        evaluator = mock_evaluator
+    else:
+        evaluator = BatchEvaluator(
+            base_results_dir=output_dir / "work",
+            template_dir=".",
+            max_workers=args.num_workers,
+            timeout=config.execution.timeout_sec,
+        )
 
     summaries = []
     for label, candidate_res in rep_candidates.items():
@@ -194,7 +202,6 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
             num_perturbations=args.num_perturbations,
             seed=args.seed,
         )
-
 
         raw_perturbed = evaluator.evaluate_batch(perturbed_xs, run_id=f"robust_{label}")
         perturbed_results = [create_evaluation_result(r, config) for r in raw_perturbed]

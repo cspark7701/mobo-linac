@@ -182,33 +182,42 @@ export GENERATOR_BIN="/path/to/custom/bin/generator"
 
 ---
 
-## Usage Examples
+## Usage Examples & CLI Commands
 
-### Run Phase 1 Scalarized BO (Weighted Sum)
+The framework provides a unified console entry point `mobo-linac` (or `python -m mobo_linac.cli`):
 
-To execute scalarized Bayesian Optimization using single-objective GP surrogates and weight combinations:
-
+### 1. Run Phase 2 Unconstrained MOBO
 ```bash
-python scripts/run_scalarized_bo.py --n-iterations 300 --batch-size 8 --weights 1.0 1.0 1.0 --num-workers 12
+mobo-linac run-unconstrained --config configs/publication_200MeV.yaml --n-iterations 300 -q 8 --num-workers 12
 ```
 
-Interactive exploration is available in notebook [`notebooks/phase1_scalarized_bo.ipynb`](notebooks/phase1_scalarized_bo.ipynb).
-
-### Run Phase 2 MOBO (Parallel qLogNEHVI)
-
-To execute Multi-Objective Bayesian Optimization with parallel ASTRA evaluation workers:
-
+### 2. Run Phase 3 Constrained MOBO (Feasibility-Aware)
 ```bash
-python scripts/run_mobo.py --n-iterations 300 --batch-size 8 --num-workers 12
+mobo-linac run-constrained --config configs/publication_200MeV.yaml --n-iterations 300 -q 8 --num-workers 12
 ```
 
-### Run Phase 3 Constrained MOBO
-
-To execute constraint-aware MOBO with explicit GP surrogate models for constraints:
-
+### 3. Run Paired Multi-Seed Benchmark Campaign
 ```bash
-python scripts/run_constrained_mobo.py --n-iterations 300 --batch-size 8 --num-workers 12
+mobo-linac run-benchmark --config configs/publication_200MeV.yaml --seeds 42 43 44 --budget 40 --num-workers 12
 ```
+
+### 4. Run Robustness & Engineering Sensitivity Analysis
+```bash
+mobo-linac run-robustness --config configs/publication_200MeV.yaml --num-perturbations 50 --num-workers 12
+```
+
+### 5. Run Independent Pareto Candidate Verification Reruns
+```bash
+mobo-linac run-verification --config configs/publication_200MeV.yaml --output-dir results/verification
+```
+
+### 6. Resume Interrupted Campaign from Checkpoint
+```bash
+mobo-linac resume --run-dir results/<run_id>
+```
+
+> **Tip**: Pass `--dry-run` to preview planned execution details without starting ASTRA simulations, or `--mock-evaluator` for fast CI testing without an ASTRA binary.
+
 
 ---
 

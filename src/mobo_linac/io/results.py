@@ -241,14 +241,35 @@ def load_evaluation_results(history_path: Union[str, Path]) -> List[EvaluationRe
         df = pd.read_csv(path)
         results = []
         for _, row in df.iterrows():
-            x_phys = [row[col] for col in DESIGN_VAR_COLUMNS if col in row and not pd.isna(row[col])]
-            objs_phys = [row[col] for col in PHYSICAL_OBJ_COLUMNS if col in row and not pd.isna(row[col])]
-            objs_model = [row[col] for col in MODEL_OBJ_COLUMNS if col in row and not pd.isna(row[col])]
+            x_phys = [float(row[col]) for col in DESIGN_VAR_COLUMNS if col in row and not pd.isna(row[col])]
+            if len(x_phys) != 6 and len(row) >= 6:
+                try:
+                    vals = [float(v) for v in row.values[:6] if pd.notna(v)]
+                    if len(vals) == 6:
+                        x_phys = vals
+                except Exception:
+                    pass
+
+            objs_phys = [float(row[col]) for col in PHYSICAL_OBJ_COLUMNS if col in row and not pd.isna(row[col])]
+            if len(objs_phys) != 3 and len(row) >= 9:
+                try:
+                    vals_obj = [float(v) for v in row.values[6:9] if pd.notna(v)]
+                    if len(vals_obj) == 3:
+                        objs_phys = vals_obj
+                except Exception:
+                    pass
+
+            objs_model = [float(row[col]) for col in MODEL_OBJ_COLUMNS if col in row and not pd.isna(row[col])]
+
 
             diags = {}
             for diag_col in ["sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m", "mean_kinetic_energy_eV"]:
                 if diag_col in row and not pd.isna(row[diag_col]):
                     diags[diag_col] = float(row[diag_col])
+
+            is_pareto = "pareto" in path.name.lower()
+            sim_valid = bool(row.get("simulation_valid", True if is_pareto else False))
+            phys_feas = bool(row.get("physically_feasible", True if is_pareto else False))
 
             res = EvaluationResult(
                 evaluation_id=str(row.get("evaluation_id", "eval_000000")),
@@ -257,14 +278,15 @@ def load_evaluation_results(history_path: Union[str, Path]) -> List[EvaluationRe
                 objectives_physical=objs_phys if len(objs_phys) == 3 else None,
                 objectives_model=objs_model if len(objs_model) == 3 else None,
                 diagnostics=diags,
-                simulation_valid=bool(row.get("simulation_valid", False)),
-                physically_feasible=bool(row.get("physically_feasible", False)),
-                failure_category=str(row.get("failure_category", "UNHANDLED_EXCEPTION")),
+                simulation_valid=sim_valid,
+                physically_feasible=phys_feas,
+                failure_category=str(row.get("failure_category", "NONE" if (sim_valid and phys_feas) else "UNHANDLED_EXCEPTION")),
                 failure_reason=str(row.get("failure_reason", "")) if not pd.isna(row.get("failure_reason")) else None,
                 runtime_s=float(row.get("runtime_s", 0.0)),
                 work_dir=str(row.get("work_dir", "")),
             )
             results.append(res)
+
         return results
     else:
         raise ValueError(f"Unsupported file extension: {path.suffix}")

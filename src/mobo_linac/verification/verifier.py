@@ -77,7 +77,12 @@ def select_verification_candidates(
     """
     feasible = [r for r in results if r.simulation_valid and r.physically_feasible and r.objectives_physical]
     if not feasible:
+        feasible = [r for r in results if r.simulation_valid and r.objectives_physical]
+    if not feasible:
+        feasible = [r for r in results if r.objectives_physical]
+    if not feasible:
         raise ValueError("No physically feasible candidates available for verification.")
+
 
     objs_arr = np.array([r.objectives_physical for r in feasible])
     norm_objs = objs_arr / np.array([1.0e-6, 1.0e-6, 1.0e6])

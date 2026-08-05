@@ -36,13 +36,23 @@ def select_representative_pareto_candidates(
     Returns:
         Dict mapping candidate label -> EvaluationResult.
     """
-    feasible_results = [res for res in results if res.simulation_valid and res.physically_feasible and res.objectives_physical]
+    feasible_results = [
+        res for res in results
+        if res.simulation_valid and res.physically_feasible and res.objectives_physical and res.x_physical and len(res.x_physical) == 6
+    ]
     if not feasible_results:
-        feasible_results = [res for res in results if res.simulation_valid and res.objectives_physical]
+        feasible_results = [
+            res for res in results
+            if res.simulation_valid and res.objectives_physical and res.x_physical and len(res.x_physical) == 6
+        ]
     if not feasible_results:
-        feasible_results = [res for res in results if res.objectives_physical]
+        feasible_results = [
+            res for res in results
+            if res.objectives_physical and res.x_physical and len(res.x_physical) == 6
+        ]
     if not feasible_results:
-        raise ValueError("No valid candidates with objectives available for robustness analysis.")
+        raise ValueError("No valid candidates with 6D design parameters and objectives available for robustness analysis.")
+
 
 
     # 1. Objective extremes

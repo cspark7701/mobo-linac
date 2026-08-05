@@ -131,3 +131,59 @@ class BenchmarkCampaignRunner:
         summary_df.to_csv(tables_dir / "benchmark_summary_table.csv", index=False)
 
         return agg_df, summary_df
+
+    def execute_benchmark_campaigns(
+        self,
+        dry_run: bool = False,
+        mock_evaluator: Optional[Any] = None,
+    ) -> pd.DataFrame:
+        """
+        Executes or previews benchmark campaigns across configured algorithms and seeds.
+        """
+        self.run_campaign_manifest()
+
+        total_runs = len(self.algorithms) * len(self.seeds)
+        n_batches = max(1, (self.total_eval_budget - self.n_sobol_init) // self.batch_size)
+
+        if dry_run:
+            print(f"[DRY-RUN] Benchmark Campaign Plan:")
+            print(f"  - Output Directory: {self.output_dir.resolve()}")
+            print(f"  - Algorithms ({len(self.algorithms)}): {self.algorithms}")
+            print(f"  - Seeds ({len(self.seeds)}): {self.seeds}")
+            print(f"  - Total Runs: {total_runs}")
+            print(f"  - Per-run Budget: {self.total_eval_budget} evals ({self.n_sobol_init} Sobol + {n_batches} x {self.batch_size} batches)")
+            print(f"  - Total Planned Evaluations: {total_runs * self.total_eval_budget}")
+            return pd.DataFrame(self.manifest_rows)
+
+        from mobo_linac.campaigns.runner import MoboCampaignRunner
+
+        for algo in self.algorithms:
+            for s in self.seeds:
+                run_dir = self.get_run_dir(algo, s)
+                if (run_dir / "candidate_history.csv").exists():
+                    print(f"Skipping already completed benchmark run: {algo} seed {s}")
+                    continue
+
+                print(f"Executing Benchmark Run: algorithm='{algo}', seed={s}...")
+                constrained = "constrained" in algo
+                acq_type = "qLogNEHVI" if "nehvi" in algo else ("qEHVI" if "ehvi" in algo else "qLogNEHVI")
+
+                runner = MoboCampaignRunner(
+                    config=self.config,
+                    output_dir=run_dir,
+                    num_initial_samples=self.n_sobol_init,
+                    num_batches=n_batches,
+                    batch_size=self.batch_size,
+                    seed=s,
+                    acq_type=acq_type,
+                    constrained=constrained,
+                    evaluator=mock_evaluator,
+                )
+                results, tracker, _ = runner.run()
+
+                metrics_df = compute_campaign_metrics_history(results, tracker.reporting_ref_point, self.config)
+                metrics_df.to_csv(run_dir / "metrics_history.csv", index=False)
+
+        self.analyze_completed_results()
+        return self.run_campaign_manifest()
+
