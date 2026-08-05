@@ -63,19 +63,41 @@ def plot_hypervolume_progress(
     history: Union[pd.DataFrame, List[dict]],
     output_path: Optional[Union[str, Path]] = None,
 ) -> plt.Figure:
-    """Hypervolume progress (feasible + all-point) over iterations."""
+    """Hypervolume progress (feasible + all-point) over cumulative evaluations or iterations."""
     df = pd.DataFrame(history) if isinstance(history, list) else history
-    x = df["iteration"] if "iteration" in df.columns else range(1, len(df) + 1)
+
+    if "cumulative_astra_evaluations" in df.columns:
+        x = df["cumulative_astra_evaluations"]
+        xlabel = "Cumulative ASTRA Evaluations"
+    elif "cumulative_evaluations" in df.columns:
+        x = df["cumulative_evaluations"]
+        xlabel = "Cumulative ASTRA Evaluations"
+    elif "num_valid_points" in df.columns:
+        x = df["num_valid_points"]
+        xlabel = "Cumulative Evaluations"
+    elif "iteration" in df.columns:
+        x = df["iteration"]
+        xlabel = "Iteration"
+    else:
+        x = range(1, len(df) + 1)
+        xlabel = "Step"
 
     fig, ax = plt.subplots(figsize=(9, 5))
     if "feasible_hypervolume" in df.columns:
         ax.plot(x, df["feasible_hypervolume"], "o-", color="steelblue",
                 linewidth=2, markersize=5, label="Feasible Hypervolume")
+    elif "fixed_ref_feasible_hv" in df.columns:
+        ax.plot(x, df["fixed_ref_feasible_hv"], "o-", color="steelblue",
+                linewidth=2, markersize=5, label="Feasible Hypervolume")
+
     if "all_point_hypervolume" in df.columns:
         ax.plot(x, df["all_point_hypervolume"], "s--", color="slategray",
                 linewidth=1.5, alpha=0.7, label="All-Point Hypervolume")
+    elif "fixed_ref_all_valid_hv" in df.columns:
+        ax.plot(x, df["fixed_ref_all_valid_hv"], "s--", color="slategray",
+                linewidth=1.5, alpha=0.7, label="All-Point Hypervolume")
 
-    ax.set_xlabel("Iteration", fontsize=13)
+    ax.set_xlabel(xlabel, fontsize=13)
     ax.set_ylabel("Hypervolume", fontsize=13)
     ax.set_title("Hypervolume Progress", fontsize=15)
     ax.grid(True, linestyle=":", alpha=0.6)
@@ -83,6 +105,7 @@ def plot_hypervolume_progress(
     fig.tight_layout()
     _save(fig, output_path)
     return fig
+
 
 
 # ═════════════════════════════════════════════════════════════════════════════
