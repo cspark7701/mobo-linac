@@ -12,6 +12,19 @@ from mobo_linac.constraints import ConstraintEvaluator
 from mobo_linac.evaluation import EvaluationResult, FailureCategory, create_evaluation_result
 
 
+# ---------------------------------------------------------------------------
+# CLI options for test_paper_outputs.py
+# ---------------------------------------------------------------------------
+
+def pytest_addoption(parser):
+    """Allow passing campaign directories as pytest CLI arguments."""
+    parser.addoption("--phase2-dir", default=None, help="Phase 2 run directory (for paper output tests)")
+    parser.addoption("--phase3-dir", default=None, help="Phase 3 run directory (for paper output tests)")
+    parser.addoption("--verification-csv", default=None, help="Verification summary CSV (for paper output tests)")
+    parser.addoption("--figures-dir", default="docs/paper/figures", help="Figures output dir (for paper output tests)")
+    parser.addoption("--tables-dir", default="docs/paper", help="Tables output dir (for paper output tests)")
+
+
 @pytest.fixture
 def sample_config() -> MoboConfig:
     """Fixture providing loaded canonical MoboConfig instance."""

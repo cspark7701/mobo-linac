@@ -1,18 +1,19 @@
 \begin{table}[htbp]
 \centering
-\caption{Independent Verification Results of Representative Pareto Candidates}
+\caption{Independent rerun verification of representative Pareto candidates. All values derived from \texttt{verification\_summary.csv}.}
 \label{tab:pareto_verification}
+\resizebox{\textwidth}{!}{%
 \begin{tabular}{lcccccc}
-\hline
-Candidate Role & Stored $\varepsilon_{n,x}$ ($\mu$m) & Rerun $\varepsilon_{n,x}$ ($\mu$m) & Stored $\sigma_E$ (MeV) & Rerun $\sigma_E$ (MeV) & Max Error (\%) & Status \\
-\hline
-min\_emit\_x & 3.7629 & 3.7629 & 0.7733 & 0.7733 & 0.000000 & VERIFIED \\
-min\_emit\_y & 3.7629 & 3.7629 & 0.7733 & 0.7733 & 0.000000 & VERIFIED \\
-min\_sigma\_energy & 5.6884 & 5.6884 & 0.3701 & 0.3701 & 0.000000 & VERIFIED \\
-knee\_point & 4.6763 & 4.6763 & 0.4124 & 0.4124 & 0.000000 & VERIFIED \\
-crowding\_distance\_max & 4.8210 & 4.8210 & 0.4250 & 0.4250 & 0.000000 & VERIFIED \\
-balanced\_feasible & 4.6763 & 4.6763 & 0.4124 & 0.4124 & 0.000000 & VERIFIED \\
-robust\_recommended & 4.6763 & 4.6763 & 0.4124 & 0.4124 & 0.000000 & VERIFIED \\
-\hline
-\end{tabular}
+\toprule
+\textbf{Candidate Role} & \textbf{Stored $\varepsilon_{n,x}$ [$\mu$m]} & \textbf{Rerun $\varepsilon_{n,x}$ [$\mu$m]} & \textbf{Stored $\sigma_E$ [MeV]} & \textbf{Rerun $\sigma_E$ [MeV]} & \textbf{Max Diff [\%]} & \textbf{Status} \\
+\midrule
+\texttt{min\_emit\_x} & 3.7629 & 3.7629 & 0.7733 & 0.7733 & 0.000000 & \textbf{VERIFIED} \\
+\texttt{min\_emit\_y} & 3.7629 & 3.7629 & 0.7733 & 0.7733 & 0.000000 & \textbf{VERIFIED} \\
+\texttt{min\_sigma\_energy} & 5.6884 & 5.6884 & 0.3701 & 0.3701 & 0.000000 & \textbf{VERIFIED} \\
+\texttt{knee\_point} & 4.6763 & 4.6763 & 0.4124 & 0.4124 & 0.000000 & \textbf{VERIFIED} \\
+\texttt{crowding\_distance\_max} & 4.8210 & 4.8210 & 0.4250 & 0.4250 & 0.000000 & \textbf{VERIFIED} \\
+\texttt{balanced\_feasible} & 4.6763 & 4.6763 & 0.4124 & 0.4124 & 0.000000 & \textbf{VERIFIED} \\
+\texttt{robust\_recommended} & 4.6763 & 4.6763 & 0.4124 & 0.4124 & 0.000000 & \textbf{VERIFIED} \\
+\bottomrule
+\end{tabular}}
 \end{table}
