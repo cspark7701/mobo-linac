@@ -6,6 +6,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [v0.2.0] - 2026-08-07
+
+### Codex Task Series (Tasks 41–50)
+
+- **Task 41 (Codex 01)**: Constrained MOBO path — real 8-constraint GP-weighted qLogNEHVI acquisition.
+- **Task 42 (Codex 02)**: Transmission & diagnostics integration — explicit transmission GP surrogate and constraint CSV.
+- **Task 43 (Codex 03)**: Independent Pareto verification — fresh isolated workdir reruns with SHA-256 checksums.
+- **Task 44 (Codex 04)**: Checkpoint/resume — robust mid-campaign resume from `gp_checkpoint/` and CSV state.
+- **Task 45 (Codex 05)**: Operational CLI workflows — `run-constrained`, `run-unconstrained`, `resume`, `run-verification`, `run-robustness`, `run-benchmark`, `analyze-benchmark`.
+- **Task 46 (Codex 06)**: Fixed-reference publication metrics — hypervolume always computed against fixed `r_rep` from initialization.
+- **Task 47 (Codex 07)**: Fixed-noise GP treatment — explicit `FixedNoiseGaussianLikelihood` (σ²=1e-6) for deterministic ASTRA simulations.
+- **Task 48 (Codex 08)**: Feasible Pareto candidate selection — 6-role selection strictly from feasible non-dominated set.
+- **Task 49 (Codex 09)**: Paired multi-seed benchmark campaigns — `BenchmarkConfig`, shared Sobol init per seed, 95% bootstrap CI plots.
+- **Task 50 (Codex 10)**: Manuscript regeneration — `generate_paper_figures.py` data-driven figure/table pipeline; 38-test `test_paper_outputs.py` suite; updated `main.tex` with corrected qLogNEHVI formula and no hard-coded results.
+
 ## [v1.0.0] - 2026-07-25
 
 ### Publication Release Highlights

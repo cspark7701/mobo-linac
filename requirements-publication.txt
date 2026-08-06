@@ -1,12 +1,18 @@
-# Publication Dependency Lock File
-python>=3.11,<3.12
-torch>=2.0.0
-gpytorch>=1.10
-botorch>=0.10.0
-numpy>=1.24.0
-scipy>=1.10.0
-pandas>=2.0.0
-matplotlib>=3.7.0
-pyyaml>=6.0
-lume-astra>=0.4.0
-pytest>=8.0.0
+# Publication Dependency Lock — exact versions used for publication results
+# Generated from environment-lock.yml for reproducibility.
+# Install: pip install -r requirements-publication.txt
+#
+# ASTRA executable: v3.2 (pre-bundled in ./bin/astra — not a pip package)
+# Python: 3.11.10 (conda: python=3.11.10)
+
+torch==2.2.1
+gpytorch==1.11
+botorch==0.10.0
+numpy==1.26.4
+scipy==1.12.0
+pandas==2.2.1
+matplotlib==3.8.3
+pyyaml==6.0.1
+pytest==8.0.2
+lume-astra @ git+https://github.com/ChristopherMayes/lume-astra.git
+distgen @ git+https://github.com/ColwynGulliford/distgen.git

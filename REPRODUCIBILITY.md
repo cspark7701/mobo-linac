@@ -9,7 +9,7 @@ This guide provides instructions for reproducing all computational benchmarks, P
 ### System Requirements
 - Operating System: Linux (Ubuntu 20.04+ / RHEL 8+)
 - Python: 3.11+
-- ASTRA Executable: ASTRA v3.2 on system `PATH` (or specified via `ASTRA_BINARY` environment variable).
+- ASTRA Executable: ASTRA v3.2 on system `PATH` (or specified via `ASTRA_BIN` environment variable).
 
 ### Environment Installation
 ```bash
@@ -71,3 +71,19 @@ mobo-linac run-robustness --config configs/publication_200MeV.yaml --output-dir 
 For questions regarding beam dynamics settings, field maps, or algorithm configuration, please contact:
 - **Author**: Chong Shik Park (`kuphy@korea.ac.kr`)
 - **Institution**: Department of Accelerator Science, Korea University
+
+---
+
+## 5. Exact Publication Dependency Versions
+
+For exact reproduction of the environment used in the publication, refer to `requirements-publication.txt` and `environment-lock.yml`. Key dependency versions are pinned as follows:
+
+- Python: 3.11.10
+- PyTorch: 2.2.1
+- GPyTorch: 1.11
+- BoTorch: 0.10.0
+- NumPy: 1.26.4
+- SciPy: 1.12.0
+- pandas: 2.2.1
+- matplotlib: 3.8.3
+- ASTRA: v3.2

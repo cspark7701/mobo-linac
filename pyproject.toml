@@ -10,7 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
 authors = [
-  { name = "PAL Injector Linac Team" }
+  { name = "Chong Shik Park", email = "kuphy@korea.ac.kr" }
 ]
 dependencies = [
     "torch>=2.0.0",
@@ -22,6 +22,12 @@ dependencies = [
     "matplotlib>=3.5.0",
     "distgen @ git+https://github.com/ColwynGulliford/distgen.git",
     "lume-astra @ git+https://github.com/ChristopherMayes/lume-astra.git",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-cov>=4.0.0",
 ]
 
 [project.scripts]
@@ -42,5 +48,6 @@ filterwarnings = [
     "ignore::PendingDeprecationWarning:beamphysics.*",
     "ignore::PendingDeprecationWarning:pmd_beamphysics.*",
     "ignore:The set_under function will be deprecated:PendingDeprecationWarning",
+    # Suppress BoTorch NumericsWarning for fixed near-zero noise (sigma_obs^2=1e-6, deterministic ASTRA)
     "ignore::botorch.exceptions.warnings.NumericsWarning",
 ]

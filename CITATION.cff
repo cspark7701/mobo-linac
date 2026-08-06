@@ -3,14 +3,17 @@ message: "If you use this software or computational framework in your research, 
 authors:
   - family-names: "Park"
     given-names: "Chong Shik"
+    # TODO: Replace with actual ORCID after registration
     orcid: "https://orcid.org/0000-0000-0000-0000"
-    affiliation: "Department of Accelerator Science, Korea University, Sejong, South Korea"
+    affiliation: "Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea"
     email: "kuphy@korea.ac.kr"
 title: "Multi-Objective Bayesian Optimization and Independent Pareto Candidate Verification for a 200 MeV Electron Injector Linac"
-version: 1.0.0
-doi: 10.5281/zenodo.1234567
+version: 0.1.0
+# TODO: Update DOI after Zenodo deposit
+doi: 10.5281/zenodo.PLACEHOLDER
 date-released: 2026-07-25
 url: "https://github.com/cspark7701/mobo_linac"
+repository-code: "https://github.com/cspark7701/mobo_linac"
 keywords:
   - electron injector linac
   - multi-objective bayesian optimization
@@ -18,3 +21,6 @@ keywords:
   - pareto front verification
   - qLogNEHVI
   - hypervolume
+  - gaussian process
+  - botorch
+license: MIT

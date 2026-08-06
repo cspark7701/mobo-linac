@@ -1,8 +1,8 @@
 # Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac
 
-[![Python 3.8+](https://img.shields.io/badge/python-3.8+-blue.svg)](https://www.python.org/downloads/)
-[![PyTorch](https://img.shields.io/badge/PyTorch-1.12+-ee4c2c.svg)](https://pytorch.org/)
-[![BoTorch](https://img.shields.io/badge/BoTorch-0.7+-red.svg)](https://botorch.org/)
+[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
+[![BoTorch](https://img.shields.io/badge/BoTorch-0.10+-red.svg)](https://botorch.org/)
 [![ASTRA](https://img.shields.io/badge/Simulation-ASTRA-green.svg)](https://www.desy.de/~mprue/Astra/)
 
 ## Overview
@@ -17,9 +17,9 @@ Research on initial scalarized Bayesian Optimization was presented at **ICABU 20
 
 ## Quick Links & Documentation
 
-- 📖 **[Unified Simulation Procedure & Publication Workflow Guide](file:///home/cspark/Work/projects/mobo_linac/docs/simulation_guide.md)**: Master guide for ASTRA simulation procedure, MOBO architecture, benchmark protocol, robustness analysis, Pareto verification, and paper reproduction.
-- 📄 **[Journal Paper Draft (LaTeX)](file:///home/cspark/Work/projects/mobo_linac/docs/paper/main.tex)**: Journal manuscript draft, figures, and compiled PDF in `docs/paper/`.
-- 📋 **[Completed Milestone Execution Plans](file:///home/cspark/Work/projects/mobo_linac/docs/exec-plans/completed/TASK_20_final_audit.md)**: Refactoring and publication task logs (Tasks 01--20).
+- 📖 **[Unified Simulation Procedure & Publication Workflow Guide](docs/simulation_guide.md)**: Master guide for ASTRA simulation procedure, MOBO architecture, benchmark protocol, robustness analysis, Pareto verification, and paper reproduction.
+- 📄 **[Journal Paper Draft (LaTeX)](docs/paper/main.tex)**: Journal manuscript draft, figures, and compiled PDF in `docs/paper/`.
+- 📋 **[Completed Milestone Execution Plans](docs/exec-plans/completed/TASK_20_final_audit.md)**: Refactoring and publication task logs (Tasks 01--20).
 
 ---
 
@@ -54,7 +54,7 @@ mobo_linac/
 │
 ├── scripts/                           # Campaign & comparison execution scripts
 ├── notebooks/                         # Interactive analysis notebooks
-├── tests/                             # Pytest test suite (31 unit tests)
+├── tests/                             # Pytest test suite (150+ unit tests)
 └── results/                           # Optimization run output directories
 ```
 
@@ -238,6 +238,12 @@ mobo-linac resume --run-dir results/<run_id>
   - Distributed ASTRA evaluations via Ray / Dask / MPI on multi-node clusters
 - [ ] **Phase 5: Advanced Surrogate Architectures**
   - MultiTaskGP, SAASBO, TuRBO trust-region BO, Deep Kernel Learning
+
+---
+
+## Reproducibility
+
+For comprehensive instructions on reproducing all computational benchmarks, verification results, and figures, please see the [REPRODUCIBILITY.md](REPRODUCIBILITY.md) guide.
 
 ---
 

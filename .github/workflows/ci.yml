@@ -31,6 +31,14 @@ jobs:
           pip install git+https://github.com/ChristopherMayes/lume-astra.git
           pip install -e .
 
+      - name: Smoke test — package import and version
+        run: |
+          python -c "import mobo_linac; print('mobo_linac version:', mobo_linac.__version__)"
+
+      - name: Smoke test — CLI help
+        run: |
+          python -m mobo_linac.cli --help
+
       - name: Run unit test suite (without ASTRA binary requirement)
         run: |
-          pytest -v -m "not integration"
+          pytest -v -m "not integration" --tb=short
