@@ -8,6 +8,7 @@ fractions, Pareto cardinality, and runtime metrics across seeds and algorithms.
 
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+
 import numpy as np
 import pandas as pd
 
@@ -139,6 +140,25 @@ def compute_aggregate_benchmark_metrics(
         valid_ff_indices = [idx for idx in first_feas_indices if not pd.isna(idx)]
         med_first_feas = float(np.median(valid_ff_indices)) if valid_ff_indices else np.nan
 
+        # Objective extrema and failure rate from last step across seeds
+        final_invalid_total = float(np.sum(invalid_counts))
+        total_evals_all = float(n_seeds * eval_steps[-1])
+        failure_rate = final_invalid_total / total_evals_all if total_evals_all > 0 else 0.0
+
+        # Objective extrema: min of objective columns where available
+        def _extract_obj_extremum(col_name: str) -> Optional[float]:
+            vals = []
+            for df in seed_dict.values():
+                if col_name in df.columns:
+                    col_min = df[col_name].min()
+                    if not pd.isna(col_min):
+                        vals.append(float(col_min))
+            return float(np.min(vals)) if vals else None
+
+        min_emit_x = _extract_obj_extremum("best_norm_emit_x")
+        min_emit_y = _extract_obj_extremum("best_norm_emit_y")
+        min_sigma_e = _extract_obj_extremum("best_sigma_energy")
+
         summary_rows.append({
             "algorithm": algo_name,
             "num_seeds": n_seeds,
@@ -149,6 +169,10 @@ def compute_aggregate_benchmark_metrics(
             "mean_final_feasible_fraction": float(np.mean(final_feas_fractions)),
             "mean_final_pareto_size": float(np.mean(final_pareto_sizes)),
             "mean_invalid_run_count": float(np.mean(invalid_counts)),
+            "failure_rate": failure_rate,
+            "min_norm_emit_x": min_emit_x,
+            "min_norm_emit_y": min_emit_y,
+            "min_sigma_energy": min_sigma_e,
             "mean_total_wallclock_s": float(np.mean(total_wallclocks)),
             "mean_total_sim_runtime_s": float(np.mean(total_sim_runtimes)),
         })
@@ -157,3 +181,4 @@ def compute_aggregate_benchmark_metrics(
     algorithm_summary_df = pd.DataFrame(summary_rows)
 
     return aggregate_series_df, algorithm_summary_df
+

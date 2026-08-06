@@ -423,11 +423,15 @@ def main() -> None:
     run_bm_parser = subparsers.add_parser("run-benchmark", help="Run a paired multi-seed benchmark campaign")
     run_bm_parser.add_argument("--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file")
     run_bm_parser.add_argument("--output-dir", type=str, default="results/publication_benchmark", help="Output directory")
+    run_bm_parser.add_argument("--algorithms", nargs="+", type=str, default=None, help="Algorithms to benchmark (space-separated)")
     run_bm_parser.add_argument("--seeds", nargs="+", type=int, default=list(range(42, 52)), help="List of random seeds")
-    run_bm_parser.add_argument("--budget", type=int, default=40, help="Total evaluation budget")
+    run_bm_parser.add_argument("--budget", type=int, default=40, help="Total evaluation budget per algorithm-seed pair")
+    run_bm_parser.add_argument("--n-sobol-init", type=int, default=10, help="Number of initial Sobol samples")
+    run_bm_parser.add_argument("--batch-size", type=int, default=4, help="BO batch size per iteration")
     run_bm_parser.add_argument("--num-workers", type=int, default=4, help="Number of parallel worker processes")
     run_bm_parser.add_argument("--dry-run", action="store_true", help="Print planned benchmark plan")
     run_bm_parser.add_argument("--mock-evaluator", action="store_true", help="Use mock evaluator for testing")
+
 
     # Subcommand: analyze-benchmark
     analyze_bm_parser = subparsers.add_parser("analyze-benchmark", help="Aggregate and analyze completed benchmark campaign results")
@@ -474,11 +478,15 @@ def main() -> None:
         runner = BenchmarkCampaignRunner(
             config=config,
             output_dir=args.output_dir,
+            algorithms=getattr(args, "algorithms", None),
             seeds=args.seeds,
             total_eval_budget=args.budget,
+            n_sobol_init=getattr(args, "n_sobol_init", 10),
+            batch_size=getattr(args, "batch_size", 4),
         )
         mock_eval = CliMockEvaluator(Path(args.output_dir)) if getattr(args, "mock_evaluator", False) else None
         runner.execute_benchmark_campaigns(dry_run=args.dry_run, mock_evaluator=mock_eval)
+
     elif args.command == "analyze-benchmark":
         from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
         config = load_config("configs/publication_200MeV.yaml")

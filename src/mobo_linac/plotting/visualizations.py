@@ -753,3 +753,104 @@ def plot_pareto_verification_comparison(
     fig.tight_layout()
     _save(fig, output_path)
     return fig
+
+
+def plot_benchmark_comparison(
+    aggregate_df: pd.DataFrame,
+    output_path: Optional[Union[str, Path]] = None,
+    title: str = "Benchmark Campaign Comparison: Median Feasible Hypervolume",
+) -> plt.Figure:
+    """
+    Plots median feasible hypervolume progress with 95% bootstrap CI bands
+    for all algorithms in a benchmark campaign comparison figure.
+
+    Args:
+        aggregate_df: DataFrame output from compute_aggregate_benchmark_metrics().
+                      Columns: algorithm, cumulative_astra_evaluations,
+                               median_feasible_hv, ci_lower_feasible_hv, ci_upper_feasible_hv.
+        output_path: Optional path to save the figure.
+        title: Figure title.
+
+    Returns:
+        Matplotlib Figure.
+    """
+    fig, ax = plt.subplots(figsize=(10, 6))
+
+    palette = [
+        "#1f77b4",   # constrained_qlognehvi
+        "#ff7f0e",   # unconstrained_qlognehvi
+        "#2ca02c",   # qlogehvi
+        "#d62728",   # scalarized_bo
+        "#9467bd",   # nsga2
+        "#8c564b",   # sobol
+        "#e377c2",
+        "#7f7f7f",
+    ]
+
+    algorithms = aggregate_df["algorithm"].unique()
+    for i, algo in enumerate(algorithms):
+        sub = aggregate_df[aggregate_df["algorithm"] == algo].sort_values("cumulative_astra_evaluations")
+        color = palette[i % len(palette)]
+        evals = sub["cumulative_astra_evaluations"].values
+        med = sub["median_feasible_hv"].values
+        lo = sub["ci_lower_feasible_hv"].values
+        hi = sub["ci_upper_feasible_hv"].values
+
+        label = algo.replace("_", " ").title()
+        ax.plot(evals, med, color=color, linewidth=2, label=label)
+        ax.fill_between(evals, lo, hi, color=color, alpha=0.15)
+
+    ax.set_xlabel("Cumulative ASTRA Evaluations", fontsize=12)
+    ax.set_ylabel("Median Feasible Hypervolume (fixed ref.)", fontsize=12)
+    ax.set_title(title, fontsize=14)
+    ax.legend(fontsize=10, loc="lower right")
+    ax.grid(True, linestyle=":", alpha=0.5)
+    fig.tight_layout()
+    _save(fig, output_path)
+    return fig
+
+
+def plot_benchmark_feasibility_comparison(
+    aggregate_df: pd.DataFrame,
+    output_path: Optional[Union[str, Path]] = None,
+    title: str = "Benchmark Campaign Comparison: Feasible Fraction",
+) -> plt.Figure:
+    """
+    Plots median feasible fraction over cumulative evaluations with 95% CI bands
+    for all algorithms in a benchmark campaign.
+
+    Args:
+        aggregate_df: DataFrame from compute_aggregate_benchmark_metrics().
+        output_path: Optional path to save the figure.
+        title: Figure title.
+
+    Returns:
+        Matplotlib Figure.
+    """
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    palette = [
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2",
+    ]
+    algorithms = aggregate_df["algorithm"].unique()
+    for i, algo in enumerate(algorithms):
+        sub = aggregate_df[aggregate_df["algorithm"] == algo].sort_values("cumulative_astra_evaluations")
+        color = palette[i % len(palette)]
+        evals = sub["cumulative_astra_evaluations"].values
+        med = sub["median_feasible_fraction"].values
+        lo = sub["ci_lower_feasible_fraction"].values
+        hi = sub["ci_upper_feasible_fraction"].values
+
+        label = algo.replace("_", " ").title()
+        ax.plot(evals, med, color=color, linewidth=2, label=label)
+        ax.fill_between(evals, lo, hi, color=color, alpha=0.15)
+
+    ax.set_xlabel("Cumulative ASTRA Evaluations", fontsize=12)
+    ax.set_ylabel("Median Feasible Fraction", fontsize=12)
+    ax.set_title(title, fontsize=14)
+    ax.set_ylim(0.0, 1.05)
+    ax.legend(fontsize=10, loc="lower right")
+    ax.grid(True, linestyle=":", alpha=0.5)
+    fig.tight_layout()
+    _save(fig, output_path)
+    return fig

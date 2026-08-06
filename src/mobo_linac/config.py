@@ -131,6 +131,47 @@ class GpModelConfig:
 
 
 @dataclass
+class BenchmarkConfig:
+    """
+    Configuration for paired multi-seed benchmark campaigns.
+
+    Defines algorithms, seeds, evaluation budgets, Sobol initial design size,
+    batch size, fixed reporting reference point, and constraint profile.
+    """
+
+    algorithms: List[str] = field(default_factory=lambda: [
+        "constrained_qlognehvi",
+        "unconstrained_qlognehvi",
+        "scalarized_bo",
+        "nsga2",
+        "sobol",
+    ])
+    seeds: List[int] = field(default_factory=lambda: list(range(42, 52)))
+    total_eval_budget: int = 40
+    n_sobol_init: int = 10
+    batch_size: int = 4
+    reporting_ref_point: List[float] = field(default_factory=lambda: [1.5, 1.5, 1.5])
+    constraint_profile: str = "nominal"
+    output_dir: str = "results/publication_benchmark"
+
+    def validate(self) -> None:
+        """Validates benchmark configuration fields."""
+        supported = [
+            "constrained_qlognehvi", "unconstrained_qlognehvi", "qlogehvi",
+            "scalarized_bo", "nsga2", "sobol",
+        ]
+        for algo in self.algorithms:
+            if algo not in supported:
+                raise ValueError(f"Unsupported algorithm '{algo}'. Supported: {supported}")
+        if self.total_eval_budget <= self.n_sobol_init:
+            raise ValueError("total_eval_budget must be greater than n_sobol_init.")
+        if self.batch_size < 1:
+            raise ValueError("batch_size must be >= 1.")
+        if len(self.seeds) == 0:
+            raise ValueError("At least one seed must be specified.")
+
+
+@dataclass
 class MoboConfig:
     """Master configuration container for linac optimization."""
 
