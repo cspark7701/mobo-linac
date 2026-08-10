@@ -37,17 +37,16 @@ mobo-linac = "mobo_linac.cli:main"
 where = ["src"]
 
 [tool.pytest.ini_options]
-pythonpath = ["src"]
+pythonpath = ["src", "."]
 testpaths = ["tests"]
+addopts = "-W ignore"
 markers = [
     "integration: mark test as an integration test running real ASTRA simulations.",
 ]
 filterwarnings = [
-    "ignore::DeprecationWarning:astra.*",
-    "ignore::DeprecationWarning:pmd_beamphysics.*",
-    "ignore::PendingDeprecationWarning:beamphysics.*",
-    "ignore::PendingDeprecationWarning:pmd_beamphysics.*",
-    "ignore:The set_under function will be deprecated:PendingDeprecationWarning",
-    # Suppress BoTorch NumericsWarning for fixed near-zero noise (sigma_obs^2=1e-6, deterministic ASTRA)
-    "ignore::botorch.exceptions.warnings.NumericsWarning",
+    "ignore",
 ]
+
+
+
+
