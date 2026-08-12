@@ -148,7 +148,12 @@ This reference is set at the worst-observed objective values from the Sobol init
 
 Controlled campaigns were executed comparing Phase 2 (Unconstrained MOBO) and Phase 3 (Constrained MOBO) under identical random seeds with $N_{\text{init}} = 16$ Sobol-sampled initialization points, batch size $q = 4$, and 6 BO iterations (total budget 40 ASTRA evaluations per campaign). All hypervolumes reported below are computed against the fixed reporting reference point $\mathbf{r}_{\text{rep}}$ (Section~\ref{sec:ref_point}).
 
-A campaign summary comparing key outcome metrics is provided in Table~\ref{tab:campaign_summary}.
+A campaign summary comparing key outcome metrics across the optimization phases is provided in Table~\ref{tab:campaign_summary}.
+
+\subsection{Phase 1: Scalarized Bayesian Optimization Performance}
+\label{sec:phase1_results}
+Phase~1 executed a scalarized Bayesian Optimization campaign combining the normalized transverse emittances and energy spread into a composite objective ($w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$) using $N_{\text{init}} = 16$ initial Sobol evaluations and 10 optimization iterations ($q=4$, total budget of 56 ASTRA simulations). All 56 evaluations converged numerically without execution failures ($100\%$ simulation validity). Across the 56 evaluations, the scalarized search achieved minimum single-channel metrics of $\varepsilon_{n,x} = 2.9102~\mu\text{m}\cdot\text{rad}$, $\varepsilon_{n,y} = 4.9287~\mu\text{m}\cdot\text{rad}$, and $\sigma_E = 0.3171~\text{MeV}$. Tracking all valid points against the standardized reference point $\mathbf{r}_{\text{rep}}$ yielded an unconstrained hypervolume of $0.012876$. However, because scalarized optimization does not explicitly enforce joint beam quality constraints during acquisition selection, beam size ($\sigma_x \le 1.0\text{ mm}$, $\sigma_y \le 1.0\text{ mm}$) and bunch length ($\sigma_z \le 1.0\text{ mm}$) constraint violations prevented the campaign from discovering points that simultaneously satisfy all 8 beam quality constraints, resulting in $0\%$ feasible hypervolume. This highlights the operational necessity of true constraint-aware Multi-Objective Bayesian Optimization (Phases~2 and 3).
+
 \input{results_table}
 
 \begin{figure}[H]
