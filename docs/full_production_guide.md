@@ -50,6 +50,7 @@ The `run_full_production.sh` script automates the complete 200 MeV electron inje
 | `-i` | `--iterations` | `10` | Total number of Bayesian Optimization iterations ($N$). |
 | `-b` | `--batch-size` | `4` | Number of candidate parameter vectors proposed per iteration ($q$). |
 | `-w` | `--workers` | `90% CPU` | Custom number of parallel worker processes. |
+| `-d` | `--device` | `auto` | Target compute device for PyTorch GP fitting and BoTorch optimization (`auto`, `cuda`, `cpu`). |
 | `-o` | `--output-dir` | `results/full_production` | Base directory for storing all simulation and analysis artifacts. |
 | `-h` | `--help` | N/A | Displays CLI usage help message. |
 
