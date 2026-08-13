@@ -196,6 +196,7 @@ log_step "  ✓ Phase 3 Simulation complete -> Saved in ${P3_DIR}"
 # Step 6: Execute Comparative Analysis & Pareto Verification
 # ------------------------------------------------------------------------------
 ANALYSIS_CMD="python3 scripts/run_comparison_and_verification.py \
+    --phase1-dir ${P1_DIR} \
     --phase2-dir ${P2_DIR} \
     --phase3-dir ${P3_DIR} \
     --output-dir ${ANALYSIS_DIR}"

@@ -119,11 +119,9 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
 
 
     if pareto_path is None or not pareto_path.exists():
-        print(f"WARNING: No pareto.csv found at {pareto_path}. Creating fallback robustness summary.")
-        summary_df = pd.DataFrame([{
-            "candidate_label": "baseline",
-    pareto_path = getattr(args, "pareto_csv", None) or getattr(args, "history_path", None) or getattr(args, "input", None)
-    pareto_csv_path = find_pareto_csv(pareto_path)
+        pareto_csv_path = find_pareto_csv(getattr(args, "pareto_csv", None))
+    else:
+        pareto_csv_path = pareto_path
 
 
     results = []
@@ -184,8 +182,9 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
         print(f"  - Total Planned Evaluations: {len(rep_candidates) * args.num_perturbations}")
         return output_dir
 
-    if mock_evaluator is not None:
-        evaluator = mock_evaluator
+    mock_eval = getattr(args, "mock_evaluator", None)
+    if mock_eval is not None:
+        evaluator = mock_eval
     else:
         evaluator = BatchEvaluator(
             base_results_dir=output_dir / "work",
