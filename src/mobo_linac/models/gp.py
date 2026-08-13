@@ -28,6 +28,7 @@ def build_gp_models(
     fixed_noise_val: float = 1e-6,
     objective_noise_variances: Optional[List[float]] = None,
     train_Yvar: Optional[torch.Tensor] = None,
+    device: Optional[Union[str, torch.device]] = None,
 ) -> ModelListGP:
     """
     Builds a ModelListGP containing an independent SingleTaskGP for each objective
@@ -42,6 +43,7 @@ def build_gp_models(
         fixed_noise_val: Fixed observation noise variance when noise_mode == 'deterministic_fixed'.
         objective_noise_variances: Optional list of noise variances per objective.
         train_Yvar: Optional (N, M) tensor of observation noise variances.
+        device: Target PyTorch device (GPU or CPU). Automatically selected if None.
 
     Returns:
         Constructed ModelListGP instance.
@@ -49,9 +51,12 @@ def build_gp_models(
     if train_X.shape[0] == 0:
         raise ValueError("Cannot build GP model with empty training set.")
 
-    train_X_dbl = train_X.to(dtype=torch.double)
-    train_Y_dbl = train_Y.to(dtype=torch.double)
-    bounds_dbl = bounds.to(dtype=torch.double)
+    from mobo_linac.utils import get_device
+    target_device = get_device(device if isinstance(device, str) else (str(device) if device is not None else None))
+
+    train_X_dbl = train_X.to(dtype=torch.double, device=target_device)
+    train_Y_dbl = train_Y.to(dtype=torch.double, device=target_device)
+    bounds_dbl = bounds.to(dtype=torch.double, device=target_device)
 
     input_dim = bounds_dbl.shape[1]
     num_objectives = train_Y_dbl.shape[-1]
@@ -77,11 +82,11 @@ def build_gp_models(
         # Noise Treatment Construction
         if mode in ("deterministic_fixed", "measured_fixed"):
             if train_Yvar is not None and train_Yvar.shape[0] == train_Y_dbl.shape[0]:
-                yvar_col = train_Yvar[:, idx : idx + 1].to(dtype=torch.double)
+                yvar_col = train_Yvar[:, idx : idx + 1].to(dtype=torch.double, device=target_device)
             elif objective_noise_variances is not None and len(objective_noise_variances) > idx:
-                yvar_col = torch.full_like(y_col, fill_value=float(objective_noise_variances[idx]))
+                yvar_col = torch.full_like(y_col, fill_value=float(objective_noise_variances[idx]), device=target_device)
             else:
-                yvar_col = torch.full_like(y_col, fill_value=float(fixed_noise_val))
+                yvar_col = torch.full_like(y_col, fill_value=float(fixed_noise_val), device=target_device)
 
             gp = SingleTaskGP(
                 train_X=train_X_dbl,

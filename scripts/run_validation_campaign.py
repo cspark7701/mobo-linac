@@ -175,6 +175,7 @@ def run_campaign(
     num_workers: int = 4,
     seed: int = 42,
     base_results_dir: str = "results",
+    device: str = "auto",
 ) -> Path:
     """Executes the validation campaign using MoboCampaignRunner."""
     from mobo_linac.campaigns.runner import MoboCampaignRunner
@@ -190,6 +191,7 @@ def run_campaign(
         seed=seed,
         acq_type="qLogNEHVI",
         export_plots=False,
+        device=device,
     )
 
     results, tracker, run_dir = runner.run()
@@ -209,6 +211,7 @@ if __name__ == "__main__":
     parser.add_argument("--num-workers", type=int, default=4, help="Parallel worker count")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--output-dir", "--base-results-dir", type=str, default="results", help="Base output directory")
+    parser.add_argument("--device", type=str, default="auto", help="Target PyTorch compute device ('auto', 'cuda', 'cpu')")
 
     args = parser.parse_args()
 
@@ -219,4 +222,5 @@ if __name__ == "__main__":
         num_workers=args.num_workers,
         seed=args.seed,
         base_results_dir=args.output_dir,
+        device=args.device,
     )

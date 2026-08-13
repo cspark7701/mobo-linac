@@ -27,6 +27,7 @@ N_ITERATIONS=10
 BATCH_SIZE=4
 NUM_WORKERS=""
 SEED=42
+DEVICE="auto"
 OUTPUT_BASE_DIR="results/full_production"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -56,6 +57,11 @@ while [[ $# -gt 0 ]]; do
       NUM_WORKERS="$2"
       shift 2
       ;;
+    -d|--device)
+      # Set target PyTorch compute device (auto, cuda, cpu)
+      DEVICE="$2"
+      shift 2
+      ;;
     -o|--output-dir)
       # Set custom base output directory
       OUTPUT_BASE_DIR="$2"
@@ -68,6 +74,7 @@ while [[ $# -gt 0 ]]; do
       echo "  -i, --iterations N   Number of BO iterations (default: 10)"
       echo "  -b, --batch-size Q   Batch size q (default: 4)"
       echo "  -w, --workers W      Number of parallel CPU worker cores (default: 90% system capacity)"
+      echo "  -d, --device DEV     Target PyTorch device (auto, cuda, cpu; default: auto GPU selection)"
       echo "  -o, --output-dir DIR Output directory (default: results/full_production)"
       echo "  -h, --help           Show this help message"
       exit 0
@@ -160,6 +167,7 @@ RUN_P1_CMD="python3 scripts/run_scalarized_bo.py \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
     --num-workers ${NUM_WORKERS} \
+    --device ${DEVICE} \
     --seed ${SEED} \
     --output-dir ${P1_DIR}"
 
@@ -173,6 +181,7 @@ RUN_P2_CMD="python3 scripts/run_validation_campaign.py \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
     --num-workers ${NUM_WORKERS} \
+    --device ${DEVICE} \
     --seed ${SEED} \
     --output-dir ${P2_DIR}"
 
@@ -186,6 +195,7 @@ RUN_P3_CMD="python3 scripts/run_validation_campaign.py \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
     --num-workers ${NUM_WORKERS} \
+    --device ${DEVICE} \
     --seed ${SEED} \
     --output-dir ${P3_DIR}"
 

@@ -75,7 +75,15 @@ class MoboCampaignRunner:
         resume: bool = False,
         resume_from: Optional[Union[str, Path]] = None,
         evaluator: Optional[Any] = None,
+        device: Optional[Union[str, torch.device]] = None,
     ):
+        if device is None or (isinstance(device, str) and device.lower() in ("auto", "")):
+            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        elif isinstance(device, str):
+            self.device = torch.device(device if (device != "cuda" or torch.cuda.is_available()) else "cpu")
+        else:
+            self.device = device
+
         if isinstance(config, (str, Path)):
             config_path = Path(config)
             if not config_path.exists():
@@ -298,6 +306,7 @@ class MoboCampaignRunner:
                     noise_mode=self.config.model.noise_mode,
                     fixed_noise_val=self.config.model.fixed_noise_variance,
                     objective_noise_variances=self.config.model.objective_noise_variances,
+                    device=self.device,
                 )
 
                 if self.constrained:

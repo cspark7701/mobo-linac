@@ -64,6 +64,12 @@ def parse_args():
         default=None,
         help="Custom output directory for run artifacts",
     )
+    parser.add_argument(
+        "--device",
+        type=str,
+        default="auto",
+        help="Target PyTorch compute device ('auto', 'cuda', 'cpu')",
+    )
     return parser.parse_args()
 
 
