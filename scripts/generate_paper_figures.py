@@ -64,11 +64,15 @@ def _load_pareto_csv(run_dir: Path) -> pd.DataFrame:
     csv_path = run_dir / "pareto.csv"
     if not csv_path.exists():
         raise FileNotFoundError(f"pareto.csv not found in {run_dir}")
-    # Skip comment lines (lines starting with #)
-    df = pd.read_csv(csv_path, comment="#",
-                     names=["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m",
-                             "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg",
-                             "norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"])
+    df = pd.read_csv(csv_path, comment="#")
+    expected_cols = ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m",
+                     "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg",
+                     "norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
+    if list(df.columns) != expected_cols:
+        if len(df.columns) == 9 and isinstance(df.columns[0], str) and not df.columns[0].replace('.', '', 1).replace('-', '', 1).isdigit():
+            df.columns = expected_cols
+        else:
+            df = pd.read_csv(csv_path, comment="#", names=expected_cols)
     df = df.dropna(how="all")
     return df
 

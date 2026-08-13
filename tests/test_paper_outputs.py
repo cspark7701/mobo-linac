@@ -29,10 +29,16 @@ import pytest
 
 
 
-def _auto_detect_phase_dir(results_dir: Path, prefix: str) -> Path | None:
-    """Auto-detects the most recent campaign directory matching prefix."""
+def _auto_detect_phase_dir(results_dir: Path, phase_name: str, prefix: str) -> Path | None:
+    """Auto-detects the campaign directory matching phase_name or prefix."""
+    full_prod = results_dir / "full_production" / phase_name
+    if full_prod.exists() and (full_prod / "train_X.csv").exists():
+        return full_prod
     candidates = sorted(results_dir.glob(f"{prefix}*"))
-    return candidates[-1] if candidates else None
+    for cand in reversed(candidates):
+        if (cand / "train_X.csv").exists():
+            return cand
+    return None
 
 
 @pytest.fixture(scope="session")
@@ -45,7 +51,7 @@ def phase2_dir(request, project_root) -> Path:
     cli_val = request.config.getoption("--phase2-dir")
     if cli_val:
         return Path(cli_val)
-    detected = _auto_detect_phase_dir(project_root / "results", "phase2_unconstrained_")
+    detected = _auto_detect_phase_dir(project_root / "results", "phase2_unconstrained", "phase2_unconstrained_")
     if detected is None:
         pytest.skip("No Phase 2 campaign directory found; skipping.")
     return detected
@@ -56,7 +62,7 @@ def phase3_dir(request, project_root) -> Path:
     cli_val = request.config.getoption("--phase3-dir")
     if cli_val:
         return Path(cli_val)
-    detected = _auto_detect_phase_dir(project_root / "results", "phase3_constrained_")
+    detected = _auto_detect_phase_dir(project_root / "results", "phase3_constrained", "phase3_constrained_")
     if detected is None:
         pytest.skip("No Phase 3 campaign directory found; skipping.")
     return detected
@@ -141,7 +147,9 @@ def test_hypervolume_csv_columns_phase3(phase3_dir):
 
 def test_pareto_csv_has_data_phase2(phase2_dir):
     """Phase 2 pareto.csv must contain at least one Pareto point."""
-    df = pd.read_csv(phase2_dir / "pareto.csv", comment="#", header=None)
+    df = pd.read_csv(phase2_dir / "pareto.csv", comment="#")
+    if list(df.columns) != ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg", "norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]:
+        df = pd.read_csv(phase2_dir / "pareto.csv", comment="#", header=None)
     df = df.dropna(how="all")
     assert len(df) >= 1, "Phase 2 pareto.csv is empty."
     assert df.shape[1] == PARETO_CSV_N_COLS, (
@@ -151,7 +159,9 @@ def test_pareto_csv_has_data_phase2(phase2_dir):
 
 def test_pareto_csv_has_data_phase3(phase3_dir):
     """Phase 3 pareto.csv must contain at least one Pareto point."""
-    df = pd.read_csv(phase3_dir / "pareto.csv", comment="#", header=None)
+    df = pd.read_csv(phase3_dir / "pareto.csv", comment="#")
+    if list(df.columns) != ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg", "norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]:
+        df = pd.read_csv(phase3_dir / "pareto.csv", comment="#", header=None)
     df = df.dropna(how="all")
     assert len(df) >= 1, "Phase 3 pareto.csv is empty."
     assert df.shape[1] == PARETO_CSV_N_COLS, (
@@ -241,7 +251,7 @@ REQUIRED_TABLES = [
 ]
 
 
-def test_generate_paper_figures_runs(tmp_path, phase2_dir, phase3_dir):
+def test_generate_paper_figures_runs(tmp_path, phase2_dir, phase3_dir, project_root):
     """generate_paper_figures.py must run without error."""
     fig_out = tmp_path / "figures"
     tab_out = tmp_path
@@ -255,7 +265,7 @@ def test_generate_paper_figures_runs(tmp_path, phase2_dir, phase3_dir):
             "--tables-dir", str(tab_out),
         ],
         capture_output=True, text=True,
-        cwd=str(phase2_dir.parent.parent),  # project root
+        cwd=str(project_root),
     )
     assert result.returncode == 0, (
         f"generate_paper_figures.py failed:\n"
@@ -265,7 +275,7 @@ def test_generate_paper_figures_runs(tmp_path, phase2_dir, phase3_dir):
 
 
 @pytest.mark.parametrize("fname", REQUIRED_FIGURES)
-def test_required_figures_produced(tmp_path, phase2_dir, phase3_dir, fname):
+def test_required_figures_produced(tmp_path, phase2_dir, phase3_dir, project_root, fname):
     """generate_paper_figures.py must produce each required figure PNG."""
     fig_out = tmp_path / "figures"
     tab_out = tmp_path
@@ -279,7 +289,7 @@ def test_required_figures_produced(tmp_path, phase2_dir, phase3_dir, fname):
             "--tables-dir", str(tab_out),
         ],
         capture_output=True, text=True,
-        cwd=str(phase2_dir.parent.parent),
+        cwd=str(project_root),
     )
     assert (fig_out / fname).exists(), (
         f"generate_paper_figures.py did not produce: {fname}"
@@ -287,7 +297,7 @@ def test_required_figures_produced(tmp_path, phase2_dir, phase3_dir, fname):
 
 
 @pytest.mark.parametrize("fname", REQUIRED_TABLES)
-def test_required_tables_produced(tmp_path, phase2_dir, phase3_dir, fname):
+def test_required_tables_produced(tmp_path, phase2_dir, phase3_dir, project_root, fname):
     """generate_paper_figures.py must produce each required LaTeX table file."""
     fig_out = tmp_path / "figures"
     tab_out = tmp_path
@@ -301,7 +311,7 @@ def test_required_tables_produced(tmp_path, phase2_dir, phase3_dir, fname):
             "--tables-dir", str(tab_out),
         ],
         capture_output=True, text=True,
-        cwd=str(phase2_dir.parent.parent),
+        cwd=str(project_root),
     )
     assert (tab_out / fname).exists(), (
         f"generate_paper_figures.py did not produce: {fname}"
@@ -510,12 +520,24 @@ def test_generate_paper_figures_py_syntax_check(project_root):
 # 7. Data integrity: objective values must be physically reasonable
 # ---------------------------------------------------------------------------
 
-def test_pareto_emittance_values_physical_range(phase2_dir):
-    """Phase 2 Pareto emittance values must be in physically reasonable range (1–100 μm·mrad)."""
-    df = pd.read_csv(phase2_dir / "pareto.csv", comment="#", header=None,
-                     names=["sol", "q1", "q2", "phi_g", "phi_a12", "phi_a34",
-                            "ex", "ey", "se"])
+def _load_pareto_df(phase_dir: Path) -> pd.DataFrame:
+    df = pd.read_csv(phase_dir / "pareto.csv", comment="#")
+    expected_cols = ["sol", "q1", "q2", "phi_g", "phi_a12", "phi_a34", "ex", "ey", "se"]
+    if "norm_emit_x_m_rad" in df.columns:
+        df = df.rename(columns={
+            "norm_emit_x_m_rad": "ex",
+            "norm_emit_y_m_rad": "ey",
+            "sigma_energy_eV": "se",
+        })
+    else:
+        df.columns = expected_cols
     df = df.dropna(how="all")
+    return df
+
+
+def test_pareto_emittance_values_physical_range(phase2_dir):
+    """Phase 2 Pareto emittance values must be in physically reasonable range (0.1–500 μm·mrad)."""
+    df = _load_pareto_df(phase2_dir)
     ex_um = df["ex"].values * 1e6
     assert (ex_um > 0.1).all(), f"Emittance values contain non-positive entries: {ex_um}"
     assert (ex_um < 500.0).all(), f"Emittance values out of physical range: {ex_um}"
@@ -523,10 +545,7 @@ def test_pareto_emittance_values_physical_range(phase2_dir):
 
 def test_pareto_energy_spread_physical_range(phase2_dir):
     """Phase 2 Pareto energy spread must be in range 0.01–10 MeV."""
-    df = pd.read_csv(phase2_dir / "pareto.csv", comment="#", header=None,
-                     names=["sol", "q1", "q2", "phi_g", "phi_a12", "phi_a34",
-                            "ex", "ey", "se"])
-    df = df.dropna(how="all")
+    df = _load_pareto_df(phase2_dir)
     se_mev = df["se"].values * 1e-6
     assert (se_mev > 0.01).all(), f"Energy spread too small: {se_mev}"
     assert (se_mev < 10.0).all(), f"Energy spread out of range: {se_mev}"
