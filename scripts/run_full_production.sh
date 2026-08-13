@@ -153,7 +153,7 @@ execute_step() {
 # ------------------------------------------------------------------------------
 # Step 2: Environment & Binary Verification
 # ------------------------------------------------------------------------------
-log_step "[Step 1/7] Verifying environment & executable permissions..."
+log_step "[Step 1/8] Verifying environment & executable permissions..."
 chmod +x bin/* 2>/dev/null || true
 export ASTRA_BIN="${PROJECT_ROOT}/bin/astra"
 export GENERATOR_BIN="${PROJECT_ROOT}/bin/generator"
@@ -171,7 +171,7 @@ RUN_P1_CMD="python3 scripts/run_scalarized_bo.py \
     --seed ${SEED} \
     --output-dir ${P1_DIR}"
 
-execute_step "[Step 2/7] Running Phase 1 Scalarized BO Simulation..." "${RUN_P1_CMD}" "${P1_DIR}/simulation.log"
+execute_step "[Step 2/8] Running Phase 1 Scalarized BO Simulation..." "${RUN_P1_CMD}" "${P1_DIR}/simulation.log"
 log_step "  ✓ Phase 1 Simulation complete -> Saved in ${P1_DIR}"
 
 # ------------------------------------------------------------------------------
@@ -185,7 +185,7 @@ RUN_P2_CMD="python3 scripts/run_validation_campaign.py \
     --seed ${SEED} \
     --output-dir ${P2_DIR}"
 
-execute_step "[Step 3/7] Running Phase 2 Unconstrained MOBO Simulation..." "${RUN_P2_CMD}" "${P2_DIR}/simulation.log"
+execute_step "[Step 3/8] Running Phase 2 Unconstrained MOBO Simulation..." "${RUN_P2_CMD}" "${P2_DIR}/simulation.log"
 log_step "  ✓ Phase 2 Simulation complete -> Saved in ${P2_DIR}"
 
 # ------------------------------------------------------------------------------
@@ -199,11 +199,11 @@ RUN_P3_CMD="python3 scripts/run_validation_campaign.py \
     --seed ${SEED} \
     --output-dir ${P3_DIR}"
 
-execute_step "[Step 4/7] Running Phase 3 Constraint-Aware MOBO Simulation..." "${RUN_P3_CMD}" "${P3_DIR}/simulation.log"
+execute_step "[Step 4/8] Running Phase 3 Constraint-Aware MOBO Simulation..." "${RUN_P3_CMD}" "${P3_DIR}/simulation.log"
 log_step "  ✓ Phase 3 Simulation complete -> Saved in ${P3_DIR}"
 
 # ------------------------------------------------------------------------------
-# Step 6: Execute Comparative Analysis & Pareto Verification
+# Step 6: Execute 3-Phase Comparative Analysis & Pareto Verification
 # ------------------------------------------------------------------------------
 ANALYSIS_CMD="python3 scripts/run_comparison_and_verification.py \
     --phase1-dir ${P1_DIR} \
@@ -211,8 +211,8 @@ ANALYSIS_CMD="python3 scripts/run_comparison_and_verification.py \
     --phase3-dir ${P3_DIR} \
     --output-dir ${ANALYSIS_DIR}"
 
-execute_step "[Step 5/7] Executing Comparative Analysis & Independent Rerun Audit..." "${ANALYSIS_CMD}" "${ANALYSIS_DIR}/analysis.log"
-log_step "  ✓ Comparative analysis complete -> Saved in ${ANALYSIS_DIR}"
+execute_step "[Step 5/8] Executing 3-Phase Comparative Analysis & Independent Rerun Audit..." "${ANALYSIS_CMD}" "${ANALYSIS_DIR}/analysis.log"
+log_step "  ✓ 3-Phase Comparative analysis complete -> Saved in ${ANALYSIS_DIR}"
 
 # ------------------------------------------------------------------------------
 # Step 7: Engineering Tolerance Robustness Analysis
@@ -223,14 +223,14 @@ ROBUST_CMD="python3 scripts/run_robustness_analysis.py \
     --output-dir ${ANALYSIS_DIR}/robustness \
     --num-workers ${NUM_WORKERS}"
 
-execute_step "[Step 6/7] Running Engineering Tolerance Robustness Analysis..." "${ROBUST_CMD}" "${ANALYSIS_DIR}/robustness.log"
+execute_step "[Step 6/8] Running Engineering Tolerance Robustness Analysis..." "${ROBUST_CMD}" "${ANALYSIS_DIR}/robustness.log"
 log_step "  ✓ Robustness analysis complete -> Saved in ${ANALYSIS_DIR}/robustness"
 
 
 # ------------------------------------------------------------------------------
 # Step 8: Final Summary & Verification Report Generation
 # ------------------------------------------------------------------------------
-log_step "[Step 7/7] Pipeline Execution Finished Successfully!"
+log_step "[Step 8/8] Pipeline Execution Finished Successfully!"
 log_step "======================================================================"
 log_step " Summary of Output Directories:"
 log_step "   Phase 1 BO:    ${P1_DIR}"
