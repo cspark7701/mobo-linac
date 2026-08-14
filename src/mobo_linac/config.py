@@ -107,6 +107,10 @@ class ExecutionConfig:
     max_workers: int = 4
     retries: int = 0
     clean_on_success: bool = False
+    acqf_num_restarts: int = 20
+    acqf_raw_samples: int = 1024
+    acqf_maxiter: int = 200
+    acqf_batch_limit: int = 5
 
 
 @dataclass

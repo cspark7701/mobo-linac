@@ -351,12 +351,17 @@ class MoboCampaignRunner:
                     X_baseline=train_X_dev,
                     prune_baseline=True,
                 )
+                exec_cfg = self.config.execution
                 candidates, _ = optimize_acqf(
                     acq_function=acq_func,
                     bounds=bounds.to(device=self.device),
                     q=self.batch_size,
-                    num_restarts=20,
-                    raw_samples=128,
+                    num_restarts=getattr(exec_cfg, "acqf_num_restarts", 20),
+                    raw_samples=getattr(exec_cfg, "acqf_raw_samples", 128),
+                    options={
+                        "batch_limit": getattr(exec_cfg, "acqf_batch_limit", 5),
+                        "maxiter": getattr(exec_cfg, "acqf_maxiter", 200),
+                    },
                 )
                 next_cand_list = candidates.cpu().tolist()
             else:
@@ -401,10 +406,16 @@ class MoboCampaignRunner:
                     objective=objective_slice,
                 )
 
+                exec_cfg = self.config.execution
                 next_cand_tensor, _ = generate_next_candidates(
                     acq_func=acq_func,
                     bounds=bounds,
                     batch_size=self.batch_size,
+                    num_restarts=getattr(exec_cfg, "acqf_num_restarts", 20),
+                    raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
+                    maxiter=getattr(exec_cfg, "acqf_maxiter", 200),
+                    batch_limit=getattr(exec_cfg, "acqf_batch_limit", 5),
+                    device=self.device,
                 )
                 next_cand_list = next_cand_tensor.tolist()
 

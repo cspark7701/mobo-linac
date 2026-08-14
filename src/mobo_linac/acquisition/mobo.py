@@ -132,6 +132,10 @@ def generate_next_candidates(
     batch_size: int = 8,
     num_restarts: int = 20,
     raw_samples: int = 1024,
+    maxiter: int = 200,
+    batch_limit: int = 5,
+    options: Optional[Dict[str, Any]] = None,
+    device: Optional[Union[torch.device, str]] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Optimizes the acquisition function over parameter bounds to generate next candidate batch.
@@ -142,11 +146,20 @@ def generate_next_candidates(
         batch_size: Number of candidates q to suggest.
         num_restarts: Number of optimization restarts.
         raw_samples: Number of raw samples for initialization heuristic.
+        maxiter: Maximum L-BFGS optimization iterations per restart.
+        batch_limit: Batch limit for parallel restart optimization in BoTorch.
+        options: Optional dict of extra optimizer options overriding maxiter/batch_limit.
+        device: Optional torch device (e.g. 'cpu' or 'cuda').
 
     Returns:
         Tuple of (candidates_tensor, acq_values_tensor).
     """
-    bounds_dbl = bounds.to(dtype=torch.double)
+    target_device = device if device is not None else bounds.device
+    bounds_dbl = bounds.to(device=target_device, dtype=torch.double)
+
+    opt_options: Dict[str, Any] = {"batch_limit": batch_limit, "maxiter": maxiter}
+    if options:
+        opt_options.update(options)
 
     candidates, acq_values = optimize_acqf(
         acq_function=acq_func,
@@ -154,6 +167,6 @@ def generate_next_candidates(
         q=batch_size,
         num_restarts=num_restarts,
         raw_samples=raw_samples,
-        options={"batch_limit": 5, "maxiter": 200},
+        options=opt_options,
     )
     return candidates, acq_values

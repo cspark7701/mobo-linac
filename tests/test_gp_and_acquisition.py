@@ -147,3 +147,47 @@ def test_constrained_acquisition_construction():
     assert acq_func is not None
     assert len(c_funcs) == 8
 
+
+def test_configurable_acquisition_optimization_budget():
+    """Verify rapid execution of generate_next_candidates with custom restart budget."""
+    from mobo_linac.config import ExecutionConfig
+
+    # 1. Verify ExecutionConfig defaults
+    exec_cfg = ExecutionConfig()
+    assert exec_cfg.acqf_num_restarts == 20
+    assert exec_cfg.acqf_raw_samples == 1024
+    assert exec_cfg.acqf_maxiter == 200
+    assert exec_cfg.acqf_batch_limit == 5
+
+    # 2. Test fast acquisition candidate generation with reduced restart budget
+    train_X = torch.rand(10, 6, dtype=torch.double)
+    train_Y = torch.rand(10, 3, dtype=torch.double)
+    bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
+    ref_point = torch.tensor([-1.0, -1.0, -1.0], dtype=torch.double)
+
+    gp_model = build_gp_models(train_X, train_Y, bounds)
+    acq_func = build_acquisition_function(
+        model=gp_model,
+        train_X=train_X,
+        train_Y=train_Y,
+        ref_point=ref_point,
+        acq_type="qLogNEHVI",
+    )
+
+    batch_size = 3
+    candidates, acq_values = generate_next_candidates(
+        acq_func=acq_func,
+        bounds=bounds,
+        batch_size=batch_size,
+        num_restarts=2,
+        raw_samples=32,
+        maxiter=10,
+        batch_limit=2,
+    )
+
+    assert candidates.shape == (batch_size, 6)
+    assert candidates.dtype == torch.double
+    assert (candidates >= bounds[0] - 1e-6).all()
+    assert (candidates <= bounds[1] + 1e-6).all()
+
+
