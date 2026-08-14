@@ -43,6 +43,77 @@ PARAMETER_NAMES = [
 ]
 
 
+def apply_parameters_to_astra(
+    astra_sim: Any,
+    parameters: Sequence[float],
+    config: Optional[Union[Any, Dict[str, Any]]] = None,
+) -> List[str]:
+    """
+    Applies design parameters to an ASTRA simulation instance using config metadata or fallback mapping.
+
+    Args:
+        astra_sim: Astra instance or dict-like object representing ASTRA namelists.
+        parameters: Sequence of floating-point values matching the design variables.
+        config: Optional MoboConfig or config dictionary containing design_variables definitions.
+
+    Returns:
+        List of parameter names that were applied.
+    """
+    if config is not None:
+        if hasattr(config, "design_variables"):
+            design_vars = config.design_variables
+        elif isinstance(config, dict) and "design_variables" in config:
+            design_vars = config["design_variables"]
+        else:
+            design_vars = None
+
+        if design_vars is not None:
+            if len(parameters) != len(design_vars):
+                raise ValueError(
+                    f"Parameter vector length ({len(parameters)}) does not match "
+                    f"configured design variables count ({len(design_vars)})"
+                )
+
+            param_names = []
+            for idx, dv in enumerate(design_vars):
+                val = float(parameters[idx])
+                if hasattr(dv, "name"):
+                    name = dv.name
+                    astra_key = dv.astra_key
+                    is_coupled = getattr(dv, "is_coupled", False)
+                    coupled_targets = getattr(dv, "coupled_targets", []) or []
+                else:
+                    name = dv.get("name", f"param_{idx}")
+                    astra_key = dv.get("astra_key", "")
+                    is_coupled = dv.get("is_coupled", False)
+                    coupled_targets = dv.get("coupled_targets", []) or []
+
+                param_names.append(name)
+
+                if is_coupled and coupled_targets:
+                    for target_key in coupled_targets:
+                        astra_sim[target_key] = val
+                elif astra_key:
+                    astra_sim[astra_key] = val
+
+            return param_names
+
+    # Default 6-parameter mapping for backward compatibility
+    if len(parameters) != 6:
+        raise ValueError(f"Expected 6 design parameters for default mapping, got {len(parameters)}")
+
+    astra_sim["solenoid:maxb(1)"] = float(parameters[0])
+    astra_sim["quadrupole:q_grad(1)"] = float(parameters[1])
+    astra_sim["quadrupole:q_grad(2)"] = float(parameters[2])
+    astra_sim["cavity:phi(1)"] = float(parameters[3])
+    astra_sim["cavity:phi(2)"] = float(parameters[4])
+    astra_sim["cavity:phi(3)"] = float(parameters[4])
+    astra_sim["cavity:phi(4)"] = float(parameters[5])
+    astra_sim["cavity:phi(5)"] = float(parameters[5])
+
+    return list(PARAMETER_NAMES)
+
+
 def run_astra_eval(
     parameters: Sequence[float],
     run_id: str = "default_run",
@@ -55,14 +126,13 @@ def run_astra_eval(
     verbose: bool = False,
     use_symlinks: bool = False,
     workdir_manager: Optional[AstraWorkDirManager] = None,
+    config: Optional[Union[Any, Dict[str, Any]]] = None,
 ) -> Dict[str, Any]:
     """
     Runs an isolated ASTRA simulation for a given candidate parameter set.
 
     Args:
-        parameters: Sequence of 6 independent parameters:
-            [solenoid:maxb(1), quad:q_grad(1), quad:q_grad(2),
-             cavity:phi(1), common_phi_2_3, common_phi_4_5]
+        parameters: Sequence of design parameter values.
         run_id: Unique identifier for the optimization run.
         eval_id: Unique identifier for this evaluation.
         base_results_dir: Root results output directory.
@@ -73,13 +143,11 @@ def run_astra_eval(
         verbose: Print detailed ASTRA execution log.
         use_symlinks: Use symlinks for static data files instead of copying.
         workdir_manager: Optional custom AstraWorkDirManager instance.
+        config: Optional MoboConfig or config dictionary for dynamic parameter mapping.
 
     Returns:
         Dict containing execution status, objectives, diagnostics, paths, and manifest info.
     """
-    if len(parameters) != 6:
-        raise ValueError(f"Expected 6 design parameters, got {len(parameters)}")
-
     if workdir_manager is None:
         workdir_manager = AstraWorkDirManager(
             base_results_dir=base_results_dir,
@@ -103,6 +171,7 @@ def run_astra_eval(
     stats: Optional[Dict[str, Any]] = None
     objectives: Optional[Dict[str, float]] = None
     diagnostics: Optional[Dict[str, float]] = None
+    applied_param_names: List[str] = list(PARAMETER_NAMES)
     astra_cmd: str = os.environ.get("ASTRA_BIN", "")
 
     try:
@@ -118,15 +187,8 @@ def run_astra_eval(
         if hasattr(astra_sim, "command") and astra_sim.command:
             astra_cmd = str(astra_sim.command)
 
-        # Map 6 independent parameters to 8 ASTRA variables
-        astra_sim["solenoid:maxb(1)"] = float(parameters[0])
-        astra_sim["quadrupole:q_grad(1)"] = float(parameters[1])
-        astra_sim["quadrupole:q_grad(2)"] = float(parameters[2])
-        astra_sim["cavity:phi(1)"] = float(parameters[3])
-        astra_sim["cavity:phi(2)"] = float(parameters[4])
-        astra_sim["cavity:phi(3)"] = float(parameters[4])
-        astra_sim["cavity:phi(4)"] = float(parameters[5])
-        astra_sim["cavity:phi(5)"] = float(parameters[5])
+        # Apply parameters to ASTRA simulation dynamically using config
+        applied_param_names = apply_parameters_to_astra(astra_sim, parameters, config=config)
 
         # Execute simulation
         astra_sim.run()
@@ -216,7 +278,7 @@ def run_astra_eval(
         "run_id": run_id,
         "eval_id": formatted_eval_id,
         "parameters": [float(p) for p in parameters],
-        "parameter_names": PARAMETER_NAMES,
+        "parameter_names": applied_param_names,
         "status": status,
         "error": error_msg,
         "timestamps": {
@@ -262,6 +324,7 @@ class AstraRunner:
         timeout: int = 30,
         clean_on_success: bool = False,
         use_symlinks: bool = False,
+        config: Optional[Union[Any, Dict[str, Any]]] = None,
     ):
         self.run_id = run_id
         self.timeout = timeout
@@ -272,6 +335,7 @@ class AstraRunner:
             template_dir=template_dir,
         )
         self.template_in = template_in
+        self.config = config
 
     def run(
         self,
@@ -292,4 +356,5 @@ class AstraRunner:
             verbose=verbose,
             use_symlinks=self.use_symlinks,
             workdir_manager=self.workdir_manager,
+            config=self.config,
         )

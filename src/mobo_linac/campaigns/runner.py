@@ -178,6 +178,7 @@ class MoboCampaignRunner:
                 timeout=self.config.execution.timeout_sec,
                 retries=self.config.execution.retries,
                 clean_on_success=self.config.execution.clean_on_success,
+                config=self.config,
             )
 
         sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=self.seed)

@@ -37,6 +37,7 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
     retries = task_args.get("retries", 0)
     clean_on_success = task_args.get("clean_on_success", False)
     use_symlinks = task_args.get("use_symlinks", False)
+    config = task_args.get("config", None)
 
     attempts = 0
     max_attempts = retries + 1
@@ -55,6 +56,7 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
                 timeout=timeout,
                 clean_on_success=clean_on_success,
                 use_symlinks=use_symlinks,
+                config=config,
             )
             res["candidate_idx"] = candidate_idx
             res["retries_attempted"] = attempts - 1
@@ -89,6 +91,7 @@ def evaluate_candidates_parallel(
     clean_on_success: bool = False,
     use_symlinks: bool = False,
     mp_context: Optional[str] = None,
+    config: Optional[Union[Any, Dict[str, Any]]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Evaluates a batch of candidate parameter vectors in parallel using ProcessPoolExecutor.
@@ -96,7 +99,7 @@ def evaluate_candidates_parallel(
     Guarantees that the returned list of results is strictly ordered matching the input candidates.
 
     Args:
-        candidates: Sequence of 6D parameter vectors.
+        candidates: Sequence of candidate parameter vectors.
         run_id: Unique identifier for the optimization run.
         eval_ids: Optional list of evaluation IDs matching candidates length.
         max_workers: Maximum number of worker processes.
@@ -108,6 +111,7 @@ def evaluate_candidates_parallel(
         clean_on_success: If True, remove evaluation working directory after success.
         use_symlinks: Use symlinks for static data files instead of copying.
         mp_context: Multiprocessing start method ('spawn', 'forkserver', 'fork').
+        config: Optional MoboConfig or config dictionary for dynamic parameter mapping.
 
     Returns:
         List of structured result dictionaries aligned with input candidates.
@@ -127,6 +131,15 @@ def evaluate_candidates_parallel(
         cpu_cnt = os.cpu_count() or 1
         max_workers = min(n_candidates, max(1, cpu_cnt))
 
+    # Serialize config if needed for worker processes
+    serializable_config = None
+    if config is not None:
+        if hasattr(config, "__dataclass_fields__"):
+            from dataclasses import asdict
+            serializable_config = asdict(config)
+        elif isinstance(config, dict):
+            serializable_config = config
+
     # Prepare serializable task dictionaries for each worker
     tasks = []
     for idx, (cand, eid) in enumerate(zip(candidates, eval_ids_list)):
@@ -142,6 +155,7 @@ def evaluate_candidates_parallel(
             "retries": retries,
             "clean_on_success": clean_on_success,
             "use_symlinks": use_symlinks,
+            "config": serializable_config,
         }
         tasks.append(task)
 
@@ -202,6 +216,7 @@ class BatchEvaluator:
         clean_on_success: bool = False,
         use_symlinks: bool = False,
         mp_context: Optional[str] = None,
+        config: Optional[Union[Any, Dict[str, Any]]] = None,
     ):
         self.base_results_dir = base_results_dir
         self.template_dir = template_dir
@@ -212,6 +227,7 @@ class BatchEvaluator:
         self.clean_on_success = clean_on_success
         self.use_symlinks = use_symlinks
         self.mp_context = mp_context
+        self.config = config
 
     def evaluate_batch(
         self,
@@ -235,4 +251,5 @@ class BatchEvaluator:
             clean_on_success=self.clean_on_success,
             use_symlinks=self.use_symlinks,
             mp_context=self.mp_context,
+            config=self.config,
         )

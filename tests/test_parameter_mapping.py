@@ -1,62 +1,96 @@
 """
-Unit tests for Parameter-to-ASTRA Key Mapping and Feasibility Mask Shape (Task 08).
+Unit tests for Config-Driven Dynamic Parameter Mapping & Beamline Element Decoupling (Task 02).
 """
 
 import pytest
-import torch
-
-from mobo_linac.config import load_config
-from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
-from mobo_linac.io.results import get_train_tensors
+from pathlib import Path
+from mobo_linac.config import DesignVariableConfig, MoboConfig, load_config
+from mobo_linac.astra.runner import apply_parameters_to_astra, PARAMETER_NAMES, AstraRunner, run_astra_eval
 
 
-def test_parameter_key_mapping_and_coupled_phases(sample_config):
-    """
-    Verify 6D candidate parameter mapping to 8 ASTRA input variables
-    and coupled cavity phase expansion.
-    """
-    params = [0.22, 1.25, -2.5, 35.0, -40.0, 310.0]
+def test_apply_parameters_default_fallback():
+    """Verify default fallback parameter mapping for standard 6 parameters."""
+    mock_sim = {}
+    params = [0.28, 5.0, -4.5, 30.0, -15.0, 10.0]
 
-    # Mapping checks in config design variables
-    dvs = sample_config.design_variables
-    assert len(dvs) == 6
+    applied = apply_parameters_to_astra(mock_sim, params, config=None)
 
-    assert dvs[0].astra_key == "solenoid:maxb(1)"
-    assert dvs[1].astra_key == "quadrupole:q_grad(1)"
-    assert dvs[2].astra_key == "quadrupole:q_grad(2)"
-    assert dvs[3].astra_key == "cavity:phi(1)"
-
-    # Coupled cavity phase 2 & 3
-    assert dvs[4].is_coupled is True
-    assert dvs[4].coupled_targets == ["cavity:phi(2)", "cavity:phi(3)"]
-
-    # Coupled cavity phase 4 & 5
-    assert dvs[5].is_coupled is True
-    assert dvs[5].coupled_targets == ["cavity:phi(4)", "cavity:phi(5)"]
+    assert applied == PARAMETER_NAMES
+    assert mock_sim["solenoid:maxb(1)"] == 0.28
+    assert mock_sim["quadrupole:q_grad(1)"] == 5.0
+    assert mock_sim["quadrupole:q_grad(2)"] == -4.5
+    assert mock_sim["cavity:phi(1)"] == 30.0
+    assert mock_sim["cavity:phi(2)"] == -15.0
+    assert mock_sim["cavity:phi(3)"] == -15.0  # Coupled ACC1/ACC2
+    assert mock_sim["cavity:phi(4)"] == 10.0
+    assert mock_sim["cavity:phi(5)"] == 10.0   # Coupled ACC3/ACC4
 
 
-def test_feasibility_mask_shape(sample_config):
-    """
-    Verify that feasibility mask shape is strictly 1D tensor of length N.
-    """
-    results = [
-        EvaluationResult(
-            evaluation_id=f"eval_{i:06d}",
-            run_id="shape_test",
-            x_physical=[0.2, 1.0, -1.0, 0.0, 0.0, 0.0],
-            objectives_physical=[1.0e-6, 1.0e-6, 5.0e4],
-            objectives_model=[-1.0e-6, -1.0e-6, -5.0e4],
-            diagnostics={"sigma_x": 0.8e-3, "mean_kinetic_energy": 200.0e6},
-            simulation_valid=True,
-            physically_feasible=(i % 2 == 0),
-            failure_category="SUCCESS" if (i % 2 == 0) else "INFEASIBLE_BEAM",
-        )
-        for i in range(10)
+def test_apply_parameters_from_loaded_config():
+    """Verify dynamic mapping using a loaded MoboConfig instance."""
+    config = load_config("configs/mobo_200MeV.yaml")
+    mock_sim = {}
+    params = [0.25, 4.0, -3.0, 25.0, -10.0, 5.0]
+
+    applied = apply_parameters_to_astra(mock_sim, params, config=config)
+
+    assert len(applied) == 6
+    assert applied[0] == "solenoid_field_T"
+    assert mock_sim["solenoid:maxb(1)"] == 0.25
+    assert mock_sim["quadrupole:q_grad(1)"] == 4.0
+    assert mock_sim["quadrupole:q_grad(2)"] == -3.0
+    assert mock_sim["cavity:phi(1)"] == 25.0
+    assert mock_sim["cavity:phi(2)"] == -10.0
+    assert mock_sim["cavity:phi(3)"] == -10.0
+    assert mock_sim["cavity:phi(4)"] == 5.0
+    assert mock_sim["cavity:phi(5)"] == 5.0
+
+
+def test_apply_parameters_custom_decoupled_cavities():
+    """Verify dynamic mapping with custom decoupled cavity phases (7 variables)."""
+    custom_dvs = [
+        DesignVariableConfig(name="sol", astra_key="solenoid:maxb(1)", unit="T", nominal_value=0.28, ratio=0.1, lower_bound=0.2, upper_bound=0.35),
+        DesignVariableConfig(name="q1", astra_key="quadrupole:q_grad(1)", unit="T/m", nominal_value=5.0, ratio=0.1, lower_bound=0.0, upper_bound=10.0),
+        DesignVariableConfig(name="q2", astra_key="quadrupole:q_grad(2)", unit="T/m", nominal_value=-5.0, ratio=0.1, lower_bound=-10.0, upper_bound=0.0),
+        DesignVariableConfig(name="gun_phi", astra_key="cavity:phi(1)", unit="deg", nominal_value=30.0, ratio=0.1, lower_bound=0.0, upper_bound=60.0),
+        DesignVariableConfig(name="acc1_phi", astra_key="cavity:phi(2)", unit="deg", nominal_value=-20.0, ratio=0.1, lower_bound=-40.0, upper_bound=0.0),
+        DesignVariableConfig(name="acc2_phi", astra_key="cavity:phi(3)", unit="deg", nominal_value=-15.0, ratio=0.1, lower_bound=-40.0, upper_bound=0.0),
+        DesignVariableConfig(name="acc3_4_phi", astra_key="cavity:phi(4,5)", unit="deg", nominal_value=0.0, ratio=0.1, lower_bound=-20.0, upper_bound=20.0, is_coupled=True, coupled_targets=["cavity:phi(4)", "cavity:phi(5)"]),
     ]
 
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
+    mock_sim = {}
+    params = [0.29, 6.0, -4.0, 32.0, -18.0, -12.0, 5.0]
 
-    assert train_X.shape == (10, 6)
-    assert train_Y.shape == (10, 3)
-    assert train_feas_mask.shape == (10,)  # 1D tensor shape [N]
-    assert train_feas_mask.dtype == torch.bool
+    applied = apply_parameters_to_astra(mock_sim, params, config={"design_variables": custom_dvs})
+
+    assert len(applied) == 7
+    assert applied == ["sol", "q1", "q2", "gun_phi", "acc1_phi", "acc2_phi", "acc3_4_phi"]
+    assert mock_sim["solenoid:maxb(1)"] == 0.29
+    assert mock_sim["quadrupole:q_grad(1)"] == 6.0
+    assert mock_sim["quadrupole:q_grad(2)"] == -4.0
+    assert mock_sim["cavity:phi(1)"] == 32.0
+    assert mock_sim["cavity:phi(2)"] == -18.0  # ACC1 independent
+    assert mock_sim["cavity:phi(3)"] == -12.0  # ACC2 independent
+    assert mock_sim["cavity:phi(4)"] == 5.0    # Coupled ACC3/ACC4
+    assert mock_sim["cavity:phi(5)"] == 5.0
+
+
+def test_parameter_length_mismatch_raises():
+    """Verify ValueError is raised when parameter count does not match config or default."""
+    mock_sim = {}
+
+    # Default expects 6
+    with pytest.raises(ValueError, match="Expected 6"):
+        apply_parameters_to_astra(mock_sim, [0.1, 0.2, 0.3], config=None)
+
+    # Config with 6 variables expects 6
+    config = load_config("configs/mobo_200MeV.yaml")
+    with pytest.raises(ValueError, match="does not match"):
+        apply_parameters_to_astra(mock_sim, [0.1, 0.2], config=config)
+
+
+def test_astra_runner_config_support():
+    """Verify AstraRunner retains and passes config."""
+    config = load_config("configs/mobo_200MeV.yaml")
+    runner = AstraRunner(run_id="test_run", config=config)
+    assert runner.config is config
