@@ -25,9 +25,11 @@ def build_gp_models(
     bounds: torch.Tensor,
     covar_type: str = "matern52",
     noise_mode: str = "deterministic_fixed",
-    fixed_noise_val: float = 1e-6,
+    fixed_noise_val: Optional[float] = None,
     objective_noise_variances: Optional[List[float]] = None,
     train_Yvar: Optional[torch.Tensor] = None,
+    relative_noise_ratio: float = 1.0e-6,
+    min_noise_variance: float = 1.0e-24,
     device: Optional[Union[str, torch.device]] = None,
 ) -> ModelListGP:
     """
@@ -40,9 +42,11 @@ def build_gp_models(
         bounds: (2, D) PyTorch double tensor of parameter bounds.
         covar_type: Covariance kernel type ('matern52' or 'rbf').
         noise_mode: Noise treatment ('deterministic_fixed', 'fixed', 'measured_fixed', or 'inferred').
-        fixed_noise_val: Fixed observation noise variance when noise_mode == 'deterministic_fixed'.
+        fixed_noise_val: Optional fixed observation noise variance override when noise_mode == 'deterministic_fixed'.
         objective_noise_variances: Optional list of noise variances per objective.
         train_Yvar: Optional (N, M) tensor of observation noise variances.
+        relative_noise_ratio: Ratio of empirical objective variance for deterministic noise scaling (default 1e-6).
+        min_noise_variance: Absolute minimum variance floor for numerical stability (default 1e-14).
         device: Target PyTorch device (GPU or CPU). Automatically selected if None.
 
     Returns:
@@ -83,10 +87,18 @@ def build_gp_models(
         if mode in ("deterministic_fixed", "measured_fixed"):
             if train_Yvar is not None and train_Yvar.shape[0] == train_Y_dbl.shape[0]:
                 yvar_col = train_Yvar[:, idx : idx + 1].to(dtype=torch.double, device=target_device)
-            elif objective_noise_variances is not None and len(objective_noise_variances) > idx:
+            elif objective_noise_variances is not None and len(objective_noise_variances) > idx and objective_noise_variances[idx] is not None:
                 yvar_col = torch.full_like(y_col, fill_value=float(objective_noise_variances[idx]), device=target_device)
-            else:
+            elif fixed_noise_val is not None:
                 yvar_col = torch.full_like(y_col, fill_value=float(fixed_noise_val), device=target_device)
+            else:
+                # Relative noise scaling based on empirical sample variance
+                if y_col.shape[0] > 1:
+                    sample_var = float(torch.var(y_col, unbiased=True).item())
+                else:
+                    sample_var = 0.0
+                computed_var = max(relative_noise_ratio * sample_var, min_noise_variance)
+                yvar_col = torch.full_like(y_col, fill_value=float(computed_var), device=target_device)
 
             gp = SingleTaskGP(
                 train_X=train_X_dbl,

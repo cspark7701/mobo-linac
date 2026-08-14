@@ -305,6 +305,8 @@ class MoboCampaignRunner:
                     covar_type=self.config.model.covar_type,
                     noise_mode=self.config.model.noise_mode,
                     fixed_noise_val=self.config.model.fixed_noise_variance,
+                    relative_noise_ratio=self.config.model.relative_noise_ratio,
+                    min_noise_variance=self.config.model.min_noise_variance,
                     objective_noise_variances=self.config.model.objective_noise_variances,
                     device=self.device,
                 )

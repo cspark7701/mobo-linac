@@ -129,3 +129,71 @@ def test_repeatability_utility():
     yvar_tensor = create_measured_yvar_tensor(num_samples=5, variances=var_dict)
     assert yvar_tensor.shape == (5, 3)
     assert yvar_tensor.dtype == torch.double
+
+
+def test_relative_noise_variance_scaling():
+    """
+    Verify that relative noise scaling assigns observation variance proportional to
+    each objective's empirical scale (Task 01).
+    """
+    torch.manual_seed(123)
+    N = 15
+    train_X = torch.rand(N, 6, dtype=torch.double)
+    bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
+
+    # Multi-scale objectives:
+    # Column 0: emit_x ~ 1e-6 (variance ~ 1e-14)
+    # Column 1: emit_y ~ 1e-6 (variance ~ 1e-14)
+    # Column 2: sigma_E ~ 1e6  (variance ~ 1e10)
+    col0 = 1.0e-6 * (1.0 + 0.2 * torch.sin(train_X[:, 0:1] * 3.14))
+    col1 = 1.0e-6 * (1.0 + 0.2 * torch.cos(train_X[:, 1:2] * 3.14))
+    col2 = 1.0e6 * (1.0 + 0.2 * torch.sin(train_X[:, 2:3] * 3.14))
+    train_Y = torch.cat([col0, col1, col2], dim=-1)
+
+    model_list = build_gp_models(
+        train_X=train_X,
+        train_Y=train_Y,
+        bounds=bounds,
+        covar_type="matern52",
+        noise_mode="deterministic_fixed",
+        relative_noise_ratio=1.0e-6,
+    )
+    assert len(model_list.models) == 3
+
+    # In standardized space, Standardize(m=1) scales train_Yvar by 1 / var(Y).
+    # Therefore, standardized noise variance is identically ~ 1.0e-6 for all objectives.
+    m0_std_yvar = model_list.models[0].likelihood.noise_covar.noise.squeeze().detach()[0].item()
+    m2_std_yvar = model_list.models[2].likelihood.noise_covar.noise.squeeze().detach()[0].item()
+
+    assert abs(m0_std_yvar - 1.0e-6) < 1.0e-9, f"Standardized emittance noise variance mismatch: {m0_std_yvar}"
+    assert abs(m2_std_yvar - 1.0e-6) < 1.0e-9, f"Standardized energy spread noise variance mismatch: {m2_std_yvar}"
+
+    # Physical (unstandardized) noise variance
+    col0_std = train_Y[:, 0].std().item()
+    col2_std = train_Y[:, 2].std().item()
+    col0_phys_noise = m0_std_yvar * (col0_std ** 2)
+    col2_phys_noise = m2_std_yvar * (col2_std ** 2)
+
+    assert col0_phys_noise < 1.0e-18, f"Physical emittance noise variance too large: {col0_phys_noise}"
+    assert col2_phys_noise > 1.0, f"Physical energy spread noise variance too small: {col2_phys_noise}"
+
+    # Fit model and evaluate posterior at training points
+    fitted_list = fit_gp_models(model_list)
+    fitted_list.eval()
+    with torch.no_grad():
+        posterior = fitted_list.posterior(train_X)
+        pred_means = posterior.mean
+        pred_vars = posterior.variance
+
+        # Residuals in physical space vs true values (posterior.mean is automatically untransformed by BoTorch)
+        for i in range(3):
+            pred_col = pred_means[:, i : i + 1]
+            ss_tot = torch.sum((train_Y[:, i : i + 1] - train_Y[:, i : i + 1].mean())**2)
+            ss_res = torch.sum((train_Y[:, i : i + 1] - pred_col)**2)
+            r2 = 1.0 - ss_res / ss_tot
+            assert r2.item() >= 0.99, f"Objective {i} R^2 below 0.99: {r2.item()}"
+
+        # Posterior variance at evaluated training points should be near-zero
+        assert (pred_vars[:, 0] <= 1.0e-8).all(), f"Emittance posterior variance too high: {pred_vars[:, 0].max().item()}"
+        assert (pred_vars[:, 1] <= 1.0e-8).all(), f"Emittance posterior variance too high: {pred_vars[:, 1].max().item()}"
+        assert (pred_vars[:, 2] <= 1.0e-3 * train_Y[:, 2].var()).all(), f"Energy spread posterior variance too high: {pred_vars[:, 2].max().item()}"

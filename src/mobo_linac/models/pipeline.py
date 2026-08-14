@@ -23,7 +23,9 @@ class SurrogatePipeline:
         bounds: Tensor,
         covar_type: str = "matern52",
         noise_mode: str = "deterministic_fixed",
-        fixed_noise_val: float = 1e-6,
+        fixed_noise_val: Optional[float] = None,
+        relative_noise_ratio: float = 1.0e-6,
+        min_noise_variance: float = 1.0e-24,
         objective_noise_variances: Optional[List[float]] = None,
         device: Optional[Union[str, torch.device]] = None,
     ):
@@ -34,6 +36,8 @@ class SurrogatePipeline:
         self.covar_type = covar_type
         self.noise_mode = noise_mode
         self.fixed_noise_val = fixed_noise_val
+        self.relative_noise_ratio = relative_noise_ratio
+        self.min_noise_variance = min_noise_variance
         self.objective_noise_variances = objective_noise_variances
         self.objective_model: Optional[ModelListGP] = None
         self.constraint_model: Optional[ModelListGP] = None
@@ -72,6 +76,8 @@ class SurrogatePipeline:
             covar_type=self.covar_type,
             noise_mode=self.noise_mode,
             fixed_noise_val=self.fixed_noise_val,
+            relative_noise_ratio=self.relative_noise_ratio,
+            min_noise_variance=self.min_noise_variance,
             objective_noise_variances=self.objective_noise_variances,
             train_Yvar=train_Yvar.to(dtype=torch.double, device=self.device) if train_Yvar is not None else None,
             device=self.device,
@@ -88,6 +94,8 @@ class SurrogatePipeline:
                 covar_type=self.covar_type,
                 noise_mode=self.noise_mode,
                 fixed_noise_val=self.fixed_noise_val,
+                relative_noise_ratio=self.relative_noise_ratio,
+                min_noise_variance=self.min_noise_variance,
                 device=self.device,
             )
             self.constraint_model = fit_gp_models(self.constraint_model)

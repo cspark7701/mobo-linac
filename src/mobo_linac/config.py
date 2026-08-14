@@ -115,7 +115,9 @@ class GpModelConfig:
 
     covar_type: str = "matern52"
     noise_mode: str = "deterministic_fixed"  # "deterministic_fixed", "fixed", "inferred", or "measured_fixed"
-    fixed_noise_variance: float = 1.0e-6
+    fixed_noise_variance: Optional[float] = None
+    relative_noise_ratio: float = 1.0e-6
+    min_noise_variance: float = 1.0e-24
     objective_noise_variances: Optional[List[float]] = None
 
     def validate(self) -> None:
@@ -126,8 +128,12 @@ class GpModelConfig:
             raise ValueError(
                 f"Invalid noise_mode '{self.noise_mode}'. Must be 'deterministic_fixed', 'fixed', 'inferred', or 'measured_fixed'."
             )
-        if self.fixed_noise_variance <= 0:
-            raise ValueError("fixed_noise_variance must be positive.")
+        if self.fixed_noise_variance is not None and self.fixed_noise_variance <= 0:
+            raise ValueError("fixed_noise_variance must be positive if provided.")
+        if self.relative_noise_ratio <= 0:
+            raise ValueError("relative_noise_ratio must be positive.")
+        if self.min_noise_variance <= 0:
+            raise ValueError("min_noise_variance must be positive.")
 
 
 @dataclass
