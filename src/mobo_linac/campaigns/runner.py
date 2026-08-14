@@ -9,14 +9,18 @@ from datetime import datetime
 import os
 from pathlib import Path
 import platform
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import torch
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
-from botorch.models import ModelListGP
+from botorch.acquisition.logei import qLogNoisyExpectedImprovement
+from botorch.models import ModelListGP, SingleTaskGP
+from botorch.models.transforms.input import Normalize
+from botorch.models.transforms.outcome import Standardize
+from botorch.optim import optimize_acqf
 from mobo_linac import __version__
 from mobo_linac.acquisition.mobo import (
     SliceObjective,
@@ -27,6 +31,7 @@ from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.constraints import get_botorch_constraint_functions
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
+from mobo_linac.models.gp import fit_gp_models
 from mobo_linac.io.results import (
     DESIGN_VAR_COLUMNS,
     MODEL_OBJ_COLUMNS,
@@ -70,6 +75,8 @@ class MoboCampaignRunner:
         seed: int = 42,
         acq_type: str = "qLogNEHVI",
         constrained: bool = False,
+        optimization_mode: str = "unconstrained_mobo",
+        scalar_weights: Optional[Sequence[float]] = None,
         export_plots: bool = True,
         export_env_info: bool = True,
         resume: bool = False,
@@ -101,12 +108,28 @@ class MoboCampaignRunner:
         self.batch_size = batch_size
         self.seed = seed
         self.acq_type = acq_type
-        self.constrained = constrained
         self.export_plots = export_plots
         self.export_env_info = export_env_info
         self.resume = resume
         self.resume_from = resume_from
         self.custom_evaluator = evaluator
+
+        # Normalize optimization mode and constrained flag
+        if optimization_mode == "constrained_mobo" or (constrained and optimization_mode == "unconstrained_mobo"):
+            self.optimization_mode = "constrained_mobo"
+            self.constrained = True
+        elif optimization_mode == "scalarized_bo":
+            self.optimization_mode = "scalarized_bo"
+            self.constrained = False
+        else:
+            self.optimization_mode = "unconstrained_mobo"
+            self.constrained = False
+
+        if scalar_weights is not None:
+            w_tensor = torch.tensor(scalar_weights, dtype=torch.double)
+            self.scalar_weights = w_tensor / w_tensor.sum()
+        else:
+            self.scalar_weights = torch.tensor([1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0], dtype=torch.double)
 
         if output_dir:
             self.run_dir = Path(output_dir)
@@ -151,13 +174,19 @@ class MoboCampaignRunner:
         """
         Executes the optimization campaign.
         """
-        mode_str = "Constrained MOBO (Feasibility-Aware)" if self.constrained else "Unconstrained MOBO"
-        print(f"=== Starting MOBO Campaign: {self.run_id} ({mode_str}) ===")
+        if self.optimization_mode == "scalarized_bo":
+            mode_str = f"Scalarized BO (weights={self.scalar_weights.tolist()})"
+        elif self.constrained:
+            mode_str = "Constrained MOBO (Feasibility-Aware)"
+        else:
+            mode_str = "Unconstrained MOBO"
+
+        print(f"=== Starting Optimization Campaign: {self.run_id} ({mode_str}) ===")
         print(
             f"Initial samples: {self.num_initial_samples}, "
             f"Batches: {self.num_batches}, Batch size: {self.batch_size}, "
             f"Workers: {self.num_workers}, Acquisition: {self.acq_type}, "
-            f"Constrained: {self.constrained}"
+            f"Mode: {self.optimization_mode}"
         )
 
         if self.export_env_info:
@@ -279,12 +308,13 @@ class MoboCampaignRunner:
 
             ckpt_dir = self.run_dir / "checkpoints"
             ckpt_dir.mkdir(parents=True, exist_ok=True)
+            ckpt_acq_mode = "scalarized_qLogNEI" if self.optimization_mode == "scalarized_bo" else self.acq_type
             save_run_checkpoint(
                 iteration=0,
                 results=results,
                 hypervolumes=tracker.to_dataframe()["feasible_hypervolume"].tolist(),
                 checkpoint_path=ckpt_dir / "checkpoint_iter_00.pt",
-                acquisition_mode=self.acq_type,
+                acquisition_mode=ckpt_acq_mode,
                 config=self.config,
                 reporting_ref_point=reporting_ref_point,
                 seed=self.seed,
@@ -300,6 +330,35 @@ class MoboCampaignRunner:
             if train_X.shape[0] < 2:
                 new_sobol = sobol_engine.draw(self.batch_size).to(dtype=torch.double)
                 next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
+            elif self.optimization_mode == "scalarized_bo":
+                # Scalarized single-objective GP surrogate with qLogNEI
+                weights_dev = self.scalar_weights.to(dtype=torch.double, device=self.device)
+                train_X_dev = train_X.to(dtype=torch.double, device=self.device)
+                train_Y_dev = train_Y.to(dtype=torch.double, device=self.device)
+                scalar_Y = (train_Y_dev * weights_dev).sum(dim=-1, keepdim=True)
+
+                input_transform = Normalize(d=bounds.shape[1], bounds=bounds.to(device=self.device))
+                gp = SingleTaskGP(
+                    train_X=train_X_dev,
+                    train_Y=scalar_Y,
+                    input_transform=input_transform,
+                    outcome_transform=Standardize(m=1),
+                )
+                fit_gp_models(ModelListGP(gp))
+
+                acq_func = qLogNoisyExpectedImprovement(
+                    model=gp,
+                    X_baseline=train_X_dev,
+                    prune_baseline=True,
+                )
+                candidates, _ = optimize_acqf(
+                    acq_function=acq_func,
+                    bounds=bounds.to(device=self.device),
+                    q=self.batch_size,
+                    num_restarts=20,
+                    raw_samples=128,
+                )
+                next_cand_list = candidates.cpu().tolist()
             else:
                 pipeline = SurrogatePipeline(
                     bounds=bounds,
@@ -374,12 +433,13 @@ class MoboCampaignRunner:
             ckpt_dir = self.run_dir / "checkpoints"
             ckpt_dir.mkdir(parents=True, exist_ok=True)
             ckpt_path = ckpt_dir / f"checkpoint_iter_{iteration:02d}.pt"
+            ckpt_acq_mode = "scalarized_qLogNEI" if self.optimization_mode == "scalarized_bo" else self.acq_type
             save_run_checkpoint(
                 iteration=iteration,
                 results=results,
                 hypervolumes=tracker.to_dataframe()["feasible_hypervolume"].tolist(),
                 checkpoint_path=ckpt_path,
-                acquisition_mode=self.acq_type,
+                acquisition_mode=ckpt_acq_mode,
                 config=self.config,
                 reporting_ref_point=reporting_ref_point,
                 seed=self.seed,

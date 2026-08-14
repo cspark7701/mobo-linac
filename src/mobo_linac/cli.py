@@ -173,7 +173,9 @@ def run_constrained(args: argparse.Namespace) -> None:
 
 def run_scalarized(args: argparse.Namespace) -> None:
     """Executes Scalarized BO campaign (weighted sum scalarization)."""
-    config_path = args.config if args.config else "configs/publication.yaml"
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+
+    config_path = args.config if hasattr(args, "config") and args.config else "configs/publication.yaml"
     if not Path(config_path).exists():
         config_path = "configs/mobo_200MeV.yaml"
 
@@ -182,103 +184,28 @@ def run_scalarized(args: argparse.Namespace) -> None:
         print(f"  - Config: {config_path}")
         print(f"  - Output Directory: {args.output_dir or 'results/scalarized_<timestamp>'}")
         print(f"  - Weights: {getattr(args, 'weights', [1.0, 1.0, 1.0])}")
+        print(f"  - Initial Samples: {getattr(args, 'num_initial_samples', 16)}")
         print(f"  - Iterations: {getattr(args, 'n_iterations', 6)} (batch size: {getattr(args, 'batch_size', 4)})")
         return
 
-    config = load_config(config_path)
-    seed = args.seed
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    torch.set_default_dtype(torch.double)
+    evaluator = CliMockEvaluator(Path(args.output_dir or "results")) if getattr(args, "mock_evaluator", False) else None
 
-    if args.output_dir:
-        run_dir = Path(args.output_dir)
-    else:
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        run_dir = Path("results") / f"scalarized_{timestamp}"
-
-    run_dir.mkdir(parents=True, exist_ok=True)
-    run_id = run_dir.name
-
-    config.save_json(run_dir / "config.json")
-    config.save_yaml(run_dir / "config.yaml")
-
-    bounds = config.get_parameter_bounds_tensor()
-    num_workers = args.num_workers or config.execution.max_workers
-
-    if getattr(args, "mock_evaluator", False):
-        evaluator = CliMockEvaluator(run_dir)
-    else:
-        evaluator = BatchEvaluator(
-            base_results_dir=run_dir.parent,
-            template_dir=".",
-            max_workers=num_workers,
-            timeout=config.execution.timeout_sec,
-        )
-
-    print(f"Generating {args.num_initial_samples} initial Sobol samples for Scalarized BO...")
-    sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=seed)
-    sobol_samples = sobol_engine.draw(args.num_initial_samples).to(dtype=torch.double)
-    lower_b, upper_b = bounds[0], bounds[1]
-    initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
-
-    raw_results = evaluator.evaluate_batch(initial_candidates, run_id=run_id)
-    results = [create_evaluation_result(res, config) for res in raw_results]
-
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-    reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
-    tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=config)
-    tracker.track_iteration(0, train_Y, train_feas_mask)
-
-    weights = torch.tensor(args.weights, dtype=torch.double) if hasattr(args, "weights") and args.weights else torch.tensor([1.0, 1.0, 1.0], dtype=torch.double)
-    weights = weights / weights.sum()
-
-    print(f"\nStarting Scalarized BO loop for {args.n_iterations} iterations with weights {weights.tolist()}...")
-
-    for iteration in range(1, args.n_iterations + 1):
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        if train_X.shape[0] < 2:
-            new_sobol = sobol_engine.draw(args.batch_size).to(dtype=torch.double)
-            next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
-        else:
-            scalar_Y = (train_Y * weights).sum(dim=-1, keepdim=True)
-            input_transform = Normalize(d=bounds.shape[1], bounds=bounds)
-            gp = SingleTaskGP(train_X, scalar_Y, input_transform=input_transform, outcome_transform=Standardize(m=1))
-            fit_gp_models(ModelListGP(gp))
-
-            acq_func = qLogNoisyExpectedImprovement(model=gp, X_baseline=train_X, prune_baseline=True)
-            candidates, _ = optimize_acqf(
-                acq_function=acq_func,
-                bounds=bounds,
-                q=args.batch_size,
-                num_restarts=20,
-                raw_samples=128,
-            )
-            next_cand_list = candidates.tolist()
-
-        start_eval_id = len(results) + 1
-        eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]
-
-        raw_batch_res = evaluator.evaluate_batch(next_cand_list, run_id=run_id, eval_ids=eval_ids)
-        batch_results = [create_evaluation_result(res, config) for res in raw_batch_res]
-        results.extend(batch_results)
-
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        hv_record = tracker.track_iteration(iteration, train_Y, train_feas_mask)
-
-        print(
-            f"Iter {iteration:03d}/{args.n_iterations:03d} | "
-            f"Valid: {train_X.shape[0]} | Feasible: {hv_record['num_feasible_points']} | "
-            f"HV: {hv_record['feasible_hypervolume']:.6e}"
-        )
-
-        save_evaluation_results(results, run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
-        tracker.save_csv(run_dir / "hypervolume.csv")
-
-    figures_dir = run_dir / "figures"
-    plot_hypervolume_progress(tracker.to_dataframe(), figures_dir / "hypervolume_progress.png")
-    plot_pareto_front(results, figures_dir / "pareto_front.png")
-    print(f"\nScalarized BO Campaign finished successfully! Artifacts in: {run_dir.resolve()}")
+    runner = MoboCampaignRunner(
+        config=config_path,
+        run_name="scalarized",
+        output_dir=getattr(args, "output_dir", None),
+        num_initial_samples=getattr(args, "num_initial_samples", 16),
+        num_batches=getattr(args, "n_iterations", 6),
+        batch_size=getattr(args, "batch_size", 4),
+        num_workers=getattr(args, "num_workers", None),
+        seed=getattr(args, "seed", 42),
+        optimization_mode="scalarized_bo",
+        scalar_weights=getattr(args, "weights", [1.0, 1.0, 1.0]),
+        export_plots=True,
+        evaluator=evaluator,
+        device=getattr(args, "device", "auto"),
+    )
+    runner.run()
 
 
 def run_validation(args: argparse.Namespace) -> None:
@@ -440,7 +367,7 @@ def main() -> None:
     # Subcommand: run-robustness
     run_rob_parser = subparsers.add_parser("run-robustness", help="Perform robustness and sensitivity analysis over Pareto candidates")
     run_rob_parser.add_argument("--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file")
-    run_rob_parser.add_argument("--history-path", type=str, default=None, help="Path to Pareto candidates CSV/JSON")
+    run_rob_parser.add_argument("--input", "--history-path", dest="history_path", type=str, default=None, help="Path to Pareto candidates CSV/JSON")
     run_rob_parser.add_argument("--pareto-csv", type=str, default=None, help="Path to pareto.csv file")
     run_rob_parser.add_argument("--output-dir", type=str, default="results/robustness", help="Output directory")
     run_rob_parser.add_argument("--num-perturbations", type=int, default=20, help="Number of perturbations per candidate")
@@ -452,7 +379,7 @@ def main() -> None:
     # Subcommand: run-verification
     run_ver_parser = subparsers.add_parser("run-verification", help="Rerun Pareto candidates independently for verification")
     run_ver_parser.add_argument("--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file")
-    run_ver_parser.add_argument("--history-path", type=str, default=None, help="Path to Pareto candidates CSV/JSON")
+    run_ver_parser.add_argument("--input", "--history-path", dest="history_path", type=str, default=None, help="Path to Pareto candidates CSV/JSON")
     run_ver_parser.add_argument("--pareto-csv", type=str, default=None, help="Path to pareto.csv file")
     run_ver_parser.add_argument("--output-dir", type=str, default="results/verification", help="Output directory")
     run_ver_parser.add_argument("--dry-run", action="store_true", help="Print planned verification plan")

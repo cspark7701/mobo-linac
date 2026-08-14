@@ -51,14 +51,20 @@ def test_cli_mock_evaluator_workflows(tmp_path):
     main()
     assert (dir_co / "candidate_history.csv").exists()
 
-    # 3. run-robustness
+    # 3. run-scalarized
+    dir_sc = tmp_path / "mock_sc"
+    sys.argv = ["mobo-linac", "run-scalarized", "--n-iterations", "1", "-q", "2", "--num-initial-samples", "4", "--output-dir", str(dir_sc), "--mock-evaluator"]
+    main()
+    assert (dir_sc / "candidate_history.csv").exists()
+
+    # 4. run-robustness
     dir_rob = tmp_path / "mock_rob"
-    sys.argv = ["mobo-linac", "run-robustness", "--num-perturbations", "3", "--output-dir", str(dir_rob), "--mock-evaluator"]
+    sys.argv = ["mobo-linac", "run-robustness", "--input", str(dir_un), "--num-perturbations", "2", "--output-dir", str(dir_rob), "--mock-evaluator"]
     main()
     assert (dir_rob / "robustness_summary.csv").exists()
 
-    # 4. run-verification
+    # 5. run-verification
     dir_ver = tmp_path / "mock_ver"
-    sys.argv = ["mobo-linac", "run-verification", "--output-dir", str(dir_ver), "--mock-evaluator"]
+    sys.argv = ["mobo-linac", "run-verification", "--input", str(dir_un), "--output-dir", str(dir_ver), "--mock-evaluator"]
     main()
     assert (dir_ver / "verification_manifest.json").exists()
