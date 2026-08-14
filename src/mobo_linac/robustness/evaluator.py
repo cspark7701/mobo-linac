@@ -24,12 +24,164 @@ from mobo_linac.metrics.pareto import (
 from mobo_linac.metrics.reporting import normalize_objectives_physical
 
 
-def generate_perturbed_parameters(
-    nominal_x: List[float],
+@dataclass
+class PerturbationSpecification:
+    """
+    Specification of machine and photocathode laser jitter distributions for linac robustness analysis.
+    Reflects the 7 physical noise channels from configs/perturbation_config.yaml.
+    """
+    gun_phase_std_deg: float = 0.10
+    cavity_phase_std_deg: float = 0.10
+    solenoid_field_relative_std: float = 0.001
+    quad_gradient_relative_std: float = 0.001
+    bunch_charge_relative_std: float = 0.010
+    laser_spot_size_relative_std: float = 0.010
+    laser_pulse_duration_relative_std: float = 0.010
+
+    @classmethod
+    def from_dict(cls, d: Dict[str, Any]) -> "PerturbationSpecification":
+        """Constructs specification from dictionary (e.g., perturbation_config.yaml)."""
+        perts = d.get("perturbations", d)
+
+        def extract_std(key: str, default: float) -> float:
+            if key in perts:
+                val = perts[key]
+                if isinstance(val, dict) and "std" in val:
+                    return float(val["std"])
+                elif isinstance(val, (int, float)):
+                    return float(val)
+            return default
+
+        return cls(
+            gun_phase_std_deg=extract_std("gun_phase_error_deg", 0.10),
+            cavity_phase_std_deg=extract_std("cavity_phase_error_deg", 0.10),
+            solenoid_field_relative_std=extract_std("solenoid_field_relative_error", 0.001),
+            quad_gradient_relative_std=extract_std("quad_gradient_relative_error", 0.001),
+            bunch_charge_relative_std=extract_std("bunch_charge_relative_jitter", 0.010),
+            laser_spot_size_relative_std=extract_std("laser_spot_size_relative_jitter", 0.010),
+            laser_pulse_duration_relative_std=extract_std("laser_pulse_duration_relative_jitter", 0.010),
+        )
+
+    @classmethod
+    def from_yaml(cls, yaml_path: Union[str, Path]) -> "PerturbationSpecification":
+        """Loads specification from a YAML configuration file."""
+        p = Path(yaml_path)
+        if not p.exists():
+            return cls()
+        with open(p, "r", encoding="utf-8") as f:
+            data = yaml.safe_load(f) or {}
+        return cls.from_dict(data)
+
+
+@dataclass
+class PerturbedMachineState:
+    """
+    Represents a full-chain perturbed accelerator state across 6 design parameters
+    and photocathode/laser jitter dimensions.
+    """
+    parameters: List[float]  # [solenoid, quad1, quad2, gun_phase, acc1_2_phase, acc3_4_phase]
+    bunch_charge_scale: float = 1.0
+    laser_spot_scale: float = 1.0
+    laser_pulse_duration_scale: float = 1.0
+    channel_deltas: Dict[str, float] = field(default_factory=dict)
+
+
+def load_perturbation_spec(
+    config_path: Union[str, Path] = "configs/perturbation_config.yaml"
+) -> PerturbationSpecification:
+    """Loads PerturbationSpecification from config path with fallback to defaults."""
+    p = Path(config_path)
+    if p.exists():
+        return PerturbationSpecification.from_yaml(p)
+    return PerturbationSpecification()
+
+
+def generate_perturbed_machine_states(
+    nominal_x: Sequence[float],
     num_perturbations: int = 50,
     seed: int = 42,
-    phase_std_deg: float = 0.10,
-    field_relative_std: float = 0.001,
+    spec: Optional[Union[PerturbationSpecification, Dict[str, Any]]] = None,
+) -> List[PerturbedMachineState]:
+    """
+    Generates full-chain perturbed machine states including 6D lattice parameters and
+    photocathode/laser jitter dimensions.
+
+    Args:
+        nominal_x: Nominal 6D design vector [solenoid, quad1, quad2, gun_phase, acc1_2_phase, acc3_4_phase].
+        num_perturbations: Number of perturbation samples.
+        seed: Random seed.
+        spec: PerturbationSpecification or config dictionary.
+
+    Returns:
+        List of PerturbedMachineState objects.
+    """
+    if spec is None:
+        pert_spec = load_perturbation_spec()
+    elif isinstance(spec, dict):
+        pert_spec = PerturbationSpecification.from_dict(spec)
+    else:
+        pert_spec = spec
+
+    rng = np.random.default_rng(seed)
+    nominal_arr = np.array(nominal_x, dtype=np.float64)
+
+    states: List[PerturbedMachineState] = []
+    for _ in range(num_perturbations):
+        # 1. Magnet field relative errors
+        sol_rel = rng.normal(0.0, pert_spec.solenoid_field_relative_std)
+        q1_rel = rng.normal(0.0, pert_spec.quad_gradient_relative_std)
+        q2_rel = rng.normal(0.0, pert_spec.quad_gradient_relative_std)
+
+        # 2. RF phase errors (degrees)
+        gun_dphi = rng.normal(0.0, pert_spec.gun_phase_std_deg)
+        acc12_dphi = rng.normal(0.0, pert_spec.cavity_phase_std_deg)
+        acc34_dphi = rng.normal(0.0, pert_spec.cavity_phase_std_deg)
+
+        # 3. Photocathode & laser jitter channels
+        charge_rel = rng.normal(0.0, pert_spec.bunch_charge_relative_std)
+        spot_rel = rng.normal(0.0, pert_spec.laser_spot_size_relative_std)
+        duration_rel = rng.normal(0.0, pert_spec.laser_pulse_duration_relative_std)
+
+        perturbed_x = [
+            float(nominal_arr[0] * (1.0 + sol_rel)),
+            float(nominal_arr[1] * (1.0 + q1_rel)),
+            float(nominal_arr[2] * (1.0 + q2_rel)),
+            float(nominal_arr[3] + gun_dphi),
+            float(nominal_arr[4] + acc12_dphi),
+            float(nominal_arr[5] + acc34_dphi),
+        ]
+
+        channel_deltas = {
+            "solenoid_field_relative_error": float(sol_rel),
+            "quad1_gradient_relative_error": float(q1_rel),
+            "quad2_gradient_relative_error": float(q2_rel),
+            "gun_phase_error_deg": float(gun_dphi),
+            "cavity_phase_acc12_error_deg": float(acc12_dphi),
+            "cavity_phase_acc34_error_deg": float(acc34_dphi),
+            "bunch_charge_relative_jitter": float(charge_rel),
+            "laser_spot_size_relative_jitter": float(spot_rel),
+            "laser_pulse_duration_relative_jitter": float(duration_rel),
+        }
+
+        state = PerturbedMachineState(
+            parameters=perturbed_x,
+            bunch_charge_scale=float(1.0 + charge_rel),
+            laser_spot_scale=float(1.0 + spot_rel),
+            laser_pulse_duration_scale=float(1.0 + duration_rel),
+            channel_deltas=channel_deltas,
+        )
+        states.append(state)
+
+    return states
+
+
+def generate_perturbed_parameters(
+    nominal_x: Sequence[float],
+    num_perturbations: int = 50,
+    seed: int = 42,
+    phase_std_deg: Optional[float] = None,
+    field_relative_std: Optional[float] = None,
+    spec: Optional[Union[PerturbationSpecification, Dict[str, Any]]] = None,
 ) -> List[List[float]]:
     """
     Generates perturbed parameter vectors around a nominal design vector.
@@ -38,43 +190,35 @@ def generate_perturbed_parameters(
         nominal_x: Nominal 6D design vector.
         num_perturbations: Number of perturbed samples to generate.
         seed: Random seed.
-        phase_std_deg: Phase jitter standard deviation (degrees).
-        field_relative_std: Relative field jitter standard deviation (dimensionless).
+        phase_std_deg: Optional override for RF phase jitter (degrees).
+        field_relative_std: Optional override for magnet relative field jitter (dimensionless).
+        spec: Optional PerturbationSpecification or config dictionary.
 
     Returns:
         List of 6D perturbed parameter vectors.
     """
-    rng = np.random.default_rng(seed)
-    nominal_arr = np.array(nominal_x, dtype=np.float64)
+    if spec is not None:
+        if isinstance(spec, dict):
+            pert_spec = PerturbationSpecification.from_dict(spec)
+        else:
+            pert_spec = spec
+    elif phase_std_deg is not None or field_relative_std is not None:
+        pert_spec = PerturbationSpecification(
+            gun_phase_std_deg=phase_std_deg if phase_std_deg is not None else 0.10,
+            cavity_phase_std_deg=phase_std_deg if phase_std_deg is not None else 0.10,
+            solenoid_field_relative_std=field_relative_std if field_relative_std is not None else 0.001,
+            quad_gradient_relative_std=field_relative_std if field_relative_std is not None else 0.001,
+        )
+    else:
+        pert_spec = load_perturbation_spec()
 
-    # 6D design vector: [solenoid, quad1, quad2, gun_phase, acc1_2_phase, acc3_4_phase]
-    rel_stds = np.array([
-        field_relative_std,  # solenoid
-        field_relative_std,  # quad 1
-        field_relative_std,  # quad 2
-        0.0,                 # gun phase
-        0.0,                 # acc1_2 phase
-        0.0,                 # acc3_4 phase
-    ])
-
-    abs_stds = np.array([
-        0.0,
-        0.0,
-        0.0,
-        phase_std_deg,
-        phase_std_deg,
-        phase_std_deg,
-    ])
-
-    perturbed_samples = []
-    for _ in range(num_perturbations):
-        rel_noise = rng.normal(loc=0.0, scale=rel_stds)
-        abs_noise = rng.normal(loc=0.0, scale=abs_stds)
-
-        perturbed_x = nominal_arr * (1.0 + rel_noise) + abs_noise
-        perturbed_samples.append(perturbed_x.tolist())
-
-    return perturbed_samples
+    states = generate_perturbed_machine_states(
+        nominal_x=nominal_x,
+        num_perturbations=num_perturbations,
+        seed=seed,
+        spec=pert_spec,
+    )
+    return [s.parameters for s in states]
 
 
 def compute_robustness_summary(

@@ -47,18 +47,21 @@ def apply_parameters_to_astra(
     astra_sim: Any,
     parameters: Sequence[float],
     config: Optional[Union[Any, Dict[str, Any]]] = None,
+    namelist_overrides: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """
-    Applies design parameters to an ASTRA simulation instance using config metadata or fallback mapping.
+    Applies design parameters and optional namelist overrides to an ASTRA simulation instance.
 
     Args:
         astra_sim: Astra instance or dict-like object representing ASTRA namelists.
         parameters: Sequence of floating-point values matching the design variables.
         config: Optional MoboConfig or config dictionary containing design_variables definitions.
+        namelist_overrides: Optional dict mapping ASTRA keys (e.g. 'charge:q_total') to override values.
 
     Returns:
         List of parameter names that were applied.
     """
+    applied_names: List[str] = []
     if config is not None:
         if hasattr(config, "design_variables"):
             design_vars = config.design_variables
@@ -96,22 +99,30 @@ def apply_parameters_to_astra(
                 elif astra_key:
                     astra_sim[astra_key] = val
 
-            return param_names
+            applied_names = param_names
+    else:
+        # Default 6-parameter mapping for backward compatibility
+        if len(parameters) != 6:
+            raise ValueError(f"Expected 6 design parameters for default mapping, got {len(parameters)}")
 
-    # Default 6-parameter mapping for backward compatibility
-    if len(parameters) != 6:
-        raise ValueError(f"Expected 6 design parameters for default mapping, got {len(parameters)}")
+        astra_sim["solenoid:maxb(1)"] = float(parameters[0])
+        astra_sim["quadrupole:q_grad(1)"] = float(parameters[1])
+        astra_sim["quadrupole:q_grad(2)"] = float(parameters[2])
+        astra_sim["cavity:phi(1)"] = float(parameters[3])
+        astra_sim["cavity:phi(2)"] = float(parameters[4])
+        astra_sim["cavity:phi(3)"] = float(parameters[4])
+        astra_sim["cavity:phi(4)"] = float(parameters[5])
+        astra_sim["cavity:phi(5)"] = float(parameters[5])
+        applied_names = list(PARAMETER_NAMES)
 
-    astra_sim["solenoid:maxb(1)"] = float(parameters[0])
-    astra_sim["quadrupole:q_grad(1)"] = float(parameters[1])
-    astra_sim["quadrupole:q_grad(2)"] = float(parameters[2])
-    astra_sim["cavity:phi(1)"] = float(parameters[3])
-    astra_sim["cavity:phi(2)"] = float(parameters[4])
-    astra_sim["cavity:phi(3)"] = float(parameters[4])
-    astra_sim["cavity:phi(4)"] = float(parameters[5])
-    astra_sim["cavity:phi(5)"] = float(parameters[5])
+    if namelist_overrides:
+        for override_key, override_val in namelist_overrides.items():
+            try:
+                astra_sim[override_key] = override_val
+            except Exception:
+                pass
 
-    return list(PARAMETER_NAMES)
+    return applied_names
 
 
 def run_astra_eval(
@@ -127,6 +138,7 @@ def run_astra_eval(
     use_symlinks: bool = False,
     workdir_manager: Optional[AstraWorkDirManager] = None,
     config: Optional[Union[Any, Dict[str, Any]]] = None,
+    namelist_overrides: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Runs an isolated ASTRA simulation for a given candidate parameter set.
@@ -187,8 +199,13 @@ def run_astra_eval(
         if hasattr(astra_sim, "command") and astra_sim.command:
             astra_cmd = str(astra_sim.command)
 
-        # Apply parameters to ASTRA simulation dynamically using config
-        applied_param_names = apply_parameters_to_astra(astra_sim, parameters, config=config)
+        # Apply parameters and optional namelist overrides to ASTRA simulation
+        applied_param_names = apply_parameters_to_astra(
+            astra_sim,
+            parameters,
+            config=config,
+            namelist_overrides=namelist_overrides,
+        )
 
         # Execute simulation
         astra_sim.run()
@@ -348,6 +365,7 @@ class AstraRunner:
         parameters: Sequence[float],
         eval_id: Union[int, str],
         verbose: bool = False,
+        namelist_overrides: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         """
         Run a single evaluation.
@@ -363,4 +381,5 @@ class AstraRunner:
             use_symlinks=self.use_symlinks,
             workdir_manager=self.workdir_manager,
             config=self.config,
+            namelist_overrides=namelist_overrides,
         )
