@@ -9,6 +9,10 @@ import pandas as pd
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.io.results import DESIGN_VAR_COLUMNS
+from mobo_linac.metrics.pareto import (
+    compute_crowding_distances,
+    select_representative_pareto_candidates,
+)
 
 
 def compute_file_sha256(file_path: Union[str, Path]) -> str:
@@ -24,38 +28,6 @@ def compute_file_sha256(file_path: Union[str, Path]) -> str:
     return hasher.hexdigest()
 
 
-def compute_crowding_distances(objs_norm: np.ndarray) -> np.ndarray:
-    """
-    Computes crowding distances for non-dominated Pareto objective points.
-
-    Args:
-        objs_norm: (N, M) array of normalized objective vectors.
-
-    Returns:
-        (N,) array of crowding distance values.
-    """
-    n_points, n_objs = objs_norm.shape
-    if n_points <= 2:
-        return np.full(n_points, np.inf)
-
-    distances = np.zeros(n_points, dtype=np.float64)
-
-    for m in range(n_objs):
-        sort_idx = np.argsort(objs_norm[:, m])
-        distances[sort_idx[0]] = np.inf
-        distances[sort_idx[-1]] = np.inf
-
-        obj_range = objs_norm[sort_idx[-1], m] - objs_norm[sort_idx[0], m]
-        if obj_range <= 1e-12:
-            continue
-
-        for i in range(1, n_points - 1):
-            if not np.isinf(distances[sort_idx[i]]):
-                distances[sort_idx[i]] += (objs_norm[sort_idx[i + 1], m] - objs_norm[sort_idx[i - 1], m]) / obj_range
-
-    return distances
-
-
 def select_verification_candidates(
     results: List[EvaluationResult],
 ) -> Dict[str, EvaluationResult]:
@@ -68,8 +40,6 @@ def select_verification_candidates(
     Returns:
         Dict mapping candidate role -> EvaluationResult.
     """
-    from mobo_linac.metrics.pareto import select_representative_pareto_candidates
-
     cands = select_representative_pareto_candidates(results)
     candidates = {
         "min_emit_x": cands["min_emit_x"],

@@ -68,35 +68,51 @@ def extract_pareto_sets(
     }
 
 
-def compute_crowding_distances(objs: np.ndarray) -> np.ndarray:
+def compute_crowding_distances(
+    objs: Union[np.ndarray, Sequence[Sequence[float]]],
+) -> np.ndarray:
     """
     Computes NSGA-II crowding distances for a matrix of objective vectors.
 
+    Handles raw or normalized objective matrices, N <= 2 edge cases,
+    identical objective points, and zero-range dimensions gracefully.
+
     Args:
-        objs: (N, M) array of normalized objective values.
+        objs: (N, M) array-like of objective values (raw or normalized).
 
     Returns:
-        1D array of crowding distance values (float).
+        1D array of crowding distance values (float64), length N.
     """
-    n, m = objs.shape
-    if n <= 2:
-        return np.full(n, np.inf)
+    objs_arr = np.asarray(objs, dtype=np.float64)
+    if objs_arr.ndim == 1:
+        objs_arr = objs_arr[:, np.newaxis]
 
-    distances = np.zeros(n)
+    if objs_arr.size == 0:
+        return np.zeros(0, dtype=np.float64)
+
+    n, m = objs_arr.shape
+    if n <= 2:
+        return np.full(n, np.inf, dtype=np.float64)
+
+    if m == 0:
+        return np.zeros(n, dtype=np.float64)
+
+    distances = np.zeros(n, dtype=np.float64)
     for col in range(m):
-        sorted_indices = np.argsort(objs[:, col])
+        sorted_indices = np.argsort(objs_arr[:, col])
         distances[sorted_indices[0]] = np.inf
         distances[sorted_indices[-1]] = np.inf
 
-        obj_range = objs[sorted_indices[-1], col] - objs[sorted_indices[0], col]
-        if obj_range == 0:
+        obj_range = objs_arr[sorted_indices[-1], col] - objs_arr[sorted_indices[0], col]
+        if abs(obj_range) <= 1e-12:
             continue
 
         for i in range(1, n - 1):
             idx = sorted_indices[i]
-            prev_idx = sorted_indices[i - 1]
-            next_idx = sorted_indices[i + 1]
-            distances[idx] += (objs[next_idx, col] - objs[prev_idx, col]) / obj_range
+            if not np.isinf(distances[idx]):
+                prev_idx = sorted_indices[i - 1]
+                next_idx = sorted_indices[i + 1]
+                distances[idx] += (objs_arr[next_idx, col] - objs_arr[prev_idx, col]) / obj_range
 
     return distances
 

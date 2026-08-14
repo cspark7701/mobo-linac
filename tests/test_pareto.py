@@ -107,3 +107,50 @@ def test_detect_and_report_candidate_duplicates(synthetic_results_with_dominated
     assert "duplicates_map" in report
     assert "summary_message" in report
     assert isinstance(report["summary_message"], str)
+
+
+def test_compute_crowding_distances_standard_and_edge_cases():
+    """Verify NSGA-II crowding distances across standard, small N, and degenerate sets."""
+    # 1. Standard 2D 3-point Pareto front
+    objs_2d = np.array([
+        [0.0, 1.0],
+        [0.5, 0.5],
+        [1.0, 0.0],
+    ])
+    dists = compute_crowding_distances(objs_2d)
+    assert len(dists) == 3
+    assert np.isinf(dists[0])
+    assert np.isinf(dists[2])
+    assert dists[1] > 0.0
+
+    # 2. Edge case: N = 0
+    empty_dists = compute_crowding_distances(np.zeros((0, 3)))
+    assert len(empty_dists) == 0
+
+    # 3. Edge case: N = 1 and N = 2
+    dists_1 = compute_crowding_distances([[1.0, 2.0, 3.0]])
+    assert len(dists_1) == 1
+    assert np.isinf(dists_1[0])
+
+    dists_2 = compute_crowding_distances([[1.0, 2.0], [2.0, 1.0]])
+    assert len(dists_2) == 2
+    assert np.isinf(dists_2[0]) and np.isinf(dists_2[1])
+
+    # 4. Zero range (identical objectives along one dimension)
+    identical_dim_objs = np.array([
+        [1.0, 5.0],
+        [2.0, 5.0],
+        [3.0, 5.0],
+    ])
+    dists_ident = compute_crowding_distances(identical_dim_objs)
+    assert len(dists_ident) == 3
+    assert np.isinf(dists_ident[0])
+    assert np.isinf(dists_ident[2])
+    assert not np.isnan(dists_ident[1])
+
+    # 5. 1D input array handling
+    dists_1d = compute_crowding_distances([1.0, 2.0, 3.0, 4.0])
+    assert len(dists_1d) == 4
+    assert np.isinf(dists_1d[0]) and np.isinf(dists_1d[-1])
+    assert dists_1d[1] > 0.0
+
