@@ -3,6 +3,7 @@ Result I/O, Serialization, DataFrame Conversions, and Checkpoint Management.
 """
 
 import json
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
@@ -292,6 +293,107 @@ def load_evaluation_results(history_path: Union[str, Path]) -> List[EvaluationRe
         raise ValueError(f"Unsupported file extension: {path.suffix}")
 
 
+@dataclass
+class CheckpointState:
+    """
+    Typed, schema-validated checkpoint state for Bayesian optimization campaigns.
+    Preserves evaluation history, acquisition mode, hypervolume progression, RNG states,
+    and runtime configuration with full backward compatibility.
+    """
+    iteration: int
+    results: List[EvaluationResult]
+    hypervolumes: List[float] = field(default_factory=list)
+    acquisition_mode: str = "qLogNEHVI"
+    reporting_ref_point: Optional[List[float]] = None
+    seed: Optional[int] = None
+    batch_size: Optional[int] = None
+    constrained: bool = False
+    torch_rng_state: Optional[torch.Tensor] = None
+    numpy_rng_state: Optional[Tuple[Any, ...]] = None
+    config: Optional[Dict[str, Any]] = None
+    version: str = "1.0"
+    checkpoint_file: Optional[str] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        """Serializes checkpoint state into a dictionary for torch.save."""
+        return {
+            "version": self.version,
+            "iteration": int(self.iteration),
+            "results_serialized": [res.to_dict() for res in self.results],
+            "hypervolumes": [float(hv) for hv in self.hypervolumes],
+            "acquisition_mode": str(self.acquisition_mode),
+            "reporting_ref_point": self.reporting_ref_point,
+            "seed": self.seed,
+            "batch_size": self.batch_size,
+            "constrained": bool(self.constrained),
+            "torch_rng_state": self.torch_rng_state,
+            "numpy_rng_state": self.numpy_rng_state,
+            "config": self.config,
+        }
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any], checkpoint_file: Optional[str] = None) -> "CheckpointState":
+        """Reconstructs and validates a CheckpointState from raw loaded checkpoint dictionary."""
+        if not isinstance(data, dict):
+            raise ValueError(f"Checkpoint data must be a dictionary, got {type(data).__name__}")
+        if "iteration" not in data:
+            raise ValueError("Checkpoint data missing required 'iteration' field")
+
+        serialized = data.get("results_serialized")
+        if serialized is None and "results" in data:
+            raw_results = data["results"]
+            results = [
+                r if isinstance(r, EvaluationResult) else EvaluationResult.from_dict(r)
+                for r in raw_results
+            ]
+        elif serialized is not None:
+            results = [EvaluationResult.from_dict(d) for d in serialized]
+        else:
+            results = []
+
+        raw_hv = data.get("hypervolumes", [])
+        if isinstance(raw_hv, torch.Tensor):
+            raw_hv = raw_hv.tolist()
+        elif isinstance(raw_hv, np.ndarray):
+            raw_hv = raw_hv.tolist()
+        hypervolumes = [float(h) for h in raw_hv]
+
+        return cls(
+            iteration=int(data["iteration"]),
+            results=results,
+            hypervolumes=hypervolumes,
+            acquisition_mode=str(data.get("acquisition_mode", "qLogNEHVI")),
+            reporting_ref_point=data.get("reporting_ref_point"),
+            seed=data.get("seed"),
+            batch_size=data.get("batch_size"),
+            constrained=bool(data.get("constrained", False)),
+            torch_rng_state=data.get("torch_rng_state"),
+            numpy_rng_state=data.get("numpy_rng_state"),
+            config=data.get("config"),
+            version=str(data.get("version", "1.0")),
+            checkpoint_file=checkpoint_file,
+        )
+
+    # Dict-like access for backward compatibility
+    def __getitem__(self, key: str) -> Any:
+        if hasattr(self, key):
+            return getattr(self, key)
+        if key == "results_serialized":
+            return [res.to_dict() for res in self.results]
+        raise KeyError(key)
+
+    def __contains__(self, key: str) -> bool:
+        return hasattr(self, key) or key == "results_serialized"
+
+    def get(self, key: str, default: Any = None) -> Any:
+        if hasattr(self, key):
+            val = getattr(self, key)
+            return val if val is not None else default
+        if key == "results_serialized":
+            return [res.to_dict() for res in self.results]
+        return default
+
+
 def save_run_checkpoint(
     iteration: int,
     results: List[EvaluationResult],
@@ -299,10 +401,12 @@ def save_run_checkpoint(
     checkpoint_path: Union[str, Path] = "results/checkpoints/checkpoint.pt",
     acquisition_mode: str = "qLogNEHVI",
     config: Any = None,
-    reporting_ref_point: Optional[torch.Tensor] = None,
+    reporting_ref_point: Optional[Union[torch.Tensor, List[float]]] = None,
     seed: Optional[int] = None,
     batch_size: Optional[int] = None,
     constrained: Optional[bool] = None,
+    torch_rng_state: Optional[torch.Tensor] = None,
+    numpy_rng_state: Optional[Tuple[Any, ...]] = None,
 ) -> Path:
     """
     Saves stateful checkpoint containing structured EvaluationResult records.
@@ -310,23 +414,32 @@ def save_run_checkpoint(
     path = Path(checkpoint_path)
     path.parent.mkdir(parents=True, exist_ok=True)
 
-    ref_point_list = reporting_ref_point.tolist() if reporting_ref_point is not None else None
+    ref_point_list = (
+        reporting_ref_point.tolist()
+        if isinstance(reporting_ref_point, torch.Tensor)
+        else reporting_ref_point
+    )
     config_dict = config.to_dict() if hasattr(config, "to_dict") else config
 
-    checkpoint_data = {
-        "iteration": iteration,
-        "results_serialized": [res.to_dict() for res in results],
-        "hypervolumes": hypervolumes,
-        "acquisition_mode": acquisition_mode,
-        "reporting_ref_point": ref_point_list,
-        "seed": seed,
-        "batch_size": batch_size,
-        "constrained": constrained,
-        "torch_rng_state": torch.get_rng_state(),
-        "numpy_rng_state": np.random.get_state(),
-        "config": config_dict,
-    }
+    t_state = torch_rng_state if torch_rng_state is not None else torch.get_rng_state()
+    n_state = numpy_rng_state if numpy_rng_state is not None else np.random.get_state()
 
+    state = CheckpointState(
+        iteration=iteration,
+        results=results,
+        hypervolumes=hypervolumes,
+        acquisition_mode=acquisition_mode,
+        reporting_ref_point=ref_point_list,
+        seed=seed,
+        batch_size=batch_size,
+        constrained=bool(constrained) if constrained is not None else False,
+        torch_rng_state=t_state,
+        numpy_rng_state=n_state,
+        config=config_dict,
+        checkpoint_file=str(path),
+    )
+
+    checkpoint_data = state.to_dict()
     torch.save(checkpoint_data, path)
 
     # If saving an iteration checkpoint, also update latest checkpoint link/copy
@@ -337,9 +450,9 @@ def save_run_checkpoint(
     return path
 
 
-def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[Dict[str, Any]]:
+def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[CheckpointState]:
     """
-    Loads stateful checkpoint and reconstructs EvaluationResult records.
+    Loads stateful checkpoint, validates schema, and returns a CheckpointState.
     Auto-detects directory vs file input.
     """
     path = Path(checkpoint_path)
@@ -376,8 +489,6 @@ def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[Dict[str,
     if not isinstance(checkpoint_data, dict) or "iteration" not in checkpoint_data:
         raise ValueError(f"Invalid checkpoint structure at {target_file}")
 
-    serialized = checkpoint_data.get("results_serialized", [])
-    checkpoint_data["results"] = [EvaluationResult.from_dict(d) for d in serialized]
-    checkpoint_data["checkpoint_file"] = str(target_file)
-    return checkpoint_data
+    return CheckpointState.from_dict(checkpoint_data, checkpoint_file=str(target_file))
+
 

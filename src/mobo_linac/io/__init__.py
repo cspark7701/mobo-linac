@@ -5,6 +5,7 @@ and checkpoint saving/restoration.
 """
 
 from mobo_linac.io.results import (
+    CheckpointState,
     get_train_tensors,
     load_evaluation_results,
     load_run_checkpoint,
@@ -14,6 +15,7 @@ from mobo_linac.io.results import (
 )
 
 __all__ = [
+    "CheckpointState",
     "results_to_dataframe",
     "save_evaluation_results",
     "load_evaluation_results",
@@ -21,3 +23,4 @@ __all__ = [
     "load_run_checkpoint",
     "get_train_tensors",
 ]
+
