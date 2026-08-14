@@ -54,6 +54,7 @@ img/
 01_mobo_linac_publication_tasks/
 02_mobo_linac_simulation_ready/
 03_mobo_linac_codex_recommendation_tasks/
+04_refactor_tasks/
 
 # Local binaries
 bin/*
