@@ -254,6 +254,12 @@ def run_astra_eval(
                     "mean_kinetic_energy_eV": mean_kinetic_energy_eV,
                 }
 
+                if "z" in raw_stats and len(raw_stats["z"]) > 0:
+                    z_final = float(raw_stats["z"][-1])
+                    diagnostics["z_final_m"] = z_final
+                    diagnostics["z_final"] = z_final
+                    diagnostics["z_stop_m"] = z_final
+
                 if n_init is not None and n_final is not None and n_init > 0:
                     trans_frac = float(n_final) / float(n_init)
                     diagnostics["n_particles_initial"] = n_init

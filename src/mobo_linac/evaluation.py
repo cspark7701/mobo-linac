@@ -21,6 +21,7 @@ class FailureCategory(str, Enum):
 
     SUCCESS = "SUCCESS"
     INFEASIBLE_BEAM = "INFEASIBLE_BEAM"
+    PREMATURE_BEAM_LOSS = "PREMATURE_BEAM_LOSS"
     ASTRA_TIMEOUT = "ASTRA_TIMEOUT"
     NONZERO_RETURN = "NONZERO_RETURN"
     MISSING_OUTPUT = "MISSING_OUTPUT"
@@ -117,12 +118,32 @@ def create_evaluation_result(
             for v in all_vals
         )
 
-        # 2. Check for missing transmission
+        # 2. Check for premature beam loss / incomplete particle tracking
+        target_z = 16.2
+        if config is not None and hasattr(config, "execution") and hasattr(config.execution, "z_stop_m"):
+            target_z = float(config.execution.z_stop_m)
+        elif "z_target_m" in raw_diags:
+            target_z = float(raw_diags["z_target_m"])
+
+        z_final = None
+        if "z_final_m" in raw_diags:
+            z_final = float(raw_diags["z_final_m"])
+        elif "z_final" in raw_diags:
+            z_final = float(raw_diags["z_final"])
+        elif "z_stop_m" in raw_diags:
+            z_final = float(raw_diags["z_stop_m"])
+        elif "stats" in raw_res and isinstance(raw_res["stats"], dict) and "z" in raw_res["stats"] and len(raw_res["stats"]["z"]) > 0:
+            z_final = float(raw_res["stats"]["z"][-1])
+
+        # 3. Check for missing transmission
         transmission_val = raw_diags.get("transmission_fraction", raw_diags.get("transmission"))
 
         if has_nan_inf:
             failure_category = FailureCategory.NAN_INF_DIAGNOSTICS.value
             failure_reason = "Diagnostics contain NaN, Infinite, or non-numeric values"
+        elif z_final is not None and z_final < (target_z - 0.1):
+            failure_category = FailureCategory.PREMATURE_BEAM_LOSS.value
+            failure_reason = f"Premature tracking termination at z = {z_final:.3f} m (expected exit plane >= {target_z - 0.1:.3f} m)"
         elif transmission_val is None:
             failure_category = FailureCategory.MISSING_OUTPUT.value
             failure_reason = "Required transmission_fraction diagnostic is missing"

@@ -194,3 +194,24 @@ def test_invalid_particle_counts():
     assert res.physically_feasible is False
     assert res.failure_category == FailureCategory.MISSING_OUTPUT.value
 
+
+def test_premature_beam_loss_exit_plane_rejection():
+    """Verify rejection of premature beam termination before reaching exit plane (Task 03)."""
+    config = load_config()
+    raw = get_valid_raw_output()
+
+    # 1. Premature stop at 12.0 m (linac exit plane is 16.2 m)
+    raw["diagnostics"]["z_final_m"] = 12.0
+    res_premature = create_evaluation_result(raw, config)
+    assert res_premature.simulation_valid is False
+    assert res_premature.physically_feasible is False
+    assert res_premature.failure_category == FailureCategory.PREMATURE_BEAM_LOSS.value
+
+    # 2. Target exit plane achieved at 16.2 m
+    raw["diagnostics"]["z_final_m"] = 16.2
+    res_valid = create_evaluation_result(raw, config)
+    assert res_valid.simulation_valid is True
+    assert res_valid.physically_feasible is True
+    assert res_valid.failure_category == FailureCategory.SUCCESS.value
+
+

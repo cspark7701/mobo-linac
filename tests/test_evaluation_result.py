@@ -112,8 +112,58 @@ def test_nan_inf_failure_result(sample_config):
     assert res.failure_category == FailureCategory.NAN_INF_DIAGNOSTICS.value
 
 
+def test_premature_beam_loss_detection(sample_config):
+    """Test detection of premature beam loss along the linac (Task 03)."""
+    # 1. Premature loss at z = 5.0 m (linac exit plane is 16.2 m)
+    raw_premature = {
+        "eval_id": "eval_000005",
+        "run_id": "test_run",
+        "parameters": [0.20, 1.2, -1.2, 0.0, 0.0, 0.0],
+        "status": "success",
+        "objectives": {"norm_emit_x": 0.5e-6, "norm_emit_y": 0.5e-6, "sigma_energy": 1.0e4},
+        "diagnostics": {
+            "sigma_x": 0.5e-3,
+            "sigma_y": 0.5e-3,
+            "sigma_xp": 0.5e-3,
+            "sigma_yp": 0.5e-3,
+            "sigma_z": 0.5e-3,
+            "mean_kinetic_energy": 30.0e6,
+            "transmission": 1.0,
+            "z_final_m": 5.0,  # Premature stop
+        },
+    }
+    res_premature = create_evaluation_result(raw_premature, config=sample_config)
+    assert res_premature.simulation_valid is False
+    assert res_premature.physically_feasible is False
+    assert res_premature.failure_category == FailureCategory.PREMATURE_BEAM_LOSS.value
+    assert "Premature tracking termination" in res_premature.failure_reason
+
+    # 2. Complete tracking to exit plane z = 16.2 m
+    raw_complete = {
+        "eval_id": "eval_000006",
+        "run_id": "test_run",
+        "parameters": [0.20, 1.2, -1.2, 0.0, 0.0, 0.0],
+        "status": "success",
+        "objectives": {"norm_emit_x": 1.2e-6, "norm_emit_y": 1.2e-6, "sigma_energy": 5.0e4},
+        "diagnostics": {
+            "sigma_x": 0.8e-3,
+            "sigma_y": 0.8e-3,
+            "sigma_xp": 0.8e-3,
+            "sigma_yp": 0.8e-3,
+            "sigma_z": 0.8e-3,
+            "mean_kinetic_energy": 200.0e6,
+            "transmission": 1.0,
+            "z_final_m": 16.2,  # Full tracking
+        },
+    }
+    res_complete = create_evaluation_result(raw_complete, config=sample_config)
+    assert res_complete.simulation_valid is True
+    assert res_complete.physically_feasible is True
+    assert res_complete.failure_category == FailureCategory.SUCCESS.value
+
+
 def test_exclude_invalid_from_gp_train_tensors():
-    """Verify that invalid simulations are excluded from GP training tensors."""
+    """Verify that invalid simulations including premature beam loss are excluded from GP training tensors."""
     valid_feasible = EvaluationResult(
         evaluation_id="1", run_id="r", x_physical=[0.2, 1.0, -1.0, 0.0, 0.0, 0.0],
         objectives_physical=[1e-6, 1e-6, 1e4], objectives_model=[-1e-6, -1e-6, -1e4],
@@ -129,12 +179,17 @@ def test_exclude_invalid_from_gp_train_tensors():
         objectives_physical=None, objectives_model=None,
         simulation_valid=False, physically_feasible=False, failure_category="ASTRA_TIMEOUT"
     )
+    invalid_premature = EvaluationResult(
+        evaluation_id="4", run_id="r", x_physical=[0.5, 2.5, -2.5, 0.0, 0.0, 0.0],
+        objectives_physical=[0.5e-6, 0.5e-6, 1e4], objectives_model=[-0.5e-6, -0.5e-6, -1e4],
+        simulation_valid=False, physically_feasible=False, failure_category="PREMATURE_BEAM_LOSS"
+    )
 
-    results = [valid_feasible, valid_infeasible, invalid_timeout]
+    results = [valid_feasible, valid_infeasible, invalid_timeout, invalid_premature]
 
     train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
 
-    # Only 2 valid samples should be in GP training tensors (invalid excluded)
+    # Only 2 valid samples should be in GP training tensors (invalid and premature beam loss excluded)
     assert train_X.shape[0] == 2
     assert train_Y.shape[0] == 2
     assert train_feas_mask.shape[0] == 2
