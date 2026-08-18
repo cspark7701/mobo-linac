@@ -25,6 +25,13 @@ def test_package_version():
     assert hasattr(mobo_linac, "__version__")
     assert mobo_linac.__version__ == "1.0.0"
 
+    try:
+        import importlib.metadata
+        installed_ver = importlib.metadata.version("mobo-linac")
+        assert installed_ver == "1.0.0"
+    except importlib.metadata.PackageNotFoundError:
+        pass
+
 
 def test_subpackage_imports():
     """Verify clean importability of all subpackages."""
