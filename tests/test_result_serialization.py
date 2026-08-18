@@ -136,3 +136,34 @@ def test_checkpoint_state_schema_validation(sample_results):
     with pytest.raises(ValueError, match="missing required 'iteration' field"):
         CheckpointState.from_dict({"hypervolumes": [0.1]})
 
+
+def test_atomic_checkpoint_save(sample_results, tmp_path):
+    """Verify atomic checkpoint writes leave no leftover temporary files and ensure target integrity."""
+    ckpt_path = tmp_path / "checkpoints" / "checkpoint_iter_02.pt"
+    hypervolumes = [0.0, 1.2e-10]
+
+    saved_path = save_run_checkpoint(
+        iteration=2,
+        results=sample_results,
+        hypervolumes=hypervolumes,
+        checkpoint_path=ckpt_path,
+        acquisition_mode="qLogNEHVI",
+    )
+
+    assert saved_path.exists()
+    latest_path = tmp_path / "checkpoints" / "checkpoint.pt"
+    assert latest_path.exists()
+
+    # Verify no .tmp files left behind
+    tmp_files = list(tmp_path.glob("**/*.tmp*"))
+    assert len(tmp_files) == 0
+
+    # Verify loaded content from both iteration checkpoint and latest checkpoint
+    loaded_iter = load_run_checkpoint(saved_path)
+    loaded_latest = load_run_checkpoint(latest_path)
+
+    assert loaded_iter.iteration == 2
+    assert loaded_latest.iteration == 2
+    assert len(loaded_latest.results) == 2
+
+

@@ -191,3 +191,33 @@ def test_configurable_acquisition_optimization_budget():
     assert (candidates <= bounds[1] + 1e-6).all()
 
 
+def test_resilient_acquisition_sobol_fallback():
+    """Verify graceful fallback to Sobol quasi-random candidate generation on invalid acquisition function."""
+    bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
+    batch_size = 4
+
+    # Create dummy broken acquisition function that raises RuntimeError on call
+    class BrokenAcqFunc:
+        def __call__(self, X):
+            raise RuntimeError("Simulated numerical optimization failure")
+
+    broken_acq = BrokenAcqFunc()
+
+    # generate_next_candidates should catch the error and fallback to Sobol sampling
+    candidates, acq_values = generate_next_candidates(
+        acq_func=broken_acq,
+        bounds=bounds,
+        batch_size=batch_size,
+        num_restarts=2,
+        raw_samples=16,
+        retry_on_failure=True,
+    )
+
+    assert candidates.shape == (batch_size, 6)
+    assert candidates.dtype == torch.double
+    assert (candidates >= bounds[0] - 1e-6).all()
+    assert (candidates <= bounds[1] + 1e-6).all()
+    assert acq_values.shape == (batch_size,)
+
+
+

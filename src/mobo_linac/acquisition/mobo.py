@@ -4,6 +4,7 @@ Multi-Objective Bayesian Optimization Acquisition Functions.
 Constructs and optimizes qLogNEHVI and qEHVI acquisition functions.
 """
 
+import logging
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -23,6 +24,8 @@ from botorch.utils.multi_objective.box_decompositions.non_dominated import (
 
 from botorch.acquisition.multi_objective.objective import IdentityMCMultiOutputObjective
 from mobo_linac.metrics.hypervolume import compute_reference_point
+
+logger = logging.getLogger(__name__)
 
 
 class SliceObjective(IdentityMCMultiOutputObjective):
@@ -136,9 +139,11 @@ def generate_next_candidates(
     batch_limit: int = 5,
     options: Optional[Dict[str, Any]] = None,
     device: Optional[Union[torch.device, str]] = None,
+    retry_on_failure: bool = True,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Optimizes the acquisition function over parameter bounds to generate next candidate batch.
+    Includes adaptive retry and fallback mechanisms against numerical convergence issues.
 
     Args:
         acq_func: Instantiated acquisition function.
@@ -150,6 +155,7 @@ def generate_next_candidates(
         batch_limit: Batch limit for parallel restart optimization in BoTorch.
         options: Optional dict of extra optimizer options overriding maxiter/batch_limit.
         device: Optional torch device (e.g. 'cpu' or 'cuda').
+        retry_on_failure: Whether to retry with reduced budget or fallback to Sobol sampling.
 
     Returns:
         Tuple of (candidates_tensor, acq_values_tensor).
@@ -161,12 +167,47 @@ def generate_next_candidates(
     if options:
         opt_options.update(options)
 
-    candidates, acq_values = optimize_acqf(
-        acq_function=acq_func,
-        bounds=bounds_dbl,
-        q=batch_size,
-        num_restarts=num_restarts,
-        raw_samples=raw_samples,
-        options=opt_options,
-    )
-    return candidates, acq_values
+    try:
+        candidates, acq_values = optimize_acqf(
+            acq_function=acq_func,
+            bounds=bounds_dbl,
+            q=batch_size,
+            num_restarts=num_restarts,
+            raw_samples=raw_samples,
+            options=opt_options,
+        )
+        return candidates, acq_values
+    except Exception as e:
+        if not retry_on_failure:
+            raise
+
+        logger.warning(
+            f"Primary acquisition optimization failed with error: {e}. Retrying with reduced restart budget..."
+        )
+
+        reduced_restarts = max(2, num_restarts // 2)
+        reduced_raw = max(32, raw_samples // 2)
+        reduced_batch_limit = max(1, batch_limit // 2)
+        reduced_options = {"batch_limit": reduced_batch_limit, "maxiter": min(maxiter, 100)}
+
+        try:
+            candidates, acq_values = optimize_acqf(
+                acq_function=acq_func,
+                bounds=bounds_dbl,
+                q=batch_size,
+                num_restarts=reduced_restarts,
+                raw_samples=reduced_raw,
+                options=reduced_options,
+            )
+            logger.info("Acquisition optimization succeeded with reduced restart budget.")
+            return candidates, acq_values
+        except Exception as retry_err:
+            logger.error(
+                f"Acquisition retry also failed: {retry_err}. Falling back to quasi-random Sobol exploration."
+            )
+            dim = bounds_dbl.shape[1]
+            sobol_engine = torch.quasirandom.SobolEngine(dimension=dim, scramble=True)
+            samples = sobol_engine.draw(batch_size).to(device=target_device, dtype=torch.double)
+            candidates = bounds_dbl[0] + (bounds_dbl[1] - bounds_dbl[0]) * samples
+            acq_values = torch.zeros(batch_size, dtype=torch.double, device=target_device)
+            return candidates, acq_values

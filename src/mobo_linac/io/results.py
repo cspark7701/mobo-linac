@@ -3,6 +3,7 @@ Result I/O, Serialization, DataFrame Conversions, and Checkpoint Management.
 """
 
 import json
+import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
@@ -394,6 +395,26 @@ class CheckpointState:
         return default
 
 
+def _atomic_torch_save(data: Any, target_path: Path) -> None:
+    """
+    Saves torch data to a temporary file first, then atomically replaces the target file.
+    Prevents corrupt or half-written checkpoint files during unexpected interruptions.
+    """
+    target_path = Path(target_path)
+    target_path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = target_path.with_name(f"{target_path.name}.tmp.{os.getpid()}")
+    try:
+        torch.save(data, tmp_path)
+        os.replace(tmp_path, target_path)
+    except Exception:
+        if tmp_path.exists():
+            try:
+                tmp_path.unlink()
+            except OSError:
+                pass
+        raise
+
+
 def save_run_checkpoint(
     iteration: int,
     results: List[EvaluationResult],
@@ -409,7 +430,7 @@ def save_run_checkpoint(
     numpy_rng_state: Optional[Tuple[Any, ...]] = None,
 ) -> Path:
     """
-    Saves stateful checkpoint containing structured EvaluationResult records.
+    Saves stateful checkpoint containing structured EvaluationResult records using atomic file write.
     """
     path = Path(checkpoint_path)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -440,12 +461,12 @@ def save_run_checkpoint(
     )
 
     checkpoint_data = state.to_dict()
-    torch.save(checkpoint_data, path)
+    _atomic_torch_save(checkpoint_data, path)
 
     # If saving an iteration checkpoint, also update latest checkpoint link/copy
     if path.name.startswith("checkpoint_iter_"):
         latest_path = path.parent / "checkpoint.pt"
-        torch.save(checkpoint_data, latest_path)
+        _atomic_torch_save(checkpoint_data, latest_path)
 
     return path
 
