@@ -120,8 +120,12 @@ def create_evaluation_result(
 
         # 2. Check for premature beam loss / incomplete particle tracking
         target_z = 16.2
-        if config is not None and hasattr(config, "execution") and hasattr(config.execution, "z_stop_m"):
-            target_z = float(config.execution.z_stop_m)
+        z_tol = 0.1
+        if config is not None and hasattr(config, "execution"):
+            if hasattr(config.execution, "z_stop_m"):
+                target_z = float(config.execution.z_stop_m)
+            if hasattr(config.execution, "z_loss_tolerance_m"):
+                z_tol = float(config.execution.z_loss_tolerance_m)
         elif "z_target_m" in raw_diags:
             target_z = float(raw_diags["z_target_m"])
 
@@ -141,9 +145,9 @@ def create_evaluation_result(
         if has_nan_inf:
             failure_category = FailureCategory.NAN_INF_DIAGNOSTICS.value
             failure_reason = "Diagnostics contain NaN, Infinite, or non-numeric values"
-        elif z_final is not None and z_final < (target_z - 0.1):
+        elif z_final is not None and z_final < (target_z - z_tol):
             failure_category = FailureCategory.PREMATURE_BEAM_LOSS.value
-            failure_reason = f"Premature tracking termination at z = {z_final:.3f} m (expected exit plane >= {target_z - 0.1:.3f} m)"
+            failure_reason = f"Premature tracking termination at z = {z_final:.3f} m (expected exit plane >= {target_z - z_tol:.3f} m)"
         elif transmission_val is None:
             failure_category = FailureCategory.MISSING_OUTPUT.value
             failure_reason = "Required transmission_fraction diagnostic is missing"

@@ -111,6 +111,8 @@ class ExecutionConfig:
     acqf_raw_samples: int = 1024
     acqf_maxiter: int = 200
     acqf_batch_limit: int = 5
+    z_stop_m: float = 16.2
+    z_loss_tolerance_m: float = 0.1
 
 
 @dataclass

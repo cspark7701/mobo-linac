@@ -10,6 +10,7 @@ import torch
 from torch import Tensor
 from botorch.models import ModelListGP
 
+from mobo_linac.config import ConstraintsConfig, MoboConfig
 from mobo_linac.models.gp import build_gp_models, fit_gp_models
 
 
@@ -27,6 +28,7 @@ class SurrogatePipeline:
         relative_noise_ratio: float = 1.0e-6,
         min_noise_variance: float = 1.0e-24,
         objective_noise_variances: Optional[List[float]] = None,
+        constraints_config: Optional[Union[ConstraintsConfig, MoboConfig]] = None,
         device: Optional[Union[str, torch.device]] = None,
     ):
         from mobo_linac.utils import get_device
@@ -39,6 +41,14 @@ class SurrogatePipeline:
         self.relative_noise_ratio = relative_noise_ratio
         self.min_noise_variance = min_noise_variance
         self.objective_noise_variances = objective_noise_variances
+
+        if isinstance(constraints_config, MoboConfig):
+            self.constraints_config: Optional[ConstraintsConfig] = constraints_config.constraints
+        elif isinstance(constraints_config, ConstraintsConfig):
+            self.constraints_config = constraints_config
+        else:
+            self.constraints_config = ConstraintsConfig()
+
         self.objective_model: Optional[ModelListGP] = None
         self.constraint_model: Optional[ModelListGP] = None
         self.is_fitted: bool = False
@@ -145,8 +155,34 @@ class SurrogatePipeline:
         mean = posterior.mean
         sigma = posterior.variance.sqrt().clamp(min=1e-9)
 
-        normal_dist = torch.distributions.Normal(0.0, 1.0)
-        prob_per_constraint = normal_dist.cdf(-mean / sigma)
+        normal_dist = torch.distributions.Normal(
+            torch.tensor(0.0, dtype=torch.double, device=self.device),
+            torch.tensor(1.0, dtype=torch.double, device=self.device),
+        )
+
+        if mean.shape[-1] == 7 and self.constraints_config is not None:
+            c = self.constraints_config
+            # Diagnostic channels: [sigma_x, sigma_y, sigma_xp, sigma_yp, sigma_z, energy, transmission]
+            # 1. Upper bounds: P(Y <= max) = Phi((max - mean) / sigma)
+            p_sx = normal_dist.cdf((c.max_sigma_x_m - mean[..., 0]) / sigma[..., 0])
+            p_sy = normal_dist.cdf((c.max_sigma_y_m - mean[..., 1]) / sigma[..., 1])
+            p_sxp = normal_dist.cdf((c.max_sigma_xp_rad - mean[..., 2]) / sigma[..., 2])
+            p_syp = normal_dist.cdf((c.max_sigma_yp_rad - mean[..., 3]) / sigma[..., 3])
+            p_sz = normal_dist.cdf((c.max_sigma_z_m - mean[..., 4]) / sigma[..., 4])
+
+            # 2. Two-sided energy: P(E_min <= E <= E_max) = Phi((E_max - mean)/sigma) - Phi((E_min - mean)/sigma)
+            p_e_upper = normal_dist.cdf((c.max_mean_kinetic_energy_eV - mean[..., 5]) / sigma[..., 5])
+            p_e_lower = normal_dist.cdf((c.min_mean_kinetic_energy_eV - mean[..., 5]) / sigma[..., 5])
+            p_energy = (p_e_upper - p_e_lower).clamp(min=0.0, max=1.0)
+
+            # 3. Lower bound transmission: P(T >= min_T) = Phi((mean - min_T) / sigma)
+            p_trans = normal_dist.cdf((mean[..., 6] - c.min_transmission) / sigma[..., 6])
+
+            prob_stack = torch.stack([p_sx, p_sy, p_sxp, p_syp, p_sz, p_energy, p_trans], dim=-1)
+            prob_per_constraint = prob_stack.clamp(min=0.0, max=1.0)
+        else:
+            # Fallback for standard zero-thresholded constraints c_i(x) <= 0
+            prob_per_constraint = normal_dist.cdf(-mean / sigma).clamp(min=0.0, max=1.0)
 
         total_prob = prob_per_constraint.prod(dim=-1)
         return total_prob

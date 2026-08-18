@@ -373,6 +373,7 @@ class MoboCampaignRunner:
                     relative_noise_ratio=self.config.model.relative_noise_ratio,
                     min_noise_variance=self.config.model.min_noise_variance,
                     objective_noise_variances=self.config.model.objective_noise_variances,
+                    constraints_config=self.config.constraints,
                     device=self.device,
                 )
 
