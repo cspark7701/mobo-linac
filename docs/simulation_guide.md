@@ -59,6 +59,7 @@ Each directory contains:
 ### 2.2 Strict Evaluation Failure Semantics
 Numerical simulation validity (`simulation_valid`) is strictly separated from physical beam feasibility (`physically_feasible`):
 - **`MISSING_OUTPUT`**: ASTRA failed to write output particles $\implies$ Invalid simulation.
+- **`PREMATURE_BEAM_LOSS`**: Particle tracking terminated prematurely before exit screen ($z_{\text{final}} < Z_{\text{stop}} - \Delta z_{\text{tol}}$) due to core collimation or loss $\implies$ Invalid simulation.
 - **`NAN_INF_DIAGNOSTICS`**: Negative or non-finite RMS beam sizes/emittances $\implies$ Invalid simulation.
 - **`INVALID_TRANSMISSION`**: Transmission $< 0\%$ or $> 100\%$ $\implies$ Invalid simulation.
 - **`INFEASIBLE_BEAM`**: Valid simulation violating beam quality constraints $\implies$ Valid simulation, Infeasible beam.
@@ -84,19 +85,28 @@ Numerical simulation validity (`simulation_valid`) is strictly separated from ph
                         │
                         ▼
   Update Independent ARD Matérn-5/2 GP Surrogates
+   (Relative Noise Scaling: σ_obs² = η · Var(Y))
                         │
                         ▼
   Optimize qLogNEHVI / qLogEHVI Acquisition Function
+   (Multi-Tier Resilient Retry & Sobol Fallback)
                         │
                         ▼
       Propose Next Candidate Batch (q = 4)
+                        │
+                        ▼
+  Atomic POSIX Checkpoint State Persistence
 ```
 
-### 3.1 Surrogate Modeling
+### 3.1 Surrogate Modeling & Feasibility
 - **Kernel**: Independent Matérn-5/2 ARD kernel ($\nu = 2.5$) for each objective and constraint diagnostic.
-- **Noise Treatment**: Fixed near-zero noise variance ($\sigma_{\text{obs}}^2 = 10^{-6}$) modeling deterministic ASTRA simulations.
+- **Relative Noise Scaling**: Empirical variance-scaled observation noise $\sigma_{\text{obs}}^2 = \max(\eta \cdot \text{Var}(Y_m), \sigma_{\text{floor}}^2)$ with $\eta = 10^{-6}$ and floor $10^{-24}$, preventing over-smoothing across disparate physical scales ($\mu\text{m}\cdot\text{rad}$ vs $\text{MeV}$).
+- **Analytical Feasibility ($P_{\text{feas}}$)**: Exact multi-channel Normal CDF formulation in `SurrogatePipeline`:
+  $$P_{\text{feas}}(\mathbf{x}) = \prod_{i=1}^5 \Phi\left(\frac{\text{max}_i - \mu_i}{\sigma_i}\right) \cdot \left[\Phi\left(\frac{E_{\text{max}} - \mu_E}{\sigma_E}\right) - \Phi\left(\frac{E_{\text{min}} - \mu_E}{\sigma_E}\right)\right] \cdot \Phi\left(\frac{\mu_T - T_{\text{min}}}{\sigma_T}\right)$$
+- **Resilient Acquisition Optimization**: Configurable multi-restart L-BFGS budget with automatic adaptive retry and quasi-random Sobol fallback on numerical singularities.
+- **Atomic Checkpoint Serialization**: Atomic POSIX replace (`_atomic_torch_save`) preventing checkpoint corruption from process termination.
 
-### 3.3 Phase 1: Scalarized Bayesian Optimization Procedure
+### 3.2 Phase 1: Scalarized Bayesian Optimization Procedure
 - **Objective Scalarization**: Linear weighted sum formulation:
   $$f(\mathbf{x}) = \sum_{i=1}^3 w_i \cdot y_{i,\text{norm}}(\mathbf{x}) = w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$$
   where weight combinations $\mathbf{w} \in \Delta^2$ control the optimization priority along the Pareto trade-off curve.

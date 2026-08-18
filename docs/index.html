@@ -154,11 +154,28 @@
 
   <!-- Section: Architecture -->
   <h1 id="architecture">Simulation Code Structure and Architecture</h1>
-  <p>The framework separates optimization routines from simulation-specific details via modular architecture.</p>
+  <p>The framework separates optimization routines from simulation-specific details via a modular, fault-tolerant architecture.</p>
 
-  <pre><code>Parameter Vector (6D) ➔ Modify astra.in ➔ ProcessPoolExecutor Worker ➔ Run ASTRA Simulation 
-    ➔ Parse Statistics ➔ Compute Objectives & Constraints ➔ Update ModelListGP Surrogates 
-    ➔ Optimize qLogNEHVI ➔ Propose Next Candidate Batch (q=4)</code></pre>
+  <pre><code>Parameter Vector (6D) ➔ Dynamic Namelist Mapping ➔ Process-Isolated Working Directory 
+    ➔ Parallel ASTRA Tracking ➔ Exit-Plane Verification (PREMATURE_BEAM_LOSS Trap)
+    ➔ Extract Diagnostics ➔ Update Multi-Scale ModelListGP Surrogates (Relative Noise Scaling)
+    ➔ Evaluate Analytical Normal CDF P_feas ➔ Resilient qLogNEHVI Optimization (Sobol Fallback)
+    ➔ Propose Next Candidate Batch (q=4) ➔ Atomic POSIX Checkpoint State Persistence</code></pre>
+
+  <div class="grid-cards">
+    <div class="rtd-card">
+      <h3>📐 Multi-Scale Surrogates</h3>
+      <p>Relative noise variance scaling \(\sigma_{\text{obs}}^2 = \max(\eta \cdot \text{Var}(Y_m), \sigma_{\text{floor}}^2)\) with \(\eta = 10^{-6}\), preventing over-smoothing across \(\mu\text{m}\cdot\text{rad}\) and \(\text{MeV}\) scales.</p>
+    </div>
+    <div class="rtd-card">
+      <h3>🛡️ Fault-Tolerant Engine</h3>
+      <p>Multi-tier acquisition optimization with adaptive restart retry, quasi-random Sobol fallback, and atomic POSIX checkpoint writes protecting long-running campaigns.</p>
+    </div>
+    <div class="rtd-card">
+      <h3>📊 Analytical Feasibility</h3>
+      <p>Exact multi-channel Normal CDF Probability of Feasibility (\(P_{\text{feas}}\)) integrating 8 diagnostic constraints directly into acquisition search.</p>
+    </div>
+  </div>
 
   <!-- Section: Results -->
   <h1 id="results">Optimization Benchmark Results</h1>

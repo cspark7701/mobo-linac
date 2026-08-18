@@ -118,11 +118,14 @@ Running parallel ASTRA instances in a single directory leads to file overwrites 
 \end{equation}
 Every evaluation directory contains clean copies of input templates (\texttt{gun.dat}, \texttt{PAL\_SOL\_A.dat}, \texttt{TWS\_Sband.dat}, \texttt{pal\_photo2.ini}) and an independently generated \texttt{astra.in}. Parallel evaluations execute via \texttt{ProcessPoolExecutor} with process isolation.
 
-\subsection{Surrogate Modeling}
+\subsection{Surrogate Modeling and Feasibility Evaluation}
 \label{sec:surrogates}
-Independent Gaussian Process (GP) surrogates with Mat\'{e}rn-5/2 kernels ($\nu = 2.5$) and 6D Automatic Relevance Determination (ARD) model each objective independently using \texttt{ModelListGP}. Fixed near-zero observation noise ($\sigma_{\text{obs}}^2 = 10^{-6}$) is specified to model the deterministic nature of ASTRA evaluations. In constrained MOBO (Phase 3), additional GP surrogates are fitted independently to each constraint diagnostic channel.
+Independent Gaussian Process (GP) surrogates with Mat\'{e}rn-5/2 kernels ($\nu = 2.5$) and 6D Automatic Relevance Determination (ARD) model each objective independently using \texttt{ModelListGP}. To handle objective dimensions differing by orders of magnitude ($\mu\text{m}\cdot\text{rad}$ vs $\text{MeV}$), we implement relative observation noise variance scaling $\sigma_{\text{obs},m}^2 = \max(\eta \cdot \operatorname{Var}(Y_m), \sigma_{\text{floor}}^2)$ with $\eta = 10^{-6}$ and $\sigma_{\text{floor}}^2 = 10^{-24}$, preventing numerical over-smoothing while accommodating deterministic ASTRA simulations. In constrained MOBO (Phase 3), additional GP surrogates model the 7 diagnostic constraint channels ($[\sigma_x, \sigma_y, \sigma_{x'}, \sigma_{y'}, \sigma_z, E_{\text{kin}}, \text{transmission}]$) with exact analytical multi-channel Normal CDF feasibility evaluation:
+\begin{equation}
+    P_{\text{feas}}(\mathbf{x}) = \prod_{i=1}^5 \Phi\!\left(\frac{\text{max}_i - \mu_i(\mathbf{x})}{\sigma_i(\mathbf{x})}\right) \cdot \left[\Phi\!\left(\frac{E_{\text{max}} - \mu_E(\mathbf{x})}{\sigma_E(\mathbf{x})}\right) - \Phi\!\left(\frac{E_{\text{min}} - \mu_E(\mathbf{x})}{\sigma_E(\mathbf{x})}\right)\right] \cdot \Phi\!\left(\frac{\mu_T(\mathbf{x}) - T_{\text{min}}}{\sigma_T(\mathbf{x})}\right)
+\end{equation}
 
-\subsection{Acquisition Function}
+\subsection{Acquisition Function and Fault-Tolerant Optimization}
 \label{sec:acquisition}
 Candidate batches of size $q$ are selected by optimizing the logarithmic Noisy Expected Hypervolume Improvement acquisition function \cite{Daulton2021qNEHVI}. For unconstrained MOBO (Phase 2) we use $q\text{LogNEHVI}$; for constrained MOBO (Phase 3), the acquisition is feasibility-weighted:
 \begin{equation}
@@ -131,7 +134,7 @@ Candidate batches of size $q$ are selected by optimizing the logarithmic Noisy E
         - \text{HV}(\mathcal{P}\mid\mathbf{r}_{\text{acq}})
     \right]
 \end{equation}
-where $\tilde{\mathbf{y}}_i$ are joint posterior samples from the GP models evaluated at the proposed $q$ candidates $\mathbf{X}$, $\mathcal{P}$ is the current Pareto archive in model space, and $\mathbf{r}_{\text{acq}}$ is the acquisition reference point. The expectation is approximated via quasi-Monte Carlo sampling with 256 base samples. In Phase 3, the acquisition is additionally weighted by the joint Probability of Feasibility $P(\text{feasible} \mid \mathbf{x})$ estimated from the constraint GP surrogates \cite{Daulton2021qNEHVI}.
+where $\tilde{\mathbf{y}}_i$ are joint posterior samples from the GP models evaluated at the proposed $q$ candidates $\mathbf{X}$, $\mathcal{P}$ is the current Pareto archive in model space, and $\mathbf{r}_{\text{acq}}$ is the acquisition reference point. In Phase 3, the acquisition is additionally weighted by the analytical Probability of Feasibility $P_{\text{feas}}(\mathbf{x})$ \cite{Daulton2021qNEHVI}. To protect against optimizer singularities during long campaigns, candidate generation features adaptive multi-restart L-BFGS retries with quasi-random Sobol fallback and atomic POSIX checkpoint state persistence.
 
 \subsection{Fixed Reporting Reference Point}
 \label{sec:ref_point}

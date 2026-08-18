@@ -167,11 +167,18 @@ Generate next candidate(s)
 Current implementation
 
 - Gaussian Process surrogate (`ModelListGP` with Matérn 5/2 ARD kernel)
-- ProcessPoolExecutor parallel ASTRA evaluation
-- `qLogNEHVI` / `qLogEHVI` acquisition formulations
+- Gaussian Process surrogate (`ModelListGP` with Matérn 5/2 ARD kernel)
+- Multi-scale relative fixed noise variance scaling ($\sigma_{\text{obs}}^2 = \max(\eta \cdot \text{Var}(Y_m), \sigma_{\text{floor}}^2)$ with $\eta=10^{-6}$)
+- Exact multi-channel analytical Normal CDF feasibility modeling ($P_{\text{feas}}$) across 7 diagnostic channels
+- ProcessPoolExecutor process-safe parallel ASTRA evaluations
+- Multi-tier resilient acquisition proposal engine with adaptive restart retry & quasi-random Sobol fallback
+- `qLogNEHVI` / `qLogEHVI` acquisition formulations with configurable L-BFGS multi-restart budgets
+- Longitudinal exit-plane loss detection & premature tracking rejection (`PREMATURE_BEAM_LOSS`)
 - Fixed-reference hypervolume tracking ($\mathbf{r} = [1.5\text{ mm}, 1.5\text{ mm}, 1.5\text{ MeV}]$)
 - Candidate history, SHA-256 evaluation checksums, and Pareto visualization
-- Constraint diagnostics and explicit GP constraint surrogate modeling
+- Full-chain photocathode & laser jitter robustness modeling (7 physical noise channels)
+- Atomic POSIX crash-proof checkpoint serialization (`_atomic_torch_save`)
+- Centralized publication-grade LaTeX reporting module (`mobo_linac.metrics.latex`)
 - Automated environment fallback resolution for integrated ASTRA executables (`./bin/astra`)
 
 ---
@@ -220,12 +227,18 @@ Outputs:
 
 ## Phase 3 (Completed)
 
-Constraint-aware Bayesian Optimization & Publication Freeze (Release `v1.0.0`)
+Constraint-aware Bayesian Optimization, High-Fidelity Physics & Architecture Refactoring (Release `v1.0.0`)
 
 Implemented:
-- Explicit GP models for beam quality constraints ($\sigma_x, \sigma_y, \sigma_z, \sigma_{x'}, \sigma_{y'}, E_{\text{kin}}$)
-- Feasibility-weighted acquisition & Probability of Feasibility modeling
-- Robustness evaluation under engineering tolerances ($\pm 0.1^\circ$ RF phase, $\pm 0.1\%$ magnet fields)
+- Explicit GP models for beam quality constraints ($\sigma_x, \sigma_y, \sigma_z, \sigma_{x'}, \sigma_{y'}, E_{\text{kin}}, \text{transmission}$)
+- Exact multi-channel analytical Normal CDF Probability of Feasibility modeling ($P_{\text{feas}}$)
+- Multi-scale Gaussian Process relative noise variance scaling for $\mu\text{m}\cdot\text{rad}$ vs $\text{MeV}$
+- Config-driven dynamic parameter mapping to arbitrary ASTRA namelists & cavity decoupling
+- Longitudinal exit-plane verification & premature beam loss / core collimation trapping
+- Robustness evaluation under engineering tolerances ($\pm 0.1^\circ$ RF phase, $\pm 0.1\%$ magnet fields) and full-chain photocathode/laser jitter
+- Multi-tier resilient acquisition optimization with adaptive retry and Sobol fallback
+- Atomic POSIX crash-proof checkpoint writes (`_atomic_torch_save`)
+- Centralized publication-ready LaTeX table reporting module (`mobo_linac.metrics.latex`)
 - Automated Pareto candidate verification protocol with SHA-256 checksum audit
 - Archived publication artifacts (`release/publication_artifact_manifest.json`, tag `v1.0.0`)
 

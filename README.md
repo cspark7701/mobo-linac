@@ -33,28 +33,34 @@ mobo_linac/
 ├── bin/                               # Integrated local ASTRA binaries (astra, generator)
 │
 ├── src/mobo_linac/                    # Core Python package
-│   ├── astra/                         # Isolated workdir manager & runner
+│   ├── acquisition/                   # Resilient qLogNEHVI / qLogEHVI acquisition functions
+│   ├── astra/                         # Isolated workdir manager & dynamic runner
+│   ├── campaigns/                     # Unified MoboCampaignRunner execution engine
 │   ├── execution/                     # ProcessPoolExecutor parallel batch evaluator
 │   ├── config.py                      # Centralized YAML configuration parser
 │   ├── evaluation.py                  # EvaluationResult & FailureCategory schema
 │   ├── objectives.py                  # Physical <-> Model space conversions
-│   ├── constraints.py                 # Beam quality constraint evaluator
-│   ├── metrics/                       # Fixed reporting reference point & hypervolume
-│   ├── io/                            # Results dataframes & CSV export
+│   ├── constraints.py                 # Dynamic beam quality constraint evaluator
+│   ├── metrics/                       # Fixed reference hypervolume, Pareto & LaTeX reporting
+│   ├── models/                        # Multi-scale Gaussian Processes & SurrogatePipeline
+│   ├── robustness/                    # Full-chain photocathode/laser perturbation analysis
+│   ├── io/                            # Results dataframes & atomic CheckpointState serialization
 │   └── plotting/                      # Pareto, hypervolume, & diagnostic figures
 │
 ├── configs/
-│   └── mobo_200MeV.yaml               # Centralized configuration file
+│   ├── mobo_200MeV.yaml               # Centralized configuration file
+│   └── publication_200MeV.yaml        # Canonical publication configuration
 │
 ├── docs/
 │   ├── simulation_guide.md            # Step-by-step execution guide
 │   ├── paper/                         # LaTeX journal manuscript (main.tex, main.pdf)
 │   ├── exec-plans/                    # Active and completed task plans
-│   └── results/                       # Validation reports and figures
+│   ├── 04_refactor_tasks/             # Modular refactoring specifications (Tasks 01--11)
+│   └── index.html                     # Project technical web portal
 │
-├── scripts/                           # Campaign & comparison execution scripts
+├── scripts/                           # Campaign, comparison, & LaTeX export scripts
 ├── notebooks/                         # Interactive analysis notebooks
-├── tests/                             # Pytest test suite (150+ unit tests)
+├── tests/                             # Pytest test suite (58+ unit tests)
 └── results/                           # Optimization run output directories
 ```
 
@@ -231,10 +237,16 @@ mobo-linac resume --run-dir results/<run_id>
   - Independent GP models per objective (`ModelListGP`)
   - Pareto front optimization using `qLogNEHVI` / `qEHVI`
   - Hypervolume tracking & candidate history logging
-- [x] **Phase 3: Constraint-Aware MOBO**
-  - Explicit GP models for constraint diagnostics
-  - Feasibility-weighted acquisition functions
-- [ ] **Phase 4: High-Performance Optimization**
+- [x] **Phase 3: Constraint-Aware MOBO & High-Fidelity Refactoring (v1.0.0)**
+  - Exact analytical Normal CDF multi-constraint feasibility modeling ($P_{\text{feas}}$)
+  - Relative fixed noise variance scaling for multi-scale GP surrogates ($\mu\text{m}\cdot\text{rad}$ vs $\text{MeV}$)
+  - Dynamic parameter mapping to arbitrary ASTRA namelists & cavity decoupling
+  - Longitudinal exit-plane loss detection & premature beam loss trapping (`PREMATURE_BEAM_LOSS`)
+  - Full-chain photocathode & laser jitter robustness modeling (7 physical noise channels)
+  - Multi-tier resilient acquisition proposal engine with adaptive retry & Sobol fallback
+  - Atomic POSIX crash-proof checkpoint serialization (`_atomic_torch_save`)
+  - Centralized publication-grade LaTeX reporting module (`mobo_linac.metrics.latex`)
+- [ ] **Phase 4: Distributed High-Performance Optimization**
   - Distributed ASTRA evaluations via Ray / Dask / MPI on multi-node clusters
 - [ ] **Phase 5: Advanced Surrogate Architectures**
   - MultiTaskGP, SAASBO, TuRBO trust-region BO, Deep Kernel Learning
