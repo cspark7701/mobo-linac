@@ -8,7 +8,7 @@ authors:
     affiliation: "Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea"
     email: "kuphy@korea.ac.kr"
 title: "Multi-Objective Bayesian Optimization and Independent Pareto Candidate Verification for a 200 MeV Electron Injector Linac"
-version: 0.1.0
+version: 1.0.0
 # TODO: Update DOI after Zenodo deposit
 doi: 10.5281/zenodo.PLACEHOLDER
 date-released: 2026-07-25

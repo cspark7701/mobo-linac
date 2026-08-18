@@ -21,15 +21,21 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 - **Task 49 (Codex 09)**: Paired multi-seed benchmark campaigns — `BenchmarkConfig`, shared Sobol init per seed, 95% bootstrap CI plots.
 - **Task 50 (Codex 10)**: Manuscript regeneration — `generate_paper_figures.py` data-driven figure/table pipeline; 38-test `test_paper_outputs.py` suite; updated `main.tex` with corrected qLogNEHVI formula and no hard-coded results.
 
-## [v1.0.0] - 2026-07-25
+## [v1.0.0] - 2026-08-18
 
-### Publication Release Highlights
+### Publication Release & Physics Refactor Highlights (Tasks 01–11 / Refactors A, B, C)
+- **Multi-Scale Gaussian Process Relative Noise Scaling (Task 01)**: Dynamic empirical variance observation noise scaling ($\sigma_{\text{obs}}^2 = \max(\eta \cdot \text{Var}(Y_m), \sigma_{\text{floor}}^2)$ with $\eta=10^{-6}$ and floor $10^{-24}$), preventing numerical over-smoothing across disparate $\mu\text{m}\cdot\text{rad}$ and $\text{MeV}$ scales.
+- **Config-Driven Dynamic Parameter Mapping (Task 02)**: Fully dynamic parameter mapping from YAML configuration to arbitrary ASTRA namelist paths (`solenoid:maxb(1)`, `cavity:phi(2,3)`, etc.) supporting cavity decoupling and custom parameter sets.
+- **Longitudinal Exit-Plane Verification & Beam Loss Detection (Tasks 03 & 09)**: Real-time detection of premature beam loss at apertures and collimators ($z_{\text{final}} < Z_{\text{stop}} - \Delta z_{\text{tol}}$), categorizing failures under `PREMATURE_BEAM_LOSS` and protecting GP training data integrity.
+- **Unified Campaign Execution Engine (Task 04)**: Consolidated scalarized, unconstrained, and constrained optimization loops into a centralized `MoboCampaignRunner`.
+- **Pareto Diversity & Canonical Crowding Distance (Task 05)**: Boundary-preserving crowding distance computation, candidate duplicate detection, and CLI cleanup.
+- **Full-Chain Photocathode & Laser Jitter Robustness Modeling (Task 06)**: Multi-channel jitter analysis incorporating spot size ($XY$), pulse length ($T$), laser energy/charge, and launch angle perturbations across 7 physical channels.
+- **Type-Safe `CheckpointState` Schema & Schema Validation (Task 07)**: Strict dataclass schema validation with backward-compatible serialization.
+- **Configurable Multi-Restart Optimization Budgets (Task 08)**: User-tunable L-BFGS multi-restart parameters (`acqf_num_restarts`, `acqf_raw_samples`, `acqf_maxiter`, `acqf_batch_limit`) and automatic GPU device placement.
+- **Exact Analytical Normal CDF Feasibility Modeling ($P_{\text{feas}}$) (Task 09 / Refactor A)**: Exact multi-channel Normal CDF probability evaluation across 7 linac diagnostic channels in `SurrogatePipeline`.
+- **Multi-Tier Resilient Acquisition & Atomic Checkpoints (Task 10 / Refactor B)**: Fault-tolerant acquisition optimization with adaptive budget reduction retry and scrambled Sobol exploration fallback; crash-proof atomic POSIX checkpoint serialization (`_atomic_torch_save`).
+- **Centralized Publication LaTeX Table Reporting (Task 11 / Refactor C)**: Dedicated `mobo_linac.metrics.latex` module generating publication-grade LaTeX tables for Pareto verification, campaign comparisons, and robustness analysis.
 - **Process-Safe Directory Isolation**: Per-evaluation isolated working directories (`results/<run_id>/work/eval_<id>/`) eliminating file overwrites and race conditions during parallel evaluations.
-- **Strict Failure Semantics & Schema**: Explicit separation of numerical simulation validity (`simulation_valid`) from physical beam feasibility (`physically_feasible`). Zero tolerance for invalid transmission or out-of-bounds beam physics.
-- **Canonical 200 MeV Physics Specification**: Frozen 6D design space, coupled RF cavity phase definitions (ACC1/ACC2 & ACC3/ACC4), ordered bounds ($L \le U$), 3 physical objectives ($\varepsilon_{n,x}, \varepsilon_{n,y}, \sigma_E$), and 8 strict constraints ($1.0\text{ mm} / 1.0\text{ mrad} / 90\%$).
-- **Surrogate Modeling & Acquisition Alignment**: ARD Matérn-5/2 GP surrogates, configurable noise models ($\sigma_{\text{obs}}^2 = 10^{-6}$ fixed noise), and $q\text{LogNEHVI} / q\text{LogEHVI}$ acquisition function integration.
-- **Standardized Metric Reporting**: Fixed engineering scale factors ($S = [10^{-6}, 10^{-6}, 10^6]$) and fixed reporting reference points ($[-10.0, -10.0, -10.0]$ in normalized model space).
-- **Statistically Rigorous Benchmark Campaign Architecture**: Seed-paired initial Sobol design generator and 95% bootstrap confidence intervals ($B=1000$ resamples).
-- **Robustness & Sensitivity Analysis**: Engineering perturbation evaluator ($\pm 0.1^\circ$ RF phase, $\pm 0.1\%$ magnet fields, $\pm 1\%$ charge/laser), probability of feasibility ($P_{\text{feas}}$), and Knee Point operating baseline recommendation.
-- **Independent Pareto Candidate Verification**: 7-role candidate selection, SHA-256 input checksums, fresh workdir reruns, relative percentage error tolerances, and automated LaTeX table generation (`verification_table.tex`).
-- **Manuscript Reproduction Suite**: Executable single-command reproduction script `scripts/reproduce_paper.sh` and archived processed benchmark datasets in `results/publication_processed/`.
+- **Strict Failure Semantics & Schema**: Explicit separation of numerical simulation validity (`simulation_valid`) from physical beam feasibility (`physically_feasible`).
+- **Standardized Metric Reporting**: Fixed engineering scale factors and standardized reporting reference point $\mathbf{r}_{\text{rep}}$.
+- **Independent Pareto Verification & Reproduction Suite**: 7-role candidate selection, SHA-256 checksum audit, fresh workdir reruns, automated LaTeX export, and `scripts/reproduce_paper.sh`.
