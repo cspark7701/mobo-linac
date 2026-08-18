@@ -19,6 +19,7 @@ from mobo_linac.config import load_config
 from mobo_linac.evaluation import create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
 from mobo_linac.io.results import DESIGN_VAR_COLUMNS, PHYSICAL_OBJ_COLUMNS
+from mobo_linac.metrics.latex import generate_robustness_summary_latex_table
 from mobo_linac.robustness.evaluator import (
     compute_robustness_summary,
     generate_perturbed_parameters,
@@ -211,6 +212,8 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
 
     summary_df = pd.DataFrame(summaries)
     summary_df.to_csv(output_dir / "robustness_summary.csv", index=False)
+    tex_path = generate_robustness_summary_latex_table(summary_df, output_path=output_dir / "robustness_table.tex")
+    print(f"  ✓ Exported LaTeX table -> {output_dir / 'robustness_table.tex'}")
     print(f"=== Robustness Analysis Complete -> Saved in {output_dir.resolve()} ===")
     return output_dir
 

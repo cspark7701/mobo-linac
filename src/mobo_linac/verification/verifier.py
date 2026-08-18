@@ -276,38 +276,9 @@ def export_verification_latex_table(
     Returns:
         Path object of created .tex file.
     """
+    from mobo_linac.metrics.latex import generate_verification_latex_table
     path = Path(output_path)
-    path.parent.mkdir(parents=True, exist_ok=True)
-
-    tex = [
-        r"\begin{table}[htbp]",
-        r"\centering",
-        r"\caption{Independent Verification Results of Representative Pareto Candidates}",
-        r"\label{tab:pareto_verification}",
-        r"\begin{tabular}{lcccccc}",
-        r"\hline",
-        r"Candidate Role & Stored $\varepsilon_{n,x}$ ($\mu$m) & Rerun $\varepsilon_{n,x}$ ($\mu$m) & Stored $\sigma_E$ (MeV) & Rerun $\sigma_E$ (MeV) & Max Error (\%) & Status \\",
-        r"\hline",
-    ]
-
-    for rec in records:
-        role = rec["role"].replace("_", r"\_")
-        s_ex = rec["stored_emit_x_m_rad"] * 1e6
-        r_ex = rec["rerun_emit_x_m_rad"] * 1e6
-        s_se = rec["stored_sigma_energy_eV"] * 1e-6
-        r_se = rec["rerun_sigma_energy_eV"] * 1e-6
-        err = rec["max_diff_pct"]
-        status = rec["verification_status"]
-
-        tex.append(f"{role} & {s_ex:.4f} & {r_ex:.4f} & {s_se:.4f} & {r_se:.4f} & {err:.6f} & {status} \\\\")
-
-    tex.extend([
-        r"\hline",
-        r"\end{tabular}",
-        r"\end{table}",
-    ])
-
-    content = "\n".join(tex) + "\n"
-    path.write_text(content, encoding="utf-8")
+    generate_verification_latex_table(records, output_path=path)
     return path
+
 

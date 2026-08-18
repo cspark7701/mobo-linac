@@ -14,6 +14,11 @@ from mobo_linac.metrics.pareto import (
     extract_pareto_sets,
     select_representative_pareto_candidates,
 )
+from mobo_linac.metrics.latex import (
+    generate_verification_latex_table,
+    generate_results_summary_latex_table,
+    generate_robustness_summary_latex_table,
+)
 
 __all__ = [
     "compute_hypervolume",
@@ -24,4 +29,7 @@ __all__ = [
     "extract_pareto_sets",
     "select_representative_pareto_candidates",
     "detect_and_report_candidate_duplicates",
+    "generate_verification_latex_table",
+    "generate_results_summary_latex_table",
+    "generate_robustness_summary_latex_table",
 ]
