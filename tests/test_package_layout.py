@@ -23,7 +23,7 @@ import mobo_linac.plotting
 def test_package_version():
     """Verify package version metadata."""
     assert hasattr(mobo_linac, "__version__")
-    assert mobo_linac.__version__ == "0.1.0"
+    assert mobo_linac.__version__ == "1.0.0"
 
 
 def test_subpackage_imports():

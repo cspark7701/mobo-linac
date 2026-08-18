@@ -31,13 +31,21 @@ jobs:
           pip install git+https://github.com/ChristopherMayes/lume-astra.git
           pip install -e .
 
+      - name: Set binary permissions
+        run: |
+          chmod +x bin/* || true
+
       - name: Smoke test — package import and version
         run: |
-          python -c "import mobo_linac; print('mobo_linac version:', mobo_linac.__version__)"
+          python -c "import mobo_linac; print('mobo_linac version:', mobo_linac.__version__); assert mobo_linac.__version__ == '1.0.0'"
 
       - name: Smoke test — CLI help
         run: |
           python -m mobo_linac.cli --help
+
+      - name: Verify documentation and configuration sync
+        run: |
+          python scripts/verify_docs_sync.py
 
       - name: Run unit test suite (without ASTRA binary requirement)
         run: |
