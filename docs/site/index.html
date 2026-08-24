@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="author" content="Chong Shik Park" />
+  <title>mobo_linac Documentation — Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac</title>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js" type="text/javascript"></script>
+
+</head>
+<body>
+<header class="site-header">
+  <div class="rtd-brand">
+    <div class="logo-icon">⚡</div>
+    <div>
+      <h1>mobo_linac</h1>
+      <p>200 MeV Linac MOBO Framework</p>
+    </div>
+  </div>
+  <label class="rtd-search" aria-label="Search documentation">
+    <span>Search docs</span>
+    <input type="search" id="rtd-search-input" placeholder="Search docs" onkeyup="filterDocsNav()" />
+  </label>
+  <div class="rtd-version">v1.0.0 (latest)</div>
+  <div class="rtd-downloads">
+    <a href="consolidated_report/consolidated_report.pdf" target="_blank">PDF Report</a>
+    <a href="https://github.com/cspark7701/mobo_linac" target="_blank">GitHub</a>
+  </div>
+  <p class="byline">Chong Shik Park<br />Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea</p>
+</header>
+<div class="layout">
+<nav id="TOC" role="doc-toc">
+  <ul>
+    <li><a class="current" href="#overview">Framework Overview</a></li>
+    <li><a href="#physics">Physics Models and Machine Conventions</a></li>
+    <li><a href="#architecture">Simulation Code Structure and Architecture</a></li>
+    <li><a href="#results">Optimization Benchmark Results</a></li>
+    <li><a href="#verification">Independent Pareto Verification</a></li>
+    <li><a href="#robustness">Engineering Tolerance & Robust Score</a></li>
+    <li><a href="#production-pipeline">Full Production Simulations & Analysis Procedure</a></li>
+
+    <li><a href="#installation">New User Installation and Local Operation</a></li>
+    <li><a href="consolidated_report/consolidated_report.pdf" target="_blank">PDF Technical Report</a></li>
+  </ul>
+</nav>
+<main>
+  <div class="page-tools">
+    <a href="#">Docs home</a>
+    <span>Multi-Objective Bayesian Optimization for a 200 MeV Linac</span>
+  </div>
+
+  <h1 id="title">Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac</h1>
+
+  <div class="source-note">
+    <strong>Author:</strong> Chong Shik Park — Department of Accelerator Science and Center for Accelerator Research, Korea University, Sejong, 30019 Republic of Korea.<br />
+    <strong>Publication Context:</strong> Presented at ICABU 2025 • <strong>Release Tag:</strong> <code>v1.0.0</code>
+  </div>
+
+  <p>This documentation presents a Machine Learning framework combining BoTorch \(q\text{LogNEHVI}\) acquisition functions with process-safe ASTRA beam dynamics simulations to learn true non-dominated Pareto fronts under physical beam quality constraints.</p>
+
+  <!-- Section: Framework Overview -->
+  <h1 id="overview">Framework Overview</h1>
+  <p>The repository develops a Multi-Objective Bayesian Optimization (MOBO) pipeline for an S-band electron injector linac. It replaces scalarized weighted objective optimization with direct Pareto front learning using Gaussian Process (GP) surrogates and hypervolume maximization.</p>
+
+  <div class="grid-cards">
+    <div class="rtd-card">
+      <h3>🔬 Accelerator Physics Model</h3>
+      <p>High-fidelity particle tracking with ASTRA (v3.2) using 2D cylindrical space-charge field solvers (\(N=10,000\) macroparticles, \(Q=250\text{ pC}\)) across a 200 MeV linac featuring RF gun, solenoid, 4 ACC cavities, and quad doublets.</p>
+    </div>
+    <div class="rtd-card">
+      <h3>🛡️ Process-Safe Isolation</h3>
+      <p>Every parallel simulation worker executes inside a dedicated evaluation directory (<code>results/&lt;run_id&gt;/work/eval_00000i/</code>), eliminating multi-threaded file race conditions.</p>
+    </div>
+    <div class="rtd-card">
+      <h3>🎯 Constrained \(q\text{LogNEHVI}\)</h3>
+      <p>Parallel candidate batch proposals (\(q=4\)) driven by Noisy Expected Hypervolume Improvement, weighted by explicit Gaussian Process Probability of Feasibility constraint models.</p>
+    </div>
+  </div>
+
+  <!-- Section: Physics & Design Parameters -->
+  <h1 id="physics">Physics Models and Machine Conventions</h1>
+  <p>The optimization controls 6 continuous design parameters written directly into <code>astra.in</code>, optimizing 3 physical beam objectives subject to 8 beam quality diagnostic constraints.</p>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Design Variable Description</th>
+        <th>ASTRA Input Key</th>
+        <th>Nominal</th>
+        <th>Lower Bound</th>
+        <th>Upper Bound</th>
+        <th>Unit</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>Solenoid Peak Field (\(B_{\text{sol}}\))</td>
+        <td><code>solenoid:maxb(1)</code></td>
+        <td>0.1948</td>
+        <td>0.0974</td>
+        <td>0.2922</td>
+        <td>T</td>
+      </tr>
+      <tr>
+        <td>Quadrupole 1 Gradient (\(G_{q1}\))</td>
+        <td><code>quadrupole:q_grad(1)</code></td>
+        <td>1.2865</td>
+        <td>0.6433</td>
+        <td>1.9298</td>
+        <td>T/m</td>
+      </tr>
+      <tr>
+        <td>Quadrupole 2 Gradient (\(G_{q2}\))</td>
+        <td><code>quadrupole:q_grad(2)</code></td>
+        <td>-2.8867</td>
+        <td>-4.3300</td>
+        <td>-1.4433</td>
+        <td>T/m</td>
+      </tr>
+      <tr>
+        <td>RF Gun Phase (\(\phi_{\text{gun}}\))</td>
+        <td><code>cavity:phi(1)</code></td>
+        <td>35.62</td>
+        <td>32.06</td>
+        <td>39.19</td>
+        <td>deg</td>
+      </tr>
+      <tr>
+        <td>ACC1/ACC2 Coupled Phase (\(\phi_{\text{acc1/2}}\))</td>
+        <td><code>cavity:phi(2,3)</code></td>
+        <td>-39.51</td>
+        <td>-43.46</td>
+        <td>-35.56</td>
+        <td>deg</td>
+      </tr>
+      <tr>
+        <td>ACC3/ACC4 Coupled Phase (\(\phi_{\text{acc3/4}}\))</td>
+        <td><code>cavity:phi(4,5)</code></td>
+        <td>310.05</td>
+        <td>279.05</td>
+        <td>341.06</td>
+        <td>deg</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <div class="source-note important">
+    <strong>Objective Conventions & Constraints:</strong><br />
+    <strong>Physical Objectives (Minimize):</strong> Horizontal emittance (\(\varepsilon_{n,x}\)), Vertical emittance (\(\varepsilon_{n,y}\)), and RMS energy spread (\(\sigma_E\)). Objectives are negated in model space (\(\mathbf{Y}_{\text{model}} = -\mathbf{Y}_{\text{phys}}\)).<br />
+    <strong>Beam Constraints:</strong> \(\sigma_x, \sigma_y \le 1.0\text{ mm}\), \(\sigma_{x'}, \sigma_{y'} \le 1.0\text{ mrad}\), \(\sigma_z \le 1.0\text{ mm}\), \(195.0 \le E_{\text{kin}} \le 205.0\text{ MeV}\), and \(\eta_{\text{trans}} \ge 90.0\%\).
+  </div>
+
+  <!-- Section: Architecture -->
+  <h1 id="architecture">Simulation Code Structure and Architecture</h1>
+  <p>The framework separates optimization routines from simulation-specific details via a modular, fault-tolerant architecture.</p>
+
+  <pre><code>Parameter Vector (6D) ➔ Dynamic Namelist Mapping ➔ Process-Isolated Working Directory 
+    ➔ Parallel ASTRA Tracking ➔ Exit-Plane Verification (PREMATURE_BEAM_LOSS Trap)
+    ➔ Extract Diagnostics ➔ Update Multi-Scale ModelListGP Surrogates (Relative Noise Scaling)
+    ➔ Evaluate Analytical Normal CDF P_feas ➔ Resilient qLogNEHVI Optimization (Sobol Fallback)
+    ➔ Propose Next Candidate Batch (q=4) ➔ Atomic POSIX Checkpoint State Persistence</code></pre>
+
+  <div class="grid-cards">
+    <div class="rtd-card">
+      <h3>📐 Multi-Scale Surrogates</h3>
+      <p>Relative noise variance scaling \(\sigma_{\text{obs}}^2 = \max(\eta \cdot \text{Var}(Y_m), \sigma_{\text{floor}}^2)\) with \(\eta = 10^{-6}\), preventing over-smoothing across \(\mu\text{m}\cdot\text{rad}\) and \(\text{MeV}\) scales.</p>
+    </div>
+    <div class="rtd-card">
+      <h3>🛡️ Fault-Tolerant Engine</h3>
+      <p>Multi-tier acquisition optimization with adaptive restart retry, quasi-random Sobol fallback, and atomic POSIX checkpoint writes protecting long-running campaigns.</p>
+    </div>
+    <div class="rtd-card">
+      <h3>📊 Analytical Feasibility</h3>
+      <p>Exact multi-channel Normal CDF Probability of Feasibility (\(P_{\text{feas}}\)) integrating 8 diagnostic constraints directly into acquisition search.</p>
+    </div>
+  </div>
+
+  <!-- Section: Results -->
+  <h1 id="results">Optimization Benchmark Results</h1>
+  <p>Feasible hypervolume growth history and 2D Pareto front projections across campaign evaluations.</p>
+
+  <div class="chart-card">
+    <h3>📈 Feasible Hypervolume Progression</h3>
+    <div class="chart-container">
+      <canvas id="hvChart"></canvas>
+    </div>
+  </div>
+
+  <div class="chart-card">
+    <h3>🌌 2D Pareto Objective Projections</h3>
+    <div class="chart-container">
+      <canvas id="paretoChart"></canvas>
+    </div>
+  </div>
+
+  <!-- Section: Verification -->
+  <h1 id="verification">Independent Pareto Candidate Rerun Verification</h1>
+
+  <div class="source-note tip">
+    <strong>Deterministic Verification Protocol:</strong> 5 representative Pareto candidates were independently re-simulated in clean directories, confirming exact numerical reproducibility with <strong>0.000000% maximum relative error</strong>.
+  </div>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Candidate Role</th>
+        <th>Stored \(\varepsilon_{n,x}\) [\(\mu\)m]</th>
+        <th>Rerun \(\varepsilon_{n,x}\) [\(\mu\)m]</th>
+        <th>Stored \(\sigma_E\) [MeV]</th>
+        <th>Rerun \(\sigma_E\) [MeV]</th>
+        <th>Max Rel. Diff [%]</th>
+        <th>Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>min_emit_x</code></td>
+        <td>3.7629</td>
+        <td>3.7629</td>
+        <td>0.7733</td>
+        <td>0.7733</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+      <tr>
+        <td><code>min_emit_y</code></td>
+        <td>3.7629</td>
+        <td>3.7629</td>
+        <td>0.7733</td>
+        <td>0.7733</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+      <tr>
+        <td><code>min_sigma_energy</code></td>
+        <td>5.6884</td>
+        <td>5.6884</td>
+        <td>0.3701</td>
+        <td>0.3701</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+      <tr>
+        <td><code>knee_point</code></td>
+        <td>4.6763</td>
+        <td>4.6763</td>
+        <td>0.4124</td>
+        <td>0.4124</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+      <tr>
+        <td><code>balanced_feasible</code></td>
+        <td>4.6763</td>
+        <td>4.6763</td>
+        <td>0.4124</td>
+        <td>0.4124</td>
+        <td>0.000000</td>
+        <td><span class="status-badge">VERIFIED</span></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <!-- Section: Engineering Tolerance & Robust Score Analysis -->
+  <h1 id="robustness">Engineering Tolerance and Robust Score Analysis</h1>
+  <p>To evaluate candidate stability against real-world machine instabilities (\(\pm 0.1^\circ\) RF phase jitter, \(\pm 0.1\%\) magnet field gradient fluctuations), candidates undergo perturbed sensitivity evaluations and are quantified using a composite metric named the <strong>Robust Score</strong> (\(S_{\text{robust}}\)):</p>
+
+  <p>\[
+    S_{\text{robust}} = \frac{P_{\text{feas}}}{\max\left(1.0, \, \frac{\langle \varepsilon_{n,x} \rangle}{\varepsilon_{n,x}^{\text{nominal}}}\right)}
+  \]</p>
+
+  <div class="source-note tip">
+    <strong>Robust Score Classification:</strong><br />
+    • <strong>\(S_{\text{robust}} \ge 0.80\) (Robust Operating Point):</strong> High joint probability of feasibility (\(P_{\text{feas}} \ge 80\%\)) with minimal emittance degradation under engineering tolerances.<br />
+    • <strong>\(S_{\text{robust}} &lt; 0.80\) (Fragile Operating Point):</strong> Solution operates too close to tight constraint boundaries and is prone to beam loss under machine jitter.
+  </div>
+
+  <!-- Section: Full Production Simulations & Analysis Procedure -->
+
+  <h1 id="production-pipeline">Full Production Simulations and Analysis Procedure</h1>
+  <p>The repository provides a single, process-safe pipeline script <code>scripts/run_full_production.sh</code> that executes full production-grade MOBO simulations followed by automated post-processing analysis. An interactive 1-to-1 Jupyter notebook mirror is available at <code>notebooks/full_production_pipeline.ipynb</code>.</p>
+
+  <div class="source-note tip">
+    <strong>Key Features of Full Production Pipeline Script:</strong><br />
+    • <strong>Automatic 90% CPU Parallelization:</strong> Dynamically calculates available CPU core capacity (<code>NUM_WORKERS = max(1, int(os.cpu_count() * 0.9))</code>) for parallel worker pools.<br />
+    • <strong>Token-Efficient Quiet Mode (<code>--quiet</code>):</strong> Redirects heavy process logs to <code>simulation.log</code> and <code>analysis.log</code> while displaying high-level step progress on screen.<br />
+    • <strong>Parameter Scanning CLI Options:</strong> Supports custom worker core counts (<code>-w</code> / <code>--workers</code>), iteration counts (<code>-i</code>), batch sizes (<code>-b</code>), seeds, and output directories (<code>-o</code>).
+
+  </div>
+
+  <h3>Step-by-Step Production Execution Pipeline</h3>
+
+  <table>
+    <thead>
+      <tr>
+        <th>Pipeline Step</th>
+        <th>Stage Description</th>
+        <th>Executed Script / Module</th>
+        <th>Output Directory & Primary Artifacts</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><strong>Step 1/8</strong></td>
+        <td>Environment & Executable Verification</td>
+        <td><code>chmod +x bin/*</code> & <code>env_setup.sh</code></td>
+        <td>Verified binaries in <code>./bin/</code> and environment flags</td>
+      </tr>
+      <tr>
+        <td><strong>Step 2/8</strong></td>
+        <td>Phase 1 Scalarized BO Simulation</td>
+        <td><code>scripts/run_scalarized_bo.py</code></td>
+        <td><code>results/.../phase1_scalarized/</code> (<code>evaluations.csv</code>, <code>pareto.csv</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 3/8</strong></td>
+        <td>Phase 2 Unconstrained MOBO Simulation</td>
+        <td><code>scripts/run_validation_campaign.py</code></td>
+        <td><code>results/.../phase2_unconstrained/</code> (<code>train_X.csv</code>, <code>train_Y.csv</code>, <code>pareto.csv</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 4/8</strong></td>
+        <td>Phase 3 Constraint-Aware MOBO Simulation</td>
+        <td><code>scripts/run_validation_campaign.py</code></td>
+        <td><code>results/.../phase3_constrained/</code> (<code>constraints.csv</code>, <code>hypervolume.csv</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 5/8</strong></td>
+        <td>3-Phase Comparative Analysis & Pareto Audit</td>
+        <td><code>scripts/run_comparison_and_verification.py</code></td>
+        <td><code>results/.../analysis/</code> (<code>verification_records.csv</code>, <code>comparison_report.md</code>)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 6/8</strong></td>
+        <td>Engineering Tolerance Robustness Analysis</td>
+        <td><code>scripts/run_robustness_analysis.py</code></td>
+        <td><code>results/.../analysis/robustness/</code> (\(\pm 0.1^\circ\) RF phase, \(\pm 0.1\%\) magnet gradient)</td>
+      </tr>
+      <tr>
+        <td><strong>Step 7/8</strong></td>
+        <td>Comprehensive Pipeline Visualizations</td>
+        <td><code>mobo_linac.plotting.visualizations</code></td>
+        <td>3D Pareto, constraint violins, parallel coordinates, & heatmap plots</td>
+      </tr>
+      <tr>
+        <td><strong>Step 8/8</strong></td>
+        <td>Report Export & Execution Summary</td>
+        <td>Pipeline status check & report generator</td>
+        <td>Finalized PDF report and summary statistics</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h3>Production Command Examples</h3>
+
+  <pre><code># 1. Execute Full Production Campaign with 90% CPU Core Parallelization
+./scripts/run_full_production.sh --quiet --iterations 15 --batch-size 4 --output-dir results/production_campaign
+
+# 2. Execute Lightweight Dry-Run Verification (1 Iteration)
+./scripts/run_full_production.sh --quiet --iterations 1 --batch-size 2 --output-dir results/dryrun_test
+
+# 3. Execute 1-to-1 Interactive Jupyter Notebook
+jupyter notebook notebooks/full_production_pipeline.ipynb</code></pre>
+
+  <!-- Section: Installation -->
+  <h1 id="installation">New User Installation and Local Operation</h1>
+  <p>Installation instructions for fresh system setup and local execution:</p>
+
+  <pre><code># 1. Clone Repository
+git clone https://github.com/cspark7701/mobo_linac.git
+cd mobo_linac
+
+# 2. Automated Installer Setup (Creates Conda env & installs dependencies)
+./install.sh --create-env
+
+# 3. Load Environment Variables & Activate
+conda activate linac-opt
+source env_setup.sh
+
+# 4. Run Pytest Verification Suite
+pytest -v -m "not integration"</code></pre>
+</main>
+</div>
+
+<script>
+  // Live Search Filter for Navigation Links
+  function filterDocsNav() {
+    const input = document.getElementById('rtd-search-input').value.toLowerCase();
+    const links = document.querySelectorAll('#TOC li');
+    links.forEach(li => {
+      const text = li.textContent.toLowerCase();
+      li.style.display = text.includes(input) ? '' : 'none';
+    });
+  }
+
+  // Active Navigation Link Highlighting on Scroll
+  window.addEventListener('DOMContentLoaded', () => {
+    const navLinks = document.querySelectorAll('#TOC a');
+    const sections = document.querySelectorAll('main h1[id]');
+
+    window.addEventListener('scroll', () => {
+      let current = '';
+      sections.forEach(section => {
+        const sectionTop = section.offsetTop - 100;
+        if (window.scrollY >= sectionTop) {
+          current = section.getAttribute('id');
+        }
+      });
+      navLinks.forEach(link => {
+        link.classList.remove('current');
+        if (link.getAttribute('href') === '#' + current) {
+          link.classList.add('current');
+        }
+      });
+    });
+  });
+
+  // Hypervolume Progression Chart
+  const hvCtx = document.getElementById('hvChart').getContext('2d');
+  new Chart(hvCtx, {
+    type: 'line',
+    data: {
+      labels: ['Init (Sobol)', 'Iter 1', 'Iter 2', 'Iter 3', 'Iter 4', 'Iter 5', 'Iter 6'],
+      datasets: [{
+        label: 'Phase 3 (Constrained MOBO)',
+        data: [0.0082, 0.0125, 0.0158, 0.0179, 0.0188, 0.0192, 0.01939],
+        borderColor: '#2980b9',
+        backgroundColor: 'rgba(41, 128, 185, 0.15)',
+        fill: true,
+        tension: 0.3,
+        borderWidth: 3
+      }, {
+        label: 'Phase 2 (Unconstrained MOBO)',
+        data: [0.0079, 0.0118, 0.0149, 0.0172, 0.0184, 0.0190, 0.01939],
+        borderColor: '#8e44ad',
+        borderDash: [5, 5],
+        fill: false,
+        tension: 0.3,
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#404040', font: { family: 'Lato' } } }
+      },
+      scales: {
+        x: { grid: { color: '#e1e4e5' }, ticks: { color: '#555' } },
+        y: { grid: { color: '#e1e4e5' }, ticks: { color: '#555' } }
+      }
+    }
+  });
+
+  // Pareto Front Chart
+  const paretoCtx = document.getElementById('paretoChart').getContext('2d');
+  new Chart(paretoCtx, {
+    type: 'scatter',
+    data: {
+      datasets: [{
+        label: 'Pareto Front Candidates',
+        data: [
+          { x: 3.76, y: 0.77 },
+          { x: 4.12, y: 0.58 },
+          { x: 4.68, y: 0.41 },
+          { x: 5.15, y: 0.38 },
+          { x: 5.69, y: 0.37 }
+        ],
+        backgroundColor: '#2980b9',
+        pointRadius: 7,
+        pointHoverRadius: 10
+      }, {
+        label: 'Knee Point Selection',
+        data: [{ x: 4.68, y: 0.41 }],
+        backgroundColor: '#27ae60',
+        pointRadius: 11,
+        pointStyle: 'rectRot'
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#404040', font: { family: 'Lato' } } }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Emittance ε_n,x [μm rad]', color: '#555' },
+          grid: { color: '#e1e4e5' },
+          ticks: { color: '#555' }
+        },
+        y: {
+          title: { display: true, text: 'Energy Spread σ_E [MeV]', color: '#555' },
+          grid: { color: '#e1e4e5' },
+          ticks: { color: '#555' }
+        }
+      }
+    }
+  });
+</script>
+</body>
+</html>

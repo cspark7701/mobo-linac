@@ -93,6 +93,7 @@ def main():
     root_dir = Path(__file__).resolve().parent.parent
     config_path = root_dir / "configs" / "mobo_200MeV.yaml"
     html_path = root_dir / "docs" / "index.html"
+    site_html_path = root_dir / "docs" / "site" / "index.html"
     tex_path = root_dir / "docs" / "consolidated_report" / "consolidated_report.tex"
 
     if not config_path.exists():
@@ -109,6 +110,13 @@ def main():
     else:
         all_errors.append(f"File not found: {html_path}")
 
+    if site_html_path.exists():
+        site_errors = verify_html_sync(config, site_html_path.read_text())
+        for err in site_errors:
+            all_errors.append(f"[site/index.html] {err}")
+    else:
+        all_errors.append(f"File not found: {site_html_path}")
+
     if tex_path.exists():
         tex_errors = verify_latex_sync(config, tex_path.read_text())
         all_errors.extend(tex_errors)
@@ -116,9 +124,10 @@ def main():
         all_errors.append(f"File not found: {tex_path}")
 
     print("=== Documentation & Web Page Sync Audit ===")
-    print(f"Audited Config: {config_path.relative_to(root_dir)}")
-    print(f"Audited HTML  : {html_path.relative_to(root_dir)}")
-    print(f"Audited LaTeX : {tex_path.relative_to(root_dir)}")
+    print(f"Audited Config   : {config_path.relative_to(root_dir)}")
+    print(f"Audited HTML     : {html_path.relative_to(root_dir)}")
+    print(f"Audited Site HTML: {site_html_path.relative_to(root_dir)}")
+    print(f"Audited LaTeX    : {tex_path.relative_to(root_dir)}")
 
     if all_errors:
         print(f"\nFAIL: Found {len(all_errors)} documentation synchronization mismatch(es):")

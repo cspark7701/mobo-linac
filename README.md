@@ -56,6 +56,7 @@ mobo_linac/
 │   ├── paper/                         # LaTeX journal manuscript (main.tex, main.pdf)
 │   ├── exec-plans/                    # Active and completed task plans
 │   ├── 04_refactor_tasks/             # Modular refactoring specifications (Tasks 01--11)
+│   ├── site/                          # Standalone mobo-linac.github.io web portal files
 │   └── index.html                     # Project technical web portal
 │
 ├── scripts/                           # Campaign, comparison, & LaTeX export scripts
