@@ -44,10 +44,10 @@ The source files for this website are maintained and generated within `docs/site
 
 ```bash
 # In main mobo_linac repository:
-./docs/sync_site.sh
+./scripts/sync_site.sh
 
 # Or with custom target repository path:
-./docs/sync_site.sh /path/to/nkm-injection.github.io
+./scripts/sync_site.sh /path/to/nkm-injection.github.io
 ```
 
 ---
