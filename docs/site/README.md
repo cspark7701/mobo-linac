@@ -1,8 +1,8 @@
-# nkm-injection.github.io
+# mobo-linac.github.io
 
 Official documentation and project web portal for **Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac** (`mobo_linac`).
 
-Live Website: [https://nkm-injection.github.io](https://nkm-injection.github.io)  
+Live Website: [https://mobo-linac.github.io](https://mobo-linac.github.io)  
 Main Code Repository: [https://github.com/cspark7701/mobo_linac](https://github.com/cspark7701/mobo_linac)
 
 ---
@@ -47,7 +47,7 @@ The source files for this website are maintained and generated within `docs/site
 ./scripts/sync_site.sh
 
 # Or with custom target repository path:
-./scripts/sync_site.sh /path/to/nkm-injection.github.io
+./scripts/sync_site.sh /path/to/mobo-linac.github.io
 ```
 
 ---

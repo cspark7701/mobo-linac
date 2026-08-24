@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# sync_site.sh — Synchronize docs/site/ bundle to standalone nkm-injection.github.io repo
+# sync_site.sh — Synchronize docs/site/ bundle to standalone mobo-linac.github.io repo
 # ==============================================================================
 set -euo pipefail
 
@@ -8,11 +8,11 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 SOURCE_SITE_DIR="${REPO_ROOT}/docs/site"
 
-DEFAULT_TARGET="/home/cspark/Work/simulation_codes-working/nkm-injection.github.io"
+DEFAULT_TARGET="/home/cspark/Work/simulation_codes-working/mobo-linac.github.io"
 TARGET_DIR="${1:-${DEFAULT_TARGET}}"
 
 echo "========================================================================"
-echo " NKM Documentation Website Synchronizer"
+echo " MOBO-LINAC Documentation Website Synchronizer"
 echo "========================================================================"
 echo " Source Directory : ${SOURCE_SITE_DIR}"
 echo " Target Directory : ${TARGET_DIR}"
