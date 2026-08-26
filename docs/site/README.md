@@ -3,7 +3,7 @@
 Official documentation and project web portal for **Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac** (`mobo_linac`).
 
 Live Website: [https://mobo-linac.github.io](https://mobo-linac.github.io)  
-Main Code Repository: [https://github.com/cspark7701/mobo_linac](https://github.com/cspark7701/mobo_linac)
+Main Code Repository: [https://github.com/cspark7701/mobo-linac](https://github.com/cspark7701/mobo-linac)
 
 ---
 

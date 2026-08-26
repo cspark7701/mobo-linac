@@ -26,7 +26,7 @@ Research on initial scalarized Bayesian Optimization was presented at **ICABU 20
 ## Repository Structure
 
 ```
-mobo_linac/
+mobo-linac/
 ├── README.md                          # Project documentation
 ├── AGENTS.md                          # Developer & agent design specifications
 ├── pyproject.toml                     # Package dependencies & CLI entry points
@@ -167,8 +167,8 @@ The repository is self-contained with **pre-bundled ASTRA binaries** in `./bin/`
 Clone the repository and install the package with all Python dependencies (including `lume-astra` directly from source):
 
 ```bash
-git clone https://github.com/cspark7701/mobo_linac.git
-cd mobo_linac
+git clone https://github.com/cspark7701/mobo-linac.git
+cd mobo-linac
 pip install -e .
 ```
 

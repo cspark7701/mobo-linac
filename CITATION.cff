@@ -12,8 +12,8 @@ version: 1.0.0
 # TODO: Update DOI after Zenodo deposit
 doi: 10.5281/zenodo.PLACEHOLDER
 date-released: 2026-07-25
-url: "https://github.com/cspark7701/mobo_linac"
-repository-code: "https://github.com/cspark7701/mobo_linac"
+url: "https://github.com/cspark7701/mobo-linac"
+repository-code: "https://github.com/cspark7701/mobo-linac"
 keywords:
   - electron injector linac
   - multi-objective bayesian optimization

@@ -14,8 +14,8 @@ This guide provides instructions for reproducing all computational benchmarks, P
 ### Environment Installation
 ```bash
 # Clone repository
-git clone https://github.com/cspark7701/mobo_linac.git
-cd mobo_linac
+git clone https://github.com/cspark7701/mobo-linac.git
+cd mobo-linac
 
 # Create conda environment from lock file
 conda env create -f environment-lock.yml

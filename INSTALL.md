@@ -22,8 +22,8 @@ Clone the repository and run the automated installation script:
 
 ```bash
 # 1. Clone the repository
-git clone https://github.com/cspark7701/mobo_linac.git
-cd mobo_linac
+git clone https://github.com/cspark7701/mobo-linac.git
+cd mobo-linac
 
 # 2. Run the automated installer (creates 'linac-opt' conda env and runs unit tests)
 ./install.sh --create-env
@@ -42,8 +42,8 @@ If you prefer to set up your environment manually, follow these step-by-step ins
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/cspark7701/mobo_linac.git
-cd mobo_linac
+git clone https://github.com/cspark7701/mobo-linac.git
+cd mobo-linac
 ```
 
 ### Step 2: Create and Activate a Conda Environment

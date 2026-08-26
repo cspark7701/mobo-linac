@@ -47,7 +47,7 @@ with the next phase extending to qEHVI/qNEHVI-based MOBO.
 Typical repository structure
 
 ```
-mobo_linac/
+mobo-linac/
 │
 ├── astra.in                 # Main ASTRA input template
 ├── gun.dat                  # RF gun field map
