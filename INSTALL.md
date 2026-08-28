@@ -67,8 +67,10 @@ python -m pip install --upgrade pip setuptools wheel
 # Install Particle Distribution Generator
 pip install git+https://github.com/ColwynGulliford/distgen.git
 
-# Install LUME-ASTRA Python interface
-pip install git+https://github.com/ChristopherMayes/lume-astra.git
+# Install LUME-ASTRA (from local modified source if available, or from GitHub):
+pip install -e /home/cspark/Work/simulation_codes-working/lume-astra
+# Or fallback to official repo:
+# pip install git+https://github.com/ChristopherMayes/lume-astra.git
 ```
 
 ### Step 5: Install `mobo_linac` Package

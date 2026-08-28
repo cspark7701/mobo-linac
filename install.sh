@@ -96,8 +96,16 @@ python -m pip install --upgrade pip setuptools wheel
 echo "Installing Particle Distgen (ColwynGulliford/distgen)..."
 python -m pip install git+https://github.com/ColwynGulliford/distgen.git
 
-echo "Installing lume-astra (ChristopherMayes/lume-astra)..."
-python -m pip install git+https://github.com/ChristopherMayes/lume-astra.git
+echo "Installing lume-astra..."
+if [ -d "/home/cspark/Work/simulation_codes-working/lume-astra" ]; then
+  echo "Installing from local modified source: /home/cspark/Work/simulation_codes-working/lume-astra"
+  python -m pip install -e /home/cspark/Work/simulation_codes-working/lume-astra
+elif [ -d "${SCRIPT_DIR}/../lume-astra" ]; then
+  echo "Installing from local source: ${SCRIPT_DIR}/../lume-astra"
+  python -m pip install -e "${SCRIPT_DIR}/../lume-astra"
+else
+  python -m pip install git+https://github.com/ChristopherMayes/lume-astra.git
+fi
 
 # 4. Install mobo_linac package in editable mode
 echo "[4/5] Installing mobo_linac package in editable mode..."
