@@ -188,8 +188,9 @@ def test_configurable_acquisition_optimization_budget():
 
     assert candidates.shape == (batch_size, 6)
     assert candidates.dtype == torch.double
-    assert (candidates >= bounds[0] - 1e-6).all()
-    assert (candidates <= bounds[1] + 1e-6).all()
+    bounds_dev = bounds.to(device=candidates.device, dtype=torch.double)
+    assert (candidates >= bounds_dev[0] - 1e-6).all()
+    assert (candidates <= bounds_dev[1] + 1e-6).all()
 
 
 def test_resilient_acquisition_sobol_fallback():
@@ -216,8 +217,9 @@ def test_resilient_acquisition_sobol_fallback():
 
     assert candidates.shape == (batch_size, 6)
     assert candidates.dtype == torch.double
-    assert (candidates >= bounds[0] - 1e-6).all()
-    assert (candidates <= bounds[1] + 1e-6).all()
+    bounds_dev = bounds.to(device=candidates.device, dtype=torch.double)
+    assert (candidates >= bounds_dev[0] - 1e-6).all()
+    assert (candidates <= bounds_dev[1] + 1e-6).all()
     assert acq_values.shape == (batch_size,)
 
 
