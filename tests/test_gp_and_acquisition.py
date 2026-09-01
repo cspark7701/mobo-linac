@@ -223,4 +223,34 @@ def test_resilient_acquisition_sobol_fallback():
     assert acq_values.shape == (batch_size,)
 
 
+def test_compare_acquisition_functions():
+    """Verify benchmarking and comparison of multiple acquisition function types."""
+    from mobo_linac.models.tuning import compare_acquisition_functions
+
+    train_X = torch.rand(12, 6, dtype=torch.double)
+    train_Y = torch.rand(12, 3, dtype=torch.double)
+    bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
+    ref_point = torch.tensor([-1.0, -1.0, -1.0], dtype=torch.double)
+
+    model = build_gp_models(train_X, train_Y, bounds)
+    summary_df = compare_acquisition_functions(
+        model=model,
+        train_X=train_X,
+        train_Y=train_Y,
+        ref_point=ref_point,
+        bounds=bounds,
+        acq_types=["qLogNEHVI", "qLogEHVI"],
+        batch_size=2,
+        num_restarts=2,
+        raw_samples=16,
+        maxiter=5,
+    )
+
+    assert not summary_df.empty
+    assert len(summary_df) == 2
+    assert "Acquisition Type" in summary_df.columns
+    assert "Total Time (s)" in summary_df.columns
+    assert (summary_df["Status"] == "SUCCESS").all()
+
+
 

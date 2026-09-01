@@ -4,7 +4,11 @@ Gaussian Process Surrogate Models Module for mobo_linac.
 
 from mobo_linac.models.gp import build_gp_models, fit_gp_models
 from mobo_linac.models.pipeline import SurrogatePipeline
-from mobo_linac.models.tuning import tune_gp_hyperparameters, HyperparameterTuningSummary
+from mobo_linac.models.tuning import (
+    tune_gp_hyperparameters,
+    HyperparameterTuningSummary,
+    compare_acquisition_functions,
+)
 
 __all__ = [
     "build_gp_models",
@@ -12,4 +16,5 @@ __all__ = [
     "SurrogatePipeline",
     "tune_gp_hyperparameters",
     "HyperparameterTuningSummary",
+    "compare_acquisition_functions",
 ]

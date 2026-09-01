@@ -315,7 +315,13 @@ def main() -> None:
         subparser.add_argument("-b", "-q", "--batch-size", "--batch_size", dest="batch_size", type=int, default=8, help="Batch size for q-MOBO candidate proposals")
         subparser.add_argument("--num-initial-samples", type=int, default=16, help="Initial random Sobol samples")
         subparser.add_argument("--num-workers", type=int, default=4, help="Number of parallel worker processes")
-        subparser.add_argument("--acquisition", type=str, choices=["qLogNEHVI", "qEHVI"], default="qLogNEHVI", help="Acquisition function")
+        subparser.add_argument(
+            "-a", "--acquisition",
+            type=str,
+            choices=["qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"],
+            default="qLogNEHVI",
+            help="Acquisition function ('qLogNEHVI', 'qLogEHVI', 'qEHVI', 'qNEHVI')",
+        )
         subparser.add_argument("--device", type=str, default="auto", help="Target PyTorch compute device ('auto', 'cuda', 'cuda:0', 'cpu')")
         subparser.add_argument("--seed", type=int, default=42, help="Random seed")
         subparser.add_argument("--output-dir", type=str, default=None, help="Custom output directory")

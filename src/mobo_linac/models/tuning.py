@@ -177,3 +177,93 @@ def tune_gp_hyperparameters(
         comparison_table=comp_df,
         candidates=results_sorted,
     )
+
+
+def compare_acquisition_functions(
+    model: Any,
+    train_X: torch.Tensor,
+    train_Y: torch.Tensor,
+    ref_point: torch.Tensor,
+    bounds: torch.Tensor,
+    acq_types: Optional[List[str]] = None,
+    batch_size: int = 8,
+    num_restarts: int = 10,
+    raw_samples: int = 128,
+    maxiter: int = 50,
+    device: Optional[Union[torch.device, str]] = None,
+) -> pd.DataFrame:
+    """
+    Compares candidate generation speed, proposal qualities, and acquisition function
+    characteristics across supported acquisition function types.
+
+    Args:
+        model: Fitted ModelListGP surrogate.
+        train_X: (N, D) PyTorch tensor of design variables.
+        train_Y: (N, M) PyTorch tensor of objective observations.
+        ref_point: (M,) PyTorch tensor of reference point values.
+        bounds: (2, D) PyTorch tensor of parameter bounds.
+        acq_types: List of acquisition types to benchmark (default: ['qLogNEHVI', 'qLogEHVI', 'qEHVI', 'qNEHVI']).
+        batch_size: Batch size q.
+        num_restarts: Restart count for acquisition optimization.
+        raw_samples: Raw sample count for initialization.
+        maxiter: Max L-BFGS iterations per restart.
+        device: Target compute device.
+
+    Returns:
+        DataFrame summarizing proposal runtime and statistics per acquisition type.
+    """
+    import time
+    from mobo_linac.acquisition.mobo import build_acquisition_function, generate_next_candidates
+
+    if acq_types is None:
+        acq_types = ["qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"]
+
+    summary_rows = []
+
+    for acq_type in acq_types:
+        t0 = time.time()
+        try:
+            acq_func = build_acquisition_function(
+                model=model,
+                train_X=train_X,
+                train_Y=train_Y,
+                ref_point=ref_point,
+                acq_type=acq_type,
+            )
+            t_build = time.time() - t0
+
+            t_opt_start = time.time()
+            candidates, acq_values = generate_next_candidates(
+                acq_func=acq_func,
+                bounds=bounds,
+                batch_size=batch_size,
+                num_restarts=num_restarts,
+                raw_samples=raw_samples,
+                maxiter=maxiter,
+                device=device,
+                retry_on_failure=True,
+            )
+            t_opt = time.time() - t_opt_start
+            total_time = time.time() - t0
+
+            summary_rows.append({
+                "Acquisition Type": acq_type,
+                "Build Time (s)": round(t_build, 3),
+                "Opt Time (s)": round(t_opt, 3),
+                "Total Time (s)": round(total_time, 3),
+                "Candidates (q)": candidates.shape[0],
+                "Mean Acq Value": round(float(acq_values.mean().item()), 4),
+                "Status": "SUCCESS",
+            })
+        except Exception as e:
+            summary_rows.append({
+                "Acquisition Type": acq_type,
+                "Build Time (s)": 0.0,
+                "Opt Time (s)": 0.0,
+                "Total Time (s)": round(time.time() - t0, 3),
+                "Candidates (q)": 0,
+                "Mean Acq Value": 0.0,
+                "Status": f"FAILED: {e}",
+            })
+
+    return pd.DataFrame(summary_rows)
