@@ -206,8 +206,8 @@ def run_campaign(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run linac MOBO validation campaign.")
     parser.add_argument("--num-initial-samples", type=int, default=16, help="Initial Sobol sample count")
-    parser.add_argument("--num-batches", "--n-iterations", type=int, default=6, help="Number of BO iterations/batches")
-    parser.add_argument("--batch-size", type=int, default=4, help="Batch size q")
+    parser.add_argument("--num-batches", "--n-iterations", type=int, default=20, help="Number of BO iterations/batches")
+    parser.add_argument("-b", "-q", "--batch-size", type=int, default=8, help="Batch size q")
     parser.add_argument("--num-workers", type=int, default=4, help="Parallel worker count")
     parser.add_argument("--seed", type=int, default=42, help="Random seed")
     parser.add_argument("--output-dir", "--base-results-dir", type=str, default="results", help="Base output directory")

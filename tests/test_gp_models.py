@@ -201,3 +201,26 @@ def test_relative_noise_variance_scaling():
         assert (pred_vars[:, 0] <= 1.0e-8).all(), f"Emittance posterior variance too high: {pred_vars[:, 0].max().item()}"
         assert (pred_vars[:, 1] <= 1.0e-8).all(), f"Emittance posterior variance too high: {pred_vars[:, 1].max().item()}"
         assert (pred_vars[:, 2] <= 1.0e-3 * train_Y_dev[:, 2].var()).all(), f"Energy spread posterior variance too high: {pred_vars[:, 2].max().item()}"
+
+
+def test_tune_gp_hyperparameters(dummy_data):
+    """Verify hyperparameter grid search optimization and candidate ranking."""
+    from mobo_linac.models.tuning import tune_gp_hyperparameters
+
+    train_X, train_Y, bounds = dummy_data
+    tuning_summary = tune_gp_hyperparameters(
+        train_X=train_X,
+        train_Y=train_Y,
+        bounds=bounds,
+        candidate_covars=["matern52", "rbf"],
+        candidate_noise_ratios=[1.0e-6, 1.0e-4],
+        candidate_noise_modes=["deterministic_fixed"],
+        objective_names=["norm_emit_x", "norm_emit_y", "sigma_energy"],
+    )
+
+    assert tuning_summary.best_config is not None
+    assert tuning_summary.best_candidate is not None
+    assert len(tuning_summary.candidates) == 4
+    assert not tuning_summary.comparison_table.empty
+    assert "Overall R^2" in tuning_summary.comparison_table.columns
+    assert tuning_summary.best_candidate.overall_r2 >= -1.0

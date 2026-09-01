@@ -114,7 +114,7 @@ def run_unconstrained(args: argparse.Namespace) -> None:
         print(f"  - Config: {config_path}")
         print(f"  - Output Directory: {args.output_dir or 'results/unconstrained_<timestamp>'}")
         print(f"  - Initial Samples: {getattr(args, 'num_initial_samples', 16)}")
-        print(f"  - Iterations: {getattr(args, 'n_iterations', 6)} (batch size: {getattr(args, 'batch_size', 4)})")
+        print(f"  - Iterations: {getattr(args, 'n_iterations', 20)} (batch size: {getattr(args, 'batch_size', 8)})")
         return
 
     evaluator = CliMockEvaluator(Path(args.output_dir or "results")) if getattr(args, "mock_evaluator", False) else None
@@ -124,8 +124,8 @@ def run_unconstrained(args: argparse.Namespace) -> None:
         run_name="unconstrained",
         output_dir=getattr(args, "output_dir", None),
         num_initial_samples=getattr(args, "num_initial_samples", 16),
-        num_batches=getattr(args, "n_iterations", 6),
-        batch_size=getattr(args, "batch_size", 4),
+        num_batches=getattr(args, "n_iterations", 20),
+        batch_size=getattr(args, "batch_size", 8),
         num_workers=getattr(args, "num_workers", None),
         seed=getattr(args, "seed", 42),
         acq_type=getattr(args, "acquisition", "qLogNEHVI"),
@@ -150,7 +150,7 @@ def run_constrained(args: argparse.Namespace) -> None:
         print(f"  - Config: {config_path}")
         print(f"  - Output Directory: {args.output_dir or 'results/constrained_<timestamp>'}")
         print(f"  - Initial Samples: {getattr(args, 'num_initial_samples', 16)}")
-        print(f"  - Iterations: {getattr(args, 'n_iterations', 6)} (batch size: {getattr(args, 'batch_size', 4)})")
+        print(f"  - Iterations: {getattr(args, 'n_iterations', 20)} (batch size: {getattr(args, 'batch_size', 8)})")
         return
 
     evaluator = CliMockEvaluator(Path(args.output_dir or "results")) if getattr(args, "mock_evaluator", False) else None
@@ -160,8 +160,8 @@ def run_constrained(args: argparse.Namespace) -> None:
         run_name="constrained",
         output_dir=getattr(args, "output_dir", None),
         num_initial_samples=getattr(args, "num_initial_samples", 16),
-        num_batches=getattr(args, "n_iterations", 6),
-        batch_size=getattr(args, "batch_size", 4),
+        num_batches=getattr(args, "n_iterations", 20),
+        batch_size=getattr(args, "batch_size", 8),
         num_workers=getattr(args, "num_workers", None),
         seed=getattr(args, "seed", 42),
         acq_type=getattr(args, "acquisition", "qLogNEHVI"),
@@ -187,7 +187,7 @@ def run_scalarized(args: argparse.Namespace) -> None:
         print(f"  - Output Directory: {args.output_dir or 'results/scalarized_<timestamp>'}")
         print(f"  - Weights: {getattr(args, 'weights', [1.0, 1.0, 1.0])}")
         print(f"  - Initial Samples: {getattr(args, 'num_initial_samples', 16)}")
-        print(f"  - Iterations: {getattr(args, 'n_iterations', 6)} (batch size: {getattr(args, 'batch_size', 4)})")
+        print(f"  - Iterations: {getattr(args, 'n_iterations', 20)} (batch size: {getattr(args, 'batch_size', 8)})")
         return
 
     evaluator = CliMockEvaluator(Path(args.output_dir or "results")) if getattr(args, "mock_evaluator", False) else None
@@ -197,8 +197,8 @@ def run_scalarized(args: argparse.Namespace) -> None:
         run_name="scalarized",
         output_dir=getattr(args, "output_dir", None),
         num_initial_samples=getattr(args, "num_initial_samples", 16),
-        num_batches=getattr(args, "n_iterations", 6),
-        batch_size=getattr(args, "batch_size", 4),
+        num_batches=getattr(args, "n_iterations", 20),
+        batch_size=getattr(args, "batch_size", 8),
         num_workers=getattr(args, "num_workers", None),
         seed=getattr(args, "seed", 42),
         optimization_mode="scalarized_bo",

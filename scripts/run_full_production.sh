@@ -23,8 +23,9 @@ set -euo pipefail
 # Default Parameter Settings
 # ------------------------------------------------------------------------------
 VERBOSE=1
-N_ITERATIONS=10
-BATCH_SIZE=4
+N_ITERATIONS=20
+BATCH_SIZE=8
+NUM_INITIAL_SAMPLES=16
 NUM_WORKERS=""
 SEED=42
 DEVICE="auto"
@@ -47,7 +48,7 @@ while [[ $# -gt 0 ]]; do
       N_ITERATIONS="$2"
       shift 2
       ;;
-    -b|--batch-size)
+    -b|-q|--batch-size)
       # Set candidate proposal batch size q
       BATCH_SIZE="$2"
       shift 2
@@ -71,8 +72,8 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: ./scripts/run_full_production.sh [OPTIONS]"
       echo "Options:"
       echo "  -q, --quiet          Suppress screen output (token-efficient mode)"
-      echo "  -i, --iterations N   Number of BO iterations (default: 10)"
-      echo "  -b, --batch-size Q   Batch size q (default: 4)"
+      echo "  -i, --iterations N   Number of BO iterations (default: 20)"
+      echo "  -b, --batch-size Q   Batch size q (default: 8)"
       echo "  -w, --workers W      Number of parallel CPU worker cores (default: 90% system capacity)"
       echo "  -d, --device DEV     Target PyTorch device (auto, cuda, cpu; default: auto GPU selection)"
       echo "  -o, --output-dir DIR Output directory (default: results/full_production)"
@@ -162,10 +163,11 @@ export PATH="${PROJECT_ROOT}/bin:${PATH}"
 # ------------------------------------------------------------------------------
 # Step 3: Execute Phase 1 Scalarized BO Production Simulation
 # ------------------------------------------------------------------------------
-RUN_P1_CMD="python3 scripts/run_scalarized_bo.py \
+RUN_P1_CMD="mobo-linac run-scalarized \
     --config configs/mobo_200MeV.yaml \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
+    --num-initial-samples ${NUM_INITIAL_SAMPLES} \
     --num-workers ${NUM_WORKERS} \
     --device ${DEVICE} \
     --seed ${SEED} \
@@ -177,9 +179,11 @@ log_step "  ✓ Phase 1 Simulation complete -> Saved in ${P1_DIR}"
 # ------------------------------------------------------------------------------
 # Step 4: Execute Phase 2 Unconstrained MOBO Production Simulation
 # ------------------------------------------------------------------------------
-RUN_P2_CMD="python3 scripts/run_validation_campaign.py \
+RUN_P2_CMD="mobo-linac run-unconstrained \
+    --config configs/mobo_200MeV.yaml \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
+    --num-initial-samples ${NUM_INITIAL_SAMPLES} \
     --num-workers ${NUM_WORKERS} \
     --device ${DEVICE} \
     --seed ${SEED} \
@@ -191,9 +195,11 @@ log_step "  ✓ Phase 2 Simulation complete -> Saved in ${P2_DIR}"
 # ------------------------------------------------------------------------------
 # Step 5: Execute Phase 3 Constrained MOBO Production Simulation
 # ------------------------------------------------------------------------------
-RUN_P3_CMD="python3 scripts/run_validation_campaign.py \
+RUN_P3_CMD="mobo-linac run-constrained \
+    --config configs/mobo_200MeV.yaml \
     --n-iterations ${N_ITERATIONS} \
     --batch-size ${BATCH_SIZE} \
+    --num-initial-samples ${NUM_INITIAL_SAMPLES} \
     --num-workers ${NUM_WORKERS} \
     --device ${DEVICE} \
     --seed ${SEED} \
