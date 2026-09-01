@@ -63,7 +63,8 @@ def test_gp_posterior_output_shape():
     bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
 
     gp_model = build_gp_models(train_X, train_Y, bounds)
-    test_X = torch.rand(5, 6, dtype=torch.double)
+    model_device = next(gp_model.parameters()).device
+    test_X = torch.rand(5, 6, dtype=torch.double, device=model_device)
 
     gp_model.eval()
     with torch.no_grad():

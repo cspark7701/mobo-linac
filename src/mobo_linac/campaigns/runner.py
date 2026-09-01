@@ -337,14 +337,15 @@ class MoboCampaignRunner:
                 train_Y_dev = train_Y.to(dtype=torch.double, device=self.device)
                 scalar_Y = (train_Y_dev * weights_dev).sum(dim=-1, keepdim=True)
 
-                input_transform = Normalize(d=bounds.shape[1], bounds=bounds.to(device=self.device))
+                bounds_dev = bounds.to(device=self.device, dtype=torch.double)
+                input_transform = Normalize(d=bounds_dev.shape[1], bounds=bounds_dev)
                 gp = SingleTaskGP(
                     train_X=train_X_dev,
                     train_Y=scalar_Y,
                     input_transform=input_transform,
                     outcome_transform=Standardize(m=1),
-                )
-                fit_gp_models(ModelListGP(gp))
+                ).to(device=self.device, dtype=torch.double)
+                fit_gp_models(ModelListGP(gp).to(device=self.device, dtype=torch.double))
 
                 acq_func = qLogNoisyExpectedImprovement(
                     model=gp,
@@ -354,7 +355,7 @@ class MoboCampaignRunner:
                 exec_cfg = self.config.execution
                 candidates, _ = optimize_acqf(
                     acq_function=acq_func,
-                    bounds=bounds.to(device=self.device),
+                    bounds=bounds_dev,
                     q=self.batch_size,
                     num_restarts=getattr(exec_cfg, "acqf_num_restarts", 20),
                     raw_samples=getattr(exec_cfg, "acqf_raw_samples", 128),
@@ -363,7 +364,7 @@ class MoboCampaignRunner:
                         "maxiter": getattr(exec_cfg, "acqf_maxiter", 200),
                     },
                 )
-                next_cand_list = candidates.cpu().tolist()
+                next_cand_list = candidates.detach().cpu().tolist()
             else:
                 pipeline = SurrogatePipeline(
                     bounds=bounds,
@@ -381,7 +382,7 @@ class MoboCampaignRunner:
                     train_constraints = get_constraint_tensors(results, exclude_invalid=True)
                     pipeline.fit(train_X, train_Y, train_constraints)
                     if pipeline.constraint_model is not None:
-                        gp_model = ModelListGP(*pipeline.objective_model.models, *pipeline.constraint_model.models)
+                        gp_model = ModelListGP(*pipeline.objective_model.models, *pipeline.constraint_model.models).to(device=self.device, dtype=torch.double)
                         botorch_constraints = get_botorch_constraint_functions(self.config)
                         objective_slice = SliceObjective(num_objectives=3)
                     else:
@@ -418,7 +419,7 @@ class MoboCampaignRunner:
                     batch_limit=getattr(exec_cfg, "acqf_batch_limit", 5),
                     device=self.device,
                 )
-                next_cand_list = next_cand_tensor.tolist()
+                next_cand_list = next_cand_tensor.detach().cpu().tolist()
 
 
             start_eval_id = len(results) + 1

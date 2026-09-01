@@ -30,8 +30,13 @@ def compute_predictive_diagnostics(
         Dictionary containing per-objective RMSE, R^2, mean standardized residuals, LOO errors,
         and summary metrics.
     """
-    train_X_dbl = train_X.to(dtype=torch.double)
-    train_Y_dbl = train_Y.to(dtype=torch.double)
+    try:
+        model_device = next(model.parameters()).device
+    except (StopIteration, AttributeError):
+        model_device = train_X.device
+
+    train_X_dbl = train_X.to(device=model_device, dtype=torch.double)
+    train_Y_dbl = train_Y.to(device=model_device, dtype=torch.double)
     num_samples, num_objectives = train_Y_dbl.shape
 
     if objective_names is None:

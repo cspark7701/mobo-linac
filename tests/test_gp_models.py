@@ -64,7 +64,8 @@ def test_gp_measured_fixed_noise_mode(dummy_data):
     assert len(model_list.models) == 3
 
     fitted_list = fit_gp_models(model_list)
-    test_X = torch.rand(3, 6, dtype=torch.double)
+    model_device = next(fitted_list.parameters()).device
+    test_X = torch.rand(3, 6, dtype=torch.double, device=model_device)
     for idx, model in enumerate(fitted_list.models):
         posterior = model.posterior(test_X)
         assert posterior.mean.shape == (3, 1)
@@ -180,20 +181,23 @@ def test_relative_noise_variance_scaling():
     # Fit model and evaluate posterior at training points
     fitted_list = fit_gp_models(model_list)
     fitted_list.eval()
+    model_device = next(fitted_list.parameters()).device
+    train_X_dev = train_X.to(device=model_device, dtype=torch.double)
+    train_Y_dev = train_Y.to(device=model_device, dtype=torch.double)
     with torch.no_grad():
-        posterior = fitted_list.posterior(train_X)
+        posterior = fitted_list.posterior(train_X_dev)
         pred_means = posterior.mean
         pred_vars = posterior.variance
 
         # Residuals in physical space vs true values (posterior.mean is automatically untransformed by BoTorch)
         for i in range(3):
             pred_col = pred_means[:, i : i + 1]
-            ss_tot = torch.sum((train_Y[:, i : i + 1] - train_Y[:, i : i + 1].mean())**2)
-            ss_res = torch.sum((train_Y[:, i : i + 1] - pred_col)**2)
+            ss_tot = torch.sum((train_Y_dev[:, i : i + 1] - train_Y_dev[:, i : i + 1].mean())**2)
+            ss_res = torch.sum((train_Y_dev[:, i : i + 1] - pred_col)**2)
             r2 = 1.0 - ss_res / ss_tot
             assert r2.item() >= 0.99, f"Objective {i} R^2 below 0.99: {r2.item()}"
 
         # Posterior variance at evaluated training points should be near-zero
         assert (pred_vars[:, 0] <= 1.0e-8).all(), f"Emittance posterior variance too high: {pred_vars[:, 0].max().item()}"
         assert (pred_vars[:, 1] <= 1.0e-8).all(), f"Emittance posterior variance too high: {pred_vars[:, 1].max().item()}"
-        assert (pred_vars[:, 2] <= 1.0e-3 * train_Y[:, 2].var()).all(), f"Energy spread posterior variance too high: {pred_vars[:, 2].max().item()}"
+        assert (pred_vars[:, 2] <= 1.0e-3 * train_Y_dev[:, 2].var()).all(), f"Energy spread posterior variance too high: {pred_vars[:, 2].max().item()}"

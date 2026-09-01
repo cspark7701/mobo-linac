@@ -69,11 +69,18 @@ def build_acquisition_function(
     Returns:
         Instantiated acquisition function.
     """
-    ref_point_dbl = ref_point.to(dtype=torch.double)
-    train_X_dbl = train_X.to(dtype=torch.double)
-    train_Y_dbl = train_Y.to(dtype=torch.double)
+    try:
+        model_device = next(model.parameters()).device
+    except (StopIteration, AttributeError):
+        model_device = train_X.device
 
-    feasible_mask = train_feas_mask if train_feas_mask is not None else torch.ones(train_Y_dbl.shape[0], dtype=torch.bool)
+    ref_point_dbl = ref_point.to(device=model_device, dtype=torch.double)
+    train_X_dbl = train_X.to(device=model_device, dtype=torch.double)
+    train_Y_dbl = train_Y.to(device=model_device, dtype=torch.double)
+
+    feasible_mask = train_feas_mask if train_feas_mask is not None else torch.ones(train_Y_dbl.shape[0], dtype=torch.bool, device=model_device)
+    if feasible_mask.device != model_device:
+        feasible_mask = feasible_mask.to(device=model_device)
     if feasible_mask.sum().item() > 0:
         feas_Y = train_Y_dbl[feasible_mask]
     else:
@@ -160,7 +167,17 @@ def generate_next_candidates(
     Returns:
         Tuple of (candidates_tensor, acq_values_tensor).
     """
-    target_device = device if device is not None else bounds.device
+    if device is not None:
+        target_device = torch.device(device) if isinstance(device, str) else device
+    else:
+        try:
+            if hasattr(acq_func, "model"):
+                target_device = next(acq_func.model.parameters()).device
+            else:
+                target_device = bounds.device
+        except Exception:
+            target_device = bounds.device
+
     bounds_dbl = bounds.to(device=target_device, dtype=torch.double)
 
     opt_options: Dict[str, Any] = {"batch_limit": batch_limit, "maxiter": maxiter}

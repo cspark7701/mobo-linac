@@ -107,7 +107,7 @@ def build_gp_models(
                 covar_module=covar_module,
                 input_transform=input_transform,
                 outcome_transform=Standardize(m=1),
-            )
+            ).to(device=target_device, dtype=torch.double)
         elif mode == "inferred":
             gp = SingleTaskGP(
                 train_X=train_X_dbl,
@@ -115,7 +115,7 @@ def build_gp_models(
                 covar_module=covar_module,
                 input_transform=input_transform,
                 outcome_transform=Standardize(m=1),
-            )
+            ).to(device=target_device, dtype=torch.double)
         else:
             raise ValueError(
                 f"Unsupported noise_mode: '{noise_mode}'. Choose 'deterministic_fixed', 'measured_fixed', or 'inferred'."
@@ -123,7 +123,7 @@ def build_gp_models(
 
         models.append(gp)
 
-    model_list = ModelListGP(*models)
+    model_list = ModelListGP(*models).to(device=target_device, dtype=torch.double)
     return model_list
 
 
