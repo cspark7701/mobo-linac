@@ -48,6 +48,8 @@ mobo_linac_backup_20250828/
 mobo_linac_backup_20260722/
 
 results/
+results_notebooks/
+results_notebook/
 img/
 
 00_mobo_linac_tasks_refactor/
