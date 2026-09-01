@@ -77,9 +77,11 @@ class BenchmarkCampaignRunner:
         total_eval_budget: int = 40,
         n_sobol_init: int = 10,
         batch_size: int = 4,
+        device: str = "auto",
         benchmark_config: Optional[BenchmarkConfig] = None,
     ):
         self.config = config
+        self.device = device
 
         # If BenchmarkConfig provided, it takes precedence over individual args
         if benchmark_config is not None:
@@ -239,6 +241,7 @@ class BenchmarkCampaignRunner:
                     acq_type=acq_type,
                     constrained=constrained,
                     evaluator=mock_evaluator,
+                    device=self.device,
                 )
                 results, tracker, _ = runner.run()
 

@@ -132,6 +132,7 @@ def run_unconstrained(args: argparse.Namespace) -> None:
         constrained=False,
         export_plots=True,
         evaluator=evaluator,
+        device=getattr(args, "device", "auto"),
     )
     runner.run()
 
@@ -167,6 +168,7 @@ def run_constrained(args: argparse.Namespace) -> None:
         constrained=True,
         export_plots=True,
         evaluator=evaluator,
+        device=getattr(args, "device", "auto"),
     )
     runner.run()
 
@@ -229,6 +231,7 @@ def run_validation(args: argparse.Namespace) -> None:
         num_workers=args.num_workers,
         seed=args.seed,
         base_results_dir=args.output_dir or "results",
+        device=getattr(args, "device", "auto"),
     )
 
 
@@ -257,7 +260,7 @@ def resume_optimization(args: argparse.Namespace) -> None:
     acq_type = ckpt_data.get("acquisition_mode", getattr(args, "acquisition", "qLogNEHVI"))
     constrained = ckpt_data.get("constrained", False)
     seed = ckpt_data.get("seed", getattr(args, "seed", 42))
-    batch_size = ckpt_data.get("batch_size", getattr(args, "batch_size", 4))
+    batch_size = getattr(args, "batch_size", None) or ckpt_data.get("batch_size", 4)
 
     evaluator = CliMockEvaluator(run_dir) if getattr(args, "mock_evaluator", False) else None
 
@@ -272,6 +275,7 @@ def resume_optimization(args: argparse.Namespace) -> None:
         constrained=constrained,
         resume=True,
         evaluator=evaluator,
+        device=getattr(args, "device", "auto"),
     )
     runner.run()
 
@@ -312,6 +316,7 @@ def main() -> None:
         subparser.add_argument("--num-initial-samples", type=int, default=16, help="Initial random Sobol samples")
         subparser.add_argument("--num-workers", type=int, default=4, help="Number of parallel worker processes")
         subparser.add_argument("--acquisition", type=str, choices=["qLogNEHVI", "qEHVI"], default="qLogNEHVI", help="Acquisition function")
+        subparser.add_argument("--device", type=str, default="auto", help="Target PyTorch compute device ('auto', 'cuda', 'cuda:0', 'cpu')")
         subparser.add_argument("--seed", type=int, default=42, help="Random seed")
         subparser.add_argument("--output-dir", type=str, default=None, help="Custom output directory")
         subparser.add_argument("--dry-run", action="store_true", help="Print planned execution details without running ASTRA")
@@ -342,7 +347,9 @@ def main() -> None:
     resume_parser = subparsers.add_parser("resume", help="Resume an existing optimization campaign")
     resume_parser.add_argument("--run-dir", type=str, required=True, help="Path to run directory")
     resume_parser.add_argument("--n-iterations", type=int, default=300, help="Total BO iterations")
+    resume_parser.add_argument("-b", "-q", "--batch-size", type=int, default=None, help="Batch size override for resumed iterations")
     resume_parser.add_argument("--num-workers", type=int, default=4, help="Number of parallel worker processes")
+    resume_parser.add_argument("--device", type=str, default="auto", help="Target PyTorch compute device ('auto', 'cuda', 'cuda:0', 'cpu')")
     resume_parser.add_argument("--dry-run", action="store_true", help="Print planned execution details")
     resume_parser.add_argument("--mock-evaluator", action="store_true", help="Use mock evaluator for testing")
 
@@ -356,6 +363,7 @@ def main() -> None:
     run_bm_parser.add_argument("--n-sobol-init", type=int, default=10, help="Number of initial Sobol samples")
     run_bm_parser.add_argument("--batch-size", type=int, default=4, help="BO batch size per iteration")
     run_bm_parser.add_argument("--num-workers", type=int, default=4, help="Number of parallel worker processes")
+    run_bm_parser.add_argument("--device", type=str, default="auto", help="Target PyTorch compute device ('auto', 'cuda', 'cuda:0', 'cpu')")
     run_bm_parser.add_argument("--dry-run", action="store_true", help="Print planned benchmark plan")
     run_bm_parser.add_argument("--mock-evaluator", action="store_true", help="Use mock evaluator for testing")
 
@@ -410,6 +418,7 @@ def main() -> None:
             total_eval_budget=args.budget,
             n_sobol_init=getattr(args, "n_sobol_init", 10),
             batch_size=getattr(args, "batch_size", 4),
+            device=getattr(args, "device", "auto"),
         )
         mock_eval = CliMockEvaluator(Path(args.output_dir)) if getattr(args, "mock_evaluator", False) else None
         runner.execute_benchmark_campaigns(dry_run=args.dry_run, mock_evaluator=mock_eval)
