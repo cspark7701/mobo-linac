@@ -180,6 +180,12 @@ def generate_next_candidates(
 
     bounds_dbl = bounds.to(device=target_device, dtype=torch.double)
 
+    if target_device.type == "cuda" and torch.cuda.is_available():
+        torch.cuda.empty_cache()
+        # Default batch_limit to 1 on GPU to prevent concurrent restart VRAM spikes
+        if "batch_limit" not in (options or {}):
+            batch_limit = 1
+
     opt_options: Dict[str, Any] = {"batch_limit": batch_limit, "maxiter": maxiter}
     if options:
         opt_options.update(options)
@@ -202,9 +208,12 @@ def generate_next_candidates(
             f"Primary acquisition optimization failed with error: {e}. Retrying with reduced restart budget..."
         )
 
+        if target_device.type == "cuda" and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+
         reduced_restarts = max(2, num_restarts // 2)
-        reduced_raw = max(32, raw_samples // 2)
-        reduced_batch_limit = max(1, batch_limit // 2)
+        reduced_raw = max(32, raw_samples // 4)
+        reduced_batch_limit = 1
         reduced_options = {"batch_limit": reduced_batch_limit, "maxiter": min(maxiter, 100)}
 
         try:
@@ -216,12 +225,38 @@ def generate_next_candidates(
                 raw_samples=reduced_raw,
                 options=reduced_options,
             )
-            logger.info("Acquisition optimization succeeded with reduced restart budget.")
+            logger.info("Acquisition optimization succeeded with reduced restart budget on GPU.")
             return candidates, acq_values
         except Exception as retry_err:
-            logger.error(
-                f"Acquisition retry also failed: {retry_err}. Falling back to quasi-random Sobol exploration."
+            logger.warning(
+                f"GPU acquisition retry failed with error: {retry_err}. Attempting CPU fallback..."
             )
+            if target_device.type == "cuda" and torch.cuda.is_available():
+                torch.cuda.empty_cache()
+
+            # Attempt CPU fallback before Sobol
+            try:
+                acq_func_cpu = acq_func.to("cpu")
+                bounds_cpu = bounds.to(device="cpu", dtype=torch.double)
+                candidates_cpu, acq_vals_cpu = optimize_acqf(
+                    acq_function=acq_func_cpu,
+                    bounds=bounds_cpu,
+                    q=batch_size,
+                    num_restarts=reduced_restarts,
+                    raw_samples=reduced_raw,
+                    options=reduced_options,
+                )
+                logger.info("Acquisition optimization succeeded on CPU fallback.")
+                try:
+                    acq_func.to(target_device)
+                except Exception:
+                    pass
+                return candidates_cpu.to(device=target_device), acq_vals_cpu.to(device=target_device)
+            except Exception as cpu_err:
+                logger.error(
+                    f"CPU fallback also failed: {cpu_err}. Falling back to quasi-random Sobol exploration."
+                )
+
             dim = bounds_dbl.shape[1]
             sobol_engine = torch.quasirandom.SobolEngine(dimension=dim, scramble=True)
             samples = sobol_engine.draw(batch_size).to(device=target_device, dtype=torch.double)

@@ -347,12 +347,16 @@ class MoboCampaignRunner:
                 ).to(device=self.device, dtype=torch.double)
                 fit_gp_models(ModelListGP(gp).to(device=self.device, dtype=torch.double))
 
+                if self.device.type == "cuda" and torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+
                 acq_func = qLogNoisyExpectedImprovement(
                     model=gp,
                     X_baseline=train_X_dev,
                     prune_baseline=True,
                 )
                 exec_cfg = self.config.execution
+                b_limit = 1 if self.device.type == "cuda" else getattr(exec_cfg, "acqf_batch_limit", 5)
                 candidates, _ = optimize_acqf(
                     acq_function=acq_func,
                     bounds=bounds_dev,
@@ -360,7 +364,7 @@ class MoboCampaignRunner:
                     num_restarts=getattr(exec_cfg, "acqf_num_restarts", 20),
                     raw_samples=getattr(exec_cfg, "acqf_raw_samples", 128),
                     options={
-                        "batch_limit": getattr(exec_cfg, "acqf_batch_limit", 5),
+                        "batch_limit": b_limit,
                         "maxiter": getattr(exec_cfg, "acqf_maxiter", 200),
                     },
                 )
