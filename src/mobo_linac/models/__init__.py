@@ -8,6 +8,10 @@ from mobo_linac.models.tuning import (
     tune_gp_hyperparameters,
     HyperparameterTuningSummary,
     compare_acquisition_functions,
+    tune_acquisition_hyperparameters,
+    AcquisitionTuningSummary,
+    tune_full_optimization_pipeline,
+    PipelineTuningSummary,
 )
 
 __all__ = [
@@ -17,4 +21,8 @@ __all__ = [
     "tune_gp_hyperparameters",
     "HyperparameterTuningSummary",
     "compare_acquisition_functions",
+    "tune_acquisition_hyperparameters",
+    "AcquisitionTuningSummary",
+    "tune_full_optimization_pipeline",
+    "PipelineTuningSummary",
 ]

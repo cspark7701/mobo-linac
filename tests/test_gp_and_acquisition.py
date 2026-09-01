@@ -253,4 +253,53 @@ def test_compare_acquisition_functions():
     assert (summary_df["Status"] == "SUCCESS").all()
 
 
+def test_tune_acquisition_hyperparameters():
+    """Verify acquisition hyperparameter grid search and ExecutionConfig selection."""
+    from mobo_linac.models.tuning import tune_acquisition_hyperparameters
+
+    train_X = torch.rand(10, 6, dtype=torch.double)
+    train_Y = torch.rand(10, 3, dtype=torch.double)
+    bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
+    ref_point = torch.tensor([-1.0, -1.0, -1.0], dtype=torch.double)
+
+    model = build_gp_models(train_X, train_Y, bounds)
+    acq_summary = tune_acquisition_hyperparameters(
+        model=model,
+        train_X=train_X,
+        train_Y=train_Y,
+        ref_point=ref_point,
+        bounds=bounds,
+        candidate_acq_types=["qLogNEHVI"],
+        candidate_restarts=[2],
+        candidate_raw_samples=[16],
+        batch_size=2,
+        maxiter=5,
+    )
+
+    assert acq_summary.best_acq_type == "qLogNEHVI"
+    assert acq_summary.best_execution_config.acqf_num_restarts == 2
+    assert not acq_summary.comparison_table.empty
+
+
+def test_tune_full_optimization_pipeline():
+    """Verify unified joint surrogate and acquisition hyperparameter optimization."""
+    from mobo_linac.models.tuning import tune_full_optimization_pipeline
+
+    train_X = torch.rand(10, 6, dtype=torch.double)
+    train_Y = torch.rand(10, 3, dtype=torch.double)
+    bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
+
+    pipeline_summary = tune_full_optimization_pipeline(
+        train_X=train_X,
+        train_Y=train_Y,
+        bounds=bounds,
+        batch_size=2,
+    )
+
+    assert pipeline_summary.best_gp_config is not None
+    assert pipeline_summary.best_acq_type in ["qLogNEHVI", "qLogEHVI", "qEHVI"]
+    assert not pipeline_summary.gp_comparison_table.empty
+    assert not pipeline_summary.acq_comparison_table.empty
+
+
 

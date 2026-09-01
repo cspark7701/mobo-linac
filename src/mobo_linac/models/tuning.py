@@ -267,3 +267,276 @@ def compare_acquisition_functions(
             })
 
     return pd.DataFrame(summary_rows)
+
+
+@dataclass
+class AcquisitionHyperparameterResult:
+    """Evaluation result for an acquisition hyperparameter combination."""
+    acq_type: str
+    num_restarts: int
+    raw_samples: int
+    maxiter: int
+    batch_limit: int
+    mean_acq_value: float
+    candidate_diversity: float
+    proposal_time_s: float
+    status: str = "SUCCESS"
+
+
+@dataclass
+class AcquisitionTuningSummary:
+    """Summary of acquisition function hyperparameter optimization."""
+    best_acq_type: str
+    best_execution_config: ExecutionConfig
+    best_candidate: AcquisitionHyperparameterResult
+    comparison_table: pd.DataFrame
+    candidates: List[AcquisitionHyperparameterResult]
+
+
+def compute_candidate_diversity(candidates: torch.Tensor) -> float:
+    """Computes mean pairwise Euclidean distance between proposed batch candidates."""
+    if candidates.shape[0] < 2:
+        return 0.0
+    diff = candidates.unsqueeze(1) - candidates.unsqueeze(0)
+    dists = torch.norm(diff, dim=-1)
+    n = candidates.shape[0]
+    # Extract upper triangle without diagonal
+    triu_indices = torch.triu_indices(n, n, offset=1)
+    pair_dists = dists[triu_indices[0], triu_indices[1]]
+    return float(pair_dists.mean().item())
+
+
+def tune_acquisition_hyperparameters(
+    model: Any,
+    train_X: torch.Tensor,
+    train_Y: torch.Tensor,
+    ref_point: torch.Tensor,
+    bounds: torch.Tensor,
+    candidate_acq_types: Optional[List[str]] = None,
+    candidate_restarts: Optional[List[int]] = None,
+    candidate_raw_samples: Optional[List[int]] = None,
+    batch_size: int = 8,
+    batch_limit: int = 1,
+    maxiter: int = 50,
+    device: Optional[Union[torch.device, str]] = None,
+) -> AcquisitionTuningSummary:
+    """
+    Evaluates and selects optimal acquisition function parameters (type, restarts, raw samples)
+    by evaluating candidate acquisition scores, proposal spatial diversity, and latency.
+
+    Args:
+        model: Fitted ModelListGP surrogate model.
+        train_X: (N, D) PyTorch tensor of design variables.
+        train_Y: (N, M) PyTorch tensor of observations.
+        ref_point: (M,) PyTorch tensor reference point.
+        bounds: (2, D) PyTorch tensor of parameter bounds.
+        candidate_acq_types: List of acquisition types to evaluate (default: ['qLogNEHVI', 'qLogEHVI', 'qEHVI']).
+        candidate_restarts: List of restart budgets (default: [5, 10, 20]).
+        candidate_raw_samples: List of raw sample counts (default: [64, 128, 256]).
+        batch_size: Candidate proposal batch size q.
+        batch_limit: Concurrency batch limit.
+        maxiter: Optimization iterations per restart.
+        device: Target compute device.
+
+    Returns:
+        AcquisitionTuningSummary with optimal acq_type, ExecutionConfig, and comparison table.
+    """
+    import time
+    from mobo_linac.acquisition.mobo import build_acquisition_function, generate_next_candidates
+
+    if candidate_acq_types is None:
+        candidate_acq_types = ["qLogNEHVI", "qLogEHVI", "qEHVI"]
+    if candidate_restarts is None:
+        candidate_restarts = [5, 10, 20]
+    if candidate_raw_samples is None:
+        candidate_raw_samples = [64, 128, 256]
+
+    results: List[AcquisitionHyperparameterResult] = []
+
+    for acq_type in candidate_acq_types:
+        try:
+            acq_func = build_acquisition_function(
+                model=model,
+                train_X=train_X,
+                train_Y=train_Y,
+                ref_point=ref_point,
+                acq_type=acq_type,
+            )
+        except Exception as e:
+            continue
+
+        for n_restarts in candidate_restarts:
+            for raw_s in candidate_raw_samples:
+                t0 = time.time()
+                try:
+                    candidates, acq_values = generate_next_candidates(
+                        acq_func=acq_func,
+                        bounds=bounds,
+                        batch_size=batch_size,
+                        num_restarts=n_restarts,
+                        raw_samples=raw_s,
+                        maxiter=maxiter,
+                        batch_limit=batch_limit,
+                        device=device,
+                        retry_on_failure=True,
+                    )
+                    prop_time = time.time() - t0
+                    diversity = compute_candidate_diversity(candidates)
+                    mean_acq = float(acq_values.mean().item())
+
+                    cand_res = AcquisitionHyperparameterResult(
+                        acq_type=acq_type,
+                        num_restarts=n_restarts,
+                        raw_samples=raw_s,
+                        maxiter=maxiter,
+                        batch_limit=batch_limit,
+                        mean_acq_value=mean_acq,
+                        candidate_diversity=diversity,
+                        proposal_time_s=prop_time,
+                        status="SUCCESS",
+                    )
+                    results.append(cand_res)
+                except Exception as err:
+                    cand_res = AcquisitionHyperparameterResult(
+                        acq_type=acq_type,
+                        num_restarts=n_restarts,
+                        raw_samples=raw_s,
+                        maxiter=maxiter,
+                        batch_limit=batch_limit,
+                        mean_acq_value=0.0,
+                        candidate_diversity=0.0,
+                        proposal_time_s=time.time() - t0,
+                        status=f"FAILED: {err}",
+                    )
+                    results.append(cand_res)
+
+    if not results:
+        # Fallback default
+        default_res = AcquisitionHyperparameterResult(
+            acq_type="qLogNEHVI",
+            num_restarts=20,
+            raw_samples=256,
+            maxiter=maxiter,
+            batch_limit=batch_limit,
+            mean_acq_value=0.0,
+            candidate_diversity=0.0,
+            proposal_time_s=0.0,
+        )
+        results = [default_res]
+
+    # Sort candidates by composite trade-off (higher diversity and acquisition value, reasonable proposal time)
+    results_sorted = sorted(results, key=lambda c: (-c.candidate_diversity, -c.mean_acq_value, c.proposal_time_s))
+    best_cand = results_sorted[0]
+
+    best_exec_cfg = ExecutionConfig(
+        acqf_num_restarts=best_cand.num_restarts,
+        acqf_raw_samples=best_cand.raw_samples,
+        acqf_maxiter=best_cand.maxiter,
+        acqf_batch_limit=best_cand.batch_limit,
+    )
+
+    rows = []
+    for c in results_sorted:
+        rows.append({
+            "Acquisition Type": c.acq_type,
+            "Restarts": c.num_restarts,
+            "Raw Samples": c.raw_samples,
+            "Mean Acq Value": round(c.mean_acq_value, 4),
+            "Diversity Score": round(c.candidate_diversity, 4),
+            "Proposal Time (s)": round(c.proposal_time_s, 3),
+            "Status": c.status,
+        })
+    comp_df = pd.DataFrame(rows)
+
+    return AcquisitionTuningSummary(
+        best_acq_type=best_cand.acq_type,
+        best_execution_config=best_exec_cfg,
+        best_candidate=best_cand,
+        comparison_table=comp_df,
+        candidates=results_sorted,
+    )
+
+
+@dataclass
+class PipelineTuningSummary:
+    """Unified summary for joint surrogate and acquisition hyperparameter optimization."""
+    best_gp_config: GpModelConfig
+    best_acq_type: str
+    best_execution_config: ExecutionConfig
+    gp_comparison_table: pd.DataFrame
+    acq_comparison_table: pd.DataFrame
+
+
+def tune_full_optimization_pipeline(
+    train_X: torch.Tensor,
+    train_Y: torch.Tensor,
+    bounds: torch.Tensor,
+    ref_point: Optional[torch.Tensor] = None,
+    batch_size: int = 8,
+    device: Optional[Union[torch.device, str]] = None,
+) -> PipelineTuningSummary:
+    """
+    Executes end-to-end joint hyperparameter optimization across both GP surrogate models
+    and acquisition functions for the 200 MeV electron injector linac.
+
+    Args:
+        train_X: (N, D) PyTorch tensor of design variables.
+        train_Y: (N, M) PyTorch tensor of objective observations.
+        bounds: (2, D) PyTorch tensor of bounds.
+        ref_point: Optional (M,) PyTorch tensor reference point.
+        batch_size: Batch size q.
+        device: Target compute device.
+
+    Returns:
+        PipelineTuningSummary with optimal GP config, optimal acquisition function, and ExecutionConfig.
+    """
+    from mobo_linac.metrics.hypervolume import compute_reference_point
+
+    if ref_point is None:
+        ref_point = compute_reference_point(train_Y, offset_ratio=0.05)
+
+    # 1. Tune GP Surrogate Hyperparameters
+    gp_summary = tune_gp_hyperparameters(
+        train_X=train_X,
+        train_Y=train_Y,
+        bounds=bounds,
+        candidate_covars=["matern52", "rbf"],
+        candidate_noise_ratios=[1.0e-8, 1.0e-6, 1.0e-4],
+        candidate_noise_modes=["deterministic_fixed"],
+        device=device,
+    )
+
+    # 2. Fit optimal surrogate
+    model = build_gp_models(
+        train_X=train_X,
+        train_Y=train_Y,
+        bounds=bounds,
+        covar_type=gp_summary.best_config.covar_type,
+        noise_mode=gp_summary.best_config.noise_mode,
+        relative_noise_ratio=gp_summary.best_config.relative_noise_ratio,
+        device=device,
+    )
+    fitted_model = fit_gp_models(model)
+
+    # 3. Tune Acquisition Function Hyperparameters
+    acq_summary = tune_acquisition_hyperparameters(
+        model=fitted_model,
+        train_X=train_X,
+        train_Y=train_Y,
+        ref_point=ref_point,
+        bounds=bounds,
+        candidate_acq_types=["qLogNEHVI", "qLogEHVI", "qEHVI"],
+        candidate_restarts=[5, 10, 20],
+        candidate_raw_samples=[64, 128, 256],
+        batch_size=batch_size,
+        device=device,
+    )
+
+    return PipelineTuningSummary(
+        best_gp_config=gp_summary.best_config,
+        best_acq_type=acq_summary.best_acq_type,
+        best_execution_config=acq_summary.best_execution_config,
+        gp_comparison_table=gp_summary.comparison_table,
+        acq_comparison_table=acq_summary.comparison_table,
+    )
+
