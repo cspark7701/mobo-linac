@@ -192,12 +192,15 @@ class MoboConfig:
     design_variables: List[DesignVariableConfig]
     objectives: List[ObjectiveConfig]
     constraints: ConstraintsConfig
+    name: Optional[str] = "mobo_200MeV"
     sensitivity_profiles: Dict[str, ConstraintsConfig] = field(default_factory=dict)
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
     model: GpModelConfig = field(default_factory=GpModelConfig)
 
     def validate(self) -> None:
         """Validate entire configuration system."""
+        if not self.name:
+            self.name = "mobo_200MeV"
         if not self.design_variables:
             raise ValueError("No design_variables defined in MoboConfig.")
         if not self.objectives:
@@ -281,6 +284,7 @@ def load_config(config_path: Union[str, Path] = "configs/publication_200MeV.yaml
     model_cfg = GpModelConfig(**data.get("model", {}))
 
     config = MoboConfig(
+        name=str(data.get("name", path.stem)),
         version=str(data.get("version", "1.0")),
         description=str(data.get("description", "")),
         design_variables=design_vars,
