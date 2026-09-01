@@ -107,3 +107,76 @@ This shell pipeline is mirrored 1-to-1 in the interactive Jupyter notebook:
 👉 **[`notebooks/full_production_pipeline.ipynb`](../notebooks/full_production_pipeline.ipynb)**
 
 Both the shell script and the notebook utilize identical underlying Python modules from `mobo_linac`, ensuring exact numerical agreement between CLI automation and interactive analysis.
+
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+  To resume your simulation from where it stopped, follow these steps:                                
+  ──────                                                                                              
+  ### Step 1: Identify Which Phase Stopped                                                            
+                                                                                                      
+  Check the latest checkpoints in the 3 production phase directories:                                 
+                                                                                                      
+    ls -lh results/full_production/phase1_scalarized/checkpoints/                                     
+    ls -lh results/full_production/phase2_unconstrained/checkpoints/                                  
+    ls -lh results/full_production/phase3_constrained/checkpoints/                                    
+                                                                                                      
+  • If phase1_scalarized stopped mid-way: Resume Phase 1.                                             
+  • If phase1 finished, but phase2_unconstrained stopped: Resume Phase 2.                             
+  • If phase1 & phase2 finished, but phase3_constrained stopped: Resume Phase 3.                      
+  ──────                                                                                              
+  ### Step 2: Resume the Interrupted Phase                                                            
+                                                                                                      
+  Use the mobo-linac resume command with the exact same parameters (-i 20 -b 8 -w 16 -d cuda):        
+                                                                                                      
+  #### To Resume Phase 1 (Scalarized BO):                                                             
+                                                                                                      
+    mobo-linac resume \                                                                               
+        --run-dir results/full_production/phase1_scalarized \
+        --n-iterations 20 \
+        --batch-size 8 \
+        --num-workers 16 \
+        --device cuda
+  
+  #### To Resume Phase 2 (Unconstrained MOBO):
+  
+    mobo-linac resume \
+        --run-dir results/full_production/phase2_unconstrained \
+        --n-iterations 20 \
+        --batch-size 8 \
+        --num-workers 16 \
+        --device cuda
+  
+  #### To Resume Phase 3 (Constrained MOBO):
+  
+    mobo-linac resume \
+        --run-dir results/full_production/phase3_constrained \
+        --n-iterations 20 \
+        --batch-size 8 \
+        --num-workers 16 \
+        --device cuda
+  ──────
+  ### Step 3: Run the Remaining Pipeline Steps
+  
+  Once all three phases reach 20 iterations, run the comparative analysis and verification scripts to 
+  generate the final plots and reports:
+  
+    # 1. Comparative Analysis & Independent Rerun Verification
+    python3 scripts/run_comparison_and_verification.py \
+        --phase1-dir results/full_production/phase1_scalarized \
+        --phase2-dir results/full_production/phase2_unconstrained \
+        --phase3-dir results/full_production/phase3_constrained \
+        --output-dir results/full_production/analysis
+  
+    # 2. Engineering Tolerance Robustness Analysis
+    python3 scripts/run_robustness_analysis.py \
+        --pareto-csv results/full_production/phase3_constrained/pareto.csv \
+        --output-dir results/full_production/analysis/robustness \
+        --num-workers 16
+  ──────
+  ### What Happens Automatically When Resuming
+  
+  • The runner detects the latest checkpoint (e.g. checkpoint_iter_11.pt), restores all evaluation    
+  data, restores random states, and resumes computation directly at iteration 12.
+  • All previous simulation outputs and hypervolume history are preserved.
+
