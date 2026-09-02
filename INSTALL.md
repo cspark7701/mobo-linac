@@ -152,8 +152,8 @@ export GENERATOR_BIN="/path/to/your/custom/generator"
 After installation and verification, you can run a quick MOBO test run:
 
 ```bash
-# Test run Phase 2 MOBO with 4 workers
-python scripts/run_mobo.py --n-iterations 10 --batch-size 4 --num-workers 4
+# Test run Phase 2 Unconstrained MOBO with 4 workers
+python scripts/run_unconstrained_mobo.py --n-iterations 10 --batch-size 4 --num-workers 4
 ```
 
 For full simulation procedures and publication guidelines, see [`docs/simulation_guide.md`](docs/simulation_guide.md).
