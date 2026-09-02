@@ -8,7 +8,7 @@ This document provides a comprehensive baseline audit of the `mobo_linac` codeba
 
 ## 1. Executable Entry Points
 
-- **`scripts/run_mobo.py`**: Main CLI script for Phase 2 Multi-Objective Bayesian Optimization (MOBO) using BoTorch (`qLogNEHVI` / `qEHVI`) and `ThreadPoolExecutor`.
+- **`scripts/run_unconstrained_mobo.py`** (formerly `scripts/run_mobo.py`): Main CLI script for Phase 2 Multi-Objective Bayesian Optimization (MOBO) using BoTorch (`qLogNEHVI` / `qEHVI`) and `ThreadPoolExecutor`.
 - **`scripts/run_constrained_mobo.py`**: CLI script for Phase 3 Constraint-Aware MOBO modeling constraints with GP surrogates.
 - **`notebooks/phase2_mobo.ipynb`**: Interactive notebook for Phase 2 MOBO optimization and visualization.
 - **`notebooks/phase3_constrained_mobo.ipynb`**: Interactive notebook for Phase 3 Constrained MOBO.
@@ -71,7 +71,7 @@ Explicit feasibility conditions in `mobo_utils.py:16-24` and `mobo_utils.py:50-5
 
 ## 5. Parallel Execution Code
 
-- **File**: `scripts/run_mobo.py:138`, `scripts/run_constrained_mobo.py:138`
+- **File**: `scripts/run_unconstrained_mobo.py:138` (formerly `run_mobo.py`), `scripts/run_constrained_mobo.py:138`
 - **Implementation**: `ThreadPoolExecutor(max_workers=args.num_workers)`
 - **Flaw**: Python threads share global memory and working directory context. Because `Astra` writes temporary files directly to the current working directory (`./`), thread-based parallel execution creates severe file collisions and data corruption.
 
@@ -98,7 +98,7 @@ Explicit feasibility conditions in `mobo_utils.py:16-24` and `mobo_utils.py:50-5
 | Parallel ASTRA evaluations share a working directory? | **YES** | `run_astra_simulation` creates `Astra('astra.in')` in current process working directory without isolating subdirectories. |
 | `train_Y` stores physical or negated objectives? | **NEGATED** | `train_Y` stores $[-\varepsilon_{n,x}, -\varepsilon_{n,y}, -\sigma_E]$ because BoTorch enforces maximization. |
 | Hypervolume reference point changes during a run? | **YES** | `compute_ref_point` in `mobo_utils.py:81` dynamically computes `ref_point` based on `train_Y.min()` and `train_Y.max()` at each iteration. |
-| Infeasible samples excluded from objective GP training? | **PARTIALLY** | In `run_mobo.py:180-186`, infeasible points are filtered out *only* if at least 1 feasible point exists. If 0 feasible points exist, it trains on all samples including sentinels. |
+| Infeasible samples excluded from objective GP training? | **PARTIALLY** | In `run_unconstrained_mobo.py:180-186` (legacy `run_mobo.py`), infeasible points are filtered out *only* if at least 1 feasible point exists. If 0 feasible points exist, it trains on all samples including sentinels. |
 | Invalid simulations assigned sentinel values? | **YES** | `mobo_utils.py:27` assigns dummy `emit_x=1e-3, emit_y=1e-3, sigma_energy=1e8` on simulation error/timeout (negated to `[-1e-3, -1e-3, -1e8]`). |
 | Constraints differ between scripts and documentation? | **YES** | `AGENTS.md` lists beam transmission as a constraint; `mobo_utils.py` omits transmission checks. Unit scaling factors ($\mu\text{m}$ vs $\text{m}$) vary across scripts. |
 

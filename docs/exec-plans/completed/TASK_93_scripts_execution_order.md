@@ -9,20 +9,21 @@
 
 ### Stage 1: Optimization Campaigns
 1. `scripts/run_scalarized_bo.py` (Phase 1 Scalarized BO)
-2. `scripts/run_mobo.py` (Phase 2 Unconstrained MOBO)
+2. `scripts/run_unconstrained_mobo.py` (Phase 2 Unconstrained MOBO)
 3. `scripts/run_constrained_mobo.py` (Phase 3 Constrained MOBO)
 
 ### Stage 2: Post-Processing & Verification
 4. `scripts/run_comparison_and_verification.py` (3-Phase Comparison & Pareto Verification)
-5. `scripts/run_robustness_analysis.py` (Engineering Tolerance Robustness & Sensitivity)
+5. `scripts/run_pareto_verification.py` (Independent Pareto Rerun Audit)
+6. `scripts/run_robustness_analysis.py` (Engineering Tolerance Robustness & Sensitivity)
 
 ### Stage 3: Manuscript Figure Generation
-6. `scripts/generate_paper_figures.py` (Publication Vector & PNG Figures)
-7. `scripts/reproduce_paper.sh` (LaTeX PDF Compilation)
+7. `scripts/generate_paper_figures.py` (Publication Vector & PNG Figures)
+8. `scripts/reproduce_paper.sh` (LaTeX PDF Compilation)
 
 ---
 
 ## 3. Key Files Updated
-- `scripts/run_mobo.py`
+- `scripts/run_unconstrained_mobo.py`
 - `scripts/run_constrained_mobo.py`
 - `scripts/run_scalarized_bo.py`
