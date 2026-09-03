@@ -10,7 +10,7 @@ import multiprocessing
 import os
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from mobo_linac.astra.runner import run_astra_eval
 
@@ -92,6 +92,7 @@ def evaluate_candidates_parallel(
     use_symlinks: bool = False,
     mp_context: Optional[str] = None,
     config: Optional[Union[Any, Dict[str, Any]]] = None,
+    on_evaluation_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Evaluates a batch of candidate parameter vectors in parallel using ProcessPoolExecutor.
@@ -112,6 +113,7 @@ def evaluate_candidates_parallel(
         use_symlinks: Use symlinks for static data files instead of copying.
         mp_context: Multiprocessing start method ('spawn', 'forkserver', 'fork').
         config: Optional MoboConfig or config dictionary for dynamic parameter mapping.
+        on_evaluation_complete: Optional callback invoked immediately whenever any candidate finishes.
 
     Returns:
         List of structured result dictionaries aligned with input candidates.
@@ -164,7 +166,13 @@ def evaluate_candidates_parallel(
     # Sequential execution if max_workers == 1 or single candidate
     if max_workers == 1 or n_candidates == 1:
         for idx, task in enumerate(tasks):
-            results[idx] = _worker_eval_task(task)
+            res = _worker_eval_task(task)
+            results[idx] = res
+            if on_evaluation_complete is not None:
+                try:
+                    on_evaluation_complete(res)
+                except Exception:
+                    pass
         return [r for r in results if r is not None]
 
     # ProcessPoolExecutor setup
@@ -184,7 +192,7 @@ def evaluate_candidates_parallel(
                 results[idx] = res
             except Exception as e:
                 # Catch worker process crash or unhandled exception
-                results[idx] = {
+                res = {
                     "candidate_idx": idx,
                     "status": "failed",
                     "objectives": None,
@@ -194,6 +202,13 @@ def evaluate_candidates_parallel(
                     "error": f"Worker process crashed: {str(e)}",
                     "retries_attempted": 0,
                 }
+                results[idx] = res
+
+            if on_evaluation_complete is not None and results[idx] is not None:
+                try:
+                    on_evaluation_complete(results[idx])
+                except Exception:
+                    pass
     finally:
         executor.shutdown(wait=True)
 
@@ -234,6 +249,7 @@ class BatchEvaluator:
         candidates: Sequence[Sequence[float]],
         run_id: str = "batch_run",
         eval_ids: Optional[Sequence[Union[int, str]]] = None,
+        on_evaluation_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
     ) -> List[Dict[str, Any]]:
         """
         Evaluate candidate batch and return detailed result dictionaries.
@@ -252,4 +268,5 @@ class BatchEvaluator:
             use_symlinks=self.use_symlinks,
             mp_context=self.mp_context,
             config=self.config,
+            on_evaluation_complete=on_evaluation_complete,
         )

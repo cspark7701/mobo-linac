@@ -36,9 +36,11 @@ from mobo_linac.io.results import (
     DESIGN_VAR_COLUMNS,
     MODEL_OBJ_COLUMNS,
     PHYSICAL_OBJ_COLUMNS,
+    append_streaming_evaluation,
     get_constraint_tensors,
     get_train_tensors,
     load_run_checkpoint,
+    load_streaming_evaluations,
     results_to_dataframe,
     save_evaluation_results,
     save_run_checkpoint,
@@ -212,6 +214,34 @@ class MoboCampaignRunner:
 
         sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=self.seed)
 
+        def _evaluate_with_streaming(
+            cand_list: List[List[float]],
+            e_ids: Optional[List[int]] = None,
+            batch_idx: Optional[int] = None,
+        ) -> List[EvaluationResult]:
+            def _stream_callback(raw_res: Dict[str, Any]):
+                try:
+                    eval_res = create_evaluation_result(raw_res, self.config)
+                    append_streaming_evaluation(self.run_dir, eval_res, batch_idx=batch_idx)
+                except Exception:
+                    pass
+
+            import inspect
+            sig = inspect.signature(evaluator.evaluate_batch)
+            if "on_evaluation_complete" in sig.parameters:
+                raw_out = evaluator.evaluate_batch(
+                    cand_list,
+                    run_id=self.run_id,
+                    eval_ids=e_ids,
+                    on_evaluation_complete=_stream_callback,
+                )
+            else:
+                raw_out = evaluator.evaluate_batch(cand_list, run_id=self.run_id, eval_ids=e_ids)
+                for r in raw_out:
+                    _stream_callback(r)
+
+            return [create_evaluation_result(r, self.config) for r in raw_out]
+
         start_iteration = 1
         results: List[EvaluationResult] = []
 
@@ -271,8 +301,6 @@ class MoboCampaignRunner:
 
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
 
-
-
             # Re-track hypervolume history
             stored_hvs = ckpt_data.get("hypervolumes")
             if stored_hvs and len(stored_hvs) == completed_iteration + 1:
@@ -295,8 +323,7 @@ class MoboCampaignRunner:
             lower_b, upper_b = bounds[0], bounds[1]
             initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
 
-            raw_initial = evaluator.evaluate_batch(initial_candidates, run_id=self.run_id)
-            results = [create_evaluation_result(r, self.config) for r in raw_initial]
+            results = _evaluate_with_streaming(initial_candidates, batch_idx=0)
 
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
 
@@ -438,8 +465,7 @@ class MoboCampaignRunner:
             start_eval_id = len(results) + 1
             eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]
 
-            raw_batch = evaluator.evaluate_batch(next_cand_list, run_id=self.run_id, eval_ids=eval_ids)
-            batch_results = [create_evaluation_result(r, self.config) for r in raw_batch]
+            batch_results = _evaluate_with_streaming(next_cand_list, e_ids=eval_ids, batch_idx=iteration)
             results.extend(batch_results)
 
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)

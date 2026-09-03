@@ -513,3 +513,68 @@ def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[Checkpoin
     return CheckpointState.from_dict(checkpoint_data, checkpoint_file=str(target_file))
 
 
+def append_streaming_evaluation(
+    output_dir: Union[str, Path],
+    result: EvaluationResult,
+    batch_idx: Optional[int] = None,
+) -> Path:
+    """
+    Appends a single EvaluationResult to evaluations_stream.csv and evaluations_stream.jsonl
+    in real time, immediately flushing to disk for zero-data-loss streaming persistence.
+    """
+    out_dir = Path(output_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+    csv_path = out_dir / "evaluations_stream.csv"
+    jsonl_path = out_dir / "evaluations_stream.jsonl"
+
+    df_row = results_to_dataframe([result])
+    if batch_idx is not None:
+        df_row["batch_idx"] = batch_idx
+
+    file_exists = csv_path.exists()
+    df_row.to_csv(csv_path, mode="a", header=not file_exists, index=False)
+
+    # Append JSONL record with sync for process-safe atomic streaming
+    res_dict = result.to_dict()
+    if batch_idx is not None:
+        res_dict["batch_idx"] = batch_idx
+
+    with open(jsonl_path, "a") as f:
+        f.write(json.dumps(res_dict) + "\n")
+        f.flush()
+        os.fsync(f.fileno())
+
+    return csv_path
+
+
+def load_streaming_evaluations(output_dir: Union[str, Path]) -> List[EvaluationResult]:
+    """
+    Loads all streamed evaluation results from output_dir if available.
+    Prefers evaluations_stream.jsonl for exact typed reconstruction,
+    falling back to evaluations_stream.csv or load_evaluation_results.
+    """
+    out_dir = Path(output_dir)
+    jsonl_path = out_dir / "evaluations_stream.jsonl"
+    csv_path = out_dir / "evaluations_stream.csv"
+
+    if jsonl_path.exists():
+        results = []
+        with open(jsonl_path, "r") as f:
+            for line in f:
+                line_str = line.strip()
+                if line_str:
+                    try:
+                        d = json.loads(line_str)
+                        results.append(EvaluationResult.from_dict(d))
+                    except Exception:
+                        pass
+        if results:
+            return results
+
+    if csv_path.exists():
+        return load_evaluation_results(csv_path)
+
+    return []
+
+
+

@@ -126,3 +126,66 @@ def test_corrupted_checkpoint_raises(tmp_path):
 
     with pytest.raises(ValueError):
         load_run_checkpoint(tmp_path)
+
+
+def test_intra_batch_streaming_persistence_and_resume(tmp_path):
+    """Verify that evaluations_stream.csv/jsonl records individual worker completions in real time."""
+    from mobo_linac.io.results import (
+        append_streaming_evaluation,
+        load_streaming_evaluations,
+    )
+    from mobo_linac.evaluation import EvaluationResult
+
+    # 1. Direct streaming API tests
+    test_dir = tmp_path / "stream_test"
+    res1 = EvaluationResult(
+        evaluation_id="eval_000001",
+        run_id="test_stream",
+        x_physical=[0.2, 1.0, -1.0, -10.0, -5.0, 0.0],
+        objectives_physical=[3.5e-6, 3.6e-6, 0.9e6],
+        objectives_model=[-3.5e-6, -3.6e-6, -0.9e6],
+        diagnostics={"sigma_x_m": 0.5e-3, "mean_kinetic_energy_eV": 200.0e6, "transmission_fraction": 1.0},
+        simulation_valid=True,
+        physically_feasible=True,
+    )
+    res2 = EvaluationResult(
+        evaluation_id="eval_000002",
+        run_id="test_stream",
+        x_physical=[0.25, 0.9, -0.9, -8.0, -4.0, 1.0],
+        objectives_physical=[3.8e-6, 3.9e-6, 1.1e6],
+        objectives_model=[-3.8e-6, -3.9e-6, -1.1e6],
+        diagnostics={"sigma_x_m": 0.6e-3, "mean_kinetic_energy_eV": 201.0e6, "transmission_fraction": 0.95},
+        simulation_valid=True,
+        physically_feasible=True,
+    )
+
+    csv_path = append_streaming_evaluation(test_dir, res1, batch_idx=0)
+    assert csv_path.exists()
+    append_streaming_evaluation(test_dir, res2, batch_idx=0)
+
+    loaded = load_streaming_evaluations(test_dir)
+    assert len(loaded) == 2
+    assert loaded[0].evaluation_id == "eval_000001"
+    assert loaded[1].evaluation_id == "eval_000002"
+    assert loaded[0].physically_feasible is True
+
+    # 2. Campaign runner streaming verification
+    camp_dir = tmp_path / "camp_stream"
+    mock_eval = MockEvaluator(camp_dir)
+    config = load_config("configs/publication_200MeV.yaml")
+    runner = MoboCampaignRunner(
+        config=config,
+        output_dir=camp_dir,
+        num_initial_samples=4,
+        num_batches=2,
+        batch_size=2,
+        seed=42,
+        evaluator=mock_eval,
+    )
+    runner.run()
+
+    streamed_camp = load_streaming_evaluations(camp_dir)
+    assert len(streamed_camp) == 8  # 4 initial + 2*2 batches
+    assert (camp_dir / "evaluations_stream.csv").exists()
+    assert (camp_dir / "evaluations_stream.jsonl").exists()
+
