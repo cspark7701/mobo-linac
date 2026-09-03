@@ -75,101 +75,36 @@ def run_campaign_variant(
     num_workers: int = 4,
     seed: int = 42,
     base_results_dir: str = "results",
+    device: str = "auto",
 ) -> Tuple[Path, List[Any], HypervolumeTracker, float]:
-    """Runs a campaign variant (Phase 2 unconstrained or Phase 3 constrained)."""
-    torch.manual_seed(seed)
-    np.random.seed(seed)
-    torch.set_default_dtype(torch.double)
+    """Runs a campaign variant (Phase 2 unconstrained or Phase 3 constrained) using MoboCampaignRunner."""
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
 
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_id = f"{variant_name}_{timestamp}"
     run_dir = Path(base_results_dir) / run_id
     run_dir.mkdir(parents=True, exist_ok=True)
 
-    config.save_yaml(run_dir / "config.yaml")
-    bounds = config.get_parameter_bounds_tensor()
-
-    evaluator = BatchEvaluator(
-        base_results_dir=run_dir.parent,
-        template_dir=".",
-        max_workers=num_workers,
-        timeout=config.execution.timeout_sec,
-    )
-
     t_start = time.time()
 
-    # Sobol initial sampling
-    print(f"\n--- [{variant_name}] Step 0: Initial Design ({num_initial_samples} samples via Sobol) ---")
-    sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=seed)
-    sobol_samples = sobol_engine.draw(num_initial_samples).to(dtype=torch.double)
-    lower_b, upper_b = bounds[0], bounds[1]
-    initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
-
-    raw_initial = evaluator.evaluate_batch(initial_candidates, run_id=run_id)
-    results = [create_evaluation_result(r, config) for r in raw_initial]
-
-    tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=config)
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-    hv_init = tracker.track_iteration(0, train_Y, train_feas_mask)
-    print(
-        f"[{variant_name}] Iter 00/{num_batches:02d} (Initial) | "
-        f"Evaluations: {len(results):02d} | "
-        f"Valid: {train_X.shape[0]:02d} | "
-        f"Feasible: {hv_init['num_feasible_points']:02d} | "
-        f"HV: {hv_init['feasible_hypervolume']:.6e}\n"
+    runner = MoboCampaignRunner(
+        config=config,
+        run_name=variant_name,
+        output_dir=run_dir,
+        num_initial_samples=num_initial_samples,
+        num_batches=num_batches,
+        batch_size=batch_size,
+        num_workers=num_workers,
+        seed=seed,
+        acq_type="qLogNEHVI",
+        constrained=use_constraint_filtering,
+        export_plots=True,
+        device=device,
     )
-
-    # Iterative BO Loop
-    for iteration in range(1, num_batches + 1):
-        print(f"--- [{variant_name}] Iteration {iteration:02d}/{num_batches:02d} ---")
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-
-        if train_X.shape[0] < 2:
-            new_sobol = sobol_engine.draw(batch_size).to(dtype=torch.double)
-            next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
-        else:
-            gp_model = build_gp_models(train_X, train_Y, bounds)
-            gp_model = fit_gp_models(gp_model)
-
-            acq_ref = compute_reference_point(train_Y, offset_ratio=0.05)
-            acq_func = build_acquisition_function(
-                model=gp_model,
-                train_X=train_X,
-                train_Y=train_Y,
-                ref_point=acq_ref,
-                train_feas_mask=train_feas_mask if use_constraint_filtering else None,
-                acq_type="qLogNEHVI",
-            )
-
-            next_cand_tensor, _ = generate_next_candidates(
-                acq_func=acq_func,
-                bounds=bounds,
-                batch_size=batch_size,
-            )
-            next_cand_list = next_cand_tensor.tolist()
-
-        start_eval_id = len(results) + 1
-        eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]
-
-        raw_batch = evaluator.evaluate_batch(next_cand_list, run_id=run_id, eval_ids=eval_ids)
-        batch_results = [create_evaluation_result(r, config) for r in raw_batch]
-        results.extend(batch_results)
-
-        train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        hv_record = tracker.track_iteration(iteration, train_Y, train_feas_mask)
-        print(
-            f"[{variant_name}] Iter {iteration:02d}/{num_batches:02d} | "
-            f"Evaluations: {len(results):02d} | "
-            f"Valid: {train_X.shape[0]:02d} | "
-            f"Feasible: {hv_record['num_feasible_points']:02d} | "
-            f"HV: {hv_record['feasible_hypervolume']:.6e}\n"
-        )
+    results, tracker, _ = runner.run()
 
     t_end = time.time()
     wall_clock_sec = t_end - t_start
-
-    save_evaluation_results(results, run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
-    tracker.save_csv(run_dir / "hypervolume.csv")
 
     return run_dir, results, tracker, wall_clock_sec
 
