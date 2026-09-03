@@ -23,6 +23,7 @@ from mobo_linac.cli.commands.audit import (
     register_audit_commands,
     run_robustness,
     run_verification,
+    validate_config,
 )
 from mobo_linac.cli.commands.benchmark import (
     analyze_benchmark,

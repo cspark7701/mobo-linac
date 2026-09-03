@@ -267,3 +267,53 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
         "--mock-evaluator", action="store_true", help="Use mock evaluator for testing"
     )
     run_ver_parser.set_defaults(handler=run_verification)
+
+    # Subcommand: validate-config
+    val_cfg_parser = subparsers.add_parser(
+        "validate-config", help="Validate YAML/JSON configuration files and export schema/docs"
+    )
+    val_cfg_parser.add_argument(
+        "--config", type=str, default="configs/publication.yaml", help="Path to configuration file to validate"
+    )
+    val_cfg_parser.add_argument(
+        "--export-schema", type=str, default=None, help="Export JSON Schema to file path"
+    )
+    val_cfg_parser.add_argument(
+        "--export-docs", type=str, default=None, help="Export Markdown documentation to file path"
+    )
+    val_cfg_parser.set_defaults(handler=validate_config)
+
+
+def validate_config(args: argparse.Namespace) -> None:
+    """Validates YAML/JSON configuration files and optionally exports docs/schema."""
+    import sys
+    from mobo_linac.config import export_config_schema, generate_config_markdown_docs, load_config
+
+    config_path = getattr(args, "config", "configs/publication.yaml")
+    p = Path(config_path)
+    if not p.exists():
+        print(f"ERROR: Configuration file not found: {p}")
+        sys.exit(1)
+
+    try:
+        cfg = load_config(p)
+        print(f"✓ Configuration '{cfg.name}' (v{cfg.version}) is VALID.")
+        print(f"  - Design Variables: {len(cfg.design_variables)}")
+        print(f"  - Objectives: {len(cfg.objectives)}")
+        print(f"  - Max Workers: {cfg.execution.max_workers}")
+        print(f"  - Constraints: {cfg.constraints.min_mean_kinetic_energy_eV*1e-6:.1f} - {cfg.constraints.max_mean_kinetic_energy_eV*1e-6:.1f} MeV")
+    except Exception as e:
+        print(f"✗ Validation FAILED for '{p}': {e}")
+        sys.exit(1)
+
+    if getattr(args, "export_schema", None):
+        export_config_schema(args.export_schema)
+        print(f"✓ JSON Schema exported to: {args.export_schema}")
+
+    if getattr(args, "export_docs", None):
+        docs_str = generate_config_markdown_docs(cfg)
+        out_docs = Path(args.export_docs)
+        out_docs.parent.mkdir(parents=True, exist_ok=True)
+        out_docs.write_text(docs_str, encoding="utf-8")
+        print(f"✓ Markdown documentation exported to: {out_docs}")
+
