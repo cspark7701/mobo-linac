@@ -67,6 +67,13 @@ def main(args: Optional[Sequence[str]] = None) -> None:
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
+    from mobo_linac.utils.logger import configure_logging
+
+    quiet = getattr(parsed_args, "quiet", False)
+    verbose = getattr(parsed_args, "verbose", False)
+    debug = getattr(parsed_args, "debug", False)
+    configure_logging(quiet=quiet, verbose=verbose, debug=debug)
+
     if hasattr(parsed_args, "handler") and callable(parsed_args.handler):
         parsed_args.handler(parsed_args)
     else:
