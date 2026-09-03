@@ -224,3 +224,32 @@ def test_tune_gp_hyperparameters(dummy_data):
     assert not tuning_summary.comparison_table.empty
     assert "Overall R^2" in tuning_summary.comparison_table.columns
     assert tuning_summary.best_candidate.overall_r2 >= -1.0
+
+
+def test_build_scalarized_gp_model(dummy_data):
+    """Verify build_scalarized_gp_model constructs and fits SingleTaskGP."""
+    from mobo_linac.models.gp import build_scalarized_gp_model
+    from botorch.models import SingleTaskGP
+
+    train_X, train_Y, bounds = dummy_data
+    scalar_Y = train_Y[:, 0:1]
+
+    gp = build_scalarized_gp_model(
+        train_X=train_X,
+        train_Y=scalar_Y,
+        bounds=bounds,
+        covar_type="matern52",
+        noise_mode="deterministic_fixed",
+        relative_noise_ratio=1.0e-6,
+    )
+
+    assert isinstance(gp, SingleTaskGP)
+    fitted_gp = fit_gp_models(gp)
+    assert fitted_gp is not None
+
+    test_X = torch.rand(4, 6, dtype=torch.double)
+    with torch.no_grad():
+        post = fitted_gp.posterior(test_X)
+        assert post.mean.shape == (4, 1)
+        assert post.variance.shape == (4, 1)
+

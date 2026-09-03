@@ -31,7 +31,7 @@ from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.constraints import get_botorch_constraint_functions
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
-from mobo_linac.models.gp import fit_gp_models
+from mobo_linac.models.gp import build_scalarized_gp_model, fit_gp_models
 from mobo_linac.io.results import (
     DESIGN_VAR_COLUMNS,
     MODEL_OBJ_COLUMNS,
@@ -375,14 +375,18 @@ class MoboCampaignRunner:
                 scalar_Y = (train_Y_dev * weights_dev).sum(dim=-1, keepdim=True)
 
                 bounds_dev = bounds.to(device=self.device, dtype=torch.double)
-                input_transform = Normalize(d=bounds_dev.shape[1], bounds=bounds_dev)
-                gp = SingleTaskGP(
+                gp = build_scalarized_gp_model(
                     train_X=train_X_dev,
                     train_Y=scalar_Y,
-                    input_transform=input_transform,
-                    outcome_transform=Standardize(m=1),
-                ).to(device=self.device, dtype=torch.double)
-                fit_gp_models(ModelListGP(gp).to(device=self.device, dtype=torch.double))
+                    bounds=bounds_dev,
+                    covar_type=self.config.model.covar_type,
+                    noise_mode=self.config.model.noise_mode,
+                    fixed_noise_val=self.config.model.fixed_noise_variance,
+                    relative_noise_ratio=self.config.model.relative_noise_ratio,
+                    min_noise_variance=self.config.model.min_noise_variance,
+                    device=self.device,
+                )
+                fit_gp_models(gp)
 
                 if self.device.type == "cuda" and torch.cuda.is_available():
                     torch.cuda.empty_cache()
