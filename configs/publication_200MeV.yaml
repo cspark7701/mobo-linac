@@ -118,3 +118,7 @@ execution:
   max_workers: 4
   retries: 0
   clean_on_success: false
+  acqf_raw_samples: 1024
+  acqf_num_restarts: 10
+  acqf_maxiter: 200
+  acqf_batch_limit: 5

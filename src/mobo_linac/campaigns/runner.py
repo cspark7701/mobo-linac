@@ -357,16 +357,15 @@ class MoboCampaignRunner:
                 )
                 exec_cfg = self.config.execution
                 b_limit = 1 if self.device.type == "cuda" else getattr(exec_cfg, "acqf_batch_limit", 5)
-                candidates, _ = optimize_acqf(
-                    acq_function=acq_func,
+                candidates, _ = generate_next_candidates(
+                    acq_func=acq_func,
                     bounds=bounds_dev,
-                    q=self.batch_size,
-                    num_restarts=getattr(exec_cfg, "acqf_num_restarts", 20),
-                    raw_samples=getattr(exec_cfg, "acqf_raw_samples", 128),
-                    options={
-                        "batch_limit": b_limit,
-                        "maxiter": getattr(exec_cfg, "acqf_maxiter", 200),
-                    },
+                    batch_size=self.batch_size,
+                    num_restarts=getattr(exec_cfg, "acqf_num_restarts", 10),
+                    raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
+                    maxiter=getattr(exec_cfg, "acqf_maxiter", 200),
+                    batch_limit=b_limit,
+                    device=self.device,
                 )
                 next_cand_list = candidates.detach().cpu().tolist()
             else:
@@ -417,7 +416,7 @@ class MoboCampaignRunner:
                     acq_func=acq_func,
                     bounds=bounds,
                     batch_size=self.batch_size,
-                    num_restarts=getattr(exec_cfg, "acqf_num_restarts", 20),
+                    num_restarts=getattr(exec_cfg, "acqf_num_restarts", 10),
                     raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
                     maxiter=getattr(exec_cfg, "acqf_maxiter", 200),
                     batch_limit=getattr(exec_cfg, "acqf_batch_limit", 5),

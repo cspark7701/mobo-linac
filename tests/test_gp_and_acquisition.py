@@ -155,7 +155,7 @@ def test_configurable_acquisition_optimization_budget():
 
     # 1. Verify ExecutionConfig defaults
     exec_cfg = ExecutionConfig()
-    assert exec_cfg.acqf_num_restarts == 20
+    assert exec_cfg.acqf_num_restarts == 10
     assert exec_cfg.acqf_raw_samples == 1024
     assert exec_cfg.acqf_maxiter == 200
     assert exec_cfg.acqf_batch_limit == 5
