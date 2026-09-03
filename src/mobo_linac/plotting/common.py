@@ -2,8 +2,9 @@
 Shared configuration, labels, scales, and saving helpers for mobo_linac plotting.
 """
 
+from contextlib import contextmanager
 from pathlib import Path
-from typing import Optional, Union
+from typing import Generator, Optional, Union
 
 import matplotlib.pyplot as plt
 
@@ -39,12 +40,41 @@ OBJ_LABELS = [
 ]
 
 
-def save_fig(fig: plt.Figure, output_path: Optional[Union[str, Path]], dpi: int = 300) -> None:
-    """Saves figure to disk if output_path is provided, creating parent directories."""
+@contextmanager
+def figure_scope(auto_close: bool = True) -> Generator[None, None, None]:
+    """
+    Context manager that automatically tracks and closes all Matplotlib figures
+    created within its scope upon exit, preventing memory accumulation.
+    """
+    initial_fignums = set(plt.get_fignums())
+    try:
+        yield
+    finally:
+        if auto_close:
+            current_fignums = set(plt.get_fignums())
+            new_fignums = current_fignums - initial_fignums
+            for fignum in new_fignums:
+                plt.close(fignum)
+
+
+def close_all_figures() -> None:
+    """Closes all currently open Matplotlib figures."""
+    plt.close("all")
+
+
+def save_fig(
+    fig: plt.Figure,
+    output_path: Optional[Union[str, Path]],
+    dpi: int = 300,
+    close: bool = False,
+) -> None:
+    """Saves figure to disk if output_path is provided, creating parent directories and optionally closing it."""
     if output_path:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         fig.savefig(path, dpi=dpi, bbox_inches="tight")
+    if close:
+        plt.close(fig)
 
 
 # Alias for backward compatibility

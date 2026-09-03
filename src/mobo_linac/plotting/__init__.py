@@ -6,7 +6,7 @@ Provides modular plotting submodules:
   - convergence: Hypervolume progression, objective evolution, benchmarks
   - diagnostics: Feasibility rate, constraint diagnostics, violin plots, GP slices
   - parameters: Design variable heatmaps & parallel coordinates
-  - common: Labels, scales, and figure save utilities
+  - common: Labels, scales, figure save utilities, and memory cleanup contexts
 """
 
 from mobo_linac.plotting.common import (
@@ -15,6 +15,8 @@ from mobo_linac.plotting.common import (
     EMIT_SCALE,
     ENERGY_SCALE,
     OBJ_LABELS,
+    close_all_figures,
+    figure_scope,
     save_fig,
 )
 from mobo_linac.plotting.convergence import (
@@ -67,6 +69,8 @@ __all__ = [
     "plot_parallel_coordinates",
     # Common
     "save_fig",
+    "figure_scope",
+    "close_all_figures",
     "EMIT_SCALE",
     "ENERGY_SCALE",
     "DESIGN_VAR_LABELS",

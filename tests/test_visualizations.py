@@ -163,3 +163,20 @@ def test_visualizations_backward_compatibility(sample_evaluation_results, tmp_pa
     fig2 = compat_plot_hv_progress([{"iteration": 1, "feasible_hypervolume": 10.0}])
     assert isinstance(fig2, plt.Figure)
     plt.close(fig2)
+
+
+def test_figure_scope_and_cleanup(sample_evaluation_results, tmp_path):
+    """Verify figure_scope automatically cleans up open figures."""
+    from mobo_linac.plotting import close_all_figures, figure_scope
+
+    close_all_figures()
+    assert len(plt.get_fignums()) == 0
+
+    with figure_scope(auto_close=True):
+        f1 = plot_pareto_front(sample_evaluation_results)
+        f2 = plot_objective_evolution(sample_evaluation_results)
+        assert len(plt.get_fignums()) >= 2
+
+    # After exit, figures created inside the scope must be closed
+    assert len(plt.get_fignums()) == 0
+
