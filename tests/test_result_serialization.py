@@ -167,3 +167,56 @@ def test_atomic_checkpoint_save(sample_results, tmp_path):
     assert len(loaded_latest.results) == 2
 
 
+def test_dynamic_config_column_binding(tmp_path):
+    """Verify dynamic column header binding from custom MoboConfig."""
+    from mobo_linac.config import ConstraintsConfig, DesignVariableConfig, MoboConfig, ObjectiveConfig
+
+    dvs = [
+        DesignVariableConfig("var_a", "key_a", "T", 1.0, 0.1, 0.5, 1.5),
+        DesignVariableConfig("var_b", "key_b", "T", 2.0, 0.1, 1.0, 3.0),
+        DesignVariableConfig("var_c", "key_c", "T", 3.0, 0.1, 2.0, 4.0),
+        DesignVariableConfig("var_d", "key_d", "T", 4.0, 0.1, 3.0, 5.0),
+    ]
+    objs = [
+        ObjectiveConfig("custom_emit", "custom_emit_m", "m", "minimize", -1),
+        ObjectiveConfig("custom_energy", "custom_energy_eV", "eV", "minimize", -1),
+    ]
+    custom_cfg = MoboConfig(
+        version="2.0",
+        description="Custom 4D 2-Obj Config",
+        design_variables=dvs,
+        objectives=objs,
+        constraints=ConstraintsConfig(),
+    )
+
+    custom_res = [
+        EvaluationResult(
+            evaluation_id="eval_000001",
+            run_id="custom_run",
+            x_physical=[1.1, 2.2, 3.3, 4.4],
+            objectives_physical=[1.0e-6, 2.0e5],
+            objectives_model=[-1.0e-6, -2.0e5],
+            diagnostics={"sigma_x_m": 0.5e-3, "mean_kinetic_energy_eV": 200.0e6, "transmission_fraction": 1.0},
+            simulation_valid=True,
+            physically_feasible=True,
+        )
+    ]
+
+    df = results_to_dataframe(custom_res, config=custom_cfg)
+    assert "var_a" in df.columns
+    assert "var_d" in df.columns
+    assert "custom_emit_m" in df.columns
+    assert "model_custom_emit_neg" in df.columns
+    assert df.loc[0, "var_a"] == 1.1
+    assert df.loc[0, "var_d"] == 4.4
+
+    paths = save_evaluation_results(custom_res, tmp_path / "custom_run", config=custom_cfg)
+    loaded_csv = load_evaluation_results(paths["csv"], config=custom_cfg)
+
+    assert len(loaded_csv) == 1
+    assert loaded_csv[0].x_physical == [1.1, 2.2, 3.3, 4.4]
+    assert loaded_csv[0].objectives_physical == [1.0e-6, 2.0e5]
+    assert loaded_csv[0].objectives_model == [-1.0e-6, -2.0e5]
+
+
+

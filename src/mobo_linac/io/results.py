@@ -36,10 +36,23 @@ MODEL_OBJ_COLUMNS = [
 ]
 
 
-def results_to_dataframe(results: List[EvaluationResult]) -> pd.DataFrame:
+def results_to_dataframe(
+    results: List[EvaluationResult],
+    config: Optional[Any] = None,
+) -> pd.DataFrame:
     """
     Converts a list of EvaluationResult objects into a structured Pandas DataFrame.
+    Dynamically binds column headers from config if provided, falling back to canonical linac defaults.
     """
+    if config is not None and hasattr(config, "design_variables") and hasattr(config, "objectives"):
+        design_var_cols = [dv.name for dv in config.design_variables]
+        physical_obj_cols = [obj.explicit_name for obj in config.objectives]
+        model_obj_cols = [f"model_{obj.name}_neg" for obj in config.objectives]
+    else:
+        design_var_cols = DESIGN_VAR_COLUMNS
+        physical_obj_cols = PHYSICAL_OBJ_COLUMNS
+        model_obj_cols = MODEL_OBJ_COLUMNS
+
     rows = []
     for res in results:
         row: Dict[str, Any] = {
@@ -54,21 +67,21 @@ def results_to_dataframe(results: List[EvaluationResult]) -> pd.DataFrame:
         }
 
         # Add design variables
-        for idx, col in enumerate(DESIGN_VAR_COLUMNS):
+        for idx, col in enumerate(design_var_cols):
             if res.x_physical and idx < len(res.x_physical):
                 row[col] = float(res.x_physical[idx])
             else:
                 row[col] = np.nan
 
         # Add physical objectives
-        for idx, col in enumerate(PHYSICAL_OBJ_COLUMNS):
+        for idx, col in enumerate(physical_obj_cols):
             if res.objectives_physical and idx < len(res.objectives_physical):
                 row[col] = float(res.objectives_physical[idx])
             else:
                 row[col] = np.nan
 
         # Add model-space objectives
-        for idx, col in enumerate(MODEL_OBJ_COLUMNS):
+        for idx, col in enumerate(model_obj_cols):
             if res.objectives_model and idx < len(res.objectives_model):
                 row[col] = float(res.objectives_model[idx])
             else:
@@ -179,10 +192,20 @@ def save_evaluation_results(
     results: List[EvaluationResult],
     run_dir: Union[str, Path],
     hypervolumes: Optional[List[float]] = None,
+    config: Optional[Any] = None,
 ) -> Dict[str, Path]:
     """
     Saves candidate history JSON, CSV, Pareto front, and hypervolume history into run directory.
     """
+    if config is not None and hasattr(config, "design_variables") and hasattr(config, "objectives"):
+        design_var_cols = [dv.name for dv in config.design_variables]
+        physical_obj_cols = [obj.explicit_name for obj in config.objectives]
+        model_obj_cols = [f"model_{obj.name}_neg" for obj in config.objectives]
+    else:
+        design_var_cols = DESIGN_VAR_COLUMNS
+        physical_obj_cols = PHYSICAL_OBJ_COLUMNS
+        model_obj_cols = MODEL_OBJ_COLUMNS
+
     run_path = Path(run_dir)
     run_path.mkdir(parents=True, exist_ok=True)
 
@@ -193,15 +216,15 @@ def save_evaluation_results(
         json.dump(dict_list, f, indent=2)
 
     # 2. Save candidate_history.csv
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, config=config)
     csv_path = run_path / "candidate_history.csv"
     df.to_csv(csv_path, index=False)
 
     # 3. Save train_X.csv & train_Y.csv
     train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
     if train_X.shape[0] > 0:
-        np.savetxt(run_path / "train_X.csv", train_X.numpy(), delimiter=",", header=",".join(DESIGN_VAR_COLUMNS))
-        np.savetxt(run_path / "train_Y.csv", train_Y.numpy(), delimiter=",", header=",".join(MODEL_OBJ_COLUMNS))
+        np.savetxt(run_path / "train_X.csv", train_X.numpy(), delimiter=",", header=",".join(design_var_cols))
+        np.savetxt(run_path / "train_Y.csv", train_Y.numpy(), delimiter=",", header=",".join(model_obj_cols))
 
         # Save pareto.csv if feasible valid samples exist
         feasible_mask = train_feas_mask
@@ -214,7 +237,7 @@ def save_evaluation_results(
             pareto_Y_phys = -pareto_Y_model  # restore physical values for minimization
 
             pareto_data = np.hstack([pareto_X.numpy(), pareto_Y_phys.numpy()])
-            pareto_headers = DESIGN_VAR_COLUMNS + PHYSICAL_OBJ_COLUMNS
+            pareto_headers = design_var_cols + physical_obj_cols
             np.savetxt(run_path / "pareto.csv", pareto_data, delimiter=",", header=",".join(pareto_headers))
 
     # 4. Save hypervolume.csv if provided
@@ -227,13 +250,29 @@ def save_evaluation_results(
     }
 
 
-def load_evaluation_results(history_path: Union[str, Path]) -> List[EvaluationResult]:
+def load_evaluation_results(
+    history_path: Union[str, Path],
+    config: Optional[Any] = None,
+) -> List[EvaluationResult]:
     """
     Loads list of EvaluationResult objects from a JSON or CSV file.
+    Dynamically binds variable and objective schemas if config is provided.
     """
     path = Path(history_path)
     if not path.exists():
         raise FileNotFoundError(f"Result file not found: {path}")
+
+    if config is not None and hasattr(config, "design_variables") and hasattr(config, "objectives"):
+        design_var_cols = [dv.name for dv in config.design_variables]
+        physical_obj_cols = [obj.explicit_name for obj in config.objectives]
+        model_obj_cols = [f"model_{obj.name}_neg" for obj in config.objectives]
+    else:
+        design_var_cols = DESIGN_VAR_COLUMNS
+        physical_obj_cols = PHYSICAL_OBJ_COLUMNS
+        model_obj_cols = MODEL_OBJ_COLUMNS
+
+    n_vars = len(design_var_cols)
+    n_objs = len(physical_obj_cols)
 
     if path.suffix == ".json":
         with open(path, "r", encoding="utf-8") as f:
@@ -243,29 +282,38 @@ def load_evaluation_results(history_path: Union[str, Path]) -> List[EvaluationRe
         df = pd.read_csv(path)
         results = []
         for _, row in df.iterrows():
-            x_phys = [float(row[col]) for col in DESIGN_VAR_COLUMNS if col in row and not pd.isna(row[col])]
-            if len(x_phys) != 6 and len(row) >= 6:
+            x_phys = [float(row[col]) for col in design_var_cols if col in row and not pd.isna(row[col])]
+            if len(x_phys) != n_vars and len(row) >= n_vars:
                 try:
-                    vals = [float(v) for v in row.values[:6] if pd.notna(v)]
-                    if len(vals) == 6:
+                    vals = [float(v) for v in row.values[:n_vars] if pd.notna(v)]
+                    if len(vals) == n_vars:
                         x_phys = vals
                 except Exception:
                     pass
 
-            objs_phys = [float(row[col]) for col in PHYSICAL_OBJ_COLUMNS if col in row and not pd.isna(row[col])]
-            if len(objs_phys) != 3 and len(row) >= 9:
+            objs_phys = [float(row[col]) for col in physical_obj_cols if col in row and not pd.isna(row[col])]
+            if len(objs_phys) != n_objs and len(row) >= (n_vars + n_objs):
                 try:
-                    vals_obj = [float(v) for v in row.values[6:9] if pd.notna(v)]
-                    if len(vals_obj) == 3:
+                    vals_obj = [float(v) for v in row.values[n_vars : n_vars + n_objs] if pd.notna(v)]
+                    if len(vals_obj) == n_objs:
                         objs_phys = vals_obj
                 except Exception:
                     pass
 
-            objs_model = [float(row[col]) for col in MODEL_OBJ_COLUMNS if col in row and not pd.isna(row[col])]
-
+            objs_model = [float(row[col]) for col in model_obj_cols if col in row and not pd.isna(row[col])]
+            if len(objs_model) != n_objs and len(objs_phys) == n_objs:
+                objs_model = [-val for val in objs_phys]
 
             diags = {}
-            for diag_col in ["sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m", "mean_kinetic_energy_eV"]:
+            for diag_col in [
+                "sigma_x_m",
+                "sigma_y_m",
+                "sigma_xp_rad",
+                "sigma_yp_rad",
+                "sigma_z_m",
+                "mean_kinetic_energy_eV",
+                "transmission_fraction",
+            ]:
                 if diag_col in row and not pd.isna(row[diag_col]):
                     diags[diag_col] = float(row[diag_col])
 
@@ -276,13 +324,15 @@ def load_evaluation_results(history_path: Union[str, Path]) -> List[EvaluationRe
             res = EvaluationResult(
                 evaluation_id=str(row.get("evaluation_id", "eval_000000")),
                 run_id=str(row.get("run_id", "default_run")),
-                x_physical=x_phys,
-                objectives_physical=objs_phys if len(objs_phys) == 3 else None,
-                objectives_model=objs_model if len(objs_model) == 3 else None,
+                x_physical=x_phys if len(x_phys) == n_vars else x_phys,
+                objectives_physical=objs_phys if len(objs_phys) == n_objs else None,
+                objectives_model=objs_model if len(objs_model) == n_objs else None,
                 diagnostics=diags,
                 simulation_valid=sim_valid,
                 physically_feasible=phys_feas,
-                failure_category=str(row.get("failure_category", "NONE" if (sim_valid and phys_feas) else "UNHANDLED_EXCEPTION")),
+                failure_category=str(
+                    row.get("failure_category", "NONE" if (sim_valid and phys_feas) else "UNHANDLED_EXCEPTION")
+                ),
                 failure_reason=str(row.get("failure_reason", "")) if not pd.isna(row.get("failure_reason")) else None,
                 runtime_s=float(row.get("runtime_s", 0.0)),
                 work_dir=str(row.get("work_dir", "")),
