@@ -1,7 +1,7 @@
 """
 Execution management module for mobo_linac.
-Provides process-safe parallel evaluation of ASTRA simulation batches and
-candidate evaluation base abstractions for robustness and verification.
+Provides process-safe parallel evaluation of ASTRA simulation batches,
+candidate evaluation base abstractions, and canonical mock evaluation infrastructure.
 """
 
 from mobo_linac.execution.candidate_evaluator import (
@@ -9,6 +9,10 @@ from mobo_linac.execution.candidate_evaluator import (
     EvaluationOutcome,
     EvaluationTask,
     compute_metric_deltas,
+)
+from mobo_linac.execution.mock import (
+    CliMockEvaluator,
+    MockBatchEvaluator,
 )
 from mobo_linac.execution.parallel import (
     BatchEvaluator,
@@ -22,4 +26,6 @@ __all__ = [
     "EvaluationTask",
     "EvaluationOutcome",
     "compute_metric_deltas",
+    "MockBatchEvaluator",
+    "CliMockEvaluator",
 ]

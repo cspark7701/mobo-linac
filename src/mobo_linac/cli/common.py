@@ -4,51 +4,17 @@ Shared argument mixins and mock evaluators for the mobo_linac CLI.
 
 import argparse
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
 
+from mobo_linac.execution.mock import (
+    CliMockEvaluator,
+    MockBatchEvaluator,
+)
 
-class CliMockEvaluator:
-    """Mock evaluator for CLI testing without requiring ASTRA binary."""
-
-    def __init__(self, run_dir: Path):
-        self.run_dir = Path(run_dir)
-
-    def evaluate_batch(
-        self,
-        candidates: Sequence[Sequence[float]],
-        run_id: str,
-        eval_ids: Optional[Sequence[Union[int, str]]] = None,
-    ) -> List[Dict[str, Any]]:
-        raw_results = []
-        for idx, cand in enumerate(candidates):
-            eval_id_str = (
-                f"eval_{eval_ids[idx]:06d}"
-                if eval_ids and idx < len(eval_ids)
-                else f"eval_{idx+1:06d}"
-            )
-            raw_results.append({
-                "status": "success",
-                "eval_id": eval_id_str,
-                "run_id": run_id,
-                "parameters": cand,
-                "objectives": {
-                    "norm_emit_x": float(0.1e-6 + 0.01e-6 * (sum(cand) % 5)),
-                    "norm_emit_y": float(0.1e-6 + 0.01e-6 * (sum(cand) % 7)),
-                    "sigma_energy": float(0.5e6 + 0.05e6 * (sum(cand) % 3)),
-                },
-                "diagnostics": {
-                    "sigma_x_m": 0.5e-3,
-                    "sigma_y_m": 0.5e-3,
-                    "sigma_xp_rad": 0.5e-3,
-                    "sigma_yp_rad": 0.5e-3,
-                    "sigma_z_m": 0.5e-3,
-                    "mean_kinetic_energy_eV": 200.0e6,
-                    "transmission_fraction": 1.0,
-                },
-                "timestamps": {"duration_sec": 0.1},
-                "eval_dir": str(self.run_dir / eval_id_str),
-            })
-        return raw_results
+__all__ = [
+    "CliMockEvaluator",
+    "MockBatchEvaluator",
+    "add_common_run_args",
+]
 
 
 def add_common_run_args(subparser: argparse.ArgumentParser) -> None:

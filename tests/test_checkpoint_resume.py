@@ -9,42 +9,8 @@ from pathlib import Path
 
 from mobo_linac.config import load_config
 from mobo_linac.campaigns.runner import MoboCampaignRunner
+from mobo_linac.execution import MockBatchEvaluator
 from mobo_linac.io.results import load_run_checkpoint, get_train_tensors
-
-
-class MockEvaluator:
-    """Mock batch evaluator for fast, deterministic unit testing without ASTRA binary."""
-
-    def __init__(self, run_dir: Path):
-        self.run_dir = run_dir
-
-    def evaluate_batch(self, candidates, run_id, eval_ids=None):
-        raw_results = []
-        for idx, cand in enumerate(candidates):
-            eval_id_str = f"eval_{eval_ids[idx]:06d}" if eval_ids and idx < len(eval_ids) else f"eval_{idx+1:06d}"
-            raw_results.append({
-                "status": "success",
-                "eval_id": eval_id_str,
-                "run_id": run_id,
-                "parameters": cand,
-                "objectives": {
-                    "norm_emit_x": float(0.1e-6 + 0.01e-6 * (sum(cand) % 5)),
-                    "norm_emit_y": float(0.1e-6 + 0.01e-6 * (sum(cand) % 7)),
-                    "sigma_energy": float(0.5e6 + 0.05e6 * (sum(cand) % 3)),
-                },
-                "diagnostics": {
-                    "sigma_x_m": 0.5e-3,
-                    "sigma_y_m": 0.5e-3,
-                    "sigma_xp_rad": 0.5e-3,
-                    "sigma_yp_rad": 0.5e-3,
-                    "sigma_z_m": 0.5e-3,
-                    "mean_kinetic_energy_eV": 200.0e6,
-                    "transmission_fraction": 1.0,
-                },
-                "timestamps": {"duration_sec": 0.1},
-                "eval_dir": str(self.run_dir / eval_id_str),
-            })
-        return raw_results
 
 
 def test_uninterrupted_vs_resumed_campaign(tmp_path):
@@ -53,7 +19,7 @@ def test_uninterrupted_vs_resumed_campaign(tmp_path):
 
     # 1. Uninterrupted run (8 initial + 3 batches of 2 = 14 evals)
     dir_uninterrupted = tmp_path / "uninterrupted"
-    mock_eval_1 = MockEvaluator(dir_uninterrupted)
+    mock_eval_1 = MockBatchEvaluator(dir_uninterrupted)
     runner_full = MoboCampaignRunner(
         config=config,
         output_dir=dir_uninterrupted,
@@ -68,7 +34,7 @@ def test_uninterrupted_vs_resumed_campaign(tmp_path):
 
     # 2. Partial run (8 initial + 1 batch of 2 = 10 evals)
     dir_resumed = tmp_path / "resumed"
-    mock_eval_2 = MockEvaluator(dir_resumed)
+    mock_eval_2 = MockBatchEvaluator(dir_resumed)
     runner_part1 = MoboCampaignRunner(
         config=config,
         output_dir=dir_resumed,
@@ -171,7 +137,7 @@ def test_intra_batch_streaming_persistence_and_resume(tmp_path):
 
     # 2. Campaign runner streaming verification
     camp_dir = tmp_path / "camp_stream"
-    mock_eval = MockEvaluator(camp_dir)
+    mock_eval = MockBatchEvaluator(camp_dir)
     config = load_config("configs/publication_200MeV.yaml")
     runner = MoboCampaignRunner(
         config=config,
