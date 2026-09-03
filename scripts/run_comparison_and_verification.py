@@ -99,6 +99,7 @@ def run_campaign_variant(
     t_start = time.time()
 
     # Sobol initial sampling
+    print(f"\n--- [{variant_name}] Step 0: Initial Design ({num_initial_samples} samples via Sobol) ---")
     sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=seed)
     sobol_samples = sobol_engine.draw(num_initial_samples).to(dtype=torch.double)
     lower_b, upper_b = bounds[0], bounds[1]
@@ -109,10 +110,18 @@ def run_campaign_variant(
 
     tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=config)
     train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-    tracker.track_iteration(0, train_Y, train_feas_mask)
+    hv_init = tracker.track_iteration(0, train_Y, train_feas_mask)
+    print(
+        f"[{variant_name}] Iter 00/{num_batches:02d} (Initial) | "
+        f"Evaluations: {len(results):02d} | "
+        f"Valid: {train_X.shape[0]:02d} | "
+        f"Feasible: {hv_init['num_feasible_points']:02d} | "
+        f"HV: {hv_init['feasible_hypervolume']:.6e}\n"
+    )
 
     # Iterative BO Loop
     for iteration in range(1, num_batches + 1):
+        print(f"--- [{variant_name}] Iteration {iteration:02d}/{num_batches:02d} ---")
         train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
 
         if train_X.shape[0] < 2:
@@ -147,7 +156,14 @@ def run_campaign_variant(
         results.extend(batch_results)
 
         train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-        tracker.track_iteration(iteration, train_Y, train_feas_mask)
+        hv_record = tracker.track_iteration(iteration, train_Y, train_feas_mask)
+        print(
+            f"[{variant_name}] Iter {iteration:02d}/{num_batches:02d} | "
+            f"Evaluations: {len(results):02d} | "
+            f"Valid: {train_X.shape[0]:02d} | "
+            f"Feasible: {hv_record['num_feasible_points']:02d} | "
+            f"HV: {hv_record['feasible_hypervolume']:.6e}\n"
+        )
 
     t_end = time.time()
     wall_clock_sec = t_end - t_start

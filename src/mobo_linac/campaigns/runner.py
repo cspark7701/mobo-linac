@@ -181,12 +181,12 @@ class MoboCampaignRunner:
         else:
             mode_str = "Unconstrained MOBO"
 
-        print(f"=== Starting Optimization Campaign: {self.run_id} ({mode_str}) ===")
+        print(f"\n=== Starting Optimization Campaign: {self.run_id} ({mode_str}) ===")
         print(
             f"Initial samples: {self.num_initial_samples}, "
             f"Batches: {self.num_batches}, Batch size: {self.batch_size}, "
             f"Workers: {self.num_workers}, Acquisition: {self.acq_type}, "
-            f"Mode: {self.optimization_mode}"
+            f"Mode: {self.optimization_mode}\n"
         )
 
         if self.export_env_info:
@@ -233,7 +233,7 @@ class MoboCampaignRunner:
             results = ckpt_data["results"]
             completed_iteration = int(ckpt_data.get("iteration", 0))
             start_iteration = completed_iteration + 1
-            print(f"Resuming campaign '{self.run_id}' from iteration {start_iteration} ({len(results)} existing evaluations)...")
+            print(f"\nResuming campaign '{self.run_id}' from iteration {start_iteration} ({len(results)} existing evaluations)...\n")
 
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
 
@@ -290,6 +290,7 @@ class MoboCampaignRunner:
                     curr_mask = train_feas_mask[:n_pts] if train_feas_mask.shape[0] >= n_pts else train_feas_mask
                     tracker.track_iteration(it_idx, curr_y, curr_mask)
         else:
+            print(f"--- Step 0: Initial Design (Sobol Sampling: {self.num_initial_samples} samples) ---")
             sobol_samples = sobol_engine.draw(self.num_initial_samples).to(dtype=torch.double)
             lower_b, upper_b = bounds[0], bounds[1]
             initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
@@ -302,7 +303,15 @@ class MoboCampaignRunner:
             reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
 
-            tracker.track_iteration(0, train_Y, train_feas_mask)
+            hv_init = tracker.track_iteration(0, train_Y, train_feas_mask)
+            print(
+                f"Iter 00/{self.num_batches:02d} (Initial) | "
+                f"Evaluations: {len(results):02d} | "
+                f"Valid: {train_X.shape[0]:02d} | "
+                f"Feasible: {hv_init['num_feasible_points']:02d} | "
+                f"HV: {hv_init['feasible_hypervolume']:.6e}\n"
+            )
+
             save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
             tracker.save_csv(self.run_dir / "hypervolume.csv")
 
@@ -325,6 +334,7 @@ class MoboCampaignRunner:
         lower_b, upper_b = bounds[0], bounds[1]
 
         for iteration in range(start_iteration, self.num_batches + 1):
+            print(f"--- Iteration {iteration:02d}/{self.num_batches:02d} ---")
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
 
             if train_X.shape[0] < 2:
@@ -440,7 +450,7 @@ class MoboCampaignRunner:
                 f"Evaluations: {len(results):02d} | "
                 f"Valid: {train_X.shape[0]:02d} | "
                 f"Feasible: {hv_record['num_feasible_points']:02d} | "
-                f"HV: {hv_record['feasible_hypervolume']:.6e}"
+                f"HV: {hv_record['feasible_hypervolume']:.6e}\n"
             )
 
             save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
@@ -516,6 +526,6 @@ class MoboCampaignRunner:
 
         print(f"=== Campaign Complete: {self.run_id} ===")
         print(f"Total Evaluations: {len(results)}")
-        print(f"Output saved in: {self.run_dir.resolve()}")
+        print(f"Output saved in: {self.run_dir.resolve()}\n")
 
         return results, tracker, self.run_dir

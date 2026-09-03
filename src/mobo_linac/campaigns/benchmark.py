@@ -222,7 +222,7 @@ class BenchmarkCampaignRunner:
                     print(f"Skipping already completed benchmark run: {algo} seed {s}")
                     continue
 
-                print(f"Executing Benchmark Run: algorithm='{algo}', seed={s}...")
+                print(f"\nExecuting Benchmark Run: algorithm='{algo}', seed={s}...")
                 constrained = "constrained" in algo
                 if "nehvi" in algo:
                     acq_type = "qLogNEHVI"
