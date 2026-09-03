@@ -31,6 +31,11 @@ except Exception:
     pass
 
 from astra import Astra
+from mobo_linac.astra.parser import (
+    AstraOutputParser,
+    ParsedAstraResult,
+    SimulationStatus,
+)
 from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id
 
 PARAMETER_NAMES = [
@@ -186,6 +191,20 @@ def run_astra_eval(
     applied_param_names: List[str] = list(PARAMETER_NAMES)
     astra_cmd: str = os.environ.get("ASTRA_BIN", "")
 
+    target_z = 16.2
+    z_tol = 0.1
+    if config is not None:
+        if hasattr(config, "execution"):
+            if hasattr(config.execution, "z_stop_m"):
+                target_z = float(config.execution.z_stop_m)
+            if hasattr(config.execution, "z_loss_tolerance_m"):
+                z_tol = float(config.execution.z_loss_tolerance_m)
+        elif isinstance(config, dict) and "execution" in config:
+            target_z = float(config["execution"].get("z_stop_m", target_z))
+            z_tol = float(config["execution"].get("z_loss_tolerance_m", z_tol))
+
+    parser = AstraOutputParser(target_z_stop=target_z, z_loss_tolerance=z_tol)
+
     try:
         # Initialize Astra inside isolated eval_dir
         astra_sim = Astra(
@@ -210,88 +229,32 @@ def run_astra_eval(
         # Execute simulation
         astra_sim.run()
 
-        if hasattr(astra_sim, "output") and "stats" in astra_sim.output:
-            raw_stats = astra_sim.output["stats"]
-            if raw_stats and "norm_emit_x" in raw_stats and len(raw_stats["norm_emit_x"]) > 0:
-                stats = raw_stats
-                status = "success"
+        parsed_result = parser.parse_astra_simulation(
+            astra_sim=astra_sim,
+            eval_dir=eval_dir,
+        )
+        objectives = parsed_result.objectives
+        diagnostics = parsed_result.diagnostics
+        error_msg = parsed_result.error_message
 
-                norm_emit_x = float(raw_stats["norm_emit_x"][-1])
-                norm_emit_y = float(raw_stats["norm_emit_y"][-1])
-                sigma_energy = float(raw_stats["sigma_energy"][-1])
-
-                objectives = {
-                    "norm_emit_x": norm_emit_x,
-                    "norm_emit_y": norm_emit_y,
-                    "sigma_energy": sigma_energy,
-                }
-
-                # Extract particle count and transmission statistics
-                n_init = None
-                n_final = None
-
-                if hasattr(astra_sim, "particles") and astra_sim.particles and len(astra_sim.particles) >= 1:
-                    try:
-                        n_init = int(astra_sim.particles[0].n_particle)
-                        n_final = int(astra_sim.particles[-1].n_particle)
-                    except Exception:
-                        pass
-
-                if n_init is None:
-                    if "landf_n_particles" in raw_stats and len(raw_stats["landf_n_particles"]) > 0:
-                        n_init = int(raw_stats["landf_n_particles"][0])
-                        n_final = int(raw_stats["landf_n_particles"][-1])
-                    elif "n_stat" in raw_stats and len(raw_stats["n_stat"]) > 0:
-                        n_init = int(raw_stats["n_stat"][0])
-                        n_final = int(raw_stats["n_stat"][-1])
-
-                sigma_x_m = float(raw_stats["sigma_x"][-1])
-                sigma_y_m = float(raw_stats["sigma_y"][-1])
-                sigma_xp_rad = float(raw_stats["sigma_xp"][-1])
-                sigma_yp_rad = float(raw_stats["sigma_yp"][-1])
-                sigma_z_m = float(raw_stats["sigma_z"][-1])
-                mean_kinetic_energy_eV = float(raw_stats["mean_kinetic_energy"][-1])
-
-                diagnostics = {
-                    "emit_x": norm_emit_x,
-                    "emit_y": norm_emit_y,
-                    "sigma_energy": sigma_energy,
-                    "sigma_energy_eV": sigma_energy,
-                    "sigma_x": sigma_x_m,
-                    "sigma_x_m": sigma_x_m,
-                    "sigma_y": sigma_y_m,
-                    "sigma_y_m": sigma_y_m,
-                    "sigma_xp": sigma_xp_rad,
-                    "sigma_xp_rad": sigma_xp_rad,
-                    "sigma_yp": sigma_yp_rad,
-                    "sigma_yp_rad": sigma_yp_rad,
-                    "sigma_z": sigma_z_m,
-                    "sigma_z_m": sigma_z_m,
-                    "mean_kinetic_energy": mean_kinetic_energy_eV,
-                    "mean_kinetic_energy_eV": mean_kinetic_energy_eV,
-                }
-
-                if "z" in raw_stats and len(raw_stats["z"]) > 0:
-                    z_final = float(raw_stats["z"][-1])
-                    diagnostics["z_final_m"] = z_final
-                    diagnostics["z_final"] = z_final
-                    diagnostics["z_stop_m"] = z_final
-
-                if n_init is not None and n_final is not None and n_init > 0:
-                    trans_frac = float(n_final) / float(n_init)
-                    diagnostics["n_particles_initial"] = n_init
-                    diagnostics["n_particles_final"] = n_final
-                    diagnostics["transmission_fraction"] = trans_frac
-                    diagnostics["transmission"] = trans_frac
-            else:
-                error_msg = "ASTRA output stats empty or missing key metrics"
+        if parsed_result.status == SimulationStatus.SUCCESS:
+            status = "success"
+        elif parsed_result.status == SimulationStatus.TIMEOUT:
+            status = "timeout"
         else:
-            error_msg = "ASTRA output dictionary missing 'stats'"
+            status = "failed"
 
     except Exception as e:
         error_msg = str(e)
-        if "timeout" in error_msg.lower():
+        parsed_result = parser.parse_astra_simulation(
+            astra_sim=None,
+            eval_dir=eval_dir,
+            error_context=error_msg,
+        )
+        if parsed_result.status == SimulationStatus.TIMEOUT:
             status = "timeout"
+        else:
+            status = "failed"
 
     t_end = time.time()
     iso_end = datetime.fromtimestamp(t_end).isoformat()
