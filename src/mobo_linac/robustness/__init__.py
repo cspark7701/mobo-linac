@@ -5,6 +5,7 @@ Robustness and Sensitivity Analysis Package for Linac MOBO.
 from mobo_linac.robustness.evaluator import (
     PerturbationSpecification,
     PerturbedMachineState,
+    RobustnessEvaluator,
     compute_robustness_summary,
     generate_perturbed_machine_states,
     generate_perturbed_parameters,
@@ -14,6 +15,7 @@ from mobo_linac.robustness.evaluator import (
 __all__ = [
     "PerturbationSpecification",
     "PerturbedMachineState",
+    "RobustnessEvaluator",
     "generate_perturbed_parameters",
     "generate_perturbed_machine_states",
     "load_perturbation_spec",

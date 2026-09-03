@@ -8,6 +8,12 @@ import pandas as pd
 
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
+from mobo_linac.execution.candidate_evaluator import (
+    CandidateEvaluatorBase,
+    EvaluationOutcome,
+    EvaluationTask,
+    compute_metric_deltas,
+)
 from mobo_linac.io.results import DESIGN_VAR_COLUMNS
 from mobo_linac.metrics.pareto import (
     compute_crowding_distances,
@@ -142,15 +148,21 @@ def run_independent_verification_rerun(
         diff_trans_pct = float("nan")
         max_diff_pct = float("nan")
     else:
-        diff_ex_pct = abs(rerun_objs[0] - orig_objs[0]) / orig_objs[0] * 100.0 if orig_objs[0] > 0 else 0.0
-        diff_ey_pct = abs(rerun_objs[1] - orig_objs[1]) / orig_objs[1] * 100.0 if orig_objs[1] > 0 else 0.0
-        diff_se_pct = abs(rerun_objs[2] - orig_objs[2]) / orig_objs[2] * 100.0 if orig_objs[2] > 0 else 0.0
-
-        orig_trans = orig_diags.get("transmission_fraction", orig_diags.get("transmission", 1.0))
-        rerun_trans = rerun_diags.get("transmission_fraction", rerun_diags.get("transmission", 1.0))
-        diff_trans_pct = abs(rerun_trans - orig_trans) / orig_trans * 100.0 if orig_trans > 0 else 0.0
-
-        max_diff_pct = max(diff_ex_pct, diff_ey_pct, diff_se_pct, diff_trans_pct)
+        eval_res_tmp = EvaluationResult(
+            evaluation_id=f"rerun_{role}",
+            run_id=f"verification_{role}",
+            x_physical=x_phys,
+            objectives_physical=rerun_objs,
+            diagnostics=rerun_diags,
+            simulation_valid=rerun_valid,
+            physically_feasible=rerun_feas,
+        )
+        deltas = compute_metric_deltas(candidate, eval_res_tmp)
+        diff_ex_pct = deltas["diff_emit_x_pct"]
+        diff_ey_pct = deltas["diff_emit_y_pct"]
+        diff_se_pct = deltas["diff_sigma_energy_pct"]
+        diff_trans_pct = deltas["diff_transmission_pct"]
+        max_diff_pct = deltas["max_diff_pct"]
 
         if max_diff_pct < tol_verified * 100.0:
             status = "VERIFIED"
@@ -280,5 +292,89 @@ def export_verification_latex_table(
     path = Path(output_path)
     generate_verification_latex_table(records, output_path=path)
     return path
+
+
+class ParetoVerifier(CandidateEvaluatorBase):
+    """
+    Independent Pareto candidate verification engine.
+    Executes fresh rerun simulations in isolated directories and checks reproducibility.
+    """
+
+    def __init__(
+        self,
+        config: Optional[MoboConfig] = None,
+        base_output_dir: Union[str, Path] = "results/verification",
+        num_workers: int = 1,
+        timeout: int = 30,
+        tol_verified: float = 1.0e-3,
+        tol_conditional: float = 0.10,
+    ):
+        super().__init__(
+            config=config,
+            base_output_dir=base_output_dir,
+            num_workers=num_workers,
+            timeout=timeout,
+        )
+        self.tol_verified = float(tol_verified)
+        self.tol_conditional = float(tol_conditional)
+
+    def generate_evaluation_plan(
+        self,
+        candidates: Sequence[EvaluationResult],
+        roles: Optional[Sequence[str]] = None,
+    ) -> List[EvaluationTask]:
+        """Generates independent rerun evaluation tasks."""
+        tasks: List[EvaluationTask] = []
+        for idx, cand in enumerate(candidates):
+            role_name = roles[idx] if roles and idx < len(roles) else f"cand_{idx+1}"
+            task = EvaluationTask(
+                task_id=f"verification_{role_name}",
+                role=role_name,
+                parameters=cand.x_physical,
+                nominal_result=cand,
+                metadata={"role": role_name},
+            )
+            tasks.append(task)
+        return tasks
+
+    def verify_candidates(
+        self,
+        candidates_dict: Dict[str, EvaluationResult],
+        mock_evaluator: Optional[Any] = None,
+    ) -> Tuple[List[Dict[str, Any]], Path, Path]:
+        """
+        Runs verification pipeline on candidate dictionary and outputs artifacts.
+        """
+        out_path = self.base_output_dir
+        out_path.mkdir(parents=True, exist_ok=True)
+
+        records: List[Dict[str, Any]] = []
+        for role, cand in candidates_dict.items():
+            rec = run_independent_verification_rerun(
+                role=role,
+                candidate=cand,
+                config=self.config,
+                output_dir=out_path,
+                mock_evaluator=mock_evaluator,
+                tol_verified=self.tol_verified,
+                tol_conditional=self.tol_conditional,
+            )
+            records.append(rec)
+
+        df = pd.DataFrame(records)
+        csv_path = out_path / "verification_summary.csv"
+        df.to_csv(csv_path, index=False)
+
+        manifest_path = out_path / "verification_manifest.json"
+        manifest_data = {
+            "timestamp": pd.Timestamp.now().isoformat(),
+            "total_candidates_verified": len(records),
+            "records": records,
+        }
+        manifest_path.write_text(json.dumps(manifest_data, indent=2), encoding="utf-8")
+
+        tex_path = export_verification_latex_table(records, out_path / "verification_table.tex")
+        return records, manifest_path, tex_path
+
 
 

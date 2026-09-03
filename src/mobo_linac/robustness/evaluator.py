@@ -16,6 +16,11 @@ import yaml
 
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
+from mobo_linac.execution.candidate_evaluator import (
+    CandidateEvaluatorBase,
+    EvaluationOutcome,
+    EvaluationTask,
+)
 from mobo_linac.metrics.pareto import (
     select_representative_pareto_candidates,
     extract_pareto_sets,
@@ -302,4 +307,96 @@ def compute_robustness_summary(
         "std_sigma_energy": std_sigma_e,
         "is_fragile": prob_feasibility < 0.80,
     }
+
+
+class RobustnessEvaluator(CandidateEvaluatorBase):
+    """
+    Robustness and jitter analysis engine evaluating machine perturbations
+    across representative Pareto candidates.
+    """
+
+    def __init__(
+        self,
+        config: Optional[MoboConfig] = None,
+        base_output_dir: Union[str, Path] = "results/robustness",
+        num_workers: int = 1,
+        timeout: int = 30,
+        spec: Optional[PerturbationSpecification] = None,
+    ):
+        super().__init__(
+            config=config,
+            base_output_dir=base_output_dir,
+            num_workers=num_workers,
+            timeout=timeout,
+        )
+        self.spec = spec or load_perturbation_spec()
+
+    def generate_evaluation_plan(
+        self,
+        candidates: Sequence[EvaluationResult],
+        num_perturbations: int = 50,
+        seed: int = 42,
+    ) -> List[EvaluationTask]:
+        """Generates perturbed machine state evaluation tasks for each candidate."""
+        tasks: List[EvaluationTask] = []
+        for c_idx, cand in enumerate(candidates):
+            c_label = f"cand_{c_idx+1}"
+            p_states = generate_perturbed_machine_states(
+                nominal_x=cand.x_physical,
+                num_perturbations=num_perturbations,
+                seed=seed + c_idx * 100,
+                spec=self.spec,
+            )
+            for p_idx, p_state in enumerate(p_states):
+                task = EvaluationTask(
+                    task_id=f"pert_{c_label}_sample_{p_idx+1:03d}",
+                    role=f"{c_label}_pert_{p_idx+1:03d}",
+                    parameters=p_state.parameters,
+                    nominal_result=cand,
+                    metadata={
+                        "candidate_label": c_label,
+                        "sample_idx": p_idx,
+                        "channel_deltas": p_state.channel_deltas,
+                    },
+                )
+                tasks.append(task)
+        return tasks
+
+    def evaluate_candidates(
+        self,
+        candidates: Sequence[EvaluationResult],
+        num_perturbations: int = 50,
+        seed: int = 42,
+        custom_evaluator: Optional[Any] = None,
+    ) -> List[Dict[str, Any]]:
+        """
+        Executes robustness evaluation plan and computes statistical summaries.
+        """
+        tasks = self.generate_evaluation_plan(candidates, num_perturbations=num_perturbations, seed=seed)
+        outcomes = self.evaluate_plan_parallel(tasks, custom_evaluator=custom_evaluator)
+
+        # Group by candidate
+        by_cand: Dict[str, List[EvaluationResult]] = {}
+        cand_map: Dict[str, Optional[EvaluationResult]] = {}
+        for outcome in outcomes:
+            c_lbl = outcome.task.metadata.get("candidate_label", "cand_1")
+            if c_lbl not in by_cand:
+                by_cand[c_lbl] = []
+                cand_map[c_lbl] = outcome.task.nominal_result
+            by_cand[c_lbl].append(outcome.evaluated_result)
+
+        summaries = []
+        for c_lbl, pert_res_list in by_cand.items():
+            nom_res = cand_map[c_lbl]
+            if nom_res is None:
+                continue
+            summary = compute_robustness_summary(
+                candidate_label=c_lbl,
+                nominal_result=nom_res,
+                perturbed_results=pert_res_list,
+            )
+            summaries.append(summary)
+
+        return summaries
+
 
