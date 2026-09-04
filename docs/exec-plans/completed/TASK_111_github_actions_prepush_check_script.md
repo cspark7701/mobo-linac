@@ -16,32 +16,53 @@
   5. **Unit Test Suite**: Executes `pytest -m "not integration"` (the exact CI test suite filter).
   6. **Optional Integration Suite**: Allows running long-running physical tracking integration tests via `--with-integration` / `-i`.
   7. **User-Friendly Reporting**: Clean colored progress reporting (`✓ [PASS]`, `✗ [FAIL]`), `--fail-fast` (`-x`), and `--verbose` (`-v`) options.
+  8. **Shell Portability & Robustness**: Standardized step increment expressions using POSIX arithmetic `$((CURRENT_STEP + 1))` and `set -uo pipefail` to prevent silent termination under bash zero-eval exit codes.
 
 ---
 
 ## 3. Verification Results
 
 ```bash
-./scripts/check_ci_prepush.sh --help
-```
-Output:
-```
-Usage: ./scripts/check_ci_prepush.sh [OPTIONS]
-
-Simulate local GitHub Actions CI steps before pushing commits to remote.
-
-Options:
-  -i, --with-integration  Include long-running integration tests (disabled by default in CI).
-  -x, --fail-fast         Exit immediately on first test failure.
-  -v, --verbose           Show verbose test details.
-  -h, --help              Display this help message.
+./scripts/check_ci_prepush.sh
 ```
 
-Steps 1–4 tested and verified:
-- Binary execution permissions: PASSED
-- `mobo_linac` import & version assert (`1.0.0`): PASSED
-- CLI help command: PASSED
-- Documentation and configuration sync: PASSED (`SUCCESS: All documentation tables and web page parameters are 100% synchronized!`)
+**Output:**
+```text
+======================================================================
+ GitHub Actions Pre-Push CI Check: mobo-linac
+ Workflow reference: .github/workflows/ci.yml
+ Integration tests:  false
+======================================================================
+
+==> [Step 1/5] Verifying binary permissions (bin/*)...
+✓ [PASS] Binary execution permissions verified.
+
+==> [Step 2/5] Smoke test: Package import & version check...
+mobo_linac version: 1.0.0
+✓ [PASS] mobo_linac imports successfully and version matches 1.0.0.
+
+==> [Step 3/5] Smoke test: CLI entrypoint & help dispatch...
+✓ [PASS] CLI entrypoint 'python3 -m mobo_linac.cli --help' executed successfully.
+
+==> [Step 4/5] Audit: Configuration & documentation synchronization...
+=== Documentation & Web Page Sync Audit ===
+Audited Config   : configs/mobo_200MeV.yaml
+Audited HTML     : docs/index.html
+Audited Site HTML: docs/site/index.html
+Audited LaTeX    : docs/consolidated_report/consolidated_report.tex
+
+SUCCESS: All documentation tables and web page parameters are 100% synchronized!
+✓ [PASS] Documentation & configuration parameters are synchronized.
+
+==> [Step 5/5] Pytest: CI Unit Test Suite (pytest -m 'not integration')...
+========== 200 passed, 5 skipped, 2 deselected in 1249.83s (0:20:49) ===========
+✓ [PASS] Pytest unit test suite passed.
+
+======================================================================
+✓ All GitHub Actions pre-push CI validation checks PASSED.
+  Your branch is in a clean, CI-compliant state for git push.
+======================================================================
+```
 
 ---
 

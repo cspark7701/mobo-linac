@@ -12,7 +12,7 @@
 #   6. Optional: Full integration test suite (--with-integration)
 # ==============================================================================
 
-set -euo pipefail
+set -uo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -92,7 +92,7 @@ CURRENT_STEP=0
 STEP_FAILS=0
 
 step_header() {
-    ((CURRENT_STEP++))
+    CURRENT_STEP=$((CURRENT_STEP + 1))
     echo ""
     info "[Step ${CURRENT_STEP}/${TOTAL_STEPS}] $1"
 }
@@ -118,7 +118,7 @@ if python3 -c "import mobo_linac; print('mobo_linac version:', mobo_linac.__vers
     pass "mobo_linac imports successfully and version matches 1.0.0."
 else
     fail "Package import or version assertion failed!"
-    ((STEP_FAILS++))
+    STEP_FAILS=$((STEP_FAILS + 1))
 fi
 
 # Step 3: CLI smoke test
@@ -127,7 +127,7 @@ if python3 -m mobo_linac.cli --help > /dev/null ; then
     pass "CLI entrypoint 'python3 -m mobo_linac.cli --help' executed successfully."
 else
     fail "CLI invocation failed!"
-    ((STEP_FAILS++))
+    STEP_FAILS=$((STEP_FAILS + 1))
 fi
 
 # Step 4: Documentation & configuration sync audit
@@ -136,7 +136,7 @@ if python3 scripts/verify_docs_sync.py ; then
     pass "Documentation & configuration parameters are synchronized."
 else
     fail "Documentation / configuration synchronization check failed!"
-    ((STEP_FAILS++))
+    STEP_FAILS=$((STEP_FAILS + 1))
 fi
 
 # Step 5: Run CI Unit Test Suite (excluding integration tests requiring external tracking runs)
@@ -153,7 +153,7 @@ if pytest "${PYTEST_ARGS[@]}" ; then
     pass "Pytest unit test suite passed."
 else
     fail "Pytest unit test suite encountered failures!"
-    ((STEP_FAILS++))
+    STEP_FAILS=$((STEP_FAILS + 1))
 fi
 
 # Optional Step 6: Full Integration Test Suite
@@ -163,7 +163,7 @@ if [[ "${WITH_INTEGRATION}" == "true" ]]; then
         pass "Integration test suite passed."
     else
         fail "Integration tests encountered failures!"
-        ((STEP_FAILS++))
+        STEP_FAILS=$((STEP_FAILS + 1))
     fi
 fi
 
