@@ -247,7 +247,8 @@ def test_build_scalarized_gp_model(dummy_data):
     fitted_gp = fit_gp_models(gp)
     assert fitted_gp is not None
 
-    test_X = torch.rand(4, 6, dtype=torch.double)
+    model_device = next(fitted_gp.parameters()).device
+    test_X = torch.rand(4, 6, dtype=torch.double, device=model_device)
     with torch.no_grad():
         post = fitted_gp.posterior(test_X)
         assert post.mean.shape == (4, 1)
