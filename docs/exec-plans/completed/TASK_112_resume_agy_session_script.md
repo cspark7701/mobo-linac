@@ -15,7 +15,7 @@
      - Specific ID (`-i` / `--id <ID>`): Resumes any specific conversation ID provided by the user.
      - Session Listing (`--list`): Lists all stored conversation sessions matching `mobo-linac` with annotations for the pinned/current session.
   2. **CLI & Environment Verification**: Verifies `agy` command availability in `$PATH` with helpful error diagnostics.
-  3. **Argument Forwarding**: Forwards any extra CLI flags/arguments directly to `agy`.
+  3. **Argument Forwarding**: Forwards any extra CLI flags/arguments directly to `agy` using `${EXTRA_ARGS+"${EXTRA_ARGS[@]}"}` (avoiding the empty string `""` argument trap of `"${EXTRA_ARGS[@]:-}"` when no extra arguments are passed).
 
 ---
 

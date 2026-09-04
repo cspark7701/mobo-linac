@@ -141,12 +141,12 @@ if [ -n "${TARGET_ID}" ]; then
     echo "======================================================================"
     echo " Conversation ID : ${TARGET_ID}"
     echo " Working Directory: ${REPO_ROOT}"
-    echo " Command         : agy --conversation ${TARGET_ID} ${EXTRA_ARGS[*]:-}"
+    echo " Command         : agy --conversation ${TARGET_ID}${EXTRA_ARGS:+ }${EXTRA_ARGS[*]:-}"
     echo "======================================================================"
-    exec agy --conversation "${TARGET_ID}" "${EXTRA_ARGS[@]:-}"
+    exec agy --conversation "${TARGET_ID}" ${EXTRA_ARGS+"${EXTRA_ARGS[@]}"}
 else
     echo "======================================================================"
     echo " Continuing Most Recent Antigravity Session                          "
     echo "======================================================================"
-    exec agy --continue "${EXTRA_ARGS[@]:-}"
+    exec agy --continue ${EXTRA_ARGS+"${EXTRA_ARGS[@]}"}
 fi
