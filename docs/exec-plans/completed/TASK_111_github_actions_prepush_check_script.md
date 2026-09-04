@@ -7,8 +7,8 @@
 
 ## 2. Work Implemented
 
-### 2.1 Pre-Push CI Check Script ([`scripts/check_ci_prepush.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/check_ci_prepush.sh))
-- Implemented an executable bash script `scripts/check_ci_prepush.sh` (`chmod +x scripts/check_ci_prepush.sh`) that automates local execution of all checks specified in `.github/workflows/ci.yml`:
+### 2.1 Pre-Push CI Check Script ([`scripts/check_github_actions.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/check_github_actions.sh))
+- Implemented an executable bash script `scripts/check_github_actions.sh` (`chmod +x scripts/check_github_actions.sh`) that automates local execution of all checks specified in `.github/workflows/ci.yml`:
   1. **Binary Permissions**: Ensures executable permissions for `bin/*`.
   2. **Smoke Test (Package & Version)**: Verifies `mobo_linac` imports without error and matches release version `1.0.0`.
   3. **Smoke Test (CLI Entry Point)**: Validates `python3 -m mobo_linac.cli --help` dispatch.
@@ -23,7 +23,7 @@
 ## 3. Verification Results
 
 ```bash
-./scripts/check_ci_prepush.sh
+./scripts/check_github_actions.sh
 ```
 
 **Output:**
@@ -67,5 +67,5 @@ SUCCESS: All documentation tables and web page parameters are 100% synchronized!
 ---
 
 ## 4. Key Files Created
-- [`scripts/check_ci_prepush.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/check_ci_prepush.sh)
+- [`scripts/check_github_actions.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/check_github_actions.sh)
 - [`docs/exec-plans/completed/TASK_111_github_actions_prepush_check_script.md`](file:///home/cspark/Work/projects/mobo-linac/docs/exec-plans/completed/TASK_111_github_actions_prepush_check_script.md)

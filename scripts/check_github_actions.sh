@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# check_ci_prepush.sh - Pre-push GitHub Actions CI & Integrity Validator
+# check_github_actions.sh - Pre-push GitHub Actions CI & Integrity Validator
 # ==============================================================================
 # Simulates and verifies all steps executed in .github/workflows/ci.yml locally
 # prior to pushing to remote git repositories:
@@ -24,7 +24,7 @@ VERBOSE=false
 
 print_usage() {
     cat <<USG
-Usage: ./scripts/check_ci_prepush.sh [OPTIONS]
+Usage: ./scripts/check_github_actions.sh [OPTIONS]
 
 Simulate local GitHub Actions CI steps before pushing commits to remote.
 
