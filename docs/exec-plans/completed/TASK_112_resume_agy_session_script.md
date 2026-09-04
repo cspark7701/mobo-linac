@@ -8,23 +8,33 @@
 ## 2. Work Implemented
 
 ### 2.1 Antigravity Session Resumer ([`scripts/resume_agy_session.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/resume_agy_session.sh))
-- Implemented an executable bash script `scripts/resume_agy_session.sh` (`chmod +x scripts/resume_agy_session.sh`):
-  1. **Automatic Conversation Detection**: Scans the user's `~/.gemini/antigravity-cli/brain/` storage to detect the most recent active conversation belonging specifically to `/home/cspark/Work/projects/mobo-linac`.
-  2. **Conversation Resumption**: Executes `agy --conversation <conversation_id>` with the identified conversation ID, seamlessly restoring full transcript context, active variables, and history.
-  3. **Fallback Handling**: If no previous conversation ID matches, automatically falls back to `agy --continue` to pick up the most recent session.
-  4. **Argument Forwarding**: Forwards any CLI flags (e.g. `--model`, `--mode`, `--effort`, etc.) directly to `agy`.
+- Implemented an executable bash script `scripts/resume_agy_session.sh` (`chmod +x scripts/resume_agy_session.sh`) aligned with the architecture in `nkm-injection`:
+  1. **Flexible Resumption Modes**:
+     - Default / Auto / `--latest` (`-l`): Automatically scans `~/.gemini/antigravity-cli/brain/` for the most recent session belonging to `mobo-linac`.
+     - Pinned Current Session (`-c` / `--current`): Resumes the pinned conversation ID associated with this milestone (`0f80aacb-6645-433f-8dba-7023ef5fcd12`).
+     - Specific ID (`-i` / `--id <ID>`): Resumes any specific conversation ID provided by the user.
+     - Session Listing (`--list`): Lists all stored conversation sessions matching `mobo-linac` with annotations for the pinned/current session.
+  2. **CLI & Environment Verification**: Verifies `agy` command availability in `$PATH` with helpful error diagnostics.
+  3. **Argument Forwarding**: Forwards any extra CLI flags/arguments directly to `agy`.
 
 ---
 
 ## 3. Verification Results
 
 ```bash
-bash -n scripts/resume_agy_session.sh
+./scripts/resume_agy_session.sh --help
 ```
-Verified syntax without errors.
+Help banner and options displayed properly.
 
-Conversation identification test:
-- Successfully identifies current repository conversation `0f80aacb-6645-433f-8dba-7023ef5fcd12`.
+```bash
+./scripts/resume_agy_session.sh --list
+```
+**Output:**
+```
+=== Antigravity Sessions for /home/cspark/Work/projects/mobo-linac ===
+  - 0f80aacb-6645-433f-8dba-7023ef5fcd12 [current / pinned]
+  - eaff4983-a05e-48da-b15b-b91f4afe0773
+```
 
 ---
 

@@ -1,68 +1,152 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# resume_agy_session.sh - Resume Antigravity (agy) Session for mobo-linac
-# ==============================================================================
-# Finds the most recent Antigravity conversation associated with this repository
-# and resumes it using `agy --conversation <conversation_id>` (or `agy --continue`).
-# Supports passing additional flags/options directly to agy.
+# resume_agy_session.sh — Resume / Continue Antigravity (agy) Session for mobo-linac
+# Multi-Objective Bayesian Optimization for 200 MeV Electron Injector Linac
+#
+# Usage:
+#   ./scripts/resume_agy_session.sh [OPTIONS] [EXTRA_AGY_ARGS...]
+#
+# Options:
+#   -c, --current     Resume the specific session active during script creation:
+#                     (0f80aacb-6645-433f-8dba-7023ef5fcd12)
+#   -l, --latest      Find and resume the most recent conversation matching this repo.
+#   -i, --id ID       Resume a specific conversation ID.
+#   --list            List available conversations matching this repository.
+#   -h, --help        Show this help message.
 # ==============================================================================
 
 set -euo pipefail
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
-cd "${PROJECT_ROOT}"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+cd "${REPO_ROOT}"
 
 BRAIN_DIR="${HOME}/.gemini/antigravity-cli/brain"
+DEFAULT_CONV_ID="0f80aacb-6645-433f-8dba-7023ef5fcd12"
+TARGET_ID=""
+MODE="auto"
+EXTRA_ARGS=()
 
-# Function to find the most recent conversation ID belonging to this repository
-find_latest_repo_conversation() {
-    python3 - <<PY
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -c|--current)
+            TARGET_ID="${DEFAULT_CONV_ID}"
+            MODE="specific"
+            shift
+            ;;
+        -l|--latest)
+            MODE="latest"
+            shift
+            ;;
+        -i|--id)
+            TARGET_ID="$2"
+            MODE="specific"
+            shift 2
+            ;;
+        --list)
+            MODE="list"
+            shift
+            ;;
+        -h|--help)
+            cat << 'HLP'
+Usage: ./scripts/resume_agy_session.sh [OPTIONS] [EXTRA_AGY_ARGS...]
+
+Resumes an Antigravity (agy) CLI session for the mobo-linac repository.
+Ensures you return directly to this workspace and conversation state after
+quitting (/quit, /exit, or Ctrl+D Ctrl+D).
+
+Options:
+  -c, --current    Resume the pinned conversation ID associated with this milestone:
+                   (0f80aacb-6645-433f-8dba-7023ef5fcd12)
+  -l, --latest     Automatically find and resume the most recently active session
+                   for this repository.
+  -i, --id <ID>    Resume a specific conversation by ID.
+  --list           List all conversation sessions associated with this repo.
+  -h, --help       Show this help message.
+
+Default behavior (no flags):
+  Resumes the latest session associated with this repository; falls back to
+  pinned session ID or standard `agy --continue`.
+HLP
+            exit 0
+            ;;
+        *)
+            EXTRA_ARGS+=("$1")
+            shift
+            ;;
+    esac
+done
+
+if ! command -v agy &>/dev/null; then
+    echo "[ERROR] 'agy' command not found in PATH." >&2
+    echo "Please ensure the Antigravity CLI is installed and in your environment." >&2
+    exit 1
+fi
+
+find_repo_sessions() {
+    python3 -c "
 import os
-import sys
+from pathlib import Path
 
-brain_dir = os.path.expanduser("${BRAIN_DIR}")
-repo_path = "${PROJECT_ROOT}"
+repo_path = '${REPO_ROOT}'
+brain_dir = Path('${BRAIN_DIR}')
+matched = []
 
-if not os.path.isdir(brain_dir):
-    sys.exit(1)
-
-candidates = []
-for cid in os.listdir(brain_dir):
-    transcript = os.path.join(brain_dir, cid, ".system_generated", "logs", "transcript.jsonl")
-    if os.path.isfile(transcript):
+if brain_dir.is_dir():
+    for transcript in brain_dir.glob('*/.system_generated/logs/transcript.jsonl'):
+        conv_id = transcript.parts[-4]
+        mtime = transcript.stat().st_mtime
         try:
-            mtime = os.path.getmtime(transcript)
-            with open(transcript, "r", encoding="utf-8", errors="ignore") as f:
-                # Read initial segment of transcript to detect repository association
-                header = f.read(65536)
-                if repo_path in header:
-                    candidates.append((mtime, cid))
+            with open(transcript, 'r', errors='ignore') as f:
+                content = f.read(65536)
+                if repo_path in content or 'mobo-linac' in content:
+                    matched.append((mtime, conv_id))
         except Exception:
-            continue
+            pass
 
-candidates.sort(reverse=True)
-if candidates:
-    print(candidates[0][1])
-    sys.exit(0)
-sys.exit(1)
-PY
+matched.sort(key=lambda x: x[0], reverse=True)
+for mtime, cid in matched:
+    print(f'{cid}')
+"
 }
 
-echo "======================================================================"
-echo " Antigravity (agy) Session Resumer for mobo-linac"
-echo " Project root: ${PROJECT_ROOT}"
-echo "======================================================================"
+if [ "${MODE}" = "list" ]; then
+    echo "=== Antigravity Sessions for ${REPO_ROOT} ==="
+    mapfile -t SESSIONS < <(find_repo_sessions)
+    if [ ${#SESSIONS[@]} -eq 0 ]; then
+        echo "No sessions found."
+    else
+        for sid in "${SESSIONS[@]}"; do
+            pin=""
+            if [ "${sid}" = "${DEFAULT_CONV_ID}" ]; then
+                pin=" [current / pinned]"
+            fi
+            echo "  - ${sid}${pin}"
+        done
+    fi
+    exit 0
+fi
 
-CONVO_ID=""
-if CONVO_ID=$(find_latest_repo_conversation 2>/dev/null); then
-    echo "Found latest repo conversation ID: ${CONVO_ID}"
-    echo "Launching: agy --conversation ${CONVO_ID} $@"
+if [ "${MODE}" = "auto" ] || [ "${MODE}" = "latest" ]; then
+    mapfile -t SESSIONS < <(find_repo_sessions)
+    if [ ${#SESSIONS[@]} -gt 0 ]; then
+        TARGET_ID="${SESSIONS[0]}"
+    else
+        TARGET_ID="${DEFAULT_CONV_ID}"
+    fi
+fi
+
+if [ -n "${TARGET_ID}" ]; then
     echo "======================================================================"
-    exec agy --conversation "${CONVO_ID}" "$@"
+    echo " Resuming Antigravity Session for mobo-linac                         "
+    echo "======================================================================"
+    echo " Conversation ID : ${TARGET_ID}"
+    echo " Working Directory: ${REPO_ROOT}"
+    echo " Command         : agy --conversation ${TARGET_ID} ${EXTRA_ARGS[*]:-}"
+    echo "======================================================================"
+    exec agy --conversation "${TARGET_ID}" "${EXTRA_ARGS[@]:-}"
 else
-    echo "Notice: No prior repository-specific conversation ID found in ${BRAIN_DIR}."
-    echo "Falling back to: agy --continue $@"
     echo "======================================================================"
-    exec agy --continue "$@"
+    echo " Continuing Most Recent Antigravity Session                          "
+    echo "======================================================================"
+    exec agy --continue "${EXTRA_ARGS[@]:-}"
 fi
