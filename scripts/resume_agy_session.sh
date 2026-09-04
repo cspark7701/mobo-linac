@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ==============================================================================
-# continue_agy.sh - Resume Antigravity (agy) Session for mobo-linac
+# resume_agy_session.sh - Resume Antigravity (agy) Session for mobo-linac
 # ==============================================================================
 # Finds the most recent Antigravity conversation associated with this repository
 # and resumes it using `agy --conversation <conversation_id>` (or `agy --continue`).
