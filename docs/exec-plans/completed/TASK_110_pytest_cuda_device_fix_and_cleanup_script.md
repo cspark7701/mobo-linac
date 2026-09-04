@@ -24,8 +24,8 @@
     ```
   - Re-tested `tests/test_gp_models.py`; all 8 tests pass cleanly on both CPU and CUDA environments.
 
-### 2.2 Workspace Cleanup Script ([`cleanup.sh`](file:///home/cspark/Work/projects/mobo-linac/cleanup.sh))
-- Implemented executable bash script `cleanup.sh` (`chmod +x cleanup.sh`):
+### 2.2 Workspace Cleanup Script ([`scripts/cleanup.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/cleanup.sh))
+- Implemented executable bash script `scripts/cleanup.sh` (`chmod +x scripts/cleanup.sh`):
   - **Output folders**: Cleans files in `results/`, `results_notebooks/`, `results_notebook/`, `img/` while preserving `.gitkeep` and directory roots.
   - **Caches & Bytecode**: Removes `.pytest_cache`, `__pycache__`, `*.pyc`, `*.pyo`, `*.pyd`.
   - **Packaging**: Cleans `build/`, `dist/`, and `*.egg-info/`.
@@ -64,7 +64,7 @@ pytest tests/test_scalarized_bo.py tests/test_surrogate_pipeline.py tests/test_g
 
 ### 3.2 Cleanup Script Dry-Run Verification
 ```bash
-./cleanup.sh --dry-run
+./scripts/cleanup.sh --dry-run
 ```
 Confirmed correct identification of transient items across test caches and bytecode without touching simulation or source files.
 
@@ -72,5 +72,5 @@ Confirmed correct identification of transient items across test caches and bytec
 
 ## 4. Key Files Created / Modified
 - Modified: [`tests/test_gp_models.py`](file:///home/cspark/Work/projects/mobo-linac/tests/test_gp_models.py)
-- Created: [`cleanup.sh`](file:///home/cspark/Work/projects/mobo-linac/cleanup.sh)
+- Created: [`scripts/cleanup.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/cleanup.sh)
 - Created: [`docs/exec-plans/completed/TASK_110_pytest_cuda_device_fix_and_cleanup_script.md`](file:///home/cspark/Work/projects/mobo-linac/docs/exec-plans/completed/TASK_110_pytest_cuda_device_fix_and_cleanup_script.md)

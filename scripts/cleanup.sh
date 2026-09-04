@@ -15,14 +15,15 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-cd "${SCRIPT_DIR}"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "${PROJECT_ROOT}"
 
 DRY_RUN=false
 FORCE=false
 
 print_usage() {
     cat <<USG
-Usage: ./cleanup.sh [OPTIONS]
+Usage: ./scripts/cleanup.sh [OPTIONS]
 
 Options:
   -n, --dry-run   Show what would be deleted without actually deleting.
