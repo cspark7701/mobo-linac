@@ -26,12 +26,15 @@
 
 ### 2.2 Workspace Cleanup Script ([`scripts/cleanup.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/cleanup.sh))
 - Implemented executable bash script `scripts/cleanup.sh` (`chmod +x scripts/cleanup.sh`):
-  - **Output folders**: Cleans files in `results/`, `results_notebooks/`, `results_notebook/`, `img/` while preserving `.gitkeep` and directory roots.
-  - **Caches & Bytecode**: Removes `.pytest_cache`, `__pycache__`, `*.pyc`, `*.pyo`, `*.pyd`.
-  - **Packaging**: Cleans `build/`, `dist/`, and `*.egg-info/`.
-  - **LaTeX & Editor**: Cleans transient LaTeX files (`*.aux`, `*.bbl`, `*.blg`, `*.log`, `*.out`, `*.toc`) and editor swap files (`.*.swp`, `*~`).
+  - **Granular Target Selection**:
+    - `--cache` / `cache`: Cleans `.pytest_cache`, `__pycache__`, `*.pyc`, `*.pyo`, `*.pyd`, `build/`, `dist/`, `*.egg-info/`, and editor swap files.
+    - `--results` / `results`: Cleans campaign simulation and optimization run folders (`results/*`) while preserving `.gitkeep`.
+    - `--results-notebooks` / `results_notebooks`: Cleans interactive notebook run artifacts (`results_notebooks/*`, `results_notebook/*`).
+    - `--img` / `img`: Cleans generated plots and visual figures (`img/*`).
+    - `--docs` / `docs` / `latex`: Cleans transient LaTeX build files (`docs/paper/*.{aux,bbl,blg,log,out,toc}`).
+    - `-a` / `--all` / `all`: Cleans all targets (default if no target flags/arguments are passed).
+  - **Execution Modes**: Supports `-n` / `--dry-run` to preview deletions and `-f` / `--force` to bypass interactive confirmation prompts.
   - **Safeguards**: Never touches core physics simulation input files (`pal_photo2.ini`, `PAL_SOL_A.dat`, `TWS_Sband.dat`, `gun.dat`, `astra.in`) or binary executables in `bin/`.
-  - **Flags**: Supports `-n` / `--dry-run` to preview deletions and `-f` / `--force` to bypass interactive confirmation prompts.
 
 ---
 
