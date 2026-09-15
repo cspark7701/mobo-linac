@@ -8,7 +8,8 @@ or inferred), Normalize input transforms, and Standardize outcome transforms gro
 
 from typing import Dict, List, Optional, Tuple, Union
 import torch
-from botorch.fit import fit_gpytorch_mll
+from botorch.exceptions.errors import ModelFittingError
+from botorch.fit import fit_gpytorch_mll, fit_gpytorch_mll_torch
 from botorch.models import ModelListGP, SingleTaskGP
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
@@ -17,6 +18,10 @@ from gpytorch.constraints import GreaterThan
 from gpytorch.kernels import MaternKernel, RBFKernel, ScaleKernel
 from gpytorch.likelihoods import GaussianLikelihood
 from gpytorch.mlls import ExactMarginalLogLikelihood, SumMarginalLogLikelihood
+import linear_operator
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 def build_scalarized_gp_model(
@@ -182,9 +187,45 @@ def build_gp_models(
     return model_list
 
 
+def _fit_single_mll_resilient(mll: ExactMarginalLogLikelihood) -> ExactMarginalLogLikelihood:
+    """
+    Fits a single ExactMarginalLogLikelihood with multi-tiered numerical resilience:
+      1. Standard quasi-Newton (L-BFGS-B via fit_gpytorch_mll) with moderate jitter.
+      2. First-order Adam fallback (fit_gpytorch_mll_torch) if L-BFGS encounters
+         non-positive-definite covariance or line search failure.
+      3. Fallback to initialized/prior hyperparameters if optimization does not converge.
+    """
+    try:
+        with linear_operator.settings.cholesky_jitter(1e-4):
+            fit_gpytorch_mll(mll)
+            return mll
+    except (ModelFittingError, Exception) as err:
+        logger.warning(
+            "Standard L-BFGS GP hyperparameter fitting failed (%s: %s). "
+            "Attempting first-order Adam fallback optimization...",
+            type(err).__name__,
+            err,
+        )
+        try:
+            with linear_operator.settings.cholesky_jitter(1e-3):
+                fit_gpytorch_mll_torch(mll, step_limit=200)
+                mll.eval()
+                return mll
+        except Exception as adam_err:
+            logger.warning(
+                "Adam fallback GP fitting also failed (%s: %s). "
+                "Retaining prior GP hyperparameters for evaluation.",
+                type(adam_err).__name__,
+                adam_err,
+            )
+            mll.eval()
+            return mll
+
+
 def fit_gp_models(model_list: Union[ModelListGP, SingleTaskGP]) -> Union[ModelListGP, SingleTaskGP]:
     """
-    Fits Marginal Log-Likelihood hyperparameters for all models in ModelListGP or SingleTaskGP.
+    Fits Marginal Log-Likelihood hyperparameters for all models in ModelListGP or SingleTaskGP
+    with resilient fallback handling for ill-conditioned covariance matrices.
 
     Args:
         model_list: ModelListGP or SingleTaskGP instance to fit.
@@ -194,9 +235,12 @@ def fit_gp_models(model_list: Union[ModelListGP, SingleTaskGP]) -> Union[ModelLi
     """
     if isinstance(model_list, SingleTaskGP):
         mll_single = ExactMarginalLogLikelihood(model_list.likelihood, model_list)
-        fit_gpytorch_mll(mll_single)
+        _fit_single_mll_resilient(mll_single)
         return model_list
 
-    mll = SumMarginalLogLikelihood(model_list.likelihood, model_list)
-    fit_gpytorch_mll(mll)
+    for model in model_list.models:
+        sub_mll = ExactMarginalLogLikelihood(model.likelihood, model)
+        _fit_single_mll_resilient(sub_mll)
+
+    model_list.eval()
     return model_list
