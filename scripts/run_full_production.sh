@@ -30,6 +30,7 @@ NUM_WORKERS=""
 SEED=42
 DEVICE="auto"
 OUTPUT_BASE_DIR="results/full_production"
+RESUME_FLAG=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
 
@@ -68,9 +69,14 @@ while [[ $# -gt 0 ]]; do
       OUTPUT_BASE_DIR="$2"
       shift 2
       ;;
+    -r|--resume)
+      RESUME_FLAG="--resume"
+      shift
+      ;;
     -h|--help)
       echo "Usage: ./scripts/run_full_production.sh [OPTIONS]"
       echo "Options:"
+      echo "  -r, --resume         Resume existing runs from latest checkpoints"
       echo "  -q, --quiet          Suppress screen output (token-efficient mode)"
       echo "  -i, --iterations N   Number of BO iterations (default: 20)"
       echo "  -b, --batch-size Q   Batch size q (default: 8)"
@@ -171,6 +177,7 @@ RUN_P1_CMD="mobo-linac run-scalarized \
     --num-workers ${NUM_WORKERS} \
     --device ${DEVICE} \
     --seed ${SEED} \
+    ${RESUME_FLAG} \
     --output-dir ${P1_DIR}"
 
 execute_step "[Step 2/8] Running Phase 1 Scalarized BO Simulation..." "${RUN_P1_CMD}" "${P1_DIR}/simulation.log"
@@ -187,6 +194,7 @@ RUN_P2_CMD="mobo-linac run-unconstrained \
     --num-workers ${NUM_WORKERS} \
     --device ${DEVICE} \
     --seed ${SEED} \
+    ${RESUME_FLAG} \
     --output-dir ${P2_DIR}"
 
 execute_step "[Step 3/8] Running Phase 2 Unconstrained MOBO Simulation..." "${RUN_P2_CMD}" "${P2_DIR}/simulation.log"
@@ -203,6 +211,7 @@ RUN_P3_CMD="mobo-linac run-constrained \
     --num-workers ${NUM_WORKERS} \
     --device ${DEVICE} \
     --seed ${SEED} \
+    ${RESUME_FLAG} \
     --output-dir ${P3_DIR}"
 
 execute_step "[Step 4/8] Running Phase 3 Constraint-Aware MOBO Simulation..." "${RUN_P3_CMD}" "${P3_DIR}/simulation.log"

@@ -40,7 +40,7 @@ def resume_optimization(args: argparse.Namespace) -> None:
     runner = MoboCampaignRunner(
         config=config_path,
         output_dir=run_dir,
-        num_batches=getattr(args, "n_iterations", 6),
+        num_batches=getattr(args, "n_iterations", 20),
         batch_size=batch_size,
         num_workers=getattr(args, "num_workers", None),
         seed=seed,

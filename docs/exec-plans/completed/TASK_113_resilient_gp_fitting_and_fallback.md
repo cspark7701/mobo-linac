@@ -22,6 +22,12 @@
 
 ---
 
+### 3.2 CLI & Pipeline Resumption Support
+- **CLI Subcommand**: Added `--resume` to `run-unconstrained`, `run-constrained`, and `run-scalarized` (and ensured default iteration propagation in `mobo-linac resume`).
+- **Production Pipeline Script**: Added `-r` / `--resume` flag to [`scripts/run_full_production.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/run_full_production.sh) to automatically pick up intermediate checkpoints for interrupted production campaigns.
+
+---
+
 ## 4. Verification Results
 
 ### 4.1 Checkpoint Iteration 06/07 Reproduction Test
@@ -54,4 +60,8 @@ tests/test_gp_models.py::test_build_scalarized_gp_model PASSED           [100%]
 
 ## 5. Key Files Created / Modified
 - Modified: [`src/mobo_linac/models/gp.py`](file:///home/cspark/Work/projects/mobo-linac/src/mobo_linac/models/gp.py)
+- Modified: [`src/mobo_linac/cli/commands/run.py`](file:///home/cspark/Work/projects/mobo-linac/src/mobo_linac/cli/commands/run.py)
+- Modified: [`src/mobo_linac/cli/commands/resume.py`](file:///home/cspark/Work/projects/mobo-linac/src/mobo_linac/cli/commands/resume.py)
+- Modified: [`src/mobo_linac/cli/common.py`](file:///home/cspark/Work/projects/mobo-linac/src/mobo_linac/cli/common.py)
+- Modified: [`scripts/run_full_production.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/run_full_production.sh)
 - Created: [`docs/exec-plans/completed/TASK_113_resilient_gp_fitting_and_fallback.md`](file:///home/cspark/Work/projects/mobo-linac/docs/exec-plans/completed/TASK_113_resilient_gp_fitting_and_fallback.md)

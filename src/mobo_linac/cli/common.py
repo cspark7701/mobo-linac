@@ -80,6 +80,11 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
         help="Custom output directory",
     )
     subparser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume optimization from the latest checkpoint in output-dir if present",
+    )
+    subparser.add_argument(
         "--dry-run",
         action="store_true",
         help="Print planned execution details without running ASTRA",
