@@ -2,6 +2,7 @@
 Unit and Integration Tests for Process-Safe Parallel ASTRA Evaluation (Task 03).
 """
 
+import os
 import json
 from pathlib import Path
 import shutil
