@@ -93,6 +93,9 @@ fi
 echo "[3/5] Upgrading build tools & installing core dependencies..."
 python -m pip install --upgrade pip setuptools wheel
 
+echo "Installing openPMD-beamphysics..."
+python -m pip install openpmd-beamphysics
+
 echo "Installing Particle Distgen (ColwynGulliford/distgen)..."
 python -m pip install git+https://github.com/ColwynGulliford/distgen.git
 

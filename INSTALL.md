@@ -64,13 +64,14 @@ python -m pip install --upgrade pip setuptools wheel
 > ⚠️ **Important Note on `distgen`**: Do **NOT** run `pip install distgen` directly without specifying the git repository. PyPI hosts an unrelated Linux config tool with the same name. Always install Particle Distgen directly from the official GitHub repository:
 
 ```bash
-# Install Particle Distribution Generator
+# Install openPMD beamphysics particle data tools:
+pip install openpmd-beamphysics
+
+# Install Particle Distribution Generator:
 pip install git+https://github.com/ColwynGulliford/distgen.git
 
-# Install LUME-ASTRA (from local modified source if available, or from GitHub):
-pip install -e /home/cspark/Work/simulation_codes-working/lume-astra
-# Or fallback to official repo:
-# pip install git+https://github.com/ChristopherMayes/lume-astra.git
+# Install LUME-ASTRA (from GitHub or local source):
+pip install git+https://github.com/ChristopherMayes/lume-astra.git
 ```
 
 ### Step 5: Install `mobo_linac` Package
