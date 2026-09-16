@@ -117,6 +117,13 @@ def plot_pareto_front_comparison(
     ]
 
     # Support dictionary of arbitrary phases or legacy (p2, p3) arguments
+    if isinstance(results_dict, list):
+        # Handle case where results_p2 was passed positionally as the first argument
+        if results_p2 is not None and isinstance(results_p2, list):
+            results_p3 = results_p2
+        results_p2 = results_dict
+        results_dict = None
+
     if results_dict is None:
         results_dict = {}
         if results_p2 is not None:

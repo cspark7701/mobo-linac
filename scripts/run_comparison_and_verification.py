@@ -551,9 +551,16 @@ def main():
     fig_dir = output_dir / "figures"
     fig_dir.mkdir(parents=True, exist_ok=True)
 
+    pareto_comp_dict = {}
+    if res_p1:
+        pareto_comp_dict["Phase 1 (Scalarized)"] = res_p1
+    if res_p2:
+        pareto_comp_dict["Phase 2 (Unconstrained)"] = res_p2
+    if res_p3:
+        pareto_comp_dict["Phase 3 (Constrained)"] = res_p3
+
     plot_pareto_front_comparison(
-        res_p2 if res_p2 else res_p1,
-        res_p3 if res_p3 else res_p1,
+        results_dict=pareto_comp_dict if pareto_comp_dict else None,
         output_path=fig_dir / "pareto_front_comparison.png",
     )
 

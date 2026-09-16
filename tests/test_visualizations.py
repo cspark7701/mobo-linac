@@ -144,6 +144,16 @@ def test_comparative_and_verification_plotting(sample_evaluation_results, tmp_pa
     assert isinstance(fig_comp, plt.Figure)
     plt.close(fig_comp)
 
+    # Test positional backward-compatible call with lists
+    fig_comp_pos = plot_pareto_front_comparison(
+        sample_evaluation_results[:10],
+        sample_evaluation_results[10:],
+        output_path=tmp_path / "comp_pos.png",
+    )
+    assert isinstance(fig_comp_pos, plt.Figure)
+    assert (tmp_path / "comp_pos.png").exists()
+    plt.close(fig_comp_pos)
+
     records = [
         {"role": "Min emit_x", "stored_emit_x_m_rad": 3.4e-6, "rerun_emit_x_m_rad": 3.41e-6},
         {"role": "Min emit_y", "stored_emit_x_m_rad": 3.5e-6, "rerun_emit_x_m_rad": 3.52e-6},
