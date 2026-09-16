@@ -6,6 +6,7 @@ extracting objectives and diagnostics and generating execution manifests.
 """
 
 import os
+import shutil
 import time
 from datetime import datetime
 from pathlib import Path
@@ -15,12 +16,61 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _LOCAL_BIN_DIR = _PROJECT_ROOT / "bin"
 
-if "ASTRA_BIN" not in os.environ:
-    _local_astra = _LOCAL_BIN_DIR / "astra"
-    os.environ["ASTRA_BIN"] = str(_local_astra) if _local_astra.exists() else str(_PROJECT_ROOT / "bin" / "astra")
-if "GENERATOR_BIN" not in os.environ:
-    _local_gen = _LOCAL_BIN_DIR / "generator"
-    os.environ["GENERATOR_BIN"] = str(_local_gen) if _local_gen.exists() else str(_PROJECT_ROOT / "bin" / "generator")
+
+def resolve_executable_path(
+    env_var: str,
+    binary_name: str,
+    local_bin_dir: Optional[Path] = None,
+    candidate_paths: Optional[Sequence[Union[str, Path]]] = None,
+) -> str:
+    """
+    Resolves an executable binary path using hierarchical fallback:
+    1. Explicit environment variable if valid and exists.
+    2. Local project bin/ directory.
+    3. System PATH via shutil.which.
+    4. Known candidate installation paths.
+    5. Fallback to default local bin path.
+    """
+    # 1. Check existing environment variable if set and valid
+    env_val = os.environ.get(env_var)
+    if env_val:
+        p = Path(env_val).expanduser().resolve()
+        if p.is_file() and os.access(p, os.X_OK):
+            return str(p)
+
+    # 2. Check local project bin directory
+    bin_dir = local_bin_dir if local_bin_dir is not None else _LOCAL_BIN_DIR
+    local_bin = (bin_dir / binary_name).resolve()
+    if local_bin.is_file() and os.access(local_bin, os.X_OK):
+        os.environ[env_var] = str(local_bin)
+        return str(local_bin)
+
+    # 3. Check system PATH
+    which_bin = shutil.which(binary_name)
+    if which_bin:
+        os.environ[env_var] = which_bin
+        return which_bin
+
+    # 4. Known candidate paths
+    candidates = list(candidate_paths) if candidate_paths else []
+    candidates.extend([
+        Path("/home/cspark/Work/simulation_codes-working/lume-astra/bin") / binary_name,
+        Path.home() / "Work/simulation_codes-working/lume-astra/bin" / binary_name,
+    ])
+    for cand in candidates:
+        cand_p = Path(cand).expanduser().resolve()
+        if cand_p.is_file() and os.access(cand_p, os.X_OK):
+            os.environ[env_var] = str(cand_p)
+            return str(cand_p)
+
+    # 5. Fallback to default local bin path
+    fallback = str(local_bin)
+    os.environ[env_var] = fallback
+    return fallback
+
+
+resolve_executable_path("ASTRA_BIN", "astra")
+resolve_executable_path("GENERATOR_BIN", "generator")
 
 try:
     import distgen

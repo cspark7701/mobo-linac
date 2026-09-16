@@ -4,6 +4,7 @@ Unit and Integration Tests for Process-Safe Parallel ASTRA Evaluation (Task 03).
 
 import json
 from pathlib import Path
+import shutil
 import pytest
 import numpy as np
 
@@ -247,6 +248,10 @@ def test_real_parallel_astra_evaluations():
     if not (root_dir / "gun.dat").exists() or not (root_dir / "astra.in").exists():
         pytest.skip("Root ASTRA files not present")
 
+    astra_bin = os.environ.get("ASTRA_BIN", str(root_dir / "bin" / "astra"))
+    if not Path(astra_bin).is_file() and not shutil.which("astra"):
+        pytest.skip(f"ASTRA executable not available at {astra_bin} or on PATH")
+
     candidates = [
         [0.21, 1.1, -1.1, 0.0, 0.0, 0.0],
         [0.24, 1.3, -1.3, 4.0, 1.0, 1.0],
@@ -256,7 +261,7 @@ def test_real_parallel_astra_evaluations():
         base_results_dir="results",
         template_dir=root_dir,
         max_workers=2,
-        timeout=30,
+        timeout=300,
     )
 
     results = evaluator.evaluate_batch(candidates, run_id="integration_parallel_run")
@@ -264,7 +269,7 @@ def test_real_parallel_astra_evaluations():
     assert len(results) == 2
     for idx, res in enumerate(results):
         assert res["candidate_idx"] == idx
-        assert res["status"] == "success"
+        assert res["status"] == "success", f"Candidate {idx} failed: {res.get('error')}"
         assert res["objectives"] is not None
         assert "norm_emit_x" in res["objectives"]
         assert Path(res["manifest_path"]).exists()

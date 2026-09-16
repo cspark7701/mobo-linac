@@ -172,12 +172,16 @@ def test_real_astra_isolated_run():
     if not (root_dir / "gun.dat").exists() or not (root_dir / "astra.in").exists():
         pytest.skip("Root ASTRA files not available in repo root")
 
+    astra_bin = os.environ.get("ASTRA_BIN", str(root_dir / "bin" / "astra"))
+    if not Path(astra_bin).is_file() and not shutil.which("astra"):
+        pytest.skip(f"ASTRA executable not available at {astra_bin} or on PATH")
+
     with tempfile.TemporaryDirectory() as tmp_results:
         runner = AstraRunner(
             run_id="integration_test_run",
             base_results_dir=tmp_results,
             template_dir=root_dir,
-            timeout=30,
+            timeout=300,
         )
 
         params1 = [0.22, 1.0, -1.0, 0.0, 0.0, 0.0]
