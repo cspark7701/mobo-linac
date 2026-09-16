@@ -6,7 +6,7 @@
 # pipeline for the 200 MeV S-band electron injector linac MOBO optimization.
 #
 # Key Features:
-#   1. Automatic 90% CPU Core Parallelization.
+#   1. Parallel ASTRA Multi-Worker Execution.
 #   2. Screen Verbose On/Off Toggle (quiet mode for token-efficient AI prompts).
 #   3. Full production MOBO simulation execution (Phase 2 & Phase 3).
 #   4. Complete post-simulation analysis, hypervolume tracking, & Pareto rerun audit.
@@ -15,6 +15,7 @@
 #   ./scripts/run_full_production.sh                  # Run with full screen output
 #   ./scripts/run_full_production.sh --quiet          # Run silently (no screen flooding)
 #   ./scripts/run_full_production.sh --iterations 15  # Custom iteration budget
+#   ./scripts/run_full_production.sh --workers 8      # Custom worker count
 # ==============================================================================
 
 set -euo pipefail
@@ -26,7 +27,7 @@ VERBOSE=1
 N_ITERATIONS=20
 BATCH_SIZE=8
 NUM_INITIAL_SAMPLES=16
-NUM_WORKERS=""
+NUM_WORKERS=4
 SEED=42
 DEVICE="auto"
 OUTPUT_BASE_DIR="results/full_production"
@@ -80,7 +81,7 @@ while [[ $# -gt 0 ]]; do
       echo "  -q, --quiet          Suppress screen output (token-efficient mode)"
       echo "  -i, --iterations N   Number of BO iterations (default: 20)"
       echo "  -b, --batch-size Q   Batch size q (default: 8)"
-      echo "  -w, --workers W      Number of parallel CPU worker cores (default: 90% system capacity)"
+      echo "  -w, --workers W      Number of parallel CPU worker cores (default: 4)"
       echo "  -d, --device DEV     Target PyTorch device (auto, cuda, cpu; default: auto GPU selection)"
       echo "  -o, --output-dir DIR Output directory (default: results/full_production)"
       echo "  -h, --help           Show this help message"
@@ -95,15 +96,6 @@ done
 
 # Navigate to project root
 cd "${PROJECT_ROOT}"
-
-# ------------------------------------------------------------------------------
-# Parallel Worker Allocation (90% System CPU Cores)
-# ------------------------------------------------------------------------------
-if [ -z "${NUM_WORKERS}" ]; then
-  # Detect total system CPU cores and compute 90% allocation (minimum 1 worker)
-  NUM_WORKERS=$(python3 -c "import os; print(max(1, int(os.cpu_count() * 0.9)))")
-fi
-
 
 # Helper function to print high-level step progress (always printed)
 log_step() {
@@ -121,7 +113,7 @@ log_step "======================================================================
 log_step " Starting Full Production Linac MOBO Simulation & Analysis Pipeline"
 log_step "======================================================================"
 log_step "  Project Root:        ${PROJECT_ROOT}"
-log_step "  Allocated CPU Cores: ${NUM_WORKERS} (90% capacity)"
+log_step "  Parallel CPU Workers: ${NUM_WORKERS}"
 log_step "  BO Iterations:       ${N_ITERATIONS}"
 log_step "  Batch Size (q):      ${BATCH_SIZE}"
 log_step "  Verbose Screen:      $([ ${VERBOSE} -eq 1 ] && echo 'ON (Full)' || echo 'OFF (Quiet Mode - Step Progress Only)')"
