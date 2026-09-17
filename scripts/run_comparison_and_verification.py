@@ -217,6 +217,15 @@ def verify_pareto_candidates(
         df_ver.to_csv(ver_csv_path, index=False)
         print(f"  ✓ Saved verification summary: {ver_csv_path}")
 
+        manifest_path = ver_dir / "verification_manifest.json"
+        manifest_data = {
+            "timestamp": pd.Timestamp.now().isoformat(),
+            "total_candidates_verified": len(verification_records),
+            "records": verification_records,
+        }
+        manifest_path.write_text(json.dumps(manifest_data, indent=2), encoding="utf-8")
+        print(f"  ✓ Saved verification manifest: {manifest_path}")
+
     return verification_records
 
 
