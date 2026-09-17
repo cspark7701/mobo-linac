@@ -92,21 +92,31 @@ def plot_hypervolume_comparison(
     phase2_dir: Path,
     phase3_dir: Path,
     output_path: Path,
-) -> None:
+    phase1_dir: Path | None = None,
+) -> dict:
     """
-    Plots feasible hypervolume vs. cumulative ASTRA evaluations for Phase 2
-    (Unconstrained) and Phase 3 (Constrained) MOBO campaigns side by side.
+    Plots feasible hypervolume vs. cumulative ASTRA evaluations for Phase 1
+    (Scalarized), Phase 2 (Unconstrained), and Phase 3 (Constrained) MOBO campaigns.
 
     Data source: hypervolume.csv from each campaign run directory.
     """
     df2 = _load_hypervolume_csv(phase2_dir)
     df3 = _load_hypervolume_csv(phase3_dir)
+    df1 = _load_hypervolume_csv(phase1_dir) if phase1_dir and (phase1_dir / "hypervolume.csv").exists() else None
 
     # Use num_valid_points as cumulative evaluations (iteration 0 = Sobol init)
     x_col = "num_valid_points" if "num_valid_points" in df2.columns else "iteration"
     hv_col = "feasible_hypervolume"
 
     fig, ax = plt.subplots(figsize=(8, 5))
+
+    if df1 is not None:
+        x_col1 = "num_valid_points" if "num_valid_points" in df1.columns else "iteration"
+        ax.plot(df1[x_col1], df1[hv_col], "^:", color="#7570b3", linewidth=2.0,
+                markersize=5, label="Phase 1 — Scalarized BO")
+        final_hv1 = float(df1[hv_col].iloc[-1])
+        ax.annotate(f"{final_hv1:.4f}", xy=(df1[x_col1].iloc[-1], final_hv1),
+                    xytext=(3, -12), textcoords="offset points", fontsize=9, color="#7570b3")
 
     ax.plot(df2[x_col], df2[hv_col], "o-", color="#1f6fb5", linewidth=2.2,
             markersize=6, label="Phase 2 — Unconstrained MOBO")
@@ -123,17 +133,19 @@ def plot_hypervolume_comparison(
 
     ax.set_xlabel("Cumulative ASTRA Evaluations", fontsize=13)
     ax.set_ylabel("Feasible Hypervolume (Fixed Reference)", fontsize=13)
-    ax.set_title(
-        "Feasible Hypervolume Progress: Unconstrained vs. Constrained MOBO",
-        fontsize=13, pad=10
+    title_text = (
+        "Feasible Hypervolume Progress: Phases 1, 2, and 3"
+        if df1 is not None
+        else "Feasible Hypervolume Progress: Unconstrained vs. Constrained MOBO"
     )
+    ax.set_title(title_text, fontsize=13, pad=10)
     ax.legend(fontsize=11, loc="lower right")
     ax.grid(True, linestyle="--", alpha=0.5)
     fig.tight_layout()
     _save(fig, output_path)
 
     # Return summary stats for potential use in tables
-    return {
+    stats = {
         "phase2_final_hv": final_hv2,
         "phase3_final_hv": final_hv3,
         "phase2_n_evals": int(df2[x_col].iloc[-1]),
@@ -141,6 +153,11 @@ def plot_hypervolume_comparison(
         "phase2_n_feasible_final": int(df2["num_feasible_points"].iloc[-1]) if "num_feasible_points" in df2.columns else None,
         "phase3_n_feasible_final": int(df3["num_feasible_points"].iloc[-1]) if "num_feasible_points" in df3.columns else None,
     }
+    if df1 is not None:
+        stats["phase1_final_hv"] = final_hv1
+        stats["phase1_n_evals"] = int(df1[x_col1].iloc[-1])
+        stats["phase1_n_feasible_final"] = int(df1["num_feasible_points"].iloc[-1]) if "num_feasible_points" in df1.columns else None
+    return stats
 
 
 # ---------------------------------------------------------------------------
@@ -151,15 +168,17 @@ def plot_pareto_front_comparison(
     phase2_dir: Path,
     phase3_dir: Path,
     output_path: Path,
+    phase1_dir: Path | None = None,
 ) -> None:
     """
-    2D projections of the physical objective space comparing Phase 2 and
-    Phase 3 Pareto fronts.
+    2D projections of the physical objective space comparing Phase 1, Phase 2,
+    and Phase 3 Pareto fronts.
 
     Data source: pareto.csv from each campaign run directory.
     """
     df2 = _load_pareto_csv(phase2_dir)
     df3 = _load_pareto_csv(phase3_dir)
+    df1 = _load_pareto_csv(phase1_dir) if phase1_dir and (phase1_dir / "pareto.csv").exists() else None
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
 
@@ -176,16 +195,24 @@ def plot_pareto_front_comparison(
     ]
 
     for ax, (cx, cy, lx, ly, sx, sy) in zip(axes, pairs):
+        if df1 is not None and cx in df1.columns and cy in df1.columns:
+            ax.scatter(df1[cx] * sx, df1[cy] * sy,
+                       c="#7570b3", marker="^", s=50, label="Phase 1", alpha=0.75, zorder=2)
         ax.scatter(df2[cx] * sx, df2[cy] * sy,
-                   c="#1f6fb5", marker="o", s=60, label="Phase 2", alpha=0.85, zorder=3)
+                       c="#1f6fb5", marker="o", s=60, label="Phase 2", alpha=0.85, zorder=3)
         ax.scatter(df3[cx] * sx, df3[cy] * sy,
-                   c="#d95f02", marker="s", s=60, label="Phase 3", alpha=0.85, zorder=3)
+                       c="#d95f02", marker="s", s=60, label="Phase 3", alpha=0.85, zorder=3)
         ax.set_xlabel(lx, fontsize=11)
         ax.set_ylabel(ly, fontsize=11)
         ax.grid(True, linestyle=":", alpha=0.5)
         ax.legend(fontsize=9)
 
-    axes[1].set_title("Pareto Front Comparison — Phase 2 vs Phase 3", fontsize=12)
+    title_text = (
+        "Pareto Front Comparison — Phases 1, 2, and 3"
+        if df1 is not None
+        else "Pareto Front Comparison — Phase 2 vs Phase 3"
+    )
+    axes[1].set_title(title_text, fontsize=12)
     fig.tight_layout()
     _save(fig, output_path)
 
@@ -254,13 +281,15 @@ def plot_feasible_fraction(
     phase2_dir: Path,
     phase3_dir: Path,
     output_path: Path,
+    phase1_dir: Path | None = None,
 ) -> None:
     """
     Feasible beam fraction (num_feasible_points / num_valid_points) vs.
-    cumulative ASTRA evaluations for both phases.
+    cumulative ASTRA evaluations for Phase 1, Phase 2, and Phase 3.
     """
     df2 = _load_hypervolume_csv(phase2_dir)
     df3 = _load_hypervolume_csv(phase3_dir)
+    df1 = _load_hypervolume_csv(phase1_dir) if phase1_dir and (phase1_dir / "hypervolume.csv").exists() else None
 
     x_col = "num_valid_points" if "num_valid_points" in df2.columns else "iteration"
 
@@ -271,13 +300,22 @@ def plot_feasible_fraction(
         return pd.Series([np.nan] * len(df))
 
     fig, ax = plt.subplots(figsize=(7, 4.5))
+    if df1 is not None:
+        x_col1 = "num_valid_points" if "num_valid_points" in df1.columns else "iteration"
+        ax.plot(df1[x_col1], frac(df1) * 100, "^:", color="#7570b3", linewidth=2,
+                markersize=5, label="Phase 1 — Scalarized BO")
     ax.plot(df2[x_col], frac(df2) * 100, "o-", color="#1f6fb5", linewidth=2,
             markersize=6, label="Phase 2 — Unconstrained MOBO")
     ax.plot(df3[x_col], frac(df3) * 100, "s--", color="#d95f02", linewidth=2,
             markersize=6, label="Phase 3 — Constrained MOBO")
     ax.set_xlabel("Cumulative ASTRA Evaluations", fontsize=12)
     ax.set_ylabel("Feasible Beam Fraction [%]", fontsize=12)
-    ax.set_title("Feasible Beam Fraction vs. Evaluations", fontsize=12)
+    title_text = (
+        "Feasible Beam Fraction vs. Evaluations (Phases 1–3)"
+        if df1 is not None
+        else "Feasible Beam Fraction vs. Evaluations"
+    )
+    ax.set_title(title_text, fontsize=12)
     ax.set_ylim(-5, 105)
     ax.legend(fontsize=10)
     ax.grid(True, linestyle="--", alpha=0.5)
@@ -352,9 +390,10 @@ def export_results_summary_latex_table(
     phase2_dir: Path,
     phase3_dir: Path,
     output_path: Path,
+    phase1_dir: Path | None = None,
 ) -> None:
     """
-    Generates a campaign summary LaTeX table comparing Phase 2 vs Phase 3
+    Generates a campaign summary LaTeX table comparing Phase 1, Phase 2, and Phase 3
     MOBO outcomes. Values come from hypervolume.csv and pareto.csv.
     """
     df2_hv = _load_hypervolume_csv(phase2_dir)
@@ -362,46 +401,77 @@ def export_results_summary_latex_table(
     df2_p = _load_pareto_csv(phase2_dir)
     df3_p = _load_pareto_csv(phase3_dir)
 
+    df1_hv = _load_hypervolume_csv(phase1_dir) if phase1_dir and (phase1_dir / "hypervolume.csv").exists() else None
+    df1_p = _load_pareto_csv(phase1_dir) if phase1_dir and (phase1_dir / "pareto.csv").exists() else None
+
     def summary(hv_df: pd.DataFrame, pareto_df: pd.DataFrame) -> dict:
         final = hv_df.iloc[-1]
         n_eval = int(final.get("num_valid_points", len(hv_df)))
         n_feas = int(final.get("num_feasible_points", 0))
         feas_frac = n_feas / n_eval * 100.0 if n_eval > 0 else 0.0
         final_hv = float(final.get("feasible_hypervolume", 0.0))
+        all_hv = float(final.get("all_point_hypervolume", final_hv))
         pareto_size = int(final.get("pareto_size", len(pareto_df)))
-        min_ex = float(pareto_df["norm_emit_x_m_rad"].min()) * EMIT_SCALE if len(pareto_df) else float("nan")
-        min_se = float(pareto_df["sigma_energy_eV"].min()) * ENERGY_SCALE if len(pareto_df) else float("nan")
+        min_ex = float(pareto_df["norm_emit_x_m_rad"].min()) * EMIT_SCALE if len(pareto_df) and "norm_emit_x_m_rad" in pareto_df.columns else float("nan")
+        min_ey = float(pareto_df["norm_emit_y_m_rad"].min()) * EMIT_SCALE if len(pareto_df) and "norm_emit_y_m_rad" in pareto_df.columns else float("nan")
+        min_se = float(pareto_df["sigma_energy_eV"].min()) * ENERGY_SCALE if len(pareto_df) and "sigma_energy_eV" in pareto_df.columns else float("nan")
         return dict(
             n_eval=n_eval, n_feas=n_feas, feas_frac=feas_frac,
-            final_hv=final_hv, pareto_size=pareto_size,
-            min_ex=min_ex, min_se=min_se
+            final_hv=final_hv, all_hv=all_hv, pareto_size=pareto_size,
+            min_ex=min_ex, min_ey=min_ey, min_se=min_se
         )
 
     s2 = summary(df2_hv, df2_p)
     s3 = summary(df3_hv, df3_p)
 
-    lines = [
-        r"\begin{table}[htbp]",
-        r"\centering",
-        r"\caption{Campaign summary comparison: Phase~2 (Unconstrained MOBO) vs."
-        r" Phase~3 (Constrained MOBO). Fixed reporting reference point"
-        r" $\mathbf{r}_\mathrm{rep} = [6.65\times10^{-5},\,1.07\times10^{-4},\,3.37\times10^{6}]$"
-        r" (physical, [m$\cdot$rad, m$\cdot$rad, eV]).}",
-        r"\label{tab:campaign_summary}",
-        r"\begin{tabular}{lcc}",
-        r"\toprule",
-        r"\textbf{Metric} & \textbf{Phase 2 (Unconstrained)} & \textbf{Phase 3 (Constrained)} \\",
-        r"\midrule",
-        f"Total ASTRA Evaluations & {s2['n_eval']} & {s3['n_eval']} \\\\",
-        f"Feasible Evaluations & {s2['n_feas']} ({s2['feas_frac']:.1f}\\%) & {s3['n_feas']} ({s3['feas_frac']:.1f}\\%) \\\\",
-        f"Final Feasible Hypervolume & {s2['final_hv']:.6f} & {s3['final_hv']:.6f} \\\\",
-        f"Final Pareto Size & {s2['pareto_size']} & {s3['pareto_size']} \\\\",
-        f"Min $\\varepsilon_{{n,x}}$ [$\\mu$m] & {s2['min_ex']:.4f} & {s3['min_ex']:.4f} \\\\",
-        f"Min $\\sigma_E$ [MeV] & {s2['min_se']:.4f} & {s3['min_se']:.4f} \\\\",
-        r"\bottomrule",
-        r"\end{tabular}",
-        r"\end{table}",
-    ]
+    if df1_hv is not None and df1_p is not None:
+        s1 = summary(df1_hv, df1_p)
+        lines = [
+            r"\begin{table}[htbp]",
+            r"\centering",
+            r"\caption{Campaign summary comparison across optimization phases. Fixed reporting reference point $\mathbf{r}_\mathrm{rep} = [6.65\times10^{-5},\,1.07\times10^{-4},\,3.37\times10^{6}]$ (physical, [m$\cdot$rad, m$\cdot$rad, eV]).}",
+            r"\label{tab:campaign_summary}",
+            r"\resizebox{\textwidth}{!}{%",
+            r"\begin{tabular}{lccc}",
+            r"\toprule",
+            r"\textbf{Metric} & \textbf{Phase 1 (Scalarized)} & \textbf{Phase 2 (Unconstrained)} & \textbf{Phase 3 (Constrained)} \\",
+            r"\midrule",
+            f"Total ASTRA Evaluations & {s1['n_eval']} & {s2['n_eval']} & {s3['n_eval']} \\\\",
+            f"Simulation Validity & {s1['n_eval']} (100\\%) & {s2['n_eval']} (100\\%) & {s3['n_eval']} (100\\%) \\\\",
+            f"Feasible Evaluations & {s1['n_feas']} ({s1['feas_frac']:.1f}\\%) & {s2['n_feas']} ({s2['feas_frac']:.1f}\\%) & {s3['n_feas']} ({s3['feas_frac']:.1f}\\%) \\\\",
+            f"Unconstrained Hypervolume & {s1['all_hv']:.6f} & {s2['all_hv']:.6f} & {s3['all_hv']:.6f} \\\\",
+            f"Feasible Hypervolume & {s1['final_hv']:.6f} & {s2['final_hv']:.6f} & {s3['final_hv']:.6f} \\\\",
+            f"Final Pareto Size & {s1['pareto_size']} & {s2['pareto_size']} & {s3['pareto_size']} \\\\",
+            f"Min $\\varepsilon_{{n,x}}$ [$\\mu$m$\\cdot$rad] & {s1['min_ex']:.4f} & {s2['min_ex']:.4f} & {s3['min_ex']:.4f} \\\\",
+            f"Min $\\varepsilon_{{n,y}}$ [$\\mu$m$\\cdot$rad] & {s1['min_ey']:.4f} & {s2['min_ey']:.4f} & {s3['min_ey']:.4f} \\\\",
+            f"Min $\\sigma_E$ [MeV] & {s1['min_se']:.4f} & {s2['min_se']:.4f} & {s3['min_se']:.4f} \\\\",
+            r"\bottomrule",
+            r"\end{tabular}}",
+            r"\end{table}",
+        ]
+    else:
+        lines = [
+            r"\begin{table}[htbp]",
+            r"\centering",
+            r"\caption{Campaign summary comparison: Phase~2 (Unconstrained MOBO) vs."
+            r" Phase~3 (Constrained MOBO). Fixed reporting reference point"
+            r" $\mathbf{r}_\mathrm{rep} = [6.65\times10^{-5},\,1.07\times10^{-4},\,3.37\times10^{6}]$"
+            r" (physical, [m$\cdot$rad, m$\cdot$rad, eV]).}",
+            r"\label{tab:campaign_summary}",
+            r"\begin{tabular}{lcc}",
+            r"\toprule",
+            r"\textbf{Metric} & \textbf{Phase 2 (Unconstrained)} & \textbf{Phase 3 (Constrained)} \\",
+            r"\midrule",
+            f"Total ASTRA Evaluations & {s2['n_eval']} & {s3['n_eval']} \\\\",
+            f"Feasible Evaluations & {s2['n_feas']} ({s2['feas_frac']:.1f}\\%) & {s3['n_feas']} ({s3['feas_frac']:.1f}\\%) \\\\",
+            f"Final Feasible Hypervolume & {s2['final_hv']:.6f} & {s3['final_hv']:.6f} \\\\",
+            f"Final Pareto Size & {s2['pareto_size']} & {s3['pareto_size']} \\\\",
+            f"Min $\\varepsilon_{{n,x}}$ [$\\mu$m] & {s2['min_ex']:.4f} & {s3['min_ex']:.4f} \\\\",
+            f"Min $\\sigma_E$ [MeV] & {s2['min_se']:.4f} & {s3['min_se']:.4f} \\\\",
+            r"\bottomrule",
+            r"\end{tabular}",
+            r"\end{table}",
+        ]
 
     content = "\n".join(lines) + "\n"
     output_path.parent.mkdir(parents=True, exist_ok=True)
@@ -440,6 +510,7 @@ def check_manuscript_consistency(
     figures_dir: Path,
     tables_dir: Path,
     verification_csv: Path,
+    phase1_dir: Path | None = None,
 ) -> bool:
     """
     Checks that all required result files, figures, and tables exist.
@@ -447,8 +518,12 @@ def check_manuscript_consistency(
     """
     errors = []
 
+    check_runs = [(phase2_dir, "Phase 2"), (phase3_dir, "Phase 3")]
+    if phase1_dir is not None and phase1_dir.is_dir():
+        check_runs.append((phase1_dir, "Phase 1"))
+
     for name in REQUIRED_RESULT_FILES:
-        for run_dir, label in [(phase2_dir, "Phase 2"), (phase3_dir, "Phase 3")]:
+        for run_dir, label in check_runs:
             p = run_dir / name
             if not p.exists():
                 errors.append(f"Missing {label} result file: {p}")
@@ -485,6 +560,10 @@ def _parse_args() -> argparse.Namespace:
         description="Generate all manuscript figures and LaTeX tables from campaign results."
     )
     parser.add_argument(
+        "--phase1-dir", type=Path, default=None,
+        help="Path to Phase 1 (scalarized) BO campaign run directory."
+    )
+    parser.add_argument(
         "--phase2-dir", type=Path, required=True,
         help="Path to Phase 2 (unconstrained) MOBO campaign run directory."
     )
@@ -518,8 +597,20 @@ def main() -> int:
     fig_dir: Path = args.output_dir
     tab_dir: Path = args.tables_dir
     ver_csv: Path = args.verification_csv
+    p1: Path | None = args.phase1_dir
     p2: Path = args.phase2_dir
     p3: Path = args.phase3_dir
+
+    # Auto-detect Phase 1 directory if not explicitly provided
+    if p1 is None:
+        if (p2.parent / "phase1_scalarized").is_dir():
+            p1 = p2.parent / "phase1_scalarized"
+        elif Path("results/full_production/phase1_scalarized").is_dir():
+            p1 = Path("results/full_production/phase1_scalarized")
+
+    if p1 is not None and not p1.is_dir():
+        print(f"Warning: --phase1-dir specified but does not exist: {p1}", file=sys.stderr)
+        p1 = None
 
     # Validate source directories exist
     for p, label in [(p2, "--phase2-dir"), (p3, "--phase3-dir")]:
@@ -528,16 +619,19 @@ def main() -> int:
             return 1
 
     if args.check_only:
-        ok = check_manuscript_consistency(p2, p3, fig_dir, tab_dir, ver_csv)
+        ok = check_manuscript_consistency(p2, p3, fig_dir, tab_dir, ver_csv, phase1_dir=p1)
         return 0 if ok else 1
 
     print("=== Generating Paper Figures and Tables ===\n")
+    if p1 is not None:
+        print(f"  Including Phase 1 data from: {p1}")
 
     # --- Figure 1: Hypervolume comparison ---
     print("[Figure 1] Hypervolume comparison...")
     stats = plot_hypervolume_comparison(
         p2, p3,
         fig_dir / "hypervolume_comparison.png",
+        phase1_dir=p1,
     )
 
     # --- Figure 2: Pareto front comparison ---
@@ -545,6 +639,7 @@ def main() -> int:
     plot_pareto_front_comparison(
         p2, p3,
         fig_dir / "pareto_front_comparison.png",
+        phase1_dir=p1,
     )
 
     # --- Figure 3: Verification bar chart ---
@@ -562,6 +657,7 @@ def main() -> int:
     plot_feasible_fraction(
         p2, p3,
         fig_dir / "feasible_fraction.png",
+        phase1_dir=p1,
     )
 
     # --- Table 1: Verification LaTeX table ---
@@ -573,13 +669,15 @@ def main() -> int:
 
     # --- Table 2: Campaign summary LaTeX table ---
     print("[Table 2] Campaign summary LaTeX table...")
-    export_results_summary_latex_table(p2, p3, tab_dir / "results_table.tex")
+    export_results_summary_latex_table(p2, p3, tab_dir / "results_table.tex", phase1_dir=p1)
 
     # --- Consistency check ---
-    check_manuscript_consistency(p2, p3, fig_dir, tab_dir, ver_csv)
+    check_manuscript_consistency(p2, p3, fig_dir, tab_dir, ver_csv, phase1_dir=p1)
 
     print("\n=== Paper Figure & Table Generation Complete ===")
     if stats:
+        if "phase1_final_hv" in stats:
+            print(f"    Phase 1 final feasible HV: {stats['phase1_final_hv']:.6f}")
         print(f"    Phase 2 final feasible HV: {stats['phase2_final_hv']:.6f}")
         print(f"    Phase 3 final feasible HV: {stats['phase3_final_hv']:.6f}")
     return 0

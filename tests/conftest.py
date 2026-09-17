@@ -18,6 +18,7 @@ from mobo_linac.evaluation import EvaluationResult, FailureCategory, create_eval
 
 def pytest_addoption(parser):
     """Allow passing campaign directories as pytest CLI arguments."""
+    parser.addoption("--phase1-dir", default=None, help="Phase 1 run directory (for paper output tests)")
     parser.addoption("--phase2-dir", default=None, help="Phase 2 run directory (for paper output tests)")
     parser.addoption("--phase3-dir", default=None, help="Phase 3 run directory (for paper output tests)")
     parser.addoption("--verification-csv", default=None, help="Verification summary CSV (for paper output tests)")

@@ -47,6 +47,17 @@ def project_root() -> Path:
 
 
 @pytest.fixture(scope="session")
+def phase1_dir(request, project_root) -> Path:
+    cli_val = request.config.getoption("--phase1-dir")
+    if cli_val:
+        return Path(cli_val)
+    detected = _auto_detect_phase_dir(project_root / "results", "phase1_scalarized", "phase1_scalarized_")
+    if detected is None:
+        pytest.skip("No Phase 1 campaign directory found; skipping.")
+    return detected
+
+
+@pytest.fixture(scope="session")
 def phase2_dir(request, project_root) -> Path:
     cli_val = request.config.getoption("--phase2-dir")
     if cli_val:
@@ -73,6 +84,9 @@ def verification_csv(request, project_root) -> Path:
     cli_val = request.config.getoption("--verification-csv")
     if cli_val:
         return Path(cli_val)
+    full_prod_ver = project_root / "results" / "full_production" / "analysis" / "verification" / "verification_summary.csv"
+    if full_prod_ver.exists():
+        return full_prod_ver
     default = project_root / "results" / "verification" / "verification_summary.csv"
     return default
 
@@ -112,6 +126,14 @@ PARETO_CSV_N_COLS = 9  # 6 design vars + 3 objectives
 
 
 @pytest.mark.parametrize("fname", REQUIRED_RESULT_FILES)
+def test_phase1_result_files_exist(phase1_dir, fname):
+    """All required Phase 1 result files must exist."""
+    assert (phase1_dir / fname).exists(), (
+        f"Missing Phase 1 result file: {phase1_dir / fname}"
+    )
+
+
+@pytest.mark.parametrize("fname", REQUIRED_RESULT_FILES)
 def test_phase2_result_files_exist(phase2_dir, fname):
     """All required Phase 2 result files must exist."""
     assert (phase2_dir / fname).exists(), (
@@ -124,6 +146,15 @@ def test_phase3_result_files_exist(phase3_dir, fname):
     """All required Phase 3 result files must exist."""
     assert (phase3_dir / fname).exists(), (
         f"Missing Phase 3 result file: {phase3_dir / fname}"
+    )
+
+
+def test_hypervolume_csv_columns_phase1(phase1_dir):
+    """Phase 1 hypervolume.csv must have required columns."""
+    df = pd.read_csv(phase1_dir / "hypervolume.csv")
+    assert HYPERVOLUME_REQUIRED_COLS.issubset(set(df.columns)), (
+        f"Missing columns in Phase 1 hypervolume.csv: "
+        f"{HYPERVOLUME_REQUIRED_COLS - set(df.columns)}"
     )
 
 
@@ -142,6 +173,18 @@ def test_hypervolume_csv_columns_phase3(phase3_dir):
     assert HYPERVOLUME_REQUIRED_COLS.issubset(set(df.columns)), (
         f"Missing columns in Phase 3 hypervolume.csv: "
         f"{HYPERVOLUME_REQUIRED_COLS - set(df.columns)}"
+    )
+
+
+def test_pareto_csv_has_data_phase1(phase1_dir):
+    """Phase 1 pareto.csv must contain at least one Pareto point."""
+    df = pd.read_csv(phase1_dir / "pareto.csv", comment="#")
+    if list(df.columns) != ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg", "norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]:
+        df = pd.read_csv(phase1_dir / "pareto.csv", comment="#", header=None)
+    df = df.dropna(how="all")
+    assert len(df) >= 1, "Phase 1 pareto.csv is empty."
+    assert df.shape[1] == PARETO_CSV_N_COLS, (
+        f"Phase 1 pareto.csv has {df.shape[1]} columns; expected {PARETO_CSV_N_COLS}."
     )
 
 
@@ -316,9 +359,12 @@ def test_required_tables_produced(tmp_path, phase2_dir, phase3_dir, project_root
     assert (tab_out / fname).exists(), (
         f"generate_paper_figures.py did not produce: {fname}"
     )
+    if fname == "results_table.tex":
+        content = (tab_out / fname).read_text(encoding="utf-8")
+        assert "Phase 1 (Scalarized)" in content, "results_table.tex missing Phase 1 (Scalarized) column."
 
 
-def test_verification_table_produced_from_csv(tmp_path, phase2_dir, phase3_dir, verification_csv):
+def test_verification_table_produced_from_csv(tmp_path, phase2_dir, phase3_dir, verification_csv, project_root):
     """verification_table.tex must be generated from verification_summary.csv (not hard-coded)."""
     if not verification_csv.exists():
         pytest.skip(f"Verification CSV not found: {verification_csv}")
@@ -335,7 +381,7 @@ def test_verification_table_produced_from_csv(tmp_path, phase2_dir, phase3_dir, 
             "--tables-dir", str(tab_out),
         ],
         capture_output=True, text=True,
-        cwd=str(phase2_dir.parent.parent),
+        cwd=str(project_root),
     )
     assert result.returncode == 0
     tex_path = tab_out / "verification_table.tex"
@@ -384,6 +430,7 @@ def test_manuscript_references_generated_figures(project_root):
         "hypervolume_comparison.png",
         "pareto_front_comparison.png",
         "verification_rerun_comparison.png",
+        "feasible_fraction.png",
     ]
     for fig_name in required_fig_refs:
         assert fig_name in content, (
@@ -533,6 +580,22 @@ def _load_pareto_df(phase_dir: Path) -> pd.DataFrame:
         df.columns = expected_cols
     df = df.dropna(how="all")
     return df
+
+
+def test_pareto_emittance_values_physical_range_phase1(phase1_dir):
+    """Phase 1 Pareto emittance values must be in physically reasonable range (0.1–500 μm·mrad)."""
+    df = _load_pareto_df(phase1_dir)
+    ex_um = df["ex"].values * 1e6
+    assert (ex_um > 0.1).all(), f"Emittance values contain non-positive entries: {ex_um}"
+    assert (ex_um < 500.0).all(), f"Emittance values out of physical range: {ex_um}"
+
+
+def test_pareto_energy_spread_physical_range_phase1(phase1_dir):
+    """Phase 1 Pareto energy spread must be in range 0.01–10 MeV."""
+    df = _load_pareto_df(phase1_dir)
+    se_mev = df["se"].values * 1e-6
+    assert (se_mev > 0.01).all(), f"Energy spread too small: {se_mev}"
+    assert (se_mev < 10.0).all(), f"Energy spread out of range: {se_mev}"
 
 
 def test_pareto_emittance_values_physical_range(phase2_dir):

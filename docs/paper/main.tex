@@ -149,33 +149,42 @@ This reference is set at the worst-observed objective values from the Sobol init
 \section{Computational Results}
 \label{sec:results}
 
-Controlled campaigns were executed comparing Phase 2 (Unconstrained MOBO) and Phase 3 (Constrained MOBO) under identical random seeds with $N_{\text{init}} = 16$ Sobol-sampled initialization points, batch size $q = 4$, and 6 BO iterations (total budget 40 ASTRA evaluations per campaign). All hypervolumes reported below are computed against the fixed reporting reference point $\mathbf{r}_{\text{rep}}$ (Section~\ref{sec:ref_point}).
+Controlled campaigns were executed systematically comparing Phase~1 (Scalarized BO), Phase~2 (Unconstrained MOBO), and Phase~3 (Constrained MOBO) under standardized evaluation conditions with Sobol-sampled initialization points ($N_{\text{init}} = 16$), candidate proposal batches, and identical lattice geometry. All hypervolumes reported below are computed against the fixed physical reporting reference point $\mathbf{r}_{\text{rep}}$ (Section~\ref{sec:ref_point}).
 
-A campaign summary comparing key outcome metrics across the optimization phases is provided in Table~\ref{tab:campaign_summary}.
+A campaign summary comparing key outcome metrics across the three optimization phases is provided in Table~\ref{tab:campaign_summary}.
 
 \subsection{Phase 1: Scalarized Bayesian Optimization Performance}
 \label{sec:phase1_results}
-Phase~1 executed a scalarized Bayesian Optimization campaign combining the normalized transverse emittances and energy spread into a composite objective ($w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$) using $N_{\text{init}} = 16$ initial Sobol evaluations and 10 optimization iterations ($q=4$, total budget of 56 ASTRA simulations). All 56 evaluations converged numerically without execution failures ($100\%$ simulation validity). Across the 56 evaluations, the scalarized search achieved minimum single-channel metrics of $\varepsilon_{n,x} = 2.9102~\mu\text{m}\cdot\text{rad}$, $\varepsilon_{n,y} = 4.9287~\mu\text{m}\cdot\text{rad}$, and $\sigma_E = 0.3171~\text{MeV}$. Tracking all valid points against the standardized reference point $\mathbf{r}_{\text{rep}}$ yielded an unconstrained hypervolume of $0.012876$. However, because scalarized optimization does not explicitly enforce joint beam quality constraints during acquisition selection, beam size ($\sigma_x \le 1.0\text{ mm}$, $\sigma_y \le 1.0\text{ mm}$) and bunch length ($\sigma_z \le 1.0\text{ mm}$) constraint violations prevented the campaign from discovering points that simultaneously satisfy all 8 beam quality constraints, resulting in $0\%$ feasible hypervolume. This highlights the operational necessity of true constraint-aware Multi-Objective Bayesian Optimization (Phases~2 and 3).
+Phase~1 executed a scalarized Bayesian Optimization campaign combining normalized transverse emittances and energy spread into a composite objective ($w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$) using Sobol initialization. All evaluations converged numerically without execution failures ($100\%$ simulation validity). As reported in Table~\ref{tab:campaign_summary}, the scalarized search achieved minimum single-channel metrics of $\varepsilon_{n,x} = 2.9102~\mu\text{m}\cdot\text{rad}$, $\varepsilon_{n,y} = 4.9287~\mu\text{m}\cdot\text{rad}$, and $\sigma_E = 0.2769~\text{MeV}$. Tracking all valid points against the standardized reference point $\mathbf{r}_{\text{rep}}$ yielded an unconstrained hypervolume of $0.019588$. However, because scalarized optimization does not explicitly model or enforce joint beam quality constraints during acquisition selection, beam size ($\sigma_x \le 1.0\text{ mm}$, $\sigma_y \le 1.0\text{ mm}$) and bunch length ($\sigma_z \le 1.0\text{ mm}$) constraint violations severely limit the discovery of fully compliant beams ($1.1\%$ feasible evaluations), yielding a final feasible hypervolume of $0.019029$ with only 2 feasible Pareto points. In contrast, Phase~2 discovered 27 feasible beams and Phase~3 discovered 75 feasible beams (42.6\% feasibility fraction), demonstrating the decisive operational advantage of true constraint-aware Multi-Objective Bayesian Optimization.
 
 \input{results_table}
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.85\linewidth]{figures/hypervolume_comparison.png}
-    \caption{Feasible hypervolume progress over cumulative ASTRA evaluations for Phase 2 (Unconstrained) vs Phase 3 (Constrained) MOBO. Final hypervolume values are derived from \texttt{hypervolume.csv} in each campaign run directory.}
+    \caption{Feasible hypervolume progress over cumulative ASTRA evaluations comparing Phase~1 (Scalarized), Phase~2 (Unconstrained), and Phase~3 (Constrained) MOBO. Final hypervolume values are derived from \texttt{hypervolume.csv} in each campaign run directory.}
     \label{fig:hypervolume}
 \end{figure}
 
-As shown in Figure~\ref{fig:hypervolume}, both campaigns achieve rapid hypervolume growth. Final feasible hypervolume values and feasibility statistics are reported in Table~\ref{tab:campaign_summary}.
+As shown in Figure~\ref{fig:hypervolume}, all campaigns achieve progressive hypervolume growth, with Phase~3 demonstrating the highest final feasible hypervolume. Final feasible hypervolume values and feasibility statistics are reported in Table~\ref{tab:campaign_summary}.
 
 \begin{figure}[H]
     \centering
     \includegraphics[width=0.95\linewidth]{figures/pareto_front_comparison.png}
-    \caption{Two-dimensional projections of the physical objective space comparing Phase 2 and Phase 3 Pareto fronts (sourced from \texttt{pareto.csv}).}
+    \caption{Two-dimensional projections of the physical objective space comparing Phase~1, Phase~2, and Phase~3 Pareto fronts (sourced from \texttt{pareto.csv}).}
     \label{fig:pareto}
 \end{figure}
 
 Figure~\ref{fig:pareto} illustrates the 2D projections of the physical objective space, revealing the characteristic trade-off between transverse emittance and RMS energy spread across the feasible Pareto front.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.85\linewidth]{figures/feasible_fraction.png}
+    \caption{Feasible beam fraction as a function of cumulative ASTRA evaluations comparing Phase~1 (Scalarized), Phase~2 (Unconstrained), and Phase~3 (Constrained) MOBO.}
+    \label{fig:feasible_fraction}
+\end{figure}
+
+Figure~\ref{fig:feasible_fraction} plots the evolution of the feasible beam fraction. While Phase~1 remains near $1.1\%$ and Phase~2 plateaus near $15.3\%$, Phase~3 rapidly guides search evaluations into the feasible operational space, reaching $42.6\%$ overall feasibility.
 
 \subsection{Independent Pareto Candidate Rerun Verification}
 \label{sec:verification}

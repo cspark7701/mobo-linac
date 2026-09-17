@@ -8,11 +8,12 @@
 #
 # Usage
 # -----
-#   bash scripts/reproduce_paper.sh [--phase2-dir DIR] [--phase3-dir DIR] \
-#       [--verification-csv PATH] [--check-only]
+#   bash scripts/reproduce_paper.sh [--phase1-dir DIR] [--phase2-dir DIR] \
+#       [--phase3-dir DIR] [--verification-csv PATH] [--check-only]
 #
 # Required inputs (auto-detected from results/ if not specified)
 # -------------------------------------------------------------
+#   results/phase1_scalarized_*/      Phase 1 campaign run directory
 #   results/phase2_unconstrained_*/   Phase 2 campaign run directory
 #   results/phase3_constrained_*/     Phase 3 campaign run directory
 #   results/verification/verification_summary.csv
@@ -41,6 +42,7 @@ PAPER_DIR="docs/paper"
 RESULTS_DIR="results"
 VER_CSV="results/verification/verification_summary.csv"
 CHECK_ONLY=0
+PHASE1_DIR=""
 PHASE2_DIR=""
 PHASE3_DIR=""
 
@@ -49,6 +51,7 @@ PHASE3_DIR=""
 # ---------------------------------------------------------------------------
 while [[ $# -gt 0 ]]; do
     case "$1" in
+        --phase1-dir)   PHASE1_DIR="$2"; shift 2 ;;
         --phase2-dir)   PHASE2_DIR="$2"; shift 2 ;;
         --phase3-dir)   PHASE3_DIR="$2"; shift 2 ;;
         --verification-csv) VER_CSV="$2"; shift 2 ;;
@@ -63,9 +66,27 @@ done
 # ---------------------------------------------------------------------------
 # Auto-detect phase directories if not explicitly specified
 # ---------------------------------------------------------------------------
+if [[ -z "$PHASE1_DIR" ]]; then
+    if [[ -d "${RESULTS_DIR}/full_production/phase1_scalarized" ]]; then
+        PHASE1_DIR="${RESULTS_DIR}/full_production/phase1_scalarized"
+    else
+        PHASE1_DIR=$(ls -d "${RESULTS_DIR}"/phase1_scalarized_* 2>/dev/null | sort | tail -1 || true)
+    fi
+    if [[ -z "$PHASE1_DIR" || ! -d "$PHASE1_DIR" ]]; then
+        echo "Error: No Phase 1 results directory found in ${RESULTS_DIR}/."
+        echo "       Run a Phase 1 campaign first, or specify --phase1-dir."
+        exit 1
+    fi
+    echo "  Auto-detected Phase 1 directory: $PHASE1_DIR"
+fi
+
 if [[ -z "$PHASE2_DIR" ]]; then
-    PHASE2_DIR=$(ls -d "${RESULTS_DIR}"/phase2_unconstrained_* 2>/dev/null | sort | tail -1 || true)
-    if [[ -z "$PHASE2_DIR" ]]; then
+    if [[ -d "${RESULTS_DIR}/full_production/phase2_unconstrained" ]]; then
+        PHASE2_DIR="${RESULTS_DIR}/full_production/phase2_unconstrained"
+    else
+        PHASE2_DIR=$(ls -d "${RESULTS_DIR}"/phase2_unconstrained_* 2>/dev/null | sort | tail -1 || true)
+    fi
+    if [[ -z "$PHASE2_DIR" || ! -d "$PHASE2_DIR" ]]; then
         echo "Error: No Phase 2 results directory found in ${RESULTS_DIR}/."
         echo "       Run a Phase 2 campaign first, or specify --phase2-dir."
         exit 1
@@ -74,8 +95,12 @@ if [[ -z "$PHASE2_DIR" ]]; then
 fi
 
 if [[ -z "$PHASE3_DIR" ]]; then
-    PHASE3_DIR=$(ls -d "${RESULTS_DIR}"/phase3_constrained_* 2>/dev/null | sort | tail -1 || true)
-    if [[ -z "$PHASE3_DIR" ]]; then
+    if [[ -d "${RESULTS_DIR}/full_production/phase3_constrained" ]]; then
+        PHASE3_DIR="${RESULTS_DIR}/full_production/phase3_constrained"
+    else
+        PHASE3_DIR=$(ls -d "${RESULTS_DIR}"/phase3_constrained_* 2>/dev/null | sort | tail -1 || true)
+    fi
+    if [[ -z "$PHASE3_DIR" || ! -d "$PHASE3_DIR" ]]; then
         echo "Error: No Phase 3 results directory found in ${RESULTS_DIR}/."
         echo "       Run a Phase 3 campaign first, or specify --phase3-dir."
         exit 1
@@ -83,11 +108,20 @@ if [[ -z "$PHASE3_DIR" ]]; then
     echo "  Auto-detected Phase 3 directory: $PHASE3_DIR"
 fi
 
+if [[ ! -f "$VER_CSV" ]]; then
+    if [[ -f "${RESULTS_DIR}/full_production/analysis/verification/verification_summary.csv" ]]; then
+        VER_CSV="${RESULTS_DIR}/full_production/analysis/verification/verification_summary.csv"
+    elif [[ -f "${RESULTS_DIR}/verification/verification_summary.csv" ]]; then
+        VER_CSV="${RESULTS_DIR}/verification/verification_summary.csv"
+    fi
+fi
+
 # ---------------------------------------------------------------------------
 # Environment check
 # ---------------------------------------------------------------------------
 echo ""
 echo "=== Linac MOBO Manuscript Reproduction Script ==="
+echo "  Phase 1 run dir:   $PHASE1_DIR"
 echo "  Phase 2 run dir:   $PHASE2_DIR"
 echo "  Phase 3 run dir:   $PHASE3_DIR"
 echo "  Verification CSV:  $VER_CSV"
@@ -108,6 +142,7 @@ mkdir -p "$PAPER_FIG_DIR"
 if [[ "$CHECK_ONLY" -eq 0 ]]; then
     echo "Step 1: Generating publication figures and tables..."
     python scripts/generate_paper_figures.py \
+        --phase1-dir "$PHASE1_DIR" \
         --phase2-dir "$PHASE2_DIR" \
         --phase3-dir "$PHASE3_DIR" \
         --verification-csv "$VER_CSV" \
@@ -139,6 +174,7 @@ fi
 # ---------------------------------------------------------------------------
 echo "Step 3: Running manuscript consistency tests..."
 python scripts/generate_paper_figures.py \
+    --phase1-dir "$PHASE1_DIR" \
     --phase2-dir "$PHASE2_DIR" \
     --phase3-dir "$PHASE3_DIR" \
     --verification-csv "$VER_CSV" \
@@ -152,6 +188,7 @@ echo ""
 # ---------------------------------------------------------------------------
 echo "Step 4: Running pytest test_paper_outputs.py..."
 pytest -q tests/test_paper_outputs.py \
+    --phase1-dir "$PHASE1_DIR" \
     --phase2-dir "$PHASE2_DIR" \
     --phase3-dir "$PHASE3_DIR" \
     --verification-csv "$VER_CSV" \
