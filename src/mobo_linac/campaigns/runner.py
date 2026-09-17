@@ -49,6 +49,7 @@ from mobo_linac.metrics.hypervolume import (
     HypervolumeTracker,
     compute_reference_point,
 )
+from mobo_linac.metrics.reporting import DEFAULT_REPORTING_SCALES
 from mobo_linac.models.pipeline import SurrogatePipeline
 
 from mobo_linac.plotting.visualizations import (
@@ -372,7 +373,11 @@ class MoboCampaignRunner:
                 weights_dev = self.scalar_weights.to(dtype=torch.double, device=self.device)
                 train_X_dev = train_X.to(dtype=torch.double, device=self.device)
                 train_Y_dev = train_Y.to(dtype=torch.double, device=self.device)
-                scalar_Y = (train_Y_dev * weights_dev).sum(dim=-1, keepdim=True)
+                # Scale objectives to dimensionless O(1) space [1 um*rad, 1 um*rad, 1 MeV]
+                # so weights reflect true physical trade-off balance
+                scales_dev = torch.tensor(DEFAULT_REPORTING_SCALES, dtype=torch.double, device=self.device)
+                train_Y_scaled = train_Y_dev / scales_dev
+                scalar_Y = (train_Y_scaled * weights_dev).sum(dim=-1, keepdim=True)
 
                 bounds_dev = bounds.to(device=self.device, dtype=torch.double)
                 gp = build_scalarized_gp_model(

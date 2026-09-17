@@ -671,6 +671,20 @@ def main() -> int:
     print("[Table 2] Campaign summary LaTeX table...")
     export_results_summary_latex_table(p2, p3, tab_dir / "results_table.tex", phase1_dir=p1)
 
+    # --- Table 3: Phase 1 Option 2 cases LaTeX table ---
+    if p1 is not None:
+        p1_cases_csv = p1 / "cases_summary.csv"
+        if not p1_cases_csv.exists() and (p1 / "evaluations.csv").exists():
+            from mobo_linac.campaigns.scalarized_suite import aggregate_scalarized_cases
+            aggregate_scalarized_cases(p1)
+            p1_cases_csv = p1 / "cases_summary.csv"
+
+        if p1_cases_csv.exists():
+            print("[Table 3] Phase 1 Option 2 cases LaTeX table...")
+            from mobo_linac.campaigns.scalarized_suite import export_phase1_cases_latex_table
+            export_phase1_cases_latex_table(p1_cases_csv, tab_dir / "phase1_cases_table.tex")
+            print(f"  ✓ Saved {tab_dir / 'phase1_cases_table.tex'}")
+
     # --- Consistency check ---
     check_manuscript_consistency(p2, p3, fig_dir, tab_dir, ver_csv, phase1_dir=p1)
 

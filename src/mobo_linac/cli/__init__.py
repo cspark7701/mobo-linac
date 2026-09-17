@@ -38,6 +38,7 @@ from mobo_linac.cli.commands.run import (
     register_run_commands,
     run_constrained,
     run_scalarized,
+    run_scalarized_suite_cmd,
     run_unconstrained,
     run_validation,
 )
@@ -83,6 +84,7 @@ def main(args: Optional[Sequence[str]] = None) -> None:
             "run-unconstrained": run_unconstrained,
             "run-constrained": run_constrained,
             "run-scalarized": run_scalarized,
+            "run-scalarized-suite": run_scalarized_suite_cmd,
             "run-validation": run_validation,
             "resume": resume_optimization,
             "analyze": analyze_run,

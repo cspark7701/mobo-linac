@@ -31,6 +31,7 @@ NUM_WORKERS=4
 SEED=42
 DEVICE="auto"
 OUTPUT_BASE_DIR="results/full_production"
+P1_CASE="all"
 RESUME_FLAG=""
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
@@ -74,6 +75,10 @@ while [[ $# -gt 0 ]]; do
       RESUME_FLAG="--resume"
       shift
       ;;
+    --p1-case)
+      P1_CASE="$2"
+      shift 2
+      ;;
     -h|--help)
       echo "Usage: ./scripts/run_full_production.sh [OPTIONS]"
       echo "Options:"
@@ -84,6 +89,7 @@ while [[ $# -gt 0 ]]; do
       echo "  -w, --workers W      Number of parallel CPU worker cores (default: 4)"
       echo "  -d, --device DEV     Target PyTorch device (auto, cuda, cpu; default: auto GPU selection)"
       echo "  -o, --output-dir DIR Output directory (default: results/full_production)"
+      echo "  --p1-case CASE       Phase 1 Option 2 case to run (all, balanced, high_brightness, low_energy_spread, x_dominant, y_dominant; default: all)"
       echo "  -h, --help           Show this help message"
       exit 0
       ;;
@@ -173,7 +179,7 @@ export PATH="${PROJECT_ROOT}/bin:${PATH}"
 log_step "  ${CLR_GREEN}✓${CLR_RESET} Environment & binary permissions verified"
 
 # ------------------------------------------------------------------------------
-# Step 2: Execute Phase 1 Scalarized BO Production Simulation
+# Step 2: Execute Phase 1 Scalarized BO Production Simulation (Option 2 Suite)
 # ------------------------------------------------------------------------------
 RUN_P1_CMD="mobo-linac run-scalarized \
     --config configs/mobo_200MeV.yaml \
@@ -183,10 +189,12 @@ RUN_P1_CMD="mobo-linac run-scalarized \
     --num-workers ${NUM_WORKERS} \
     --device ${DEVICE} \
     --seed ${SEED} \
+    --suite option2 \
+    --case ${P1_CASE} \
     ${RESUME_FLAG} \
     --output-dir ${P1_DIR}"
 
-execute_step "\n\n${CLR_CYAN}${CLR_BOLD}▶ [Step 2/7]${CLR_RESET} ${CLR_BOLD}Running Phase 1 Scalarized BO Simulation...${CLR_RESET}" "${RUN_P1_CMD}" "${P1_DIR}/simulation.log"
+execute_step "\n\n${CLR_CYAN}${CLR_BOLD}▶ [Step 2/7]${CLR_RESET} ${CLR_BOLD}Running Phase 1 Scalarized BO Simulation (Option 2: ${P1_CASE})...${CLR_RESET}" "${RUN_P1_CMD}" "${P1_DIR}/simulation.log"
 log_step "  ${CLR_GREEN}✓${CLR_RESET} Phase 1 Simulation complete -> Saved in ${P1_DIR}"
 
 # ------------------------------------------------------------------------------

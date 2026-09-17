@@ -53,6 +53,25 @@ def parse_args():
         help="Weights for 3 objectives (emittance_x, emittance_y, energy_spread)",
     )
     parser.add_argument(
+        "--suite",
+        type=str,
+        default=None,
+        choices=["option2", "custom"],
+        help="Predefined multi-case suite to run (e.g. 'option2')",
+    )
+    parser.add_argument(
+        "--case",
+        type=str,
+        default=None,
+        choices=["all", "balanced", "high_brightness", "low_energy_spread", "x_dominant", "y_dominant"],
+        help="Option 2 case to run ('all' runs entire suite)",
+    )
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Resume optimization from latest checkpoint",
+    )
+    parser.add_argument(
         "--seed",
         type=int,
         default=42,

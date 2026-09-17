@@ -22,6 +22,7 @@ DEFAULT_ENGINEERING_SCALES = {
     "norm_emit_y_m_rad": 1.0e-6,   # 1 um.rad
     "sigma_energy_eV": 1.0e6,       # 1 MeV
 }
+DEFAULT_REPORTING_SCALES = [1.0e-6, 1.0e-6, 1.0e6]
 
 # Default Fixed Reporting Reference Point in Normalized Model Space
 # (Physical space: [10.0, 10.0, 10.0] normalized; Model space: [-10.0, -10.0, -10.0])
