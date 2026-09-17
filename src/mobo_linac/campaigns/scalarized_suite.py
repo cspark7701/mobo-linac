@@ -400,6 +400,7 @@ def run_scalarized_suite(
     cases_to_run: Optional[Sequence[str]] = None,
     resume: bool = False,
     evaluator: Optional[Any] = None,
+    export_paper_table_dir: Optional[Union[str, Path]] = None,
 ) -> Dict[str, Any]:
     """
     Executes the Option 2 multi-weight Phase 1 Scalarized BO suite.
@@ -416,6 +417,7 @@ def run_scalarized_suite(
         cases_to_run: List of case keys to run. Defaults to all keys in OPTION_2_CASES.
         resume: Whether to resume existing case runs from checkpoints.
         evaluator: Optional custom evaluator (e.g. CliMockEvaluator for testing).
+        export_paper_table_dir: Optional directory to copy phase1_cases_table.tex to.
 
     Returns:
         Aggregation metadata dictionary.
@@ -471,9 +473,12 @@ def run_scalarized_suite(
     agg_meta = aggregate_scalarized_cases(base_out)
     print(f"  ✓ Aggregated {agg_meta['num_cases']} cases -> Total {agg_meta['total_evaluations']} evaluations")
 
-    # Export LaTeX table if docs/paper directory exists
-    paper_tab = Path("docs/paper/phase1_cases_table.tex")
-    if Path("docs/paper").is_dir():
+    # Export local LaTeX table within base_out run directory
+    local_tab = base_out / "phase1_cases_table.tex"
+    export_phase1_cases_latex_table(base_out / "cases_summary.csv", local_tab)
+
+    if export_paper_table_dir is not None:
+        paper_tab = Path(export_paper_table_dir) / "phase1_cases_table.tex"
         export_phase1_cases_latex_table(base_out / "cases_summary.csv", paper_tab)
         print(f"  ✓ Exported LaTeX summary table to {paper_tab}")
 

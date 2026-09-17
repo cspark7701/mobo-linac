@@ -89,7 +89,7 @@ def test_scalarized_suite_execution_with_mock_evaluator(tmp_path):
     assert (suite_dir / "pareto.csv").exists()
     assert (suite_dir / "hypervolume.csv").exists()
 
-    # Verify LaTeX table export
+    # Verify LaTeX table export inside tmp_path
     out_tex = tmp_path / "test_table.tex"
     export_phase1_cases_latex_table(suite_dir / "cases_summary.csv", out_tex)
     assert out_tex.exists()
@@ -97,6 +97,12 @@ def test_scalarized_suite_execution_with_mock_evaluator(tmp_path):
     assert r"\begin{table}" in content
     assert r"\texttt{balanced}" in content
     assert r"\texttt{high_brightness}" in content
+
+    # Verify publication table docs/paper/phase1_cases_table.tex was NOT overwritten by mock test
+    paper_table = Path("docs/paper/phase1_cases_table.tex")
+    if paper_table.exists():
+        paper_content = paper_table.read_text(encoding="utf-8")
+        assert "176" in paper_content, "docs/paper/phase1_cases_table.tex must not be overwritten by mock tests!"
 
 
 def test_cli_suite_arguments():
