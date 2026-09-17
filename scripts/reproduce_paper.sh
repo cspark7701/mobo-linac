@@ -40,7 +40,7 @@ set -euo pipefail
 PAPER_FIG_DIR="docs/paper/figures"
 PAPER_DIR="docs/paper"
 RESULTS_DIR="results"
-VER_CSV="results/verification/verification_summary.csv"
+VER_CSV=""
 CHECK_ONLY=0
 PHASE1_DIR=""
 PHASE2_DIR=""
@@ -108,11 +108,13 @@ if [[ -z "$PHASE3_DIR" ]]; then
     echo "  Auto-detected Phase 3 directory: $PHASE3_DIR"
 fi
 
-if [[ ! -f "$VER_CSV" ]]; then
+if [[ -z "$VER_CSV" || ! -f "$VER_CSV" ]]; then
     if [[ -f "${RESULTS_DIR}/full_production/analysis/verification/verification_summary.csv" ]]; then
         VER_CSV="${RESULTS_DIR}/full_production/analysis/verification/verification_summary.csv"
     elif [[ -f "${RESULTS_DIR}/verification/verification_summary.csv" ]]; then
         VER_CSV="${RESULTS_DIR}/verification/verification_summary.csv"
+    else
+        VER_CSV="results/verification/verification_summary.csv"
     fi
 fi
 

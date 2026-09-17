@@ -207,6 +207,16 @@ def verify_pareto_candidates(
             f"Max Diff={max_diff_pct:.6f}% | Status: {verified_status}"
         )
 
+    if verification_records:
+        ver_dir = output_dir / "verification"
+        ver_dir.mkdir(parents=True, exist_ok=True)
+        df_ver = pd.DataFrame(verification_records)
+        if "verification_status" not in df_ver.columns:
+            df_ver["verification_status"] = df_ver["status"]
+        ver_csv_path = ver_dir / "verification_summary.csv"
+        df_ver.to_csv(ver_csv_path, index=False)
+        print(f"  ✓ Saved verification summary: {ver_csv_path}")
+
     return verification_records
 
 
