@@ -96,7 +96,7 @@ def test_scalarized_suite_execution_with_mock_evaluator(tmp_path):
     content = out_tex.read_text(encoding="utf-8")
     assert r"\begin{table}" in content
     assert r"\texttt{balanced}" in content
-    assert r"\texttt{high_brightness}" in content
+    assert r"\texttt{high\_brightness}" in content
 
     # Verify publication table docs/paper/phase1_cases_table.tex was NOT overwritten by mock test
     paper_table = Path("docs/paper/phase1_cases_table.tex")

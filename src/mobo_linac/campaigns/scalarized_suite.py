@@ -364,7 +364,8 @@ def export_phase1_cases_latex_table(
 
     for _, row in df.iterrows():
         case_id = str(row["case_id"])
-        name = str(row["name"])
+        case_id_tex = case_id.replace("_", r"\_")
+        name = str(row["name"]).replace("_", r"\_")
         wx = float(row["w_emit_x"])
         wy = float(row["w_emit_y"])
         we = float(row["w_energy_spread"])
@@ -376,7 +377,7 @@ def export_phase1_cases_latex_table(
         min_se = f"{float(row['min_sigma_energy_MeV']):.4f}" if pd.notna(row['min_sigma_energy_MeV']) else "-"
 
         lines.append(
-            f"\\texttt{{{case_id}}} & {name} & {w_str} & {n_eval} & {feas_str} & {min_ex} & {min_ey} & {min_se} \\\\"
+            f"\\texttt{{{case_id_tex}}} & {name} & {w_str} & {n_eval} & {feas_str} & {min_ex} & {min_ey} & {min_se} \\\\"
         )
 
     lines.extend([

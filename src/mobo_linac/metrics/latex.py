@@ -44,10 +44,11 @@ def generate_verification_latex_table(
         r"\centering",
         f"\\caption{{{caption}}}",
         f"\\label{{{label}}}",
+        r"\resizebox{\textwidth}{!}{%",
         r"\begin{tabular}{lcccccc}",
-        r"\hline\hline",
+        r"\toprule",
         r"Candidate Role & Stored $\varepsilon_{n,x}$ ($\mu$m) & Rerun $\varepsilon_{n,x}$ ($\mu$m) & Stored $\sigma_E$ (MeV) & Rerun $\sigma_E$ (MeV) & Max Error (\%) & Status \\",
-        r"\hline",
+        r"\midrule",
     ]
 
     for rec in record_list:
@@ -74,8 +75,8 @@ def generate_verification_latex_table(
         tex.append(f"{role} & {s_ex:.4f} & {r_ex:.4f} & {s_se:.4f} & {r_se:.4f} & {err:.4f} & {status} \\\\")
 
     tex.extend([
-        r"\hline\hline",
-        r"\end{tabular}",
+        r"\bottomrule",
+        r"\end{tabular}}",
         r"\end{table}",
     ])
 
