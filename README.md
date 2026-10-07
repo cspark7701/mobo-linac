@@ -295,3 +295,45 @@ Preliminary scalarized Bayesian Optimization results were presented at **ICABU 2
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### GP noise, fit outcomes, and saved models
+
+GP observation variances use squared model-output units. `train_Yvar` must match
+`train_Y` as `(N, M)`, contain finite strictly positive values, and takes precedence
+over per-output variances and scalar fixed noise. `Standardize` scales both outcomes
+and variances. The `fixed` alias and nominal deterministic relative formula remain
+`max(1e-6 * Var(Y), 1e-24)`. `measured_fixed` requires explicit tensor or fixed noise;
+`inferred` rejects explicit noise instead of ignoring it. Constraint observations
+have their own `train_constraints_var` tensor; objective noise is never reused for
+constraints. GPyTorch may clamp very small standardized noise for numerical stability;
+artifacts retain both supplied output-space and effective standardized noise.
+
+`fit_gp_models` keeps returning the model and exposes per-channel `fit_outcomes`:
+`lbfgs`, `adam`, or `restored_prior`, plus errors and the available optimizer status.
+Each optimizer starts from the same saved state. If both fail, that state is restored
+and finite predictions are verified; an unusable prior raises. `pipeline.is_fitted`
+means predictions are available; `is_optimized` excludes a restored prior. An Adam
+step-limit stop remains visible in `optimizer_status`; it is not a convergence claim.
+
+Campaigns save version-1 tensor/state artifacts under `gp_checkpoint/model_iter_*.pt`
+before proposing a batch. Observation checkpoints separately record `model_artifact`
+with its absolute path, SHA-256, and proposal iteration. Each artifact contains training
+identities, inputs/outcomes, transforms, kernel/likelihood state, effective noise, fit
+outcomes, and campaign metadata. It represents the observations used for that proposal,
+which precede the new evaluations in the completed observation checkpoint. Random-only
+runs have no model artifact. Resume keeps the recorded reference and continues the
+existing observation-based refitting policy; it does not implicitly load saved models.
+When moving a run, resolve the recorded artifact path to its new location explicitly.
+
+Reload a pipeline without fitting or running ASTRA:
+
+```python
+from mobo_linac.models import SurrogatePipeline
+pipeline = SurrogatePipeline.load_artifact("results/run/gp_checkpoint/model_iter_01_ID.pt", device="cpu")
+mean, variance = pipeline.predict_objectives(X)
+```
+
+For individual scalarized GPs, use `save_model_artifact` and `load_model_artifact`
+from `mobo_linac.models`. Artifacts use tensor/state dictionaries and `weights_only=True`
+loading; unsupported versions fail. Prediction reproduction assumes a compatible
+PyTorch/BoTorch/GPyTorch environment; full software environments are not bundled.

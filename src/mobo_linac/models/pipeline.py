@@ -5,6 +5,8 @@ Encapsulates Gaussian Process surrogate model building, fitting, prediction,
 and constraint feasibility modeling in a clean, unified interface.
 """
 
+from dataclasses import asdict
+from pathlib import Path
 from typing import Dict, List, Optional, Tuple, Union
 import torch
 from torch import Tensor
@@ -58,6 +60,8 @@ class SurrogatePipeline:
         self.objective_model: Optional[ModelListGP] = None
         self.constraint_model: Optional[ModelListGP] = None
         self.is_fitted: bool = False
+        self.fit_outcomes = {}
+        self.training_ids = []
 
     def fit(
         self,
@@ -65,6 +69,8 @@ class SurrogatePipeline:
         train_Y: Tensor,
         train_constraints: Optional[Tensor] = None,
         train_Yvar: Optional[Tensor] = None,
+        train_constraints_var: Optional[Tensor] = None,
+        training_ids=None,
     ) -> "SurrogatePipeline":
         """
         Fits GP models for both objectives and optional constraint metrics.
@@ -73,7 +79,10 @@ class SurrogatePipeline:
             train_X: (N, D) PyTorch double tensor of design variables.
             train_Y: (N, M) PyTorch double tensor of model-space objectives.
             train_constraints: Optional (N, K) PyTorch double tensor of constraint metrics.
-            train_Yvar: Optional (N, M) PyTorch double tensor of observation noise variances.
+            train_Yvar: Optional (N, M) observation variances in squared output units.
+            train_constraints_var: Independent (N, K) constraint observation variances.
+                measured_fixed requires explicit noise for both model groups.
+            training_ids: Optional row-aligned evaluation identities.
 
         Returns:
             Fitted SurrogatePipeline instance.
@@ -97,7 +106,13 @@ class SurrogatePipeline:
         if train_X.shape[0] < 2:
             raise ValueError("Cannot fit SurrogatePipeline with fewer than 2 data points.")
 
+        if training_ids is not None and len(training_ids) != train_X.shape[0]:
+            raise ValueError("training_ids must align with observation rows.")
+        if train_constraints_var is not None and train_constraints is None:
+            raise ValueError("Constraint noise requires constraint observations.")
         self.is_fitted = False
+        self.fit_outcomes = {}
+        self.training_ids = list(training_ids) if training_ids is not None else []
         train_X_dbl = train_X.to(dtype=torch.double, device=self.device)
         train_Y_dbl = train_Y.to(dtype=torch.double, device=self.device)
 
@@ -126,6 +141,7 @@ class SurrogatePipeline:
                 bounds=self.bounds,
                 covar_type=self.covar_type,
                 noise_mode=self.noise_mode,
+                train_Yvar=train_constraints_var,
                 fixed_noise_val=self.fixed_noise_val,
                 relative_noise_ratio=self.relative_noise_ratio,
                 min_noise_variance=self.min_noise_variance,
@@ -135,9 +151,66 @@ class SurrogatePipeline:
         else:
             self.constraint_model = None
 
+        self.fit_outcomes = {
+            "objectives": getattr(self.objective_model, "fit_outcomes", ()),
+            "constraints": getattr(self.constraint_model, "fit_outcomes", ()),
+        }
+        # A verified restored_prior can predict, while its outcome remains explicit.
         self.is_fitted = True
         return self
 
+
+    @property
+    def is_optimized(self) -> bool:
+        """Whether every usable channel came from optimization rather than prior fallback."""
+        outcomes = [outcome for group in self.fit_outcomes.values() for outcome in group]
+        return self.is_fitted and bool(outcomes) and all(outcome.status != "restored_prior" for outcome in outcomes)
+
+    def save_artifact(self, path, *, training_ids=None, metadata=None):
+        """Persist predictions, transforms, effective noise and fitting evidence."""
+        from mobo_linac.io.results import _atomic_torch_save
+        from mobo_linac.models.artifacts import ARTIFACT_VERSION, model_payload
+        if not self.is_fitted:
+            raise RuntimeError("Cannot save an unfitted pipeline.")
+        ids = self.training_ids if training_ids is None else list(training_ids)
+        rows = self.objective_model.models[0].artifact_metadata["train_X"].shape[0]
+        if ids and len(ids) != rows:
+            raise ValueError("training_ids must align with observation rows.")
+        _atomic_torch_save({
+            "version": ARTIFACT_VERSION, "kind": "pipeline",
+            "settings": {
+                "bounds": self.bounds.detach().cpu(), "covar_type": self.covar_type,
+                "noise_mode": self.noise_mode, "fixed_noise_val": self.fixed_noise_val,
+                "relative_noise_ratio": self.relative_noise_ratio,
+                "min_noise_variance": self.min_noise_variance,
+                "objective_noise_variances": self.objective_noise_variances,
+                "constraint_layout": self.constraint_layout,
+            },
+            "constraints_config": asdict(self.constraints_config),
+            "objectives": model_payload(self.objective_model),
+            "constraints": model_payload(self.constraint_model) if self.constraint_model is not None else None,
+            "training_ids": ids, "metadata": metadata or {},
+        }, Path(path))
+
+    @classmethod
+    def load_artifact(cls, path, device="cpu"):
+        from mobo_linac.models.artifacts import read_artifact, restore_model
+        artifact = read_artifact(path)
+        if artifact["kind"] != "pipeline":
+            raise ValueError("Expected a pipeline artifact.")
+        pipeline = cls(**artifact["settings"],
+                       constraints_config=ConstraintsConfig(**artifact["constraints_config"]), device=device)
+        pipeline.objective_model = restore_model(artifact["objectives"], device=device)
+        if artifact["constraints"] is not None:
+            pipeline.constraint_model = restore_model(artifact["constraints"], device=device)
+        pipeline.fit_outcomes = {
+            "objectives": pipeline.objective_model.fit_outcomes,
+            "constraints": getattr(pipeline.constraint_model, "fit_outcomes", ()),
+        }
+        pipeline.training_ids = artifact["training_ids"]
+        pipeline.campaign_metadata = artifact["metadata"]
+        pipeline.is_fitted = True
+        return pipeline
 
     def predict_objectives(self, X: Tensor) -> Tuple[Tensor, Tensor]:
         """

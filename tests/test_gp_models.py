@@ -254,3 +254,82 @@ def test_build_scalarized_gp_model(dummy_data):
         assert post.mean.shape == (4, 1)
         assert post.variance.shape == (4, 1)
 
+
+
+def test_heteroscedastic_noise_precedence_and_scaling(dummy_data):
+    X, Y, bounds = dummy_data
+    noise = torch.arange(1, 31, dtype=torch.double).reshape(10, 3) * 0.01
+    models = build_gp_models(X, Y, bounds, noise_mode="measured_fixed", train_Yvar=noise,
+                             objective_noise_variances=[0.9] * 3, fixed_noise_val=0.8, device="cpu")
+    for index, model in enumerate(models.models):
+        expected = noise[:, index] / Y[:, index].var()
+        torch.testing.assert_close(model.likelihood.noise, expected)
+        torch.testing.assert_close(model.artifact_metadata["train_Yvar"], noise[:, index:index+1])
+    fit_gp_models(models)
+    for index, model in enumerate(models.models):
+        torch.testing.assert_close(model.likelihood.noise, noise[:, index] / Y[:, index].var())
+
+
+@pytest.mark.parametrize("invalid", ["missing", "shape", "nan", "negative", "zero", "inferred", "partial"])
+def test_noise_contract_rejects_invalid_inputs(dummy_data, invalid):
+    X, Y, bounds = dummy_data
+    noise = torch.full_like(Y, 0.01)
+    kwargs = {"noise_mode": "measured_fixed", "train_Yvar": noise}
+    if invalid == "missing":
+        kwargs.pop("train_Yvar")
+    elif invalid == "shape":
+        kwargs["train_Yvar"] = noise[:-1]
+    elif invalid in ("nan", "negative", "zero"):
+        noise[0, 0] = {"nan": float("nan"), "negative": -1, "zero": 0}[invalid]
+    elif invalid == "inferred":
+        kwargs["noise_mode"] = "inferred"
+    else:
+        kwargs = {"objective_noise_variances": [0.1]}
+    with pytest.raises(ValueError):
+        build_gp_models(X, Y, bounds, **kwargs)
+
+
+@pytest.mark.parametrize("adam_succeeds", [False, True])
+def test_fit_failures_restore_snapshot_before_fallback(dummy_data, monkeypatch, adam_succeeds):
+    from copy import deepcopy
+    import mobo_linac.models.gp as gp_module
+    X, Y, bounds = dummy_data
+    model = gp_module.build_scalarized_gp_model(X, Y[:, :1], bounds, device="cpu")
+    snapshot = deepcopy(model.state_dict())
+    fixed_noise = model.likelihood.noise.detach().clone()
+    def fail_lbfgs(mll):
+        with torch.no_grad():
+            next(mll.model.parameters()).fill_(float("nan"))
+        mll.model.likelihood.noise_covar.noise.fill_(0.5)
+        raise RuntimeError("injected lbfgs mutation")
+    def adam(mll, **kwargs):
+        torch.testing.assert_close(mll.model.likelihood.noise, fixed_noise)
+        for key, value in snapshot.items():
+            torch.testing.assert_close(mll.model.state_dict()[key], value)
+        if not adam_succeeds:
+            with torch.no_grad():
+                next(mll.model.parameters()).fill_(100)
+            mll.model.likelihood.noise_covar.noise.fill_(0.7)
+            raise RuntimeError("injected adam mutation")
+    monkeypatch.setattr(gp_module, "fit_gpytorch_mll", fail_lbfgs)
+    monkeypatch.setattr(gp_module, "fit_gpytorch_mll_torch", adam)
+    fitted = fit_gp_models(model)
+    assert fitted.fit_outcomes[0].status == ("adam" if adam_succeeds else "restored_prior")
+    assert len(fitted.fit_outcomes[0].errors) == (1 if adam_succeeds else 2)
+    for key, value in snapshot.items():
+        torch.testing.assert_close(model.state_dict()[key], value)
+    torch.testing.assert_close(model.likelihood.noise, fixed_noise)
+    assert torch.isfinite(model.posterior(X).mean).all()
+
+
+def test_unusable_prior_is_not_advertised_as_fitted(dummy_data, monkeypatch):
+    import mobo_linac.models.gp as gp_module
+    X, Y, bounds = dummy_data
+    model = gp_module.build_scalarized_gp_model(X, Y[:, :1], bounds, device="cpu")
+    with torch.no_grad():
+        next(model.parameters()).fill_(float("nan"))
+    monkeypatch.setattr(gp_module, "fit_gpytorch_mll", lambda mll: None)
+    monkeypatch.setattr(gp_module, "fit_gpytorch_mll_torch", lambda mll, **kwargs: None)
+    with pytest.raises(RuntimeError, match="nonfinite parameters"):
+        fit_gp_models(model)
+    assert not hasattr(model, "fit_outcomes")

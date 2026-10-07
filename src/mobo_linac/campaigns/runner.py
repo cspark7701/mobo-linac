@@ -5,6 +5,8 @@ Consolidates optimization loop execution across CLI commands, scripts,
 and interactive notebooks.
 """
 
+from uuid import uuid4
+import hashlib
 from copy import deepcopy
 from datetime import datetime
 import os
@@ -36,6 +38,7 @@ from mobo_linac.io.journal import repair_journal_tail, write_streaming_csv, same
 from mobo_linac.constraints import get_botorch_constraint_functions
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
+from mobo_linac.models.artifacts import save_model_artifact
 from mobo_linac.models.gp import build_scalarized_gp_model, fit_gp_models
 from mobo_linac.io.results import (
     CheckpointState,
@@ -463,6 +466,22 @@ class MoboCampaignRunner:
         tracker = None
         reporting_ref_point = None
         pending_path = self.run_dir / "checkpoints" / "pending_batch.pt"
+        model_artifact = resume_state.model_artifact if resume_state is not None else None
+
+        def _persist_model(model, iteration, training, pipeline=False):
+            nonlocal model_artifact
+            path = self.run_dir / "gp_checkpoint" / f"model_iter_{iteration:02d}_{uuid4().hex}.pt"
+            metadata = {"run_id": self.run_id, "proposal_iteration": iteration,
+                        "optimization_mode": self.optimization_mode,
+                        "objective_schema": [vars(obj) for obj in self.config.objectives],
+                        "scalar_weights": self.scalar_weights.tolist(), "reporting_scales": list(schema.scales)}
+            if pipeline:
+                model.save_artifact(path, training_ids=training.evaluation_ids, metadata=metadata)
+            else:
+                save_model_artifact(model, path, training_ids=training.evaluation_ids, metadata=metadata)
+            model_artifact = {"path": str(path.resolve()), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
+                              "proposal_iteration": iteration}
+
 
         def _persist_checkpoint(iteration: int, pending=None):
             checkpoint_mode = "scalarized_qLogNEI" if self.optimization_mode == "scalarized_bo" else self.acq_type
@@ -478,6 +497,7 @@ class MoboCampaignRunner:
                 batch_size=self.batch_size,
                 constrained=self.constrained,
                 campaign_state={
+                    "model_artifact": model_artifact,
                     "run_id": self.run_id,
                     "optimization_mode": self.optimization_mode,
                     "scalar_weights": self.scalar_weights.tolist(),
@@ -597,6 +617,7 @@ class MoboCampaignRunner:
                     device=self.device,
                 )
                 fit_gp_models(gp)
+                _persist_model(gp, iteration, training)
 
                 if self.device.type == "cuda" and torch.cuda.is_available():
                     torch.cuda.empty_cache()
@@ -648,6 +669,8 @@ class MoboCampaignRunner:
                     gp_model = pipeline.objective_model
                     botorch_constraints = None
                     objective_slice = None
+
+                _persist_model(pipeline, iteration, training, pipeline=True)
 
                 acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05, config=self.config)
 

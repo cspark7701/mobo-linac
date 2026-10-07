@@ -303,3 +303,59 @@ def test_tune_full_optimization_pipeline():
 
 
 
+
+
+def test_single_gp_artifact_preserves_fallback_predictions(tmp_path, monkeypatch):
+    from mobo_linac.models.gp import build_scalarized_gp_model
+    from mobo_linac.models.artifacts import save_model_artifact, load_model_artifact
+    X = torch.tensor([[0.1], [0.4], [0.8]], dtype=torch.double)
+    model = build_scalarized_gp_model(X, X.sin(), torch.tensor([[0.0], [1.0]]), device="cpu")
+    def fail(*args, **kwargs):
+        raise RuntimeError("injected optimizer failure")
+    monkeypatch.setattr("mobo_linac.models.gp.fit_gpytorch_mll", fail)
+    monkeypatch.setattr("mobo_linac.models.gp.fit_gpytorch_mll_torch", fail)
+    fit_gp_models(model)
+    before = model.posterior(X)
+    path = tmp_path / "model.pt"
+    save_model_artifact(model, path, training_ids=[("r", str(i)) for i in range(3)])
+    restored = load_model_artifact(path)
+    after = restored.posterior(X)
+    torch.testing.assert_close(before.mean, after.mean)
+    torch.testing.assert_close(before.variance, after.variance)
+    assert restored.fit_outcomes == model.fit_outcomes
+    assert restored.fit_outcomes[0].status == "restored_prior"
+
+
+@pytest.mark.parametrize("mode", ["scalarized_bo", "constrained_mobo", "unconstrained_mobo"])
+def test_campaign_checkpoint_links_reloadable_model(tmp_path, monkeypatch, mode):
+    import hashlib
+    from pathlib import Path
+    from mobo_linac.config import load_config
+    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.io.results import load_run_checkpoint
+    from mobo_linac.models.pipeline import SurrogatePipeline
+    from mobo_linac.models.artifacts import load_model_artifact
+    import mobo_linac.campaigns.runner as campaign
+
+    monkeypatch.setattr(campaign, "generate_next_candidates", lambda **kwargs:
+                        (kwargs["bounds"].mean(dim=0).repeat(kwargs["batch_size"], 1), None))
+    runner = campaign.MoboCampaignRunner(
+        config=load_config("configs/mobo_200MeV.yaml"), output_dir=tmp_path,
+        num_initial_samples=3, num_batches=1, batch_size=1, seed=7, device="cpu",
+        optimization_mode=mode, constrained=mode == "constrained_mobo",
+        evaluator=MockBatchEvaluator(tmp_path), export_plots=False, export_env_info=False,
+    )
+    results, _, _ = runner.run()
+    state = load_run_checkpoint(tmp_path)
+    reference = state.model_artifact
+    path = Path(reference["path"])
+    assert path.parent == tmp_path / "gp_checkpoint"
+    assert reference["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
+    assert reference["proposal_iteration"] == 1
+    restored = load_model_artifact(path) if mode == "scalarized_bo" else SurrogatePipeline.load_artifact(path)
+    assert restored.training_ids == [(result.run_id, result.evaluation_id) for result in results[:3]]
+    assert restored.campaign_metadata["optimization_mode"] == mode
+    assert restored.campaign_metadata["proposal_iteration"] == 1
+    query = torch.tensor([results[-1].x_physical], dtype=torch.double)
+    mean = restored.posterior(query).mean if mode == "scalarized_bo" else restored.predict_objectives(query)[0]
+    assert torch.isfinite(mean).all()

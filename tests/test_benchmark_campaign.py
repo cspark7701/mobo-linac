@@ -315,6 +315,10 @@ def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch,
         def fit(self, *args):
             return self
 
+        def save_artifact(self, path, **kwargs):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save({"test_stub": True}, path)
+
     proposed_sizes = []
 
     def propose(**kwargs):
@@ -326,6 +330,7 @@ def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch,
     monkeypatch.setattr(campaign_module, "SurrogatePipeline", StubPipeline)
     monkeypatch.setattr(campaign_module, "build_scalarized_gp_model", lambda **kwargs: None)
     monkeypatch.setattr(campaign_module, "fit_gp_models", lambda model: model)
+    monkeypatch.setattr(campaign_module, "save_model_artifact", lambda model, path, **kwargs: StubPipeline().save_artifact(path))
     monkeypatch.setattr(campaign_module, "qLogNoisyExpectedImprovement", lambda **kwargs: None)
     monkeypatch.setattr(campaign_module, "build_acquisition_function", lambda **kwargs: None)
     monkeypatch.setattr(campaign_module, "generate_next_candidates", propose)

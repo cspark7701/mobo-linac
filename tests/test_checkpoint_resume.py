@@ -31,12 +31,20 @@ def fast_resume_proposals(monkeypatch):
         def fit(self, *args):
             return self
 
+        def save_artifact(self, path, **kwargs):
+            path.parent.mkdir(parents=True, exist_ok=True)
+            torch.save({"test_stub": True}, path)
+
     class StubAcquisition(torch.nn.Module):
         pass
 
     monkeypatch.setattr(runner_module, "SurrogatePipeline", StubPipeline)
     monkeypatch.setattr(runner_module, "build_scalarized_gp_model", lambda **kwargs: torch.nn.Linear(1, 1))
     monkeypatch.setattr(runner_module, "fit_gp_models", lambda model: model)
+    def save_stub(model, path, **kwargs):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        torch.save({"test_stub": True}, path)
+    monkeypatch.setattr(runner_module, "save_model_artifact", save_stub)
     monkeypatch.setattr(runner_module, "build_acquisition_function", lambda **kwargs: StubAcquisition())
     monkeypatch.setattr(runner_module, "qLogNoisyExpectedImprovement", lambda **kwargs: StubAcquisition())
 
