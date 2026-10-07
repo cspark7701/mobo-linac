@@ -16,28 +16,18 @@ from collections import OrderedDict
 import json
 import os
 from pathlib import Path
-import shutil
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
 import pandas as pd
 import torch
-from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from mobo_linac.campaigns.runner import MoboCampaignRunner
-from mobo_linac.io.results import (
-    DESIGN_VAR_COLUMNS,
-    MODEL_OBJ_COLUMNS,
-    PHYSICAL_OBJ_COLUMNS,
-    results_to_dataframe,
-)
-from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference_point
-from mobo_linac.metrics.reporting import (
-    DEFAULT_REPORTING_REF_POINT_MODEL_NORM,
-    DEFAULT_REPORTING_SCALES,
-    compute_normalized_hypervolume,
-    normalize_objectives_model,
-)
+from mobo_linac.config import config_from_dict
+from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+from mobo_linac.io.results import load_evaluation_results, get_train_tensors
+from mobo_linac.metrics.hypervolume import HypervolumeTracker
+from mobo_linac.metrics.reporting import validate_campaign_compatibility
 
 # Canonical Option 2 Weight Cases
 OPTION_2_CASES: OrderedDict[str, Dict[str, Any]] = OrderedDict([
@@ -157,13 +147,27 @@ def aggregate_scalarized_cases(
         if (base_path / "evaluations.csv").exists():
             discovered_dirs.append(("balanced", base_path))
 
+    convention = None
+    aggregate_config = None
+    for _, path in discovered_dirs:
+        meta_path = path / "reporting_metadata.json"
+        if not meta_path.exists():
+            raise ValueError("Scalarized aggregation requires explicit reporting metadata; archived runs are not inferred.")
+        if not validate_run_completion(path):
+            raise ValueError("Scalarized aggregation requires completed, unchanged run artifacts.")
+        meta = json.loads(meta_path.read_text())
+        validate_campaign_compatibility(meta, meta)
+        if convention is not None:
+            validate_campaign_compatibility(convention, meta)
+        convention = meta
+        if aggregate_config is None:
+            aggregate_config = config_from_dict(json.loads((path / "config.json").read_text()))
+
     summary_rows = []
     all_eval_dfs = []
-    all_cand_dfs = []
 
     for case_key, case_path in discovered_dirs:
         eval_csv = case_path / "evaluations.csv"
-        cand_csv = case_path / "candidate_history.csv"
         hv_csv = case_path / "hypervolume.csv"
 
         if not eval_csv.exists():
@@ -173,10 +177,6 @@ def aggregate_scalarized_cases(
         df_eval["case"] = case_key
         all_eval_dfs.append(df_eval)
 
-        if cand_csv.exists():
-            df_cand = pd.read_csv(cand_csv)
-            df_cand["case"] = case_key
-            all_cand_dfs.append(df_cand)
 
         # Per-case statistics
         n_eval = len(df_eval)
@@ -235,95 +235,23 @@ def aggregate_scalarized_cases(
 
     # 2. Merge all evaluations
     if all_eval_dfs:
-        df_merged_eval = pd.concat(all_eval_dfs, ignore_index=True)
-        # Drop duplicates by parameters if any
-        df_merged_eval.to_csv(base_path / "evaluations.csv", index=False)
-
-        if all_cand_dfs:
-            df_merged_cand = pd.concat(all_cand_dfs, ignore_index=True)
-            df_merged_cand.to_csv(base_path / "candidate_history.csv", index=False)
-        else:
-            df_merged_eval.to_csv(base_path / "candidate_history.csv", index=False)
-
-        # Merge train_X and train_Y
-        valid_mask = df_merged_eval["simulation_valid"] == True
-        df_valid = df_merged_eval[valid_mask]
-
-        if not df_valid.empty and all(c in df_valid.columns for c in DESIGN_VAR_COLUMNS):
-            train_X = torch.tensor(df_valid[DESIGN_VAR_COLUMNS].values, dtype=torch.double)
-            pd.DataFrame(train_X.numpy(), columns=DESIGN_VAR_COLUMNS).to_csv(
-                base_path / "train_X.csv", index=False
-            )
-
-            # Model objectives: [-ex, -ey, -se]
-            phys_objs = df_valid[PHYSICAL_OBJ_COLUMNS].values
-            train_Y = torch.tensor(-phys_objs, dtype=torch.double)
-            pd.DataFrame(
-                train_Y.numpy(),
-                columns=["model_emit_x_neg", "model_emit_y_neg", "model_sigma_energy_neg"],
-            ).to_csv(base_path / "train_Y.csv", index=False)
-
-            # Physical objectives
-            df_valid[PHYSICAL_OBJ_COLUMNS].to_csv(base_path / "objectives_physical.csv", index=False)
-
-            # Recompute global non-dominated Pareto front across ALL cases
-            pareto_mask_all = is_non_dominated(train_Y)
-            p_X_all = train_X[pareto_mask_all]
-            p_Y_all_phys = -train_Y[pareto_mask_all]
-            df_pareto_all = pd.DataFrame(
-                np.hstack([p_X_all.numpy(), p_Y_all_phys.numpy()]),
-                columns=DESIGN_VAR_COLUMNS + PHYSICAL_OBJ_COLUMNS,
-            )
-            df_pareto_all.to_csv(base_path / "pareto.csv", index=False)
-            df_pareto_all.to_csv(base_path / "pareto_all.csv", index=False)
-
-            # Feasible Pareto front
-            feas_mask = torch.tensor(df_valid["physically_feasible"].values, dtype=torch.bool)
-            if feas_mask.sum().item() > 0:
-                feas_X = train_X[feas_mask]
-                feas_Y = train_Y[feas_mask]
-                feas_pareto_mask = is_non_dominated(feas_Y)
-                p_feas_X = feas_X[feas_pareto_mask]
-                p_feas_Y_phys = -feas_Y[feas_pareto_mask]
-                df_pareto_feas = pd.DataFrame(
-                    np.hstack([p_feas_X.numpy(), p_feas_Y_phys.numpy()]),
-                    columns=DESIGN_VAR_COLUMNS + PHYSICAL_OBJ_COLUMNS,
-                )
-                df_pareto_feas.to_csv(base_path / "pareto_feasible.csv", index=False)
-            else:
-                pd.DataFrame(columns=DESIGN_VAR_COLUMNS + PHYSICAL_OBJ_COLUMNS).to_csv(
-                    base_path / "pareto_feasible.csv", index=False
-                )
-
-            # Construct cumulative hypervolume progression
-            reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
-            tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point)
-            cum_Y_list, cum_feas_list = [], []
-            for i, (_, row) in enumerate(df_merged_eval.iterrows()):
-                if not row.get("simulation_valid", True):
-                    continue
-                cum_Y_list.append([-row[c] for c in PHYSICAL_OBJ_COLUMNS])
-                cum_feas_list.append(bool(row.get("physically_feasible", False)))
-
-                if (i + 1) % 8 == 0 or (i + 1) == len(df_merged_eval):
-                    step_Y = torch.tensor(cum_Y_list, dtype=torch.double)
-                    step_feas = torch.tensor(cum_feas_list, dtype=torch.bool)
-                    tracker.track_iteration(
-                        iteration=len(tracker.history),
-                        train_Y=step_Y,
-                        train_feas_mask=step_feas,
-                    )
-
-            if tracker.history:
-                tracker.save_csv(base_path / "hypervolume.csv")
-
-    # Copy config files to base_path if present in any case dir
-    for _, case_path in discovered_dirs:
-        for cfg_name in ["config.json", "config.yaml"]:
-            src_cfg = case_path / cfg_name
-            dst_cfg = base_path / cfg_name
-            if src_cfg.exists() and not dst_cfg.exists():
-                shutil.copy2(src_cfg, dst_cfg)
+        records = []
+        case_labels = []
+        for case, path in discovered_dirs:
+            loaded = load_evaluation_results(path / "evaluations.csv", aggregate_config)
+            records.extend(loaded)
+            case_labels.extend([case] * len(loaded))
+        tracker = HypervolumeTracker(convention["reporting_ref_point"], aggregate_config)
+        for count in range(8, len(records), 8):
+            _, y, feasible = get_train_tensors(records[:count], config=aggregate_config)
+            tracker.track_iteration(len(tracker.history), y, feasible)
+        _, y, feasible = get_train_tensors(records, config=aggregate_config)
+        tracker.track_iteration(len(tracker.history), y, feasible)
+        writer = RunArtifactWriter(base_path, aggregate_config)
+        writer.write(records, tracker, reference_policy="shared_suite_reference", timing_scope="unknown_aggregate_wall_time", extra_columns={"case": case_labels})
+        aggregate_config.save_json(base_path / "config.json")
+        aggregate_config.save_yaml(base_path / "config.yaml")
+        writer.complete(len(records), None, ["config.json", "config.yaml", "cases_summary.csv", "cases_summary.json"])
 
     agg_meta = {
         "num_cases": len(summary_rows),
@@ -353,7 +281,7 @@ def export_phase1_cases_latex_table(
     lines = [
         r"\begin{table}[htbp]",
         r"\centering",
-        r"\caption{Phase 1 Scalarized BO multi-case campaign summary across representative operational linac archetypes (Option 2). Fixed reporting reference point $\mathbf{r}_{\mathrm{rep}} = [6.65\times10^{-5},\,1.07\times10^{-4},\,3.37\times10^{6}]$ (physical, [m$\cdot$rad, m$\cdot$rad, eV]).}",
+        r"\caption{Phase 1 Scalarized BO multi-case campaign summary across representative operational linac archetypes (Option 2). The shared fixed reporting reference point and objective units are recorded in reporting metadata.}",
         r"\label{tab:phase1_cases}",
         r"\resizebox{\textwidth}{!}{%",
         r"\begin{tabular}{llcccccc}",
@@ -442,6 +370,7 @@ def run_scalarized_suite(
     print(f"  Base Output Directory: {base_out}")
     print("======================================================================\n")
 
+    shared_reference = None
     for idx, case_key in enumerate(target_cases):
         case_info = OPTION_2_CASES[case_key]
         case_dir = base_out / case_key
@@ -462,12 +391,15 @@ def run_scalarized_suite(
             seed=case_seed,
             optimization_mode="scalarized_bo",
             scalar_weights=case_info["weights"],
+            reporting_ref_point=shared_reference,
             resume=resume,
             export_plots=True,
             evaluator=evaluator,
             device=device,
         )
-        runner.run()
+        _, tracker, _ = runner.run()
+        if shared_reference is None:
+            shared_reference = tracker.reporting_ref_point.tolist()
 
     # Aggregate all completed cases into root base_out
     print("\n[Aggregating Option 2 Results across all cases...]")

@@ -226,7 +226,7 @@ class HypervolumeTracker:
 
     def to_dataframe(self) -> pd.DataFrame:
         """Returns hypervolume tracking history as a Pandas DataFrame."""
-        return pd.DataFrame(self.history)
+        return pd.DataFrame(self.history, columns=["iteration", "reporting_ref_point_model", "reporting_ref_point_physical", "acquisition_ref_point_model", "all_point_hypervolume", "feasible_hypervolume", "num_valid_points", "num_feasible_points", "pareto_size"])
 
     def save_csv(self, output_path: Union[str, Path]) -> Path:
         """Saves hypervolume history to CSV file."""

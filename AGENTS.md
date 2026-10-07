@@ -174,7 +174,7 @@ Current implementation
 - Multi-tier resilient acquisition proposal engine with adaptive restart retry & quasi-random Sobol fallback
 - `qLogNEHVI` / `qLogEHVI` acquisition formulations with configurable L-BFGS multi-restart budgets
 - Longitudinal exit-plane loss detection & premature tracking rejection (`PREMATURE_BEAM_LOSS`)
-- Fixed-reference hypervolume tracking ($\mathbf{r} = [1.5\text{ mm}, 1.5\text{ mm}, 1.5\text{ MeV}]$)
+- Fixed-reference hypervolume tracking: ordinary campaigns freeze the reference derived from initial observations; benchmark defaults use $\mathbf{r} = [1.5\,\mu\text{m}\cdot\text{rad}, 1.5\,\mu\text{m}\cdot\text{rad}, 1.5\text{ MeV}]$, recorded with scales and units in `reporting_metadata.json`.
 - Candidate history, SHA-256 evaluation checksums, and Pareto visualization
 - Full-chain photocathode & laser jitter robustness modeling (7 physical noise channels)
 - Atomic POSIX crash-proof checkpoint serialization (`_atomic_torch_save`)

@@ -152,13 +152,20 @@ results/YYYYMMDD_HHMMSS/
 ├── config.json            # Configuration parameters and runtime settings
 ├── train_X.csv            # Evaluated design parameter vectors
 ├── train_Y.csv            # Evaluated objective values
-├── pareto.csv             # Extracted Pareto non-dominated set
-├── hypervolume.csv        # Hypervolume progression over iterations
+├── pareto.csv             # Compatibility alias of all-valid Pareto points
+├── pareto_all.csv         # All-valid non-dominated points
+├── pareto_feasible.csv    # Feasible-only non-dominated points
+├── hypervolume.csv        # Fixed-reference raw hypervolume over iterations
+├── metrics_history.csv    # Normalized hypervolume and measured runtime metrics
+├── reporting_metadata.json # Reference, units, scales, signs and constraints
+├── run_complete.json      # Completion marker with artifact checksums
 ├── candidate_history.csv  # Detailed history of candidate proposals
 ├── constraints.csv        # Diagnostic values and constraint statuses
 ├── gp_checkpoint/         # Saved PyTorch / GPyTorch GP model checkpoints
 └── figures/               # Generated figures (Pareto front, hypervolume, etc.)
 ```
+
+Run exports use one writer during iterations and finalization. `pareto.csv` always matches `pareto_all.csv`; use `pareto_feasible.csv` for feasible-only points. Reporting comparisons require matching recorded scientific conventions. Elapsed wall time is measured separately from summed simulation runtime, and completion is published after required datasets, checkpoints, and requested figures succeed. See the [artifact and reporting contract](docs/simulation_guide.md#run-artifact-and-reporting-contract).
 
 ---
 

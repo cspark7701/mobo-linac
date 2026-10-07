@@ -106,6 +106,11 @@ def prepare_resume_state(
             raise ValueError("Checkpoint scalarized acquisition is inconsistent.")
     elif state.acquisition_mode not in ("qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"):
         raise ValueError("Invalid checkpoint acquisition mode.")
+    if state.elapsed_wall_time_s is not None and (not math.isfinite(state.elapsed_wall_time_s) or state.elapsed_wall_time_s < 0):
+        raise ValueError("Invalid checkpoint elapsed wall time.")
+    if state.evaluation_elapsed_s is not None:
+        if len(state.evaluation_elapsed_s) != len(state.results) or any(value is not None and (not math.isfinite(value) or value < 0) for value in state.evaluation_elapsed_s):
+            raise ValueError("Invalid checkpoint evaluation wall times.")
     weights = np.asarray(state.scalar_weights, dtype=float)
     if (weights.shape != (len(config.objectives),) or not np.isfinite(weights).all()
             or (weights < 0).any() or not np.isclose(weights.sum(), 1.0)):

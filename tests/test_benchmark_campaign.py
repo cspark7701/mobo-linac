@@ -75,6 +75,11 @@ def test_aggregate_benchmark_metrics_computation():
         })
         seed_histories["sobol"][seed] = df_sob
 
+    from mobo_linac.metrics.reporting import reporting_metadata
+    convention = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1.5e-6, -1.5e-6, -1.5e6])
+    for histories in seed_histories.values():
+        for frame in histories.values():
+            frame.attrs["reporting_metadata"] = convention
     agg_df, summary_df = compute_aggregate_benchmark_metrics(seed_histories, n_bootstraps=200)
 
     assert len(agg_df) == 6  # 2 algorithms * 3 steps
@@ -413,3 +418,8 @@ def test_missing_persisted_history_cannot_complete(tmp_path, monkeypatch):
     with pytest.raises(RuntimeError, match="incomplete persisted"):
         runner.execute_benchmark_campaigns()
     assert runner.run_campaign_manifest().iloc[0]["status"] == "incomplete"
+
+
+def test_aggregate_metrics_require_reporting_evidence():
+    with pytest.raises(ValueError, match="explicit convention"):
+        compute_aggregate_benchmark_metrics({"algorithm": {42: pd.DataFrame()}})

@@ -164,6 +164,11 @@ def test_aggregate_metrics_includes_failure_rate_and_objective_extrema():
                 "total_simulation_runtime_s": [8.0, 16.0, 24.0],
             })
 
+    from mobo_linac.metrics.reporting import reporting_metadata
+    convention = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1.5e-6, -1.5e-6, -1.5e6])
+    for histories in seed_histories.values():
+        for frame in histories.values():
+            frame.attrs["reporting_metadata"] = convention
     agg_df, summary_df = compute_aggregate_benchmark_metrics(seed_histories, n_bootstraps=50)
     assert "failure_rate" in summary_df.columns
     assert "min_norm_emit_x" in summary_df.columns

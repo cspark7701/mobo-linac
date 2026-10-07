@@ -18,9 +18,12 @@ from mobo_linac.io.results import (
     save_evaluation_results,
     save_run_checkpoint,
 )
+from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
 from mobo_linac.io.journal import JournalRecord, load_streaming_records
 
 __all__ = [
+    "RunArtifactWriter",
+    "validate_run_completion",
     "CheckpointState",
     "TrainingObservations",
     "get_training_observations",

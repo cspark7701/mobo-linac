@@ -72,6 +72,15 @@ def compute_aggregate_benchmark_metrics(
     Returns:
         Tuple of (aggregate_time_series_df, algorithm_summary_df).
     """
+    from mobo_linac.metrics.reporting import validate_campaign_compatibility
+    convention = None
+    for histories in seed_histories.values():
+        for frame in histories.values():
+            meta = frame.attrs.get("reporting_metadata")
+            validate_campaign_compatibility(meta, meta)
+            if convention is not None:
+                validate_campaign_compatibility(convention, meta)
+            convention = meta
     series_rows = []
     summary_rows = []
 

@@ -612,3 +612,16 @@ def test_pareto_energy_spread_physical_range(phase2_dir):
     se_mev = df["se"].values * 1e-6
     assert (se_mev > 0.01).all(), f"Energy spread too small: {se_mev}"
     assert (se_mev < 10.0).all(), f"Energy spread out of range: {se_mev}"
+
+
+def test_new_run_artifacts_have_publication_headers_even_when_empty(tmp_path):
+    from mobo_linac.config import load_config
+    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.hypervolume import HypervolumeTracker
+    config = load_config("configs/mobo_200MeV.yaml")
+    writer = RunArtifactWriter(tmp_path, config)
+    writer.write([], HypervolumeTracker([-1e-5, -1e-5, -1e6], config))
+    assert list(pd.read_csv(tmp_path / "train_X.csv").columns) == [v.name for v in config.design_variables]
+    assert list(pd.read_csv(tmp_path / "pareto.csv").columns) == [v.name for v in config.design_variables] + [o.explicit_name for o in config.objectives]
+    assert HYPERVOLUME_REQUIRED_COLS <= set(pd.read_csv(tmp_path / "hypervolume.csv").columns)
+    assert not (tmp_path / "train_X.csv").read_text().startswith("#")

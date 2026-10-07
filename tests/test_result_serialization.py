@@ -346,3 +346,45 @@ def test_named_legacy_model_headers_and_unknown_status_are_preserved(tmp_path):
     assert result.physically_feasible is None and result.simulation_valid is None
     assert get_train_tensors([result])[0].shape == (0, 6)
     assert get_train_tensors([result], exclude_invalid=False)[2].tolist() == [False]
+
+
+def test_artifact_writer_keeps_pareto_semantics_and_clears_stale_rows(tmp_path, sample_results):
+    from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+    from mobo_linac.config import load_config
+    from mobo_linac.metrics.hypervolume import HypervolumeTracker
+    from copy import deepcopy
+    config = load_config("configs/mobo_200MeV.yaml")
+    records = deepcopy(sample_results)
+    records[1].objectives_physical = [0.1e-6, 0.1e-6, 1e4]
+    records[1].objectives_model = [-0.1e-6, -0.1e-6, -1e4]
+    tracker = HypervolumeTracker([-1e-5, -1e-5, -1e6], config)
+    writer = RunArtifactWriter(tmp_path, config)
+    writer.write(records, tracker)
+    assert pd.read_csv(tmp_path / "pareto.csv").iloc[0].norm_emit_x_m_rad == 0.1e-6
+    assert pd.read_csv(tmp_path / "pareto_feasible.csv").iloc[0].norm_emit_x_m_rad == records[0].objectives_physical[0]
+    assert (tmp_path / "pareto.csv").read_bytes() == (tmp_path / "pareto_all.csv").read_bytes()
+    headers = {name: (tmp_path / name).read_text().splitlines()[0] for name in writer.required if name.endswith(".csv")}
+    writer.complete(2, 1.0)
+    assert validate_run_completion(tmp_path)
+    writer.write([], tracker)
+    assert not (tmp_path / "run_complete.json").exists()
+    for name, header in headers.items():
+        assert (tmp_path / name).read_text().splitlines()[0] == header
+        assert pd.read_csv(tmp_path / name).empty
+    writer.complete(0, 2.0)
+    assert validate_run_completion(tmp_path)
+    (tmp_path / "pareto_all.csv").write_text("broken")
+    assert not validate_run_completion(tmp_path)
+
+
+def test_export_failure_cannot_leave_completion_marker(tmp_path, sample_results, monkeypatch):
+    from mobo_linac.io.artifacts import RunArtifactWriter
+    writer = RunArtifactWriter(tmp_path)
+    writer.write(sample_results)
+    writer.complete(2, 1.0)
+    def fail_csv(*args, **kwargs):
+        raise OSError("Injected CSV failure")
+    monkeypatch.setattr(pd.DataFrame, "to_csv", fail_csv)
+    with pytest.raises(OSError, match="Injected"):
+        writer.write(sample_results)
+    assert not (tmp_path / "run_complete.json").exists()

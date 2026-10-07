@@ -182,6 +182,25 @@ Scalarized BO defaults to equal weights across the configured objectives. Suppli
 
 CSV loading binds named columns and supports earlier named model headers and NumPy's `# ` header prefix. It never guesses values by position or infers validity/feasibility from a filename. Missing status fields remain `None` (unknown) and are excluded from default training and feasible selection. Use a campaign's candidate history for observed status metadata; robustness CLI directory inputs prefer that history over its compact Pareto CSV. Unknown feasibility requires fresh evidence before feasible-only analysis. JSON history and journal payload formats are preserved.
 
+### Run artifact and reporting contract
+
+`RunArtifactWriter` owns iteration and final datasets. `pareto_all.csv` contains the non-dominated set of valid finite objective observations; `pareto_feasible.csv` contains the non-dominated set of valid, observed feasible points. `pareto.csv` always aliases `pareto_all.csv`, preserving the previous completed-run meaning throughout the run. Physical objective signs and configured columns apply to both sets. CSV files use ordinary named headers and retain headers when empty; rewriting an empty set clears previous rows. The low-level `save_evaluation_results` helper delegates to this writer but does not certify campaign completion.
+
+`reporting_metadata.json` records schema version, objective names, units, signs, scales, raw and normalized model-space reference points, design columns, constraint thresholds, reference origin, and hypervolume spaces. `hypervolume.csv` retains raw model-space hypervolume over iterations. `metrics_history.csv` reports dimensionless hypervolume at the same reference divided by the recorded engineering scales. Adaptive acquisition references remain independent and do not replace the reporting reference.
+
+The scientific decision for this refactor is to preserve the existing reference conventions and make their scope explicit:
+
+- Ordinary campaigns derive the reporting reference from initial observations with the existing 10% offset and then freeze it. A caller may supply an explicit model-space `reporting_ref_point`; resume must retain the saved reference.
+- Benchmarks retain `BenchmarkConfig.reporting_ref_point`, interpreted in normalized physical space, and pass its signed, scaled model-space equivalent to the campaign. The canonical default `[1.5, 1.5, 1.5]` corresponds to `[1.5 μm·rad, 1.5 μm·rad, 1.5 MeV]`, not millimetre emittance values.
+- New scalarized suites derive the reference from the first case's initial design and explicitly reuse that recorded value for subsequent cases. Suite aggregation no longer selects a new reference from pooled observations.
+- The standalone normalized metric helper retains its legacy `[-10, -10, -10]` default for explicit compatibility use. Production campaign writers supply the recorded reference; the helper default is not a universal cross-run convention.
+
+No new engineering scales or historical references are selected for archived data. Comparison and aggregation require complete matching metadata, including reference values, objective order, units, signs, scales, and constraints. Scale comparison is exact, avoiding an absolute tolerance that could hide differences in micrometre scales. Missing metadata is not filled from defaults. New benchmark/suite aggregation requires verified completion markers; archived outputs remain available to existing publication readers and are not rewritten or silently migrated. Reanalysis of legacy runs requires an explicitly established scientific reporting convention.
+
+Wall time comes from a monotonic campaign timer, independently of `EvaluationResult.runtime_s`. Completion observations are recorded per logical evaluation; simultaneous workers can share a measured elapsed time while their runtimes sum separately. Checkpoints retain elapsed time and observations across active resume sessions. Shutdown downtime is excluded. Time lost after the last durable checkpoint cannot be reconstructed; legacy checkpoints without timing evidence label the observed resume session explicitly. Unknown wall time stays empty/NaN, including pooled suites; it is never replaced by worker-time sums. `metrics_history.csv` contains time measured at its export snapshot; the final marker records elapsed time through finalization.
+
+`run_complete.json` is published atomically after required datasets, configuration, checkpoint, and requested figures exist. It records the evaluation count, final elapsed time, and SHA-256 checksums. Each new write/resume invalidates the preceding marker; failed exports or figures cannot leave a new completed marker. Consumers verify the registered artifacts before treating new runs as complete. The durable proposal/checkpoint/journal recovery protocol remains authoritative for optimization continuation.
+
 ## 4. Benchmark, Robustness, Verification, & Publication Workflow
 
 ### 4.1 Seed-Paired Benchmark Campaign Protocol

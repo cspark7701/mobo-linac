@@ -105,3 +105,16 @@ def test_compute_reference_point_generation():
 
     # All initial samples must strictly dominate the generated reference point in model space
     assert (train_Y > ref_point).all()
+
+
+def test_raw_and_normalized_reporting_share_the_recorded_reference():
+    from mobo_linac.config import load_config
+    from mobo_linac.metrics.reporting import reporting_metadata, compute_normalized_hypervolume
+    config = load_config("configs/mobo_200MeV.yaml")
+    reference = [-1.5e-6, -1.5e-6, -1.5e6]
+    values = torch.tensor([[-1e-6, -1e-6, -0.5e6]], dtype=torch.double)
+    metadata = reporting_metadata(config, reference, "explicit")
+    raw = compute_hypervolume(values, reference)
+    normalized = compute_normalized_hypervolume(values, metadata["reporting_ref_point_normalized"], metadata["objective_scales"])
+    assert raw == pytest.approx(normalized * 1e-6)
+    assert metadata["reporting_ref_point_normalized"] == [-1.5, -1.5, -1.5]

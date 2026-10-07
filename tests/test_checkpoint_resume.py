@@ -837,3 +837,40 @@ def test_scalar_weights_require_configured_finite_nonnegative_values(tmp_path, w
     config.objectives = config.objectives[:2]
     with pytest.raises(ValueError, match="Scalar weights"):
         MoboCampaignRunner(config=config, output_dir=tmp_path, scalar_weights=weights)
+
+
+def test_parallel_batch_elapsed_time_is_distinct_from_sum_of_worker_runtimes(tmp_path, monkeypatch):
+    import json
+    import pandas as pd
+    import mobo_linac.campaigns.runner as runner_module
+    clock = [0.0]
+    monkeypatch.setattr(runner_module.time, "perf_counter", lambda: clock[0])
+    class ParallelTimingEvaluator(MockBatchEvaluator):
+        def evaluate_batch(self, *args, **kwargs):
+            # Four workers each report five seconds; their batch completes in six seconds.
+            clock[0] += 6.0
+            return super().evaluate_batch(*args, **kwargs)
+        def _generate_candidate_result(self, *args, **kwargs):
+            record = super()._generate_candidate_result(*args, **kwargs)
+            record["timestamps"]["duration_sec"] = 5.0
+            return record
+    runner = MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=4, num_batches=0,
+                                evaluator=ParallelTimingEvaluator(tmp_path), export_plots=False, device="cpu")
+    runner.run()
+    metrics = pd.read_csv(tmp_path / "metrics_history.csv")
+    assert metrics.total_wallclock_s.iloc[-1] == 6.0
+    assert metrics.total_simulation_runtime_s.iloc[-1] == 20.0
+    assert json.loads((tmp_path / "run_complete.json").read_text())["elapsed_wall_time_s"] == 6.0
+
+
+def test_requested_plot_failure_prevents_final_completion(tmp_path, monkeypatch):
+    import mobo_linac.campaigns.runner as runner_module
+    def fail_plot(*args, **kwargs):
+        raise OSError("Injected figure failure")
+    monkeypatch.setattr(runner_module, "plot_hypervolume_progress", fail_plot)
+    runner = MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=1, num_batches=0,
+                                evaluator=MockBatchEvaluator(tmp_path), export_plots=True, device="cpu")
+    with pytest.raises(OSError, match="figure failure"):
+        runner.run()
+    assert (tmp_path / "checkpoints/checkpoint.pt").exists()
+    assert not (tmp_path / "run_complete.json").exists()

@@ -8,6 +8,7 @@ and interactive notebooks.
 from copy import deepcopy
 from datetime import datetime
 import os
+import json
 from pathlib import Path
 import platform
 import random
@@ -16,7 +17,6 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import pandas as pd
 import torch
-from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from botorch.acquisition.logei import qLogNoisyExpectedImprovement
 from botorch.models import ModelListGP, SingleTaskGP
@@ -42,8 +42,6 @@ from mobo_linac.io.results import (
     append_streaming_evaluation,
     get_training_observations,
     get_train_tensors,
-    results_to_dataframe,
-    save_evaluation_results,
     save_run_checkpoint,
 )
 from mobo_linac.metrics.hypervolume import (
@@ -51,6 +49,9 @@ from mobo_linac.metrics.hypervolume import (
     compute_reference_point,
 )
 from mobo_linac.result_schema import ResultSchema
+from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
+import time
 from mobo_linac.models.pipeline import SurrogatePipeline
 
 from mobo_linac.plotting.visualizations import (
@@ -86,6 +87,7 @@ class MoboCampaignRunner:
         resume: bool = False,
         resume_from: Optional[Union[str, Path]] = None,
         evaluator: Optional[Any] = None,
+        reporting_ref_point: Optional[Sequence[float]] = None,
         device: Optional[Union[str, torch.device]] = None,
         total_eval_budget: Optional[int] = None,
     ):
@@ -94,6 +96,7 @@ class MoboCampaignRunner:
         self._requested_batch_size = batch_size
         self._requested_seed = seed
         self._requested_mode = optimization_mode
+        self._requested_reporting_ref = reporting_ref_point
         self._requested_acquisition = acq_type
         self._requested_weights = scalar_weights
         self._requested_budget = total_eval_budget
@@ -310,7 +313,36 @@ class MoboCampaignRunner:
         Executes the optimization campaign.
         """
         resume_state = self._prepare_resume() if (self.resume or self.resume_from) else None
+        if resume_state is None and ((self.run_dir / "evaluations_stream.jsonl").exists() or (self.run_dir / "checkpoints" / "pending_batch.pt").exists()):
+            raise ValueError("Existing campaign journal/proposal requires resume, not a fresh run.")
         schema = ResultSchema.from_config(self.config)
+        if self._requested_reporting_ref is not None:
+            requested_ref = torch.as_tensor(self._requested_reporting_ref, dtype=torch.double)
+            if requested_ref.shape != (len(schema.signs),) or not torch.isfinite(requested_ref).all():
+                raise ValueError("Reporting reference must match finite configured objectives.")
+            if resume_state is not None and resume_state.reporting_ref_point is not None and requested_ref.tolist() != resume_state.reporting_ref_point:
+                raise ValueError("Incompatible resume reporting reference.")
+        started = time.perf_counter()
+        elapsed_base = (resume_state.elapsed_wall_time_s or 0.0) if resume_state else 0.0
+        elapsed = lambda: elapsed_base + time.perf_counter() - started
+        elapsed_by_id = {}
+        if resume_state is not None:
+            elapsed_by_id = {r.evaluation_id: value for r, value in zip(resume_state.results, resume_state.evaluation_elapsed_s or [None] * len(resume_state.results))}
+        saved_meta = self.run_dir / "reporting_metadata.json"
+        if resume_state is not None and resume_state.reporting_ref_point is not None and saved_meta.exists():
+            previous_meta = json.loads(saved_meta.read_text())
+            validate_campaign_compatibility(previous_meta, reporting_metadata(self.config, resume_state.reporting_ref_point))
+        else:
+            previous_meta = None
+        if resume_state is not None and validate_run_completion(self.run_dir):
+            marker = json.loads((self.run_dir / "run_complete.json").read_text())
+            elapsed_base = max(elapsed_base, marker.get("elapsed_wall_time_s") or 0.0)
+        writer = RunArtifactWriter(self.run_dir, self.config)
+        writer.invalidate_completion()
+        reference_policy = "explicit" if self._requested_reporting_ref is not None else "initial_design"
+        if previous_meta is not None:
+            reference_policy = previous_meta.get("reference_policy", reference_policy)
+        timing_scope = "active_sessions" if resume_state is None or resume_state.elapsed_wall_time_s is not None else "observed_resume_session"
         if self.optimization_mode == "scalarized_bo":
             mode_str = f"Scalarized BO (weights={self.scalar_weights.tolist()})"
         elif self.constrained:
@@ -327,9 +359,6 @@ class MoboCampaignRunner:
         )
 
         if resume_state is None:
-            if ((self.run_dir / "evaluations_stream.jsonl").exists()
-                    or (self.run_dir / "checkpoints" / "pending_batch.pt").exists()):
-                raise ValueError("Existing campaign journal/proposal requires resume, not a fresh run.")
             if self.export_env_info:
                 self.export_environment_info(self.run_dir / "environment.txt")
             self.config.save_yaml(self.run_dir / "config.yaml")
@@ -404,6 +433,7 @@ class MoboCampaignRunner:
                     append_streaming_evaluation(self.run_dir, eval_res, batch_idx=batch_idx,
                                                 candidate_idx=position, config=self.config)
                     completions[identity] = eval_res
+                    elapsed_by_id[eval_res.evaluation_id] = elapsed()
                 except Exception as error:
                     callback_error = error
                     raise
@@ -458,6 +488,8 @@ class MoboCampaignRunner:
                     "metric_history": deepcopy(tracker.history) if tracker is not None else [],
                     "pending_proposal": pending,
                     "reporting_scales": list(schema.scales),
+                    "elapsed_wall_time_s": elapsed(),
+                    "evaluation_elapsed_s": [elapsed_by_id.get(r.evaluation_id) for r in results],
                     "planned_num_batches": self.num_batches,
                     "num_workers": self.num_workers,
                     "total_eval_budget": self.total_eval_budget,
@@ -507,7 +539,7 @@ class MoboCampaignRunner:
 
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
 
-            reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10, config=self.config)
+            reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10, default_ref_point=self._requested_reporting_ref, config=self.config)
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
 
             hv_init = tracker.track_iteration(0, train_Y, train_feas_mask)
@@ -519,8 +551,7 @@ class MoboCampaignRunner:
                 f"HV: {hv_init['feasible_hypervolume']:.6e}\n"
             )
 
-            save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist(), config=self.config)
-            tracker.save_csv(self.run_dir / "hypervolume.csv")
+            writer.write(results, tracker, elapsed_wall_times=[elapsed_by_id.get(r.evaluation_id) for r in results], elapsed_wall_time_s=elapsed(), reference_policy=reference_policy, timing_scope=timing_scope)
 
             _persist_checkpoint(0)
 
@@ -661,53 +692,13 @@ class MoboCampaignRunner:
                 f"HV: {hv_record['feasible_hypervolume']:.6e}\n"
             )
 
-            save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist(), config=self.config)
-            tracker.save_csv(self.run_dir / "hypervolume.csv")
+            writer.write(results, tracker, elapsed_wall_times=[elapsed_by_id.get(r.evaluation_id) for r in results], elapsed_wall_time_s=elapsed(), reference_policy=reference_policy, timing_scope=timing_scope)
 
             _persist_checkpoint(iteration)
 
 
-        # Export CSV datasets
-        df_all = results_to_dataframe(results, config=self.config)
-        df_all.to_csv(self.run_dir / "evaluations.csv", index=False)
-        df_all.to_csv(self.run_dir / "candidate_history.csv", index=False)
-
-        valid_mask = df_all["simulation_valid"] == True
-        df_valid = df_all[valid_mask]
-        df_valid[list(schema.physical_columns)].to_csv(self.run_dir / "objectives_physical.csv", index=False)
-        df_valid[list(schema.model_columns)].to_csv(self.run_dir / "objectives_model.csv", index=False)
-
-        diag_cols = [c for c in df_all.columns if any(k in c for k in ["sigma", "energy", "transmission", "feasible"])]
-        df_all[diag_cols].to_csv(self.run_dir / "constraints.csv", index=False)
-
-        # Export Pareto sets, including headers for empty sets.
-        for name in ("pareto.csv", "pareto_all.csv", "pareto_feasible.csv"):
-            pd.DataFrame(columns=list(schema.design_columns + schema.physical_columns)).to_csv(self.run_dir / name, index=False)
-        if train_X.shape[0] > 0:
-            pareto_mask_all = is_non_dominated(train_Y)
-            p_X_all = train_X[pareto_mask_all]
-            p_Y_all_phys = schema.transform(train_Y[pareto_mask_all])
-            df_p_all = pd.DataFrame(
-                np.hstack([p_X_all.numpy(), p_Y_all_phys.numpy()]),
-                columns=list(schema.design_columns + schema.physical_columns),
-            )
-            df_p_all.to_csv(self.run_dir / "pareto.csv", index=False)
-            df_p_all.to_csv(self.run_dir / "pareto_all.csv", index=False)
-
-            if train_feas_mask.sum().item() > 0:
-                feas_X = train_X[train_feas_mask]
-                feas_Y = train_Y[train_feas_mask]
-                pareto_mask_feas = is_non_dominated(feas_Y)
-                p_X_feas = feas_X[pareto_mask_feas]
-                p_Y_feas_phys = schema.transform(feas_Y[pareto_mask_feas])
-                df_p_feas = pd.DataFrame(
-                    np.hstack([p_X_feas.numpy(), p_Y_feas_phys.numpy()]),
-                    columns=list(schema.design_columns + schema.physical_columns),
-                )
-                df_p_feas.to_csv(self.run_dir / "pareto_feasible.csv", index=False)
-
-        df_failures = df_all[(df_all["simulation_valid"] == False) | (df_all["physically_feasible"] == False)]
-        df_failures.to_csv(self.run_dir / "failures.csv", index=False)
+        writer.write(results, tracker, elapsed_wall_times=[elapsed_by_id.get(r.evaluation_id) for r in results],
+                     elapsed_wall_time_s=elapsed(), reference_policy=reference_policy, timing_scope=timing_scope)
 
         # Export Plots
         if self.export_plots:
@@ -718,6 +709,10 @@ class MoboCampaignRunner:
             plot_objective_evolution(results, figures_dir / "objective_evolution.png", config=self.config)
             plot_constraint_diagnostics(results, figures_dir / "constraint_diagnostics.png")
 
+        required = ["config.json", "config.yaml", "checkpoints/checkpoint.pt"]
+        if self.export_plots:
+            required += [f"figures/{name}.png" for name in ("hypervolume_progress", "pareto_front", "objective_evolution", "constraint_diagnostics")]
+        writer.complete(len(results), elapsed(), required)
         print(f"=== Campaign Complete: {self.run_id} ===")
         print(f"Total Evaluations: {len(results)}")
         print(f"Output saved in: {self.run_dir.resolve()}\n")

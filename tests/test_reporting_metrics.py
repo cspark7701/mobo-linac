@@ -88,33 +88,69 @@ def test_campaign_metrics_history_computation():
         ),
     ]
 
-    df = compute_campaign_metrics_history(results)
+    df = compute_campaign_metrics_history(results, elapsed_wall_times=[1.0, 2.0, 3.0])
     assert len(df) == 3
     assert list(df["cumulative_astra_evaluations"]) == [1, 2, 3]
     assert df["invalid_run_count"].iloc[-1] == 1
     assert df["first_feasible_eval_index"].iloc[0] == 1
     assert df["first_feasible_eval_index"].iloc[-1] == 1
     assert df["feasible_fraction"].iloc[-1] == pytest.approx(2.0 / 3.0)
-    assert df["total_wallclock_s"].iloc[-1] == pytest.approx(34.5)
+    assert df["total_wallclock_s"].iloc[-1] == pytest.approx(3.0)
+    assert df["total_simulation_runtime_s"].iloc[-1] == pytest.approx(34.5)
 
 
 def test_campaign_compatibility_verification():
     """Verify cross-run metrics compatibility checking."""
-    meta_a = {
-        "objective_scales": [1e-6, 1e-6, 1e6],
-        "reporting_ref_point": [-10.0, -10.0, -10.0],
-    }
-    meta_b = {
-        "objective_scales": [1e-6, 1e-6, 1e6],
-        "reporting_ref_point": [-10.0, -10.0, -10.0],
-    }
-    meta_incompat = {
-        "objective_scales": [1e-6, 1e-6, 1e6],
-        "reporting_ref_point": [-5.0, -5.0, -5.0],
-    }
+    from copy import deepcopy
+    from mobo_linac.config import load_config
+    from mobo_linac.metrics.reporting import reporting_metadata
+    meta_a = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1e-5, -1e-5, -1e7])
+    meta_b = deepcopy(meta_a)
+    meta_incompat = deepcopy(meta_a)
+    meta_incompat["reporting_ref_point"] = [-5e-6, -5e-6, -5e6]
+    meta_incompat["reporting_ref_point_normalized"] = [-5.0, -5.0, -5.0]
 
     assert validate_campaign_compatibility(meta_a, meta_b) is True
     assert validate_campaign_compatibility(meta_a, meta_incompat, raise_on_incompatible=False) is False
 
     with pytest.raises(ValueError):
         validate_campaign_compatibility(meta_a, meta_incompat, raise_on_incompatible=True)
+
+
+@pytest.mark.parametrize("field,value", [
+    ("objective_units", ["mm", "m", "eV"]),
+    ("objective_signs", [1, -1, -1]),
+    ("objective_names", ["energy", "x", "y"]),
+    ("constraint_profile", {"min_transmission": 0.1}),
+    ("schema_version", 2),
+])
+def test_reporting_comparison_rejects_different_scientific_conventions(field, value):
+    from copy import deepcopy
+    from mobo_linac.config import load_config
+    from mobo_linac.metrics.reporting import reporting_metadata
+    meta = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1e-5, -1e-5, -1e6])
+    other = deepcopy(meta)
+    other[field] = value
+    assert not validate_campaign_compatibility(meta, other, raise_on_incompatible=False)
+    with pytest.raises(ValueError):
+        validate_campaign_compatibility(meta, other)
+
+
+def test_reporting_comparison_has_no_implicit_defaults_or_micro_scale_tolerance():
+    from copy import deepcopy
+    from mobo_linac.config import load_config
+    from mobo_linac.metrics.reporting import reporting_metadata
+    assert not validate_campaign_compatibility({}, {}, raise_on_incompatible=False)
+    config = load_config("configs/mobo_200MeV.yaml")
+    meta = reporting_metadata(config, [-1e-5, -1e-5, -1e6])
+    config.objectives[0].reporting_scale = 1.01e-6
+    other = reporting_metadata(config, [-1e-5, -1e-5, -1e6])
+    assert not validate_campaign_compatibility(meta, other, raise_on_incompatible=False)
+
+
+def test_worker_runtime_does_not_supply_unknown_wall_time():
+    record = EvaluationResult(evaluation_id="e", run_id="r", x_physical=[0.0] * 6, runtime_s=8.0)
+    frame = compute_campaign_metrics_history([record])
+    assert pd.isna(frame.total_wallclock_s.iloc[0])
+    assert frame.total_simulation_runtime_s.iloc[0] == 8.0
+    assert compute_campaign_metrics_history([]).shape == (0, 9)

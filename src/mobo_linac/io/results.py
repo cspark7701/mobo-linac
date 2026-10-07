@@ -11,7 +11,6 @@ from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
 import pandas as pd
 import torch
-from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.result_schema import ResultSchema
@@ -199,42 +198,8 @@ def save_evaluation_results(
     """
     Saves candidate history JSON, CSV, Pareto front, and hypervolume history into run directory.
     """
-    schema = ResultSchema.from_config(config)
-    design_var_cols = list(schema.design_columns)
-    physical_obj_cols = list(schema.physical_columns)
-    model_obj_cols = list(schema.model_columns)
-
-    run_path = Path(run_dir)
-    run_path.mkdir(parents=True, exist_ok=True)
-
-    # 1. Save candidate_history.json
-    json_path = run_path / "candidate_history.json"
-    dict_list = [res.to_dict() for res in results]
-    with open(json_path, "w", encoding="utf-8") as f:
-        json.dump(dict_list, f, indent=2)
-
-    # 2. Save candidate_history.csv
-    df = results_to_dataframe(results, config=config)
-    csv_path = run_path / "candidate_history.csv"
-    df.to_csv(csv_path, index=False)
-
-    # 3. Save train_X.csv & train_Y.csv
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=config)
-    pd.DataFrame(train_X.numpy(), columns=design_var_cols).to_csv(run_path / "train_X.csv", index=False)
-    pd.DataFrame(train_Y.numpy(), columns=model_obj_cols).to_csv(run_path / "train_Y.csv", index=False)
-    feasible_X, feasible_Y = train_X[train_feas_mask], train_Y[train_feas_mask]
-    mask = is_non_dominated(feasible_Y) if len(feasible_Y) else torch.zeros(0, dtype=torch.bool)
-    pareto_data = np.hstack([feasible_X[mask].numpy(), schema.transform(feasible_Y[mask]).numpy()])
-    pd.DataFrame(pareto_data, columns=design_var_cols + physical_obj_cols).to_csv(run_path / "pareto.csv", index=False)
-
-    # 4. Save hypervolume.csv if provided
-    if hypervolumes is not None:
-        np.savetxt(run_path / "hypervolume.csv", np.array(hypervolumes), delimiter=",", header="hypervolume")
-
-    return {
-        "json": json_path,
-        "csv": csv_path,
-    }
+    from mobo_linac.io.artifacts import RunArtifactWriter
+    return RunArtifactWriter(run_dir, config).write(results, hypervolumes=hypervolumes)
 
 
 def load_evaluation_results(
@@ -311,8 +276,8 @@ def load_evaluation_results(
                 evaluation_id=str(row.get("evaluation_id", f"legacy_row_{row_index:06d}")),
                 run_id=str(row.get("run_id", "default_run")),
                 x_physical=x_phys if len(x_phys) == n_vars else x_phys,
-                objectives_physical=objs_phys if len(objs_phys) == n_objs else None,
-                objectives_model=objs_model if len(objs_model) == n_objs else None,
+                objectives_physical=objs_phys if objs_phys is not None and len(objs_phys) == n_objs else None,
+                objectives_model=objs_model if objs_model is not None and len(objs_model) == n_objs else None,
                 diagnostics=diags,
                 simulation_valid=sim_valid,
                 physically_feasible=phys_feas,
@@ -364,6 +329,8 @@ class CheckpointState:
     cuda_rng_states: Optional[List[torch.Tensor]] = None
     python_rng_state: Optional[Tuple[Any, ...]] = None
     pending_proposal: Optional[Dict[str, Any]] = None
+    elapsed_wall_time_s: Optional[float] = None
+    evaluation_elapsed_s: Optional[List[Optional[float]]] = None
     migration_notes: List[str] = field(default_factory=list)
     version: str = "2.0"
     checkpoint_file: Optional[str] = None
@@ -414,7 +381,7 @@ class CheckpointState:
             "run_id", "optimization_mode", "scalar_weights", "num_initial_samples",
             "initial_design", "sobol_state", "evaluation_batches", "metric_history",
             "reporting_scales", "planned_num_batches", "num_workers", "total_eval_budget", "device",
-            "cuda_rng_states", "python_rng_state", "pending_proposal",
+            "cuda_rng_states", "python_rng_state", "pending_proposal", "elapsed_wall_time_s", "evaluation_elapsed_s",
         )
         config = data.get("config")
         state = cls(
