@@ -498,6 +498,13 @@ def load_config(config_path: Union[str, Path] = "configs/publication_200MeV.yaml
     if not isinstance(data, dict):
         raise ValueError(f"YAML configuration at {path} must contain a top-level dictionary.")
 
+    return config_from_dict(data, default_name=path.stem)
+
+
+def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") -> MoboConfig:
+    """Reconstruct saved YAML/JSON/checkpoint configuration through the same validators."""
+    if not isinstance(data, dict):
+        raise ValueError("Saved configuration must be a dictionary.")
     design_vars = [DesignVariableConfig(**dv) for dv in data.get("design_variables", [])]
     objs = [ObjectiveConfig(**obj) for obj in data.get("objectives", [])]
     constraints = ConstraintsConfig(**data.get("constraints", {}))
@@ -511,7 +518,7 @@ def load_config(config_path: Union[str, Path] = "configs/publication_200MeV.yaml
     model_cfg = GpModelConfig(**data.get("model", {}))
 
     config = MoboConfig(
-        name=str(data.get("name", path.stem)),
+        name=str(data.get("name", default_name)),
         version=str(data.get("version", "1.0")),
         description=str(data.get("description", "")),
         design_variables=design_vars,

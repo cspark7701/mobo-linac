@@ -225,6 +225,10 @@ mobo-linac run-verification --config configs/publication_200MeV.yaml --output-di
 mobo-linac resume --run-dir results/<run_id>
 ```
 
+Version 2 checkpoints restore the saved configuration, optimization mode, scalar weights, initial design, worker count, iteration plan, metric history, and proposal RNG state. Resume continues from the last completed batch in the original run directory. `--n-iterations` sets the total BO iteration target; `--batch-size` changes only future batches. Campaigns with a fixed evaluation budget retain that budget and adjust the remaining batch count.
+
+Legacy version 1 checkpoints require an explicit `--n-iterations` target and, for scalarized BO, `--legacy-scalar-weights` containing the original weights. Their migration assumes fixed-size completed batches and cannot guarantee exact historical fallback or GPU RNG continuation. Recovery of partially streamed batches remains planned in Task 03. See [checkpoint continuation](docs/simulation_guide.md#33-checkpoint-continuation) for details.
+
 > **Tip**: Pass `--dry-run` to preview planned execution details without starting ASTRA simulations, or `--mock-evaluator` for fast CI testing without an ASTRA binary.
 
 

@@ -117,6 +117,29 @@ Numerical simulation validity (`simulation_valid`) is strictly separated from ph
 
 ---
 
+### 3.3 Checkpoint Continuation
+
+Version 2 campaign checkpoints record the run identity, full configuration, optimization mode and normalized scalar weights, initial sample count and physical design, actual Sobol draw position, CPU Torch/NumPy/Python and CUDA RNG states, evaluation batch membership, complete metric records, worker count, planned iterations, and optional evaluation budget. Failed evaluations remain in their original batches; valid-data filtering does not shift historical iteration boundaries.
+
+```bash
+# Continue the saved campaign plan from the latest completed checkpoint.
+mobo-linac resume --run-dir results/<run_id>
+
+# Extend a campaign without a fixed evaluation budget to 20 total BO batches.
+mobo-linac resume --run-dir results/<run_id> --n-iterations 20
+
+# Override only the size of future batches at the checkpoint boundary.
+mobo-linac resume --run-dir results/<run_id> --batch-size 2
+```
+
+The checkpoint configuration is authoritative, including when the CLI runs outside the project directory. The runner rejects changes to design-variable order, bounds and ASTRA mappings, objective definitions/signs, constraints, model settings, execution settings other than worker count, reporting scales, or run identity before writing artifacts. Existing configuration and environment metadata are preserved. The default device restores the saved device; CPU/GPU transitions and incompatible CUDA topology are rejected. Exact continuation depends on the same numerical environment and deterministic proposal/evaluation behavior.
+
+Explicit initial-count, seed, optimization-mode, acquisition, scalar-weight, and total-budget changes are rejected. Worker count can be overridden. Batch-size changes preserve every completed batch and affect future proposals only. With a fixed evaluation budget, the runner computes the remaining batches from the actual evaluation count, including failures, and keeps a smaller final batch when needed; an explicit iteration target must agree with that budget.
+
+Version 1 migration is explicit and emits a warning. It infers initial count and batch membership using the old fixed-size completed-batch contract, reconstructs metrics from raw evaluation prefixes, and estimates Sobol consumption for the low-data branch. Supply the original planned iteration target with `--n-iterations`; scalarized checkpoints also require `--legacy-scalar-weights`, for example `0.6 0.3 0.1`. Legacy checkpoints did not record acquisition fallback draws, Python RNG, CUDA RNG, or the original device, so migration is best effort on CPU and cannot guarantee exact continuation.
+
+Checkpoints describe completed batches. This task does not reconcile streamed records or recover an in-flight batch; those operations remain Task 03. Benchmark dispatch also still requires a new directory for incomplete experiments rather than automatically resuming them.
+
 ## 4. Benchmark, Robustness, Verification, & Publication Workflow
 
 ### 4.1 Seed-Paired Benchmark Campaign Protocol

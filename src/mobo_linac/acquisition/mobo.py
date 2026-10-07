@@ -147,6 +147,7 @@ def generate_next_candidates(
     options: Optional[Dict[str, Any]] = None,
     device: Optional[Union[torch.device, str]] = None,
     retry_on_failure: bool = True,
+    sobol_engine: Optional[torch.quasirandom.SobolEngine] = None,
 ) -> Tuple[torch.Tensor, torch.Tensor]:
     """
     Optimizes the acquisition function over parameter bounds to generate next candidate batch.
@@ -163,6 +164,7 @@ def generate_next_candidates(
         options: Optional dict of extra optimizer options overriding maxiter/batch_limit.
         device: Optional torch device (e.g. 'cpu' or 'cuda').
         retry_on_failure: Whether to retry with reduced budget or fallback to Sobol sampling.
+        sobol_engine: Optional campaign-owned fallback stream, saved in run checkpoints.
 
     Returns:
         Tuple of (candidates_tensor, acq_values_tensor).
@@ -258,7 +260,10 @@ def generate_next_candidates(
                 )
 
             dim = bounds_dbl.shape[1]
-            sobol_engine = torch.quasirandom.SobolEngine(dimension=dim, scramble=True)
+            if sobol_engine is None:
+                sobol_engine = torch.quasirandom.SobolEngine(dimension=dim, scramble=True)
+            elif sobol_engine.dimension != dim:
+                raise ValueError("Fallback Sobol dimension does not match parameter bounds.")
             samples = sobol_engine.draw(batch_size).to(device=target_device, dtype=torch.double)
             candidates = bounds_dbl[0] + (bounds_dbl[1] - bounds_dbl[0]) * samples
             acq_values = torch.zeros(batch_size, dtype=torch.double, device=target_device)

@@ -13,6 +13,44 @@ from mobo_linac.execution import MockBatchEvaluator
 from mobo_linac.io.results import load_run_checkpoint, get_train_tensors
 
 
+@pytest.fixture(autouse=True)
+def fast_resume_proposals(monkeypatch):
+    """Exercise real checkpoint/proposal flow without repeated expensive GP fitting."""
+    import random
+    import mobo_linac.campaigns.runner as runner_module
+    import mobo_linac.acquisition.mobo as acquisition_module
+
+    class StubPipeline:
+        objective_model = None
+        constraint_model = None
+
+        def __init__(self, **kwargs):
+            # Model construction consumes the same device RNGs a real fit may use.
+            torch.rand((), device=kwargs["device"])
+
+        def fit(self, *args):
+            return self
+
+    class StubAcquisition(torch.nn.Module):
+        pass
+
+    monkeypatch.setattr(runner_module, "SurrogatePipeline", StubPipeline)
+    monkeypatch.setattr(runner_module, "build_scalarized_gp_model", lambda **kwargs: torch.nn.Linear(1, 1))
+    monkeypatch.setattr(runner_module, "fit_gp_models", lambda model: model)
+    monkeypatch.setattr(runner_module, "build_acquisition_function", lambda **kwargs: StubAcquisition())
+    monkeypatch.setattr(runner_module, "qLogNoisyExpectedImprovement", lambda **kwargs: StubAcquisition())
+
+    def optimize(**kwargs):
+        bounds = kwargs["bounds"]
+        samples = torch.rand(kwargs["q"], bounds.shape[1], dtype=torch.double, device=bounds.device)
+        samples = (samples + np.random.random() + random.random()) / 3.0
+        candidates = bounds[0] + (bounds[1] - bounds[0]) * samples
+        return candidates, torch.zeros(1, dtype=torch.double, device=bounds.device)
+
+    monkeypatch.setattr(acquisition_module, "optimize_acqf", optimize)
+    return optimize
+
+
 def test_uninterrupted_vs_resumed_campaign(tmp_path):
     """Verify that a resumed campaign produces identical results to an uninterrupted campaign."""
     config = load_config("configs/publication_200MeV.yaml")
@@ -155,3 +193,319 @@ def test_intra_batch_streaming_persistence_and_resume(tmp_path):
     assert (camp_dir / "evaluations_stream.csv").exists()
     assert (camp_dir / "evaluations_stream.jsonl").exists()
 
+
+
+@pytest.mark.parametrize("mode", ["unconstrained_mobo", "constrained_mobo", "scalarized_bo"])
+def test_complete_state_resume_preserves_failures_and_metrics(tmp_path, mode):
+    config = load_config("configs/publication_200MeV.yaml")
+    weights = [0.6, 0.3, 0.1]
+    failed = ["eval_000002", "eval_000005"]
+    options = dict(config=config, num_initial_samples=3, batch_size=2, seed=17,
+                   optimization_mode=mode, scalar_weights=weights,
+                   export_plots=False, export_env_info=False, device="cpu", num_workers=3)
+    full_dir = tmp_path / "full"
+    full, full_tracker, _ = MoboCampaignRunner(
+        **options, output_dir=full_dir, num_batches=3,
+        evaluator=MockBatchEvaluator(full_dir, fail_eval_ids=failed),
+    ).run()
+    split_dir = tmp_path / "split"
+    MoboCampaignRunner(
+        **options, output_dir=split_dir, num_batches=1,
+        evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
+    ).run()
+    checkpoint = load_run_checkpoint(split_dir)
+    assert checkpoint.version == "2.0"
+    assert isinstance(checkpoint.config, dict)
+    assert checkpoint.num_initial_samples == 3
+    assert checkpoint.initial_design == [r.x_physical for r in checkpoint.results[:3]]
+    assert checkpoint.evaluation_batches == [0, 0, 0, 1, 1]
+    assert checkpoint.sobol_state["num_generated"] == 3  # Successful BO proposals did not consume Sobol.
+    assert checkpoint.num_workers == 3
+    resumed_runner = MoboCampaignRunner(
+        output_dir=split_dir, resume=True, num_batches=3, device="cpu",
+        export_plots=False, export_env_info=False,
+        evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
+    )
+    resumed, resumed_tracker, _ = resumed_runner.run()
+    assert resumed_runner.optimization_mode == mode
+    assert resumed_runner.num_initial_samples == 3
+    assert resumed_runner.num_workers == 3
+    assert resumed_runner.scalar_weights.tolist() == pytest.approx(weights)
+    assert [r.x_physical for r in full] == [r.x_physical for r in resumed]
+    assert [r.simulation_valid for r in full] == [r.simulation_valid for r in resumed]
+    assert full_tracker.history == resumed_tracker.history
+    assert resumed_tracker.history[0]["num_valid_points"] == 2
+    assert resumed_tracker.history[1]["num_valid_points"] == 3
+    assert load_run_checkpoint(split_dir).evaluation_batches == [0, 0, 0, 1, 1, 2, 2, 3, 3]
+
+
+def test_real_acquisition_fallback_restores_sobol_position(tmp_path, monkeypatch):
+    import mobo_linac.acquisition.mobo as acquisition_module
+
+    def fail_optimizer(**kwargs):
+        # Retries consume global RNG state; the final fallback consumes the campaign Sobol stream.
+        torch.rand(3)
+        np.random.random()
+        raise RuntimeError("Forced optimizer fallback")
+
+    monkeypatch.setattr(acquisition_module, "optimize_acqf", fail_optimizer)
+    full_dir = tmp_path / "full"
+    split_dir = tmp_path / "split"
+    options = dict(num_initial_samples=3, batch_size=2, seed=31, device="cpu",
+                   export_plots=False, export_env_info=False)
+    full, full_tracker, _ = MoboCampaignRunner(
+        **options, output_dir=full_dir, num_batches=3, evaluator=MockBatchEvaluator(full_dir),
+    ).run()
+    MoboCampaignRunner(
+        **options, output_dir=split_dir, num_batches=1, evaluator=MockBatchEvaluator(split_dir),
+    ).run()
+    checkpoint = load_run_checkpoint(split_dir)
+    assert checkpoint.sobol_state["num_generated"] == 5
+    resumed, tracker, _ = MoboCampaignRunner(
+        output_dir=split_dir, resume=True, num_batches=3, evaluator=MockBatchEvaluator(split_dir),
+        device="cpu", export_plots=False, export_env_info=False,
+    ).run()
+    assert [r.x_physical for r in full] == [r.x_physical for r in resumed]
+    assert full_tracker.history == tracker.history
+    assert load_run_checkpoint(split_dir).sobol_state["num_generated"] == 9
+
+
+def test_low_data_sobol_resume_with_invalid_initial_evaluations(tmp_path):
+    options = dict(num_initial_samples=3, batch_size=2, seed=11, device="cpu",
+                   export_plots=False, export_env_info=False)
+    failed = [f"eval_{i:06d}" for i in range(1, 10)]
+    full_dir, split_dir = tmp_path / "full", tmp_path / "split"
+    full, full_tracker, _ = MoboCampaignRunner(
+        **options, output_dir=full_dir, num_batches=3,
+        evaluator=MockBatchEvaluator(full_dir, fail_eval_ids=failed),
+    ).run()
+    MoboCampaignRunner(
+        **options, output_dir=split_dir, num_batches=1,
+        evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
+    ).run()
+    resumed, tracker, _ = MoboCampaignRunner(
+        output_dir=split_dir, resume=True, num_batches=3, device="cpu",
+        export_plots=False, export_env_info=False,
+        evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
+    ).run()
+    assert [r.x_physical for r in full] == [r.x_physical for r in resumed]
+    assert full_tracker.history == tracker.history
+
+
+@pytest.mark.parametrize("change", ["order", "bounds", "mapping", "objective", "sign", "constraint", "model", "exit_plane", "proposal_budget"])
+def test_same_dimension_incompatible_config_rejected_before_writes(tmp_path, change):
+    from copy import deepcopy
+    import hashlib
+
+    config = load_config("configs/publication_200MeV.yaml")
+    MoboCampaignRunner(
+        config=config, output_dir=tmp_path, num_initial_samples=3, num_batches=1,
+        batch_size=2, device="cpu", export_plots=False, evaluator=MockBatchEvaluator(tmp_path),
+    ).run()
+    changed = deepcopy(config)
+    if change == "order":
+        changed.design_variables[0], changed.design_variables[1] = changed.design_variables[1], changed.design_variables[0]
+    elif change == "bounds":
+        changed.design_variables[0].lower_bound *= 0.99
+    elif change == "mapping":
+        changed.design_variables[0].astra_key = "solenoid:maxb(2)"
+    elif change == "objective":
+        changed.objectives[0].name = "alternative_emittance"
+    elif change == "sign":
+        changed.objectives[0].model_sign = 1
+        changed.objectives[0].physical_direction = "maximize"
+    elif change == "constraint":
+        changed.constraints.min_transmission = 0.95
+    elif change == "model":
+        changed.model.covar_type = "rbf"
+    elif change == "exit_plane":
+        changed.execution.z_stop_m += 0.1
+    else:
+        changed.execution.acqf_maxiter += 1
+    def snapshot():
+        return {str(p.relative_to(tmp_path)): hashlib.sha256(p.read_bytes()).hexdigest()
+                for p in tmp_path.rglob("*") if p.is_file()}
+    before = snapshot()
+    with pytest.raises(ValueError, match="Incompatible checkpoint configuration"):
+        MoboCampaignRunner(
+            config=changed, output_dir=tmp_path, resume=True, num_batches=2,
+            evaluator=MockBatchEvaluator(tmp_path), device="cpu",
+        ).run()
+    assert snapshot() == before
+
+
+def test_batch_size_override_keeps_completed_membership(tmp_path):
+    MoboCampaignRunner(
+        output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
+        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+    ).run()
+    previous_history = load_run_checkpoint(tmp_path).metric_history
+    runner = MoboCampaignRunner(
+        output_dir=tmp_path, resume=True, num_batches=3, batch_size=1,
+        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+    )
+    results, tracker, _ = runner.run()
+    assert len(results) == 7
+    assert tracker.history[:2] == previous_history
+    checkpoint = load_run_checkpoint(tmp_path)
+    assert checkpoint.batch_size == 1
+    assert checkpoint.evaluation_batches == [0, 0, 0, 1, 1, 2, 3]
+
+
+def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
+    class InterruptedEvaluator(MockBatchEvaluator):
+        def evaluate_batch(self, candidates, **kwargs):
+            if (kwargs.get("eval_ids") or [0])[0] == 5:
+                raise RuntimeError("interrupted before second batch")
+            return super().evaluate_batch(candidates, **kwargs)
+
+    with pytest.raises(RuntimeError, match="interrupted"):
+        MoboCampaignRunner(
+            output_dir=tmp_path, num_initial_samples=2, num_batches=3, batch_size=2,
+            total_eval_budget=7, evaluator=InterruptedEvaluator(tmp_path), device="cpu", export_plots=False,
+        ).run()
+    checkpoint = load_run_checkpoint(tmp_path)
+    assert checkpoint.iteration == 1
+    assert checkpoint.planned_num_batches == 3
+    runner = MoboCampaignRunner(
+        output_dir=tmp_path, resume=True, batch_size=3, evaluator=MockBatchEvaluator(tmp_path),
+        device="cpu", export_plots=False,
+    )
+    results, _, _ = runner.run()
+    assert len(results) == 7
+    assert runner.total_eval_budget == 7
+    assert runner.num_batches == 2
+    assert load_run_checkpoint(tmp_path).evaluation_batches == [0, 0, 1, 1, 2, 2, 2]
+
+
+def test_legacy_completed_checkpoint_migration(tmp_path):
+    MoboCampaignRunner(
+        output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
+        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+    ).run()
+    path = tmp_path / "checkpoints" / "checkpoint.pt"
+    state = load_run_checkpoint(path)
+    legacy_fields = {"version", "iteration", "results_serialized", "hypervolumes", "acquisition_mode",
+                     "reporting_ref_point", "seed", "batch_size", "constrained", "torch_rng_state",
+                     "numpy_rng_state", "config"}
+    payload = {k: v for k, v in state.to_dict().items() if k in legacy_fields}
+    payload["version"] = "1.0"
+    torch.save(payload, path)
+    migrated = load_run_checkpoint(path)
+    assert migrated.version == "1.0"
+    assert migrated.num_initial_samples == 3
+    assert migrated.evaluation_batches == [0, 0, 0, 1, 1]
+    with pytest.warns(RuntimeWarning, match="Legacy v1"):
+        resumed, _, _ = MoboCampaignRunner(
+            output_dir=tmp_path, resume=True, num_batches=2, evaluator=MockBatchEvaluator(tmp_path),
+            device="cpu", export_plots=False,
+        ).run()
+    assert len(resumed) == 7
+    assert load_run_checkpoint(tmp_path).version == "2.0"
+
+
+def test_legacy_scalarized_weights_require_explicit_input(tmp_path):
+    MoboCampaignRunner(
+        output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
+        optimization_mode="scalarized_bo", scalar_weights=[0.6, 0.3, 0.1],
+        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+    ).run()
+    path = tmp_path / "checkpoints" / "checkpoint.pt"
+    payload = load_run_checkpoint(path).to_dict()
+    payload["version"] = "1.0"
+    payload.pop("scalar_weights")
+    torch.save(payload, path)
+    with pytest.raises(ValueError, match="omitted weights"):
+        MoboCampaignRunner(output_dir=tmp_path, resume=True, num_batches=2, device="cpu").run()
+    with pytest.warns(RuntimeWarning, match="Legacy v1"):
+        runner = MoboCampaignRunner(
+            output_dir=tmp_path, resume=True, num_batches=2, scalar_weights=[0.6, 0.3, 0.1],
+            evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        )
+        runner.run()
+    assert runner.scalar_weights.tolist() == pytest.approx([0.6, 0.3, 0.1])
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+def test_cuda_rng_continuation(tmp_path):
+    options = dict(num_initial_samples=3, num_batches=1, batch_size=2, seed=9,
+                   device="cuda", export_plots=False, export_env_info=False)
+    MoboCampaignRunner(output_dir=tmp_path, evaluator=MockBatchEvaluator(tmp_path), **options).run()
+    checkpoint = load_run_checkpoint(tmp_path)
+    assert len(checkpoint.cuda_rng_states) == torch.cuda.device_count()
+    expected = torch.rand(4, device="cuda")
+    torch.rand(50, device="cuda")
+    runner = MoboCampaignRunner(
+        output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
+        device="cuda", export_plots=False, export_env_info=False,
+    )
+    runner.run()  # Saved target is already complete: restore without new proposal draws.
+    actual = torch.rand(4, device="cuda")
+    assert torch.equal(actual, expected)
+
+
+@pytest.mark.parametrize("field", ["evaluation_batches", "metric_history", "reporting_scales", "reporting_ref_point", "torch_rng_state", "version"])
+def test_corrupted_campaign_state_rejected_without_overwriting_metadata(tmp_path, field):
+    MoboCampaignRunner(
+        output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
+        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+    ).run()
+    path = tmp_path / "checkpoints" / "checkpoint.pt"
+    payload = load_run_checkpoint(path).to_dict()
+    if field == "evaluation_batches":
+        payload[field] = [0] * len(payload["results_serialized"])
+    elif field == "metric_history":
+        payload[field][0]["num_valid_points"] += 1
+    elif field == "reporting_scales":
+        payload[field] = [1e-3, 1e-3, 1e6]
+    elif field == "reporting_ref_point":
+        payload[field][0] -= 1.0
+    elif field == "torch_rng_state":
+        payload[field] = torch.ones(1, dtype=torch.uint8)
+    else:
+        payload[field] = "99.0"
+    torch.save(payload, path)
+    before = {str(p.relative_to(tmp_path)): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+    with pytest.raises(ValueError):
+        MoboCampaignRunner(output_dir=tmp_path, resume=True, num_batches=2, device="cpu").run()
+    after = {str(p.relative_to(tmp_path)): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+    assert before == after
+
+
+def test_resume_from_checkpoint_uses_original_directory(tmp_path):
+    MoboCampaignRunner(
+        output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
+        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+    ).run()
+    runner = MoboCampaignRunner(
+        resume_from=tmp_path / "checkpoints" / "checkpoint.pt", num_batches=2,
+        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+    )
+    results, _, run_dir = runner.run()
+    assert run_dir == tmp_path
+    assert len(results) == 7
+
+
+def test_resume_cannot_fork_into_new_directory(tmp_path):
+    source = tmp_path / "source"
+    MoboCampaignRunner(
+        output_dir=source, num_initial_samples=3, num_batches=1, batch_size=2,
+        evaluator=MockBatchEvaluator(source), device="cpu", export_plots=False,
+    ).run()
+    destination = tmp_path / "fork"
+    with pytest.raises(ValueError, match="original run identity"):
+        MoboCampaignRunner(
+            resume_from=source, output_dir=destination, num_batches=2, device="cpu",
+        ).run()
+    assert not destination.exists()
+
+
+def test_resume_rejects_explicit_device_change_even_without_cuda(tmp_path):
+    MoboCampaignRunner(
+        output_dir=tmp_path, num_initial_samples=1, num_batches=0,
+        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+    ).run()
+    original_config = (tmp_path / "config.yaml").read_bytes()
+    with pytest.raises(ValueError, match="device differs"):
+        MoboCampaignRunner(output_dir=tmp_path, resume=True, device="cuda").run()
+    assert (tmp_path / "config.yaml").read_bytes() == original_config

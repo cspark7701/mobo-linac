@@ -4,7 +4,8 @@ Result I/O, Serialization, DataFrame Conversions, and Checkpoint Management.
 
 import json
 import os
-from dataclasses import dataclass, field
+import random
+from dataclasses import asdict, dataclass, field, fields, is_dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
@@ -349,7 +350,7 @@ class CheckpointState:
     """
     Typed, schema-validated checkpoint state for Bayesian optimization campaigns.
     Preserves evaluation history, acquisition mode, hypervolume progression, RNG states,
-    and runtime configuration with full backward compatibility.
+    and runtime configuration with explicit legacy-version decoding.
     """
     iteration: int
     results: List[EvaluationResult]
@@ -362,25 +363,36 @@ class CheckpointState:
     torch_rng_state: Optional[torch.Tensor] = None
     numpy_rng_state: Optional[Tuple[Any, ...]] = None
     config: Optional[Dict[str, Any]] = None
-    version: str = "1.0"
+    run_id: Optional[str] = None
+    optimization_mode: Optional[str] = None
+    scalar_weights: Optional[List[float]] = None
+    num_initial_samples: Optional[int] = None
+    initial_design: Optional[List[List[float]]] = None
+    sobol_state: Optional[Dict[str, Any]] = None
+    evaluation_batches: Optional[List[int]] = None
+    metric_history: Optional[List[Dict[str, Any]]] = None
+    reporting_scales: Optional[List[float]] = None
+    planned_num_batches: Optional[int] = None
+    num_workers: Optional[int] = None
+    total_eval_budget: Optional[int] = None
+    device: Optional[str] = None
+    cuda_rng_states: Optional[List[torch.Tensor]] = None
+    python_rng_state: Optional[Tuple[Any, ...]] = None
+    migration_notes: List[str] = field(default_factory=list)
+    version: str = "2.0"
     checkpoint_file: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         """Serializes checkpoint state into a dictionary for torch.save."""
-        return {
-            "version": self.version,
-            "iteration": int(self.iteration),
-            "results_serialized": [res.to_dict() for res in self.results],
-            "hypervolumes": [float(hv) for hv in self.hypervolumes],
-            "acquisition_mode": str(self.acquisition_mode),
-            "reporting_ref_point": self.reporting_ref_point,
-            "seed": self.seed,
-            "batch_size": self.batch_size,
-            "constrained": bool(self.constrained),
-            "torch_rng_state": self.torch_rng_state,
-            "numpy_rng_state": self.numpy_rng_state,
-            "config": self.config,
+        data = {
+            f.name: getattr(self, f.name)
+            for f in fields(self) if f.name not in ("results", "checkpoint_file")
         }
+        data["iteration"] = int(self.iteration)
+        data["results_serialized"] = [res.to_dict() for res in self.results]
+        data["hypervolumes"] = [float(hv) for hv in self.hypervolumes]
+        data["config"] = asdict(self.config) if is_dataclass(self.config) else self.config
+        return data
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any], checkpoint_file: Optional[str] = None) -> "CheckpointState":
@@ -409,7 +421,17 @@ class CheckpointState:
             raw_hv = raw_hv.tolist()
         hypervolumes = [float(h) for h in raw_hv]
 
-        return cls(
+        version = str(data.get("version", "1.0"))
+        if version not in ("1.0", "2.0"):
+            raise ValueError(f"Unsupported checkpoint version: {version}")
+        extra_names = (
+            "run_id", "optimization_mode", "scalar_weights", "num_initial_samples",
+            "initial_design", "sobol_state", "evaluation_batches", "metric_history",
+            "reporting_scales", "planned_num_batches", "num_workers", "total_eval_budget", "device",
+            "cuda_rng_states", "python_rng_state",
+        )
+        config = data.get("config")
+        state = cls(
             iteration=int(data["iteration"]),
             results=results,
             hypervolumes=hypervolumes,
@@ -420,10 +442,32 @@ class CheckpointState:
             constrained=bool(data.get("constrained", False)),
             torch_rng_state=data.get("torch_rng_state"),
             numpy_rng_state=data.get("numpy_rng_state"),
-            config=data.get("config"),
-            version=str(data.get("version", "1.0")),
+            config=asdict(config) if is_dataclass(config) else config,
+            version=version,
             checkpoint_file=checkpoint_file,
+            migration_notes=list(data.get("migration_notes", [])),
+            **{name: data.get(name) for name in extra_names},
         )
+        if version == "1.0":
+            state.optimization_mode = (
+                "scalarized_bo" if state.acquisition_mode == "scalarized_qLogNEI"
+                else "constrained_mobo" if state.constrained else "unconstrained_mobo"
+            )
+            if state.batch_size and state.batch_size > 0:
+                initial_count = len(results) - state.iteration * state.batch_size
+                if initial_count > 0:
+                    state.num_initial_samples = initial_count
+                    state.initial_design = [r.x_physical for r in results[:initial_count]]
+                    state.evaluation_batches = [0] * initial_count + [
+                        it for it in range(1, state.iteration + 1) for _ in range(state.batch_size)
+                    ]
+            if results and len({r.run_id for r in results}) == 1:
+                state.run_id = results[0].run_id
+            state.migration_notes.append(
+                "Legacy v1 state: batch membership inferred for a fixed-size completed campaign; "
+                "exact prior acquisition fallback state and CUDA RNG states were not recorded."
+            )
+        return state
 
     # Dict-like access for backward compatibility
     def __getitem__(self, key: str) -> Any:
@@ -478,6 +522,7 @@ def save_run_checkpoint(
     constrained: Optional[bool] = None,
     torch_rng_state: Optional[torch.Tensor] = None,
     numpy_rng_state: Optional[Tuple[Any, ...]] = None,
+    campaign_state: Optional[Dict[str, Any]] = None,
 ) -> Path:
     """
     Saves stateful checkpoint containing structured EvaluationResult records using atomic file write.
@@ -490,7 +535,7 @@ def save_run_checkpoint(
         if isinstance(reporting_ref_point, torch.Tensor)
         else reporting_ref_point
     )
-    config_dict = config.to_dict() if hasattr(config, "to_dict") else config
+    config_dict = asdict(config) if is_dataclass(config) else (config.to_dict() if hasattr(config, "to_dict") else config)
 
     t_state = torch_rng_state if torch_rng_state is not None else torch.get_rng_state()
     n_state = numpy_rng_state if numpy_rng_state is not None else np.random.get_state()
@@ -508,6 +553,8 @@ def save_run_checkpoint(
         numpy_rng_state=n_state,
         config=config_dict,
         checkpoint_file=str(path),
+        python_rng_state=random.getstate(),
+        **(campaign_state or {}),
     )
 
     checkpoint_data = state.to_dict()
@@ -553,7 +600,7 @@ def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[Checkpoin
         return None
 
     try:
-        checkpoint_data = torch.load(target_file, weights_only=False)
+        checkpoint_data = torch.load(target_file, weights_only=False, map_location="cpu")
     except Exception as e:
         raise ValueError(f"Corrupted or unreadable checkpoint file at {target_file}: {e}")
 
