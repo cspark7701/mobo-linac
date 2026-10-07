@@ -6,6 +6,9 @@ checkpoint saving/restoration, and intra-batch streaming persistence.
 
 from mobo_linac.io.results import (
     CheckpointState,
+    TrainingObservations,
+    get_training_observations,
+    get_constraint_tensors,
     append_streaming_evaluation,
     get_train_tensors,
     load_evaluation_results,
@@ -19,6 +22,9 @@ from mobo_linac.io.journal import JournalRecord, load_streaming_records
 
 __all__ = [
     "CheckpointState",
+    "TrainingObservations",
+    "get_training_observations",
+    "get_constraint_tensors",
     "results_to_dataframe",
     "save_evaluation_results",
     "load_evaluation_results",

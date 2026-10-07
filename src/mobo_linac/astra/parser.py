@@ -12,6 +12,8 @@ from pathlib import Path
 import re
 from typing import Any, Dict, List, Optional, Sequence, Union
 
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, invalid_diagnostic_channels, normalize_diagnostics
+
 
 class SimulationStatus(str, Enum):
     """Classification status for an ASTRA simulation execution."""
@@ -104,13 +106,6 @@ class AstraOutputParser:
             norm_emit_x = float(raw_stats["norm_emit_x"][-1])
             norm_emit_y = float(raw_stats["norm_emit_y"][-1])
             sigma_energy = float(raw_stats["sigma_energy"][-1])
-            mean_kinetic_energy = float(raw_stats.get("mean_kinetic_energy", [0.0])[-1])
-
-            sigma_x_m = float(raw_stats.get("sigma_x", [0.0])[-1])
-            sigma_y_m = float(raw_stats.get("sigma_y", [0.0])[-1])
-            sigma_xp_rad = float(raw_stats.get("sigma_xp", [0.0])[-1])
-            sigma_yp_rad = float(raw_stats.get("sigma_yp", [0.0])[-1])
-            sigma_z_m = float(raw_stats.get("sigma_z", [0.0])[-1])
         except (IndexError, KeyError, TypeError, ValueError) as e:
             return ParsedAstraResult(
                 status=SimulationStatus.FILE_CORRUPTED,
@@ -119,8 +114,27 @@ class AstraOutputParser:
             )
 
         # Check for NaN / Inf values
-        scalars = [norm_emit_x, norm_emit_y, sigma_energy, mean_kinetic_energy,
-                   sigma_x_m, sigma_y_m, sigma_xp_rad, sigma_yp_rad, sigma_z_m]
+        def last_measurement(key):
+            try:
+                value = raw_stats[key][-1]
+            except (IndexError, KeyError, TypeError):
+                return None
+            try:
+                return float(value)
+            except (TypeError, ValueError, OverflowError):
+                return float("nan")
+
+        measured = {}
+        for channel in DIAGNOSTIC_CHANNELS:
+            if channel.name == "transmission_fraction":
+                continue  # Counts/transmission are extracted separately below.
+            for key in (channel.name,) + channel.aliases:
+                if key in raw_stats:
+                    value = last_measurement(key)
+                    if value is not None:
+                        measured[key] = value
+        diagnostics = normalize_diagnostics(measured)
+        scalars = [norm_emit_x, norm_emit_y, sigma_energy] + list(diagnostics.values())
         if any(math.isnan(s) or math.isinf(s) for s in scalars):
             return ParsedAstraResult(
                 status=SimulationStatus.NUMERICAL_ERROR,
@@ -136,27 +150,42 @@ class AstraOutputParser:
             try:
                 n_init = int(astra_sim.particles[0].n_particle)
                 n_final = int(astra_sim.particles[-1].n_particle)
-            except Exception:
-                pass
+            except (AttributeError, TypeError, ValueError, OverflowError):
+                n_init = n_final = None
 
         if n_init is None:
-            if "landf_n_particles" in raw_stats and len(raw_stats["landf_n_particles"]) > 0:
-                n_init = int(raw_stats["landf_n_particles"][0])
-                n_final = int(raw_stats["landf_n_particles"][-1])
-            elif "n_stat" in raw_stats and len(raw_stats["n_stat"]) > 0:
-                n_init = int(raw_stats["n_stat"][0])
-                n_final = int(raw_stats["n_stat"][-1])
+            for count_name in ("landf_n_particles", "n_stat"):
+                counts = raw_stats.get(count_name)
+                if counts is None:
+                    continue
+                try:
+                    if len(counts) == 0:
+                        continue
+                    n_init, n_final = int(counts[0]), int(counts[-1])
+                except (TypeError, ValueError, OverflowError):
+                    return ParsedAstraResult(status=SimulationStatus.NUMERICAL_ERROR,
+                                             simulation_valid=False, raw_stats=raw_stats,
+                                             error_message="Invalid particle-count observations")
+                break
 
         transmission_frac: Optional[float] = None
         if n_init is not None and n_final is not None and n_init > 0:
             transmission_frac = float(n_final) / float(n_init)
-        elif "transmission" in raw_stats:
-            transmission_frac = float(raw_stats["transmission"][-1])
+        else:
+            transmission_channel = DIAGNOSTIC_CHANNELS[-1]
+            measured_transmission = {}
+            for key in (transmission_channel.name,) + transmission_channel.aliases:
+                value = last_measurement(key)
+                if value is not None:
+                    measured_transmission[key] = value
+            transmission_frac = normalize_diagnostics(measured_transmission).get(transmission_channel.name)
 
-        # Extract longitudinal exit z
-        z_final: Optional[float] = None
-        if "z" in raw_stats and len(raw_stats["z"]) > 0:
-            z_final = float(raw_stats["z"][-1])
+        # Longitudinal exit telemetry retains its existing loss-detection role.
+        z_final = last_measurement("z")
+        if z_final is not None and not math.isfinite(z_final):
+            return ParsedAstraResult(status=SimulationStatus.NUMERICAL_ERROR,
+                                     simulation_valid=False, raw_stats=raw_stats,
+                                     error_message="Non-finite longitudinal exit observation")
 
         # Classification checks
         status = SimulationStatus.SUCCESS
@@ -178,24 +207,8 @@ class AstraOutputParser:
             "sigma_energy": sigma_energy,
         }
 
-        diagnostics: Dict[str, float] = {
-            "emit_x": norm_emit_x,
-            "emit_y": norm_emit_y,
-            "sigma_energy": sigma_energy,
-            "sigma_energy_eV": sigma_energy,
-            "sigma_x": sigma_x_m,
-            "sigma_x_m": sigma_x_m,
-            "sigma_y": sigma_y_m,
-            "sigma_y_m": sigma_y_m,
-            "sigma_xp": sigma_xp_rad,
-            "sigma_xp_rad": sigma_xp_rad,
-            "sigma_yp": sigma_yp_rad,
-            "sigma_yp_rad": sigma_yp_rad,
-            "sigma_z": sigma_z_m,
-            "sigma_z_m": sigma_z_m,
-            "mean_kinetic_energy": mean_kinetic_energy,
-            "mean_kinetic_energy_eV": mean_kinetic_energy,
-        }
+        diagnostics.update({"emit_x": norm_emit_x, "emit_y": norm_emit_y,
+                            "sigma_energy": sigma_energy, "sigma_energy_eV": sigma_energy})
 
         if z_final is not None:
             diagnostics["z_final_m"] = z_final
@@ -204,11 +217,16 @@ class AstraOutputParser:
 
         if transmission_frac is not None:
             diagnostics["transmission_fraction"] = transmission_frac
-            diagnostics["transmission"] = transmission_frac
         if n_init is not None:
             diagnostics["n_particles_initial"] = float(n_init)
         if n_final is not None:
             diagnostics["n_particles_final"] = float(n_final)
+
+        invalid_channels = invalid_diagnostic_channels(diagnostics)
+        if status == SimulationStatus.SUCCESS and invalid_channels:
+            invalid_present = any(name in diagnostics for name in invalid_channels)
+            status = SimulationStatus.NUMERICAL_ERROR if invalid_present else SimulationStatus.OUTPUT_MISSING
+            error_message = "Missing or invalid diagnostic observations: " + ", ".join(invalid_channels)
 
         return ParsedAstraResult(
             status=status,

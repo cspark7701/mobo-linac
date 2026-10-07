@@ -14,6 +14,7 @@ import torch
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from mobo_linac.evaluation import EvaluationResult
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, diagnostic_observations, finite_measurement, normalize_diagnostics
 
 DESIGN_VAR_COLUMNS = [
     "solenoid_field_T",
@@ -89,103 +90,99 @@ def results_to_dataframe(
                 row[col] = np.nan
 
         # Add diagnostics if available
-        diags = res.diagnostics or {}
+        diags = normalize_diagnostics(res.diagnostics)
         sigma_energy_val = diags.get("sigma_energy_eV", diags.get("sigma_energy", np.nan))
         if pd.isna(sigma_energy_val) and res.objectives_physical and len(res.objectives_physical) > 2:
             sigma_energy_val = float(res.objectives_physical[2])
 
-        row["sigma_x_m"] = diags.get("sigma_x_m", diags.get("sigma_x", np.nan))
-        row["sigma_y_m"] = diags.get("sigma_y_m", diags.get("sigma_y", np.nan))
-        row["sigma_xp_rad"] = diags.get("sigma_xp_rad", diags.get("sigma_xp", np.nan))
-        row["sigma_yp_rad"] = diags.get("sigma_yp_rad", diags.get("sigma_yp", np.nan))
-        row["sigma_z_m"] = diags.get("sigma_z_m", diags.get("sigma_z", np.nan))
-        row["mean_kinetic_energy_eV"] = diags.get("mean_kinetic_energy_eV", diags.get("mean_kinetic_energy", np.nan))
+        row["sigma_x_m"] = diags.get("sigma_x_m", np.nan)
+        row["sigma_y_m"] = diags.get("sigma_y_m", np.nan)
+        row["sigma_xp_rad"] = diags.get("sigma_xp_rad", np.nan)
+        row["sigma_yp_rad"] = diags.get("sigma_yp_rad", np.nan)
+        row["sigma_z_m"] = diags.get("sigma_z_m", np.nan)
+        row["mean_kinetic_energy_eV"] = diags.get("mean_kinetic_energy_eV", np.nan)
         row["sigma_energy_eV"] = sigma_energy_val
         row["n_particles_initial"] = diags.get("n_particles_initial", np.nan)
         row["n_particles_final"] = diags.get("n_particles_final", np.nan)
-        row["transmission_fraction"] = diags.get("transmission_fraction", diags.get("transmission", np.nan))
+        row["transmission_fraction"] = diags.get("transmission_fraction", np.nan)
 
         rows.append(row)
 
     return pd.DataFrame(rows)
 
 
+@dataclass(frozen=True)
+class TrainingObservations:
+    """One identity-ordered selection shared by design, objectives and diagnostics."""
+
+    evaluation_ids: Tuple[Tuple[str, str], ...]
+    train_X: torch.Tensor
+    train_Y: torch.Tensor
+    feasible: torch.Tensor
+    constraints: Optional[torch.Tensor] = None
+
+
+def get_training_observations(
+    results: List[EvaluationResult],
+    exclude_invalid: bool = True,
+    require_diagnostics: bool = False,
+) -> TrainingObservations:
+    """Select observed finite rows without fabricating missing diagnostic values.
+
+    Constrained training uses a complete-case policy across the seven diagnostic
+    channels. Objective-only training retains finite archived objective records.
+    Selection preserves evaluation order and identifies rows by run/evaluation ID.
+    """
+    selected = []
+    diagnostic_rows = []
+    identities = set()
+    for result in results:
+        if exclude_invalid and not result.simulation_valid:
+            continue
+        if not result.x_physical or not result.objectives_model:
+            continue
+        if not all(finite_measurement(value) for value in result.x_physical + result.objectives_model):
+            continue
+        observed = diagnostic_observations(result.diagnostics) if require_diagnostics else None
+        if require_diagnostics and observed is None:
+            continue
+        identity = (result.run_id, result.evaluation_id)
+        if identity in identities:
+            raise ValueError("Duplicate evaluation identity in training observations.")
+        identities.add(identity)
+        selected.append(result)
+        if require_diagnostics:
+            diagnostic_rows.append(observed)
+    train_X = torch.tensor([r.x_physical for r in selected], dtype=torch.double) if selected else torch.empty((0, 6), dtype=torch.double)
+    train_Y = torch.tensor([r.objectives_model for r in selected], dtype=torch.double) if selected else torch.empty((0, 3), dtype=torch.double)
+    feasible = torch.tensor([r.physically_feasible for r in selected], dtype=torch.bool)
+    constraints = None
+    if require_diagnostics:
+        constraints = (torch.tensor(diagnostic_rows, dtype=torch.double) if selected
+                       else torch.empty((0, len(DIAGNOSTIC_CHANNELS)), dtype=torch.double))
+    return TrainingObservations(tuple((r.run_id, r.evaluation_id) for r in selected),
+                                train_X, train_Y, feasible, constraints)
+
+
 def get_train_tensors(
     results: List[EvaluationResult],
     exclude_invalid: bool = True,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
-    """
-    Generates (train_X, train_Y, train_feas_mask) double tensors for GP model fitting.
-
-    Args:
-        results: List of EvaluationResult records.
-        exclude_invalid: If True, excludes invalid simulations (preventing sentinel values in GP training).
-
-    Returns:
-        Tuple of (train_X, train_Y, train_feas_mask) tensors.
-    """
-    train_x_list = []
-    train_y_list = []
-    feas_list = []
-
-    for res in results:
-        if exclude_invalid and not res.simulation_valid:
-            continue
-        if res.x_physical is None or res.objectives_model is None:
-            continue
-
-        train_x_list.append(res.x_physical)
-        train_y_list.append(res.objectives_model)
-        feas_list.append(res.physically_feasible)
-
-    if len(train_x_list) == 0:
-        train_X = torch.empty((0, 6), dtype=torch.double)
-        train_Y = torch.empty((0, 3), dtype=torch.double)
-        train_feas_mask = torch.empty((0,), dtype=torch.bool)
-    else:
-        train_X = torch.tensor(train_x_list, dtype=torch.double)
-        train_Y = torch.tensor(train_y_list, dtype=torch.double)
-        train_feas_mask = torch.tensor(feas_list, dtype=torch.bool)
-
-    return train_X, train_Y, train_feas_mask
+    """Return finite objective observations; constrained callers use the shared selector."""
+    observed = get_training_observations(results, exclude_invalid)
+    return observed.train_X, observed.train_Y, observed.feasible
 
 
 def get_constraint_tensors(
     results: List[EvaluationResult],
     exclude_invalid: bool = True,
 ) -> torch.Tensor:
+    """Return complete measured diagnostics in canonical order, without imputation.
+
+    Use get_training_observations(require_diagnostics=True) to obtain identically
+    selected design/objective rows and their stable evaluation identities.
     """
-    Generates (N, 7) double tensor of diagnostic constraint metrics for GP model fitting.
-    Columns: [sigma_x_m, sigma_y_m, sigma_xp_rad, sigma_yp_rad, sigma_z_m, mean_kinetic_energy_eV, transmission_fraction]
-
-    Args:
-        results: List of EvaluationResult records.
-        exclude_invalid: If True, excludes invalid simulations.
-
-    Returns:
-        (N, 7) PyTorch double tensor of constraint metrics.
-    """
-    c_list = []
-    for res in results:
-        if exclude_invalid and not res.simulation_valid:
-            continue
-        if res.x_physical is None or res.objectives_model is None:
-            continue
-
-        diags = res.diagnostics or {}
-        sigma_x = float(diags.get("sigma_x_m", diags.get("sigma_x", 0.5e-3)))
-        sigma_y = float(diags.get("sigma_y_m", diags.get("sigma_y", 0.5e-3)))
-        sigma_xp = float(diags.get("sigma_xp_rad", diags.get("sigma_xp", 0.5e-3)))
-        sigma_yp = float(diags.get("sigma_yp_rad", diags.get("sigma_yp", 0.5e-3)))
-        sigma_z = float(diags.get("sigma_z_m", diags.get("sigma_z", 0.5e-3)))
-        energy = float(diags.get("mean_kinetic_energy_eV", diags.get("mean_kinetic_energy", 200.0e6)))
-        trans = float(diags.get("transmission_fraction", diags.get("transmission", 1.0)))
-
-        c_list.append([sigma_x, sigma_y, sigma_xp, sigma_yp, sigma_z, energy, trans])
-
-    if len(c_list) == 0:
-        return torch.empty((0, 7), dtype=torch.double)
-    return torch.tensor(c_list, dtype=torch.double)
+    return get_training_observations(results, exclude_invalid, require_diagnostics=True).constraints
 
 
 

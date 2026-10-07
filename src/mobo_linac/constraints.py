@@ -5,11 +5,14 @@ Evaluates beam quality constraints and feasibility status using centralized
 configuration thresholds.
 """
 
-import math
-from typing import Dict, Optional, Tuple, Union
+from typing import Dict, Optional, Union
 import torch
 
 from mobo_linac.config import ConstraintsConfig, MoboConfig
+from mobo_linac.diagnostics import (
+    DIAGNOSTIC_CHANNELS, constraint_sides, diagnostic_observations,
+    normalize_diagnostics, valid_channel_measurement,
+)
 
 
 class ConstraintEvaluator:
@@ -36,35 +39,12 @@ class ConstraintEvaluator:
         Returns:
             True if all constraints are satisfied, False otherwise.
         """
-        if not diagnostics:
+        observations = diagnostic_observations(diagnostics)
+        if observations is None:
             return False
-
-        # Require explicit or alias transmission field
-        if "transmission_fraction" not in diagnostics and "transmission" not in diagnostics:
-            return False
-
-        transmission = diagnostics.get("transmission_fraction", diagnostics.get("transmission"))
-        if transmission is None or math.isnan(transmission) or math.isinf(transmission):
-            return False
-
-        sigma_x = diagnostics.get("sigma_x_m", diagnostics.get("sigma_x", 999.0))
-        sigma_y = diagnostics.get("sigma_y_m", diagnostics.get("sigma_y", 999.0))
-        sigma_xp = diagnostics.get("sigma_xp_rad", diagnostics.get("sigma_xp", 999.0))
-        sigma_yp = diagnostics.get("sigma_yp_rad", diagnostics.get("sigma_yp", 999.0))
-        sigma_z = diagnostics.get("sigma_z_m", diagnostics.get("sigma_z", 999.0))
-        energy = diagnostics.get("mean_kinetic_energy_eV", diagnostics.get("mean_kinetic_energy", 0.0))
-
-        is_feasible = (
-            (sigma_x <= self.config.max_sigma_x_m)
-            and (sigma_y <= self.config.max_sigma_y_m)
-            and (sigma_xp <= self.config.max_sigma_xp_rad)
-            and (sigma_yp <= self.config.max_sigma_yp_rad)
-            and (sigma_z <= self.config.max_sigma_z_m)
-            and (energy >= self.config.min_mean_kinetic_energy_eV)
-            and (energy <= self.config.max_mean_kinetic_energy_eV)
-            and (transmission >= self.config.min_transmission)
-        )
-        return bool(is_feasible)
+        return all(observations[index] >= threshold if side == "lower"
+                   else observations[index] <= threshold
+                   for index, side, threshold, _ in constraint_sides(self.config))
 
     def compute_violations(self, diagnostics: Dict[str, float]) -> Dict[str, float]:
         """
@@ -75,29 +55,23 @@ class ConstraintEvaluator:
 
         Returns:
             Dictionary of violation amounts for each constraint.
+            Missing or invalid measurements have an unknown violation, represented by infinity.
         """
-        transmission = diagnostics.get("transmission_fraction", diagnostics.get("transmission", 0.0))
-        sigma_x = diagnostics.get("sigma_x_m", diagnostics.get("sigma_x", 999.0))
-        sigma_y = diagnostics.get("sigma_y_m", diagnostics.get("sigma_y", 999.0))
-        sigma_xp = diagnostics.get("sigma_xp_rad", diagnostics.get("sigma_xp", 999.0))
-        sigma_yp = diagnostics.get("sigma_yp_rad", diagnostics.get("sigma_yp", 999.0))
-        sigma_z = diagnostics.get("sigma_z_m", diagnostics.get("sigma_z", 999.0))
-        energy = diagnostics.get("mean_kinetic_energy_eV", diagnostics.get("mean_kinetic_energy", 0.0))
-
-        return {
-            "sigma_x_m": max(0.0, sigma_x - self.config.max_sigma_x_m),
-            "sigma_y_m": max(0.0, sigma_y - self.config.max_sigma_y_m),
-            "sigma_xp_rad": max(0.0, sigma_xp - self.config.max_sigma_xp_rad),
-            "sigma_yp_rad": max(0.0, sigma_yp - self.config.max_sigma_yp_rad),
-            "sigma_z_m": max(0.0, sigma_z - self.config.max_sigma_z_m),
-            "energy_lower_eV": max(0.0, self.config.min_mean_kinetic_energy_eV - energy),
-            "energy_upper_eV": max(0.0, energy - self.config.max_mean_kinetic_energy_eV),
-            "transmission": max(0.0, self.config.min_transmission - transmission),
-        }
+        normalized = normalize_diagnostics(diagnostics)
+        violations = {}
+        for index, side, threshold, name in constraint_sides(self.config):
+            channel = DIAGNOSTIC_CHANNELS[index]
+            value = normalized.get(channel.name)
+            if not valid_channel_measurement(channel, value):
+                violations[name] = float("inf")
+            else:
+                violations[name] = max(0.0, threshold - value if side == "lower" else value - threshold)
+        return violations
 
 
 def get_botorch_constraint_functions(
     config: Optional[Union[ConstraintsConfig, MoboConfig]] = None,
+    num_objectives: Optional[int] = None,
 ) -> list:
     """
     Dynamically constructs a list of BoTorch tensor constraint functions c_i(Y) <= 0
@@ -105,6 +79,8 @@ def get_botorch_constraint_functions(
 
     Args:
         config: MoboConfig or ConstraintsConfig instance.
+        num_objectives: Actual objective output count; defaults to the configured count
+            or the canonical three-objective compatibility layout.
 
     Returns:
         List of callable constraint functions returning Tensors where <= 0 indicates feasibility.
@@ -116,48 +92,20 @@ def get_botorch_constraint_functions(
     else:
         c_config = ConstraintsConfig()
 
-    max_sigma_x = c_config.max_sigma_x_m
-    max_sigma_y = c_config.max_sigma_y_m
-    max_sigma_xp = c_config.max_sigma_xp_rad
-    max_sigma_yp = c_config.max_sigma_yp_rad
-    max_sigma_z = c_config.max_sigma_z_m
-    min_energy = c_config.min_mean_kinetic_energy_eV
-    max_energy = c_config.max_mean_kinetic_energy_eV
-    min_transmission = c_config.min_transmission
+    c_config.validate()
+    offset = len(config.objectives) if isinstance(config, MoboConfig) else 3
+    if num_objectives is not None:
+        offset = num_objectives
+    if type(offset) is not int or offset < 1:
+        raise ValueError("num_objectives must be a positive integer.")
 
-    def c_sigma_x(Y: torch.Tensor) -> torch.Tensor:
-        return Y[..., 3] - max_sigma_x
-
-    def c_sigma_y(Y: torch.Tensor) -> torch.Tensor:
-        return Y[..., 4] - max_sigma_y
-
-    def c_sigma_xp(Y: torch.Tensor) -> torch.Tensor:
-        return Y[..., 5] - max_sigma_xp
-
-    def c_sigma_yp(Y: torch.Tensor) -> torch.Tensor:
-        return Y[..., 6] - max_sigma_yp
-
-    def c_sigma_z(Y: torch.Tensor) -> torch.Tensor:
-        return Y[..., 7] - max_sigma_z
-
-    def c_energy_min(Y: torch.Tensor) -> torch.Tensor:
-        return min_energy - Y[..., 8]
-
-    def c_energy_max(Y: torch.Tensor) -> torch.Tensor:
-        return Y[..., 8] - max_energy
-
-    def c_transmission(Y: torch.Tensor) -> torch.Tensor:
-        return min_transmission - Y[..., 9]
-
-    return [
-        c_sigma_x,
-        c_sigma_y,
-        c_sigma_xp,
-        c_sigma_yp,
-        c_sigma_z,
-        c_energy_min,
-        c_energy_max,
-        c_transmission,
-    ]
-
-
+    functions = []
+    for index, side, threshold, _ in constraint_sides(c_config):
+        def constraint(Y, index=index, side=side, threshold=threshold):
+            if Y.shape[-1] != offset + len(DIAGNOSTIC_CHANNELS):
+                raise ValueError("Acquisition outcomes do not match objective/diagnostic layout.")
+            value = Y[..., offset + index]
+            residual = threshold - value if side == "lower" else value - threshold
+            return torch.where(torch.isfinite(value), residual, torch.full_like(value, float("inf")))
+        functions.append(constraint)
+    return functions

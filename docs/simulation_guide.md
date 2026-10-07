@@ -106,6 +106,28 @@ Numerical simulation validity (`simulation_valid`) is strictly separated from ph
 - **Resilient Acquisition Optimization**: Configurable multi-restart L-BFGS budget with automatic adaptive retry and quasi-random Sobol fallback on numerical singularities.
 - **Atomic Checkpoint Serialization**: Atomic POSIX replace (`_atomic_torch_save`) preventing checkpoint corruption from process termination.
 
+#### Diagnostic Observation Policy
+
+`mobo_linac.diagnostics.DIAGNOSTIC_CHANNELS` defines the physical diagnostic layout. Configured thresholds and the existing analytical feasibility formulas are preserved.
+
+| Order | Canonical name | Legacy alias | Unit | Configured constraint |
+| --- | --- | --- | --- | --- |
+| 0 | `sigma_x_m` | `sigma_x` | m | upper RMS size |
+| 1 | `sigma_y_m` | `sigma_y` | m | upper RMS size |
+| 2 | `sigma_xp_rad` | `sigma_xp` | rad | upper divergence |
+| 3 | `sigma_yp_rad` | `sigma_yp` | rad | upper divergence |
+| 4 | `sigma_z_m` | `sigma_z` | m | upper bunch length |
+| 5 | `mean_kinetic_energy_eV` | `mean_kinetic_energy` | eV | lower and upper energy |
+| 6 | `transmission_fraction` | `transmission` | dimensionless | lower transmission |
+
+Aliases normalize to canonical names at ingestion; conflicting canonical/alias values are invalid. Missing measurements remain absent, invalid supplied measurements remain nonfinite, and empty ASTRA arrays never become observed zero RMS values. Transmission remains derived from measured particle counts when available, with explicit transmission statistics as the existing fallback. New evaluations require all seven finite channels; missing observations invalidate the evaluation. Negative RMS values and transmission outside `[0, 1]` are invalid observations, while complete measurements outside configured quality thresholds remain valid but infeasible.
+
+`get_training_observations(..., require_diagnostics=True)` returns one complete-case selection containing run/evaluation identities and aligned design, objective, feasibility, and diagnostic tensors. Missing or invalid channels exclude the entire row from constrained fitting without imputation. Fewer than two complete rows use the campaign's existing Sobol low-data branch. Objective-only selection can retain finite archived objective observations even if their diagnostics were not saved; stored archives and their metadata are not rewritten. `get_constraint_tensors` returns only complete diagnostic rows, so callers needing matching designs/objectives should use the shared selector.
+
+Observed feasibility requires complete diagnostics. Violation reports use positive infinity for missing or invalid channels rather than a fabricated measured violation. Acquisition constraint offsets come from the objective output count; the eight inequalities retain their existing order. `SurrogatePipeline` defaults to `constraint_layout="diagnostics"` and rejects nonfinite, unphysical, or misaligned training matrices before GP construction. Generic zero-threshold constraints must explicitly select `constraint_layout="residual"`; their interpretation no longer changes merely because there happen to be seven outputs.
+
+The full config-derived objective/extraction/export schema, including noncanonical empty tensor shapes, remains Task 05. This diagnostic refactor does not change nominal beam settings, engineering thresholds, objective definitions, or units.
+
 ### 3.2 Phase 1: Scalarized Bayesian Optimization Procedure
 - **Objective Scalarization**: Linear weighted sum formulation:
   $$f(\mathbf{x}) = \sum_{i=1}^3 w_i \cdot y_{i,\text{norm}}(\mathbf{x}) = w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$$

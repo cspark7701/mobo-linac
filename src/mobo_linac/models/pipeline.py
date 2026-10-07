@@ -11,6 +11,7 @@ from torch import Tensor
 from botorch.models import ModelListGP
 
 from mobo_linac.config import ConstraintsConfig, MoboConfig
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
 from mobo_linac.models.gp import build_gp_models, fit_gp_models
 
 
@@ -30,6 +31,7 @@ class SurrogatePipeline:
         objective_noise_variances: Optional[List[float]] = None,
         constraints_config: Optional[Union[ConstraintsConfig, MoboConfig]] = None,
         device: Optional[Union[str, torch.device]] = None,
+        constraint_layout: str = "diagnostics",
     ):
         from mobo_linac.utils import get_device
         self.device = get_device(device if isinstance(device, str) else (str(device) if device is not None else None))
@@ -49,6 +51,10 @@ class SurrogatePipeline:
         else:
             self.constraints_config = ConstraintsConfig()
 
+        if constraint_layout not in ("diagnostics", "residual"):
+            raise ValueError("constraint_layout must be 'diagnostics' or 'residual'.")
+        self.constraint_layout = constraint_layout
+        self.constraints_config.validate()
         self.objective_model: Optional[ModelListGP] = None
         self.constraint_model: Optional[ModelListGP] = None
         self.is_fitted: bool = False
@@ -72,9 +78,26 @@ class SurrogatePipeline:
         Returns:
             Fitted SurrogatePipeline instance.
         """
+        if (train_X.ndim != 2 or train_Y.ndim != 2 or train_X.shape[0] != train_Y.shape[0]
+                or train_X.shape[1] != self.bounds.shape[1] or train_Y.shape[1] < 1
+                or not torch.isfinite(train_X).all() or not torch.isfinite(train_Y).all()):
+            raise ValueError("Objective/design observations must be aligned finite matrices.")
+        if train_constraints is not None:
+            expected_channels = len(DIAGNOSTIC_CHANNELS)
+            if (train_constraints.ndim != 2 or train_constraints.shape[0] != train_X.shape[0]
+                    or train_constraints.shape[1] < 1 or not torch.isfinite(train_constraints).all()
+                    or (self.constraint_layout == "diagnostics" and train_constraints.shape[1] != expected_channels)):
+                raise ValueError("Constraint observations must be finite and aligned with the declared layout/design rows.")
+            if self.constraint_layout == "diagnostics":
+                for index, channel in enumerate(DIAGNOSTIC_CHANNELS):
+                    values = train_constraints[:, index]
+                    if ((channel.physical_minimum is not None and (values < channel.physical_minimum).any())
+                            or (channel.physical_maximum is not None and (values > channel.physical_maximum).any())):
+                        raise ValueError(f"Unphysical observed diagnostic channel: {channel.name}.")
         if train_X.shape[0] < 2:
             raise ValueError("Cannot fit SurrogatePipeline with fewer than 2 data points.")
 
+        self.is_fitted = False
         train_X_dbl = train_X.to(dtype=torch.double, device=self.device)
         train_Y_dbl = train_Y.to(dtype=torch.double, device=self.device)
 
@@ -160,28 +183,23 @@ class SurrogatePipeline:
             torch.tensor(1.0, dtype=torch.double, device=self.device),
         )
 
-        if mean.shape[-1] == 7 and self.constraints_config is not None:
-            c = self.constraints_config
-            # Diagnostic channels: [sigma_x, sigma_y, sigma_xp, sigma_yp, sigma_z, energy, transmission]
-            # 1. Upper bounds: P(Y <= max) = Phi((max - mean) / sigma)
-            p_sx = normal_dist.cdf((c.max_sigma_x_m - mean[..., 0]) / sigma[..., 0])
-            p_sy = normal_dist.cdf((c.max_sigma_y_m - mean[..., 1]) / sigma[..., 1])
-            p_sxp = normal_dist.cdf((c.max_sigma_xp_rad - mean[..., 2]) / sigma[..., 2])
-            p_syp = normal_dist.cdf((c.max_sigma_yp_rad - mean[..., 3]) / sigma[..., 3])
-            p_sz = normal_dist.cdf((c.max_sigma_z_m - mean[..., 4]) / sigma[..., 4])
-
-            # 2. Two-sided energy: P(E_min <= E <= E_max) = Phi((E_max - mean)/sigma) - Phi((E_min - mean)/sigma)
-            p_e_upper = normal_dist.cdf((c.max_mean_kinetic_energy_eV - mean[..., 5]) / sigma[..., 5])
-            p_e_lower = normal_dist.cdf((c.min_mean_kinetic_energy_eV - mean[..., 5]) / sigma[..., 5])
-            p_energy = (p_e_upper - p_e_lower).clamp(min=0.0, max=1.0)
-
-            # 3. Lower bound transmission: P(T >= min_T) = Phi((mean - min_T) / sigma)
-            p_trans = normal_dist.cdf((mean[..., 6] - c.min_transmission) / sigma[..., 6])
-
-            prob_stack = torch.stack([p_sx, p_sy, p_sxp, p_syp, p_sz, p_energy, p_trans], dim=-1)
-            prob_per_constraint = prob_stack.clamp(min=0.0, max=1.0)
+        if self.constraint_layout == "diagnostics":
+            if mean.shape[-1] != len(DIAGNOSTIC_CHANNELS):
+                raise ValueError("Constraint posterior does not match canonical diagnostic layout.")
+            probabilities = []
+            for index, channel in enumerate(DIAGNOSTIC_CHANNELS):
+                lower, upper = channel.bounds(self.constraints_config)
+                if lower is not None and upper is not None:
+                    probability = (normal_dist.cdf((upper - mean[..., index]) / sigma[..., index])
+                                   - normal_dist.cdf((lower - mean[..., index]) / sigma[..., index]))
+                elif upper is not None:
+                    probability = normal_dist.cdf((upper - mean[..., index]) / sigma[..., index])
+                else:
+                    probability = normal_dist.cdf((mean[..., index] - lower) / sigma[..., index])
+                probabilities.append(probability.clamp(min=0.0, max=1.0))
+            prob_per_constraint = torch.stack(probabilities, dim=-1)
         else:
-            # Fallback for standard zero-thresholded constraints c_i(x) <= 0
+            # Explicit zero-threshold residual constraints, including seven residuals.
             prob_per_constraint = normal_dist.cdf(-mean / sigma).clamp(min=0.0, max=1.0)
 
         total_prob = prob_per_constraint.prod(dim=-1)

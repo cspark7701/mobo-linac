@@ -108,6 +108,8 @@ Beam quality metrics and physical boundaries determine simulation feasibility:
 
 In **Phase 2**, feasibility diagnostic violations apply penalties. In **Phase 3**, constraints are explicitly modeled using separate Gaussian Process surrogate models for Probability of Feasibility computation.
 
+The seven diagnostic channels share one canonical layout for parsing, feasibility, GP training, and acquisition constraints. Missing, conflicting, or nonfinite measurements are never replaced with favorable defaults. Constrained fitting uses complete measured rows with matching design/objective identities; see the [diagnostic observation policy](docs/simulation_guide.md#diagnostic-observation-policy).
+
 ---
 
 ## Simulation & Optimization Workflow

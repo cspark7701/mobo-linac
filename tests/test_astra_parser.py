@@ -12,6 +12,65 @@ from mobo_linac.astra.parser import (
     ParsedAstraResult,
     SimulationStatus,
 )
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
+
+
+def nominal_stats():
+    return {"norm_emit_x": [1e-6], "norm_emit_y": [1e-6], "sigma_energy": [0.5e6],
+            "sigma_x": [0.5e-3], "sigma_y": [0.5e-3], "sigma_xp": [0.5e-3],
+            "sigma_yp": [0.5e-3], "sigma_z": [0.5e-3], "mean_kinetic_energy": [200e6],
+            "transmission": [1.0], "z": [16.2]}
+
+
+@pytest.mark.parametrize("channel", DIAGNOSTIC_CHANNELS, ids=lambda c: c.name)
+def test_parser_missing_channels_are_not_observed_zeroes(channel):
+    stats = nominal_stats()
+    del stats[channel.aliases[0]]
+    result = AstraOutputParser().parse_astra_simulation(MockAstraSim(stats))
+    assert result.status == SimulationStatus.OUTPUT_MISSING
+    assert not result.simulation_valid
+    assert channel.name not in result.diagnostics
+    assert channel.name in result.error_message
+
+
+@pytest.mark.parametrize("alias", ["sigma_x", "sigma_y", "sigma_xp", "sigma_yp", "sigma_z", "mean_kinetic_energy", "transmission"])
+def test_parser_empty_measurement_arrays_remain_unobserved(alias):
+    stats = nominal_stats()
+    stats[alias] = []
+    result = AstraOutputParser().parse_astra_simulation(MockAstraSim(stats))
+    assert not result.simulation_valid
+    assert result.status == SimulationStatus.OUTPUT_MISSING
+
+
+@pytest.mark.parametrize("value", [float("nan"), float("inf")])
+def test_parser_nonfinite_transmission_is_numerically_invalid(value):
+    stats = nominal_stats()
+    stats["transmission"] = [value]
+    result = AstraOutputParser().parse_astra_simulation(MockAstraSim(stats))
+    assert not result.simulation_valid
+    assert result.status == SimulationStatus.NUMERICAL_ERROR
+
+
+def test_parser_canonical_units_and_conflicting_aliases():
+    stats = nominal_stats()
+    for channel in DIAGNOSTIC_CHANNELS:
+        stats[channel.name] = stats.pop(channel.aliases[0])
+    parser = AstraOutputParser()
+    result = parser.parse_astra_simulation(MockAstraSim(stats))
+    assert result.simulation_valid
+    assert result.diagnostics["mean_kinetic_energy_eV"] == 200e6
+    stats["sigma_x"] = [0.7e-3]
+    conflicted = parser.parse_astra_simulation(MockAstraSim(stats))
+    assert conflicted.status == SimulationStatus.NUMERICAL_ERROR
+    assert not conflicted.simulation_valid
+
+
+def test_parser_invalid_particle_counts_are_classified_without_crashing():
+    stats = nominal_stats()
+    stats["landf_n_particles"] = [float("nan"), 100]
+    result = AstraOutputParser().parse_astra_simulation(MockAstraSim(stats))
+    assert result.status == SimulationStatus.NUMERICAL_ERROR
+    assert not result.simulation_valid
 
 
 @dataclass

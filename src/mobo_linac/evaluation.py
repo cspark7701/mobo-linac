@@ -7,12 +7,13 @@ simulation validity, physical beam feasibility, and objective values.
 
 from dataclasses import asdict, dataclass, field
 from enum import Enum
-import math
+from numbers import Real
 from typing import Any, Dict, List, Optional, Sequence, Union
 import torch
 
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.constraints import ConstraintEvaluator
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, finite_measurement, normalize_diagnostics
 from mobo_linac.objectives import transform_to_model_space
 
 
@@ -97,6 +98,7 @@ def create_evaluation_result(
 
     raw_objs = raw_res.get("objectives", manifest.get("objectives"))
     raw_diags = raw_res.get("diagnostics", manifest.get("diagnostics"))
+    raw_diags = normalize_diagnostics(raw_diags) if isinstance(raw_diags, dict) else {}
 
     # Determine failure category and simulation validity
     simulation_valid = False
@@ -112,11 +114,8 @@ def create_evaluation_result(
         failure_reason = error_msg or "Simulation output or diagnostics missing"
     else:
         # 1. Check for NaN or Inf in objectives and diagnostics first
-        all_vals = list(raw_objs.values()) + list(raw_diags.values())
-        has_nan_inf = any(
-            v is None or not isinstance(v, (int, float)) or math.isnan(float(v)) or math.isinf(float(v))
-            for v in all_vals
-        )
+        all_vals = (list(raw_objs.values()) if isinstance(raw_objs, dict) else list(raw_objs)) + list(raw_diags.values())
+        has_nan_inf = any(not finite_measurement(value) for value in all_vals)
 
         # 2. Check for premature beam loss / incomplete particle tracking
         target_z = 16.2
@@ -139,8 +138,9 @@ def create_evaluation_result(
         elif "stats" in raw_res and isinstance(raw_res["stats"], dict) and "z" in raw_res["stats"] and len(raw_res["stats"]["z"]) > 0:
             z_final = float(raw_res["stats"]["z"][-1])
 
-        # 3. Check for missing transmission
-        transmission_val = raw_diags.get("transmission_fraction", raw_diags.get("transmission"))
+        # 3. Require measured values for every canonical diagnostic channel.
+        transmission_val = raw_diags.get("transmission_fraction")
+        missing_channels = [name for name in DIAGNOSTIC_NAMES if name not in raw_diags]
 
         if has_nan_inf:
             failure_category = FailureCategory.NAN_INF_DIAGNOSTICS.value
@@ -148,20 +148,17 @@ def create_evaluation_result(
         elif z_final is not None and z_final < (target_z - z_tol):
             failure_category = FailureCategory.PREMATURE_BEAM_LOSS.value
             failure_reason = f"Premature tracking termination at z = {z_final:.3f} m (expected exit plane >= {target_z - z_tol:.3f} m)"
-        elif transmission_val is None:
+        elif missing_channels:
             failure_category = FailureCategory.MISSING_OUTPUT.value
-            failure_reason = "Required transmission_fraction diagnostic is missing"
+            failure_reason = "Required diagnostic observations missing: " + ", ".join(missing_channels)
         else:
             transmission = float(transmission_val)
             # Check for negative RMS quantities or unphysical transmission range
-            rms_vals = [
-                raw_diags.get("sigma_x_m", raw_diags.get("sigma_x", 0.0)),
-                raw_diags.get("sigma_y_m", raw_diags.get("sigma_y", 0.0)),
-                raw_diags.get("sigma_xp_rad", raw_diags.get("sigma_xp", 0.0)),
-                raw_diags.get("sigma_yp_rad", raw_diags.get("sigma_yp", 0.0)),
-                raw_diags.get("sigma_z_m", raw_diags.get("sigma_z", 0.0)),
-                raw_diags.get("sigma_energy_eV", raw_diags.get("sigma_energy", 0.0)),
-            ]
+            rms_vals = [raw_diags[channel.name] for channel in DIAGNOSTIC_CHANNELS
+                        if channel.physical_minimum == 0.0 and channel.name != "transmission_fraction"]
+            for name in ("sigma_energy_eV", "sigma_energy"):
+                if name in raw_diags:
+                    rms_vals.append(raw_diags[name])
             has_negative_rms = any(float(v) < 0.0 for v in rms_vals)
 
             if has_negative_rms:
@@ -208,7 +205,8 @@ def create_evaluation_result(
 
     diags_clean: Dict[str, float] = {}
     if raw_diags and isinstance(raw_diags, dict):
-        diags_clean = {k: float(v) for k, v in raw_diags.items()}
+        diags_clean = {k: float(v) if isinstance(v, Real) and not isinstance(v, bool)
+                       else float("nan") for k, v in raw_diags.items()}
 
     return EvaluationResult(
         evaluation_id=eval_id,

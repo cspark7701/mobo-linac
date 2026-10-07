@@ -43,7 +43,7 @@ from mobo_linac.io.results import (
     MODEL_OBJ_COLUMNS,
     PHYSICAL_OBJ_COLUMNS,
     append_streaming_evaluation,
-    get_constraint_tensors,
+    get_training_observations,
     get_train_tensors,
     results_to_dataframe,
     save_evaluation_results,
@@ -531,7 +531,8 @@ class MoboCampaignRunner:
                 if proposal_batch_size <= 0:
                     break
             print(f"--- Iteration {iteration:02d}/{self.num_batches:02d} ---")
-            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
+            training = get_training_observations(results, exclude_invalid=True, require_diagnostics=self.constrained)
+            train_X, train_Y, train_feas_mask = training.train_X, training.train_Y, training.feasible
 
             if (resume_state is not None and resume_state.pending_proposal is not None
                     and resume_state.pending_proposal["batch_idx"] == iteration):
@@ -600,12 +601,11 @@ class MoboCampaignRunner:
                 )
 
                 if self.constrained:
-                    train_constraints = get_constraint_tensors(results, exclude_invalid=True)
-                    pipeline.fit(train_X, train_Y, train_constraints)
+                    pipeline.fit(train_X, train_Y, training.constraints)
                     if pipeline.constraint_model is not None:
                         gp_model = ModelListGP(*pipeline.objective_model.models, *pipeline.constraint_model.models).to(device=self.device, dtype=torch.double)
-                        botorch_constraints = get_botorch_constraint_functions(self.config)
-                        objective_slice = SliceObjective(num_objectives=3)
+                        botorch_constraints = get_botorch_constraint_functions(self.config, num_objectives=train_Y.shape[-1])
+                        objective_slice = SliceObjective(num_objectives=train_Y.shape[-1])
                     else:
                         gp_model = pipeline.objective_model
                         botorch_constraints = None

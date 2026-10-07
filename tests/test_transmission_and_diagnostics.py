@@ -15,6 +15,79 @@ from mobo_linac.evaluation import (
     create_evaluation_result,
 )
 from mobo_linac.io.results import results_to_dataframe
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
+
+
+@pytest.mark.parametrize("channel", DIAGNOSTIC_CHANNELS, ids=lambda c: c.name)
+def test_missing_diagnostic_invalidates_new_evaluation_without_imputation(channel):
+    from mobo_linac.io.results import get_constraint_tensors, get_train_tensors
+
+    raw = get_valid_raw_output()
+    del raw["diagnostics"][channel.name]
+    result = create_evaluation_result(raw, load_config())
+    assert not result.simulation_valid
+    assert result.failure_category == FailureCategory.MISSING_OUTPUT.value
+    assert channel.name not in result.diagnostics
+    assert get_constraint_tensors([result]).shape == (0, 7)
+    assert get_train_tensors([result])[0].shape[0] == 0
+
+
+@pytest.mark.parametrize("value", [None, "unmeasured", float("nan"), float("inf")])
+def test_invalid_channel_values_are_recorded_without_factory_crashes(value):
+    raw = get_valid_raw_output()
+    raw["diagnostics"]["sigma_x_m"] = value
+    result = create_evaluation_result(raw, load_config())
+    assert not result.simulation_valid
+    assert result.failure_category == FailureCategory.NAN_INF_DIAGNOSTICS.value
+    assert not math.isfinite(result.diagnostics["sigma_x_m"])
+
+
+def test_factory_normalizes_complete_legacy_aliases_once():
+    raw = get_valid_raw_output()
+    for channel in DIAGNOSTIC_CHANNELS:
+        raw["diagnostics"][channel.aliases[0]] = raw["diagnostics"].pop(channel.name)
+    result = create_evaluation_result(raw, load_config())
+    assert result.simulation_valid and result.physically_feasible
+    for channel in DIAGNOSTIC_CHANNELS:
+        assert channel.name in result.diagnostics
+        assert channel.aliases[0] not in result.diagnostics
+
+
+def test_numpy_real_measurements_are_valid_observations():
+    raw = get_valid_raw_output()
+    raw["diagnostics"] = {key: np.float64(value) for key, value in raw["diagnostics"].items()}
+    raw["diagnostics"]["n_particles_final"] = np.int64(10000)
+    raw["objectives"]["norm_emit_x"] = np.float32(1e-6)
+    result = create_evaluation_result(raw, load_config())
+    assert result.simulation_valid and result.physically_feasible
+    assert result.diagnostics["n_particles_final"] == 10000.0
+
+
+def test_filtered_constraint_rows_retain_design_objective_identity():
+    from mobo_linac.io.results import get_training_observations, get_constraint_tensors
+
+    records = []
+    for index in range(5):
+        raw = get_valid_raw_output()
+        raw["eval_id"] = f"eval_{index + 1:06d}"
+        raw["parameters"][0] += index * 0.001
+        raw["objectives"]["norm_emit_x"] += index * 1e-7
+        if index == 3:
+            raw["diagnostics"]["sigma_x_m"] = 1.2e-3  # Measured infeasibility is still training data.
+        records.append(create_evaluation_result(raw, load_config()))
+    # Archived records can carry a valid flag despite incomplete diagnostic dictionaries.
+    del records[1].diagnostics["sigma_y_m"]
+    records[2].diagnostics["mean_kinetic_energy_eV"] = float("inf")
+    records[4].objectives_model[0] = float("nan")
+    observed = get_training_observations(records, require_diagnostics=True)
+    assert observed.evaluation_ids == (("test_run", "eval_000001"), ("test_run", "eval_000004"))
+    assert observed.train_X.tolist() == [records[i].x_physical for i in (0, 3)]
+    assert observed.train_Y.tolist() == [records[i].objectives_model for i in (0, 3)]
+    assert observed.constraints[:, 0].tolist() == [0.5e-3, 1.2e-3]
+    assert observed.feasible.tolist() == [True, False]
+    assert get_constraint_tensors(records).tolist() == observed.constraints.tolist()
+    objective_only = get_training_observations(records)
+    assert len(objective_only.evaluation_ids) == 4
 
 
 def get_valid_raw_output():
@@ -213,5 +286,3 @@ def test_premature_beam_loss_exit_plane_rejection():
     assert res_valid.simulation_valid is True
     assert res_valid.physically_feasible is True
     assert res_valid.failure_category == FailureCategory.SUCCESS.value
-
-

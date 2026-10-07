@@ -5,6 +5,69 @@ Unit tests for Diagnostic Constraints and Feasibility (Task 04).
 import pytest
 from mobo_linac.config import ConstraintsConfig
 from mobo_linac.constraints import ConstraintEvaluator
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, normalize_diagnostics
+
+
+def complete_diagnostics():
+    return dict(zip((channel.name for channel in DIAGNOSTIC_CHANNELS),
+                    [0.5e-3] * 5 + [200e6, 1.0]))
+
+
+@pytest.mark.parametrize("channel", DIAGNOSTIC_CHANNELS, ids=lambda c: c.name)
+@pytest.mark.parametrize("value", [None, float("nan"), float("inf"), -float("inf"), "missing", True])
+def test_unobserved_or_nonfinite_channels_never_pass_feasibility(channel, value):
+    diagnostics = complete_diagnostics()
+    diagnostics[channel.name] = value
+    evaluator = ConstraintEvaluator()
+    assert evaluator.check_feasibility(diagnostics) is False
+    violations = evaluator.compute_violations(diagnostics)
+    for name in (channel.lower_violation, channel.upper_violation):
+        if name is not None:
+            assert violations[name] == float("inf")
+
+
+@pytest.mark.parametrize("channel", DIAGNOSTIC_CHANNELS, ids=lambda c: c.name)
+def test_missing_channels_remain_missing_and_aliases_are_measured(channel):
+    diagnostics = complete_diagnostics()
+    measured = diagnostics.pop(channel.name)
+    evaluator = ConstraintEvaluator()
+    assert channel.name not in normalize_diagnostics(diagnostics)
+    assert not evaluator.check_feasibility(diagnostics)
+    diagnostics[channel.aliases[0]] = measured
+    normalized = normalize_diagnostics(diagnostics)
+    assert channel.aliases[0] not in normalized
+    assert normalized[channel.name] == measured
+    assert evaluator.check_feasibility(normalized)
+    diagnostics[channel.name] = measured + 1
+    assert not evaluator.check_feasibility(diagnostics)
+
+
+@pytest.mark.parametrize("count", [2, 3, 4])
+def test_acquisition_constraint_offsets_follow_objective_layout(count):
+    import copy
+    import torch
+    from mobo_linac.config import load_config
+    from mobo_linac.constraints import get_botorch_constraint_functions
+
+    config = load_config()
+    config.objectives = list(reversed(config.objectives))
+    if count < 3:
+        config.objectives = config.objectives[:count]
+    elif count > 3:
+        extra = copy.deepcopy(config.objectives[0])
+        extra.name = "extra_objective"
+        config.objectives.append(extra)
+    functions = get_botorch_constraint_functions(config)
+    objectives = [1e20, -1e20, 3e20, -3e20][:count]
+    outcomes = torch.tensor([objectives + [0.5e-3] * 5 + [200e6, 1.0]], dtype=torch.double)
+    assert [f(outcomes).item() for f in functions] == pytest.approx(
+        [-0.5e-3] * 5 + [-5e6, -5e6, -0.1])
+    outcomes[0, count + 5] = 190e6
+    assert functions[5](outcomes).item() == 5e6
+    outcomes[0, count + 6] = float("nan")
+    assert functions[7](outcomes).item() == float("inf")
+    with pytest.raises(ValueError, match="layout"):
+        functions[0](outcomes[..., :-1])
 
 
 def test_feasibility_boundary_conditions():
@@ -89,5 +152,4 @@ def test_get_botorch_constraint_functions():
     # Test infeasible transmission tensor (transmission = 0.80 < 0.90 threshold)
     Y_infeasible_trans = torch.tensor([[0.0, 0.0, 0.0, 0.5e-3, 0.5e-3, 0.5e-3, 0.5e-3, 0.5e-3, 200.0e6, 0.80]], dtype=torch.double)
     assert c_funcs[7](Y_infeasible_trans).item() > 0.0
-
 
