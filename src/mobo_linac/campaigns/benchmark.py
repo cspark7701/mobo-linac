@@ -2,34 +2,31 @@
 Statistically Rigorous Benchmark Campaign Orchestrator for Linac MOBO (Task 09).
 
 Executes multi-seed, multi-algorithm benchmark comparisons with seed-paired initial
-Sobol sampling, equal evaluation budgets, checkpoint resume capabilities, and
+Sobol sampling, exact evaluation budgets, completion-state validation, and
 publication-ready aggregate metrics and plots.
 """
 
+from dataclasses import asdict, replace
+import hashlib
+import json
+import os
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
-import numpy as np
+import tempfile
+from typing import Any, Dict, List, Optional, Tuple, Union
 import pandas as pd
 import torch
 from torch.quasirandom import SobolEngine
 
-from mobo_linac.config import BenchmarkConfig, MoboConfig, load_config
-from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
-from mobo_linac.io.results import load_run_checkpoint, save_evaluation_results, save_run_checkpoint
+from mobo_linac.benchmark_algorithms import (
+    SUPPORTED_BENCHMARK_ALGORITHMS,
+    get_benchmark_algorithm,
+)
+from mobo_linac.config import BenchmarkConfig, MoboConfig
 from mobo_linac.metrics.reporting import (
-    DEFAULT_REPORTING_REF_POINT_MODEL_NORM,
+    DEFAULT_REPORTING_SCALES,
     compute_campaign_metrics_history,
 )
 from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics
-
-SUPPORTED_BENCHMARK_ALGORITHMS = [
-    "constrained_qlognehvi",
-    "unconstrained_qlognehvi",
-    "qlogehvi",
-    "scalarized_bo",
-    "nsga2",
-    "sobol",
-]
 
 
 def generate_seed_paired_sobol_samples(
@@ -79,49 +76,115 @@ class BenchmarkCampaignRunner:
         batch_size: int = 4,
         device: str = "auto",
         benchmark_config: Optional[BenchmarkConfig] = None,
+        num_workers: Optional[int] = None,
     ):
-        self.config = config
         self.device = device
-
-        # If BenchmarkConfig provided, it takes precedence over individual args
-        if benchmark_config is not None:
-            benchmark_config.validate()
-            self.output_dir = Path(benchmark_config.output_dir)
-            self.algorithms = benchmark_config.algorithms
-            self.seeds = benchmark_config.seeds
-            self.total_eval_budget = benchmark_config.total_eval_budget
-            self.n_sobol_init = benchmark_config.n_sobol_init
-            self.batch_size = benchmark_config.batch_size
-            self.benchmark_config = benchmark_config
-        else:
-            self.output_dir = Path(output_dir)
-            self.algorithms = algorithms or SUPPORTED_BENCHMARK_ALGORITHMS
-            self.seeds = seeds or list(range(42, 52))
-            self.total_eval_budget = total_eval_budget
-            self.n_sobol_init = n_sobol_init
-            self.batch_size = batch_size
-            self.benchmark_config = BenchmarkConfig(
-                algorithms=self.algorithms,
-                seeds=self.seeds,
-                total_eval_budget=self.total_eval_budget,
-                n_sobol_init=self.n_sobol_init,
-                batch_size=self.batch_size,
-            )
-
+        self.evaluation_kind = "astra"
+        self.num_workers = config.execution.max_workers if num_workers is None else num_workers
+        if self.num_workers < 1:
+            raise ValueError("num_workers must be >= 1.")
+        self.benchmark_config = benchmark_config or BenchmarkConfig(
+            algorithms=list(SUPPORTED_BENCHMARK_ALGORITHMS) if algorithms is None else algorithms,
+            seeds=list(range(42, 52)) if seeds is None else seeds,
+            total_eval_budget=total_eval_budget,
+            n_sobol_init=n_sobol_init,
+            batch_size=batch_size,
+            output_dir=str(output_dir),
+        )
+        self.benchmark_config.validate()
+        self.config = replace(
+            config, constraints=config.get_constraint_profile(self.benchmark_config.constraint_profile)
+        )
+        self.output_dir = Path(self.benchmark_config.output_dir)
+        self.algorithms = list(self.benchmark_config.algorithms)
+        self.seeds = list(self.benchmark_config.seeds)
+        self.total_eval_budget = self.benchmark_config.total_eval_budget
+        self.n_sobol_init = self.benchmark_config.n_sobol_init
+        self.batch_size = self.benchmark_config.batch_size
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.manifest_rows: List[Dict[str, Any]] = []
 
-        # Validate budget
-        n_batches = (self.total_eval_budget - self.n_sobol_init) // self.batch_size
-        if n_batches < 1:
-            raise ValueError(
-                f"total_eval_budget ({self.total_eval_budget}) - n_sobol_init ({self.n_sobol_init}) "
-                f"must be >= batch_size ({self.batch_size})."
-            )
-
     @property
     def n_batches(self) -> int:
-        return max(1, (self.total_eval_budget - self.n_sobol_init) // self.batch_size)
+        remaining = self.total_eval_budget - self.n_sobol_init
+        return (remaining + self.batch_size - 1) // self.batch_size
+
+    @property
+    def final_batch_size(self) -> int:
+        return self.total_eval_budget - self.n_sobol_init - (self.n_batches - 1) * self.batch_size
+
+    def _run_signature(self, algorithm: str, seed: int) -> str:
+        payload = {
+            "config": asdict(self.config),
+            "algorithm": algorithm,
+            "evaluation_kind": self.evaluation_kind,
+            "definition": asdict(get_benchmark_algorithm(algorithm)),
+            "seed": seed,
+            "budget": self.total_eval_budget,
+            "n_sobol_init": self.n_sobol_init,
+            "batch_size": self.batch_size,
+            "reporting_scales": DEFAULT_REPORTING_SCALES,
+            "reporting_ref_point_physical_norm": self.benchmark_config.reporting_ref_point,
+        }
+        return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
+
+    def _run_status(self, algorithm: str, seed: int, require_signature: bool = True) -> str:
+        run_dir = self.get_run_dir(algorithm, seed)
+        state_path = run_dir / "benchmark_state.json"
+        if not run_dir.exists() or not any(run_dir.iterdir()):
+            return "pending"
+        if not state_path.exists():
+            return "incomplete"
+        try:
+            state = json.loads(state_path.read_text())
+            if not isinstance(state, dict) or state.get("version") != 1:
+                return "incomplete"
+            if state.get("algorithm") != algorithm or state.get("seed") != seed:
+                return "incompatible"
+            if require_signature and state.get("signature") != self._run_signature(algorithm, seed):
+                return "incompatible"
+            expected_budget = self.total_eval_budget if require_signature else state.get("effective_budget")
+            if not isinstance(expected_budget, int) or expected_budget < 1:
+                return "incomplete"
+            if state.get("status") != "completed" or state.get("evaluation_count") != expected_budget:
+                return "incomplete"
+            history = pd.read_csv(run_dir / "candidate_history.csv")
+            metrics = pd.read_csv(run_dir / "metrics_history.csv")
+            if (len(history) != expected_budget or len(metrics) != expected_budget
+                    or history["evaluation_id"].nunique() != expected_budget
+                    or int(metrics.iloc[-1]["cumulative_astra_evaluations"]) != expected_budget):
+                return "incomplete"
+        except (OSError, ValueError, KeyError, TypeError, IndexError):
+            return "incomplete"
+        return "completed"
+
+    def _save_run_state(self, algorithm: str, seed: int, status: str, evaluation_count: int) -> None:
+        run_dir = self.get_run_dir(algorithm, seed)
+        run_dir.mkdir(parents=True, exist_ok=True)
+        data = {
+            "version": 1,
+            "algorithm": algorithm,
+            "evaluation_kind": self.evaluation_kind,
+            "seed": seed,
+            "status": status,
+            "signature": self._run_signature(algorithm, seed),
+            "requested_budget": self.total_eval_budget,
+            "effective_budget": self.total_eval_budget,
+            "evaluation_count": evaluation_count,
+            "reporting_scales": DEFAULT_REPORTING_SCALES,
+            "reporting_ref_point_physical_norm": self.benchmark_config.reporting_ref_point,
+        }
+        temporary_path = None
+        try:
+            with tempfile.NamedTemporaryFile(mode="w", dir=run_dir, delete=False) as stream:
+                temporary_path = Path(stream.name)
+                json.dump(data, stream, indent=2)
+                stream.flush()
+                os.fsync(stream.fileno())
+            os.replace(temporary_path, run_dir / "benchmark_state.json")
+        finally:
+            if temporary_path is not None and temporary_path.exists():
+                temporary_path.unlink()
 
     def get_run_dir(self, algorithm: str, seed: int) -> Path:
         """Returns isolated run directory for algorithm and seed."""
@@ -133,17 +196,20 @@ class BenchmarkCampaignRunner:
         for algo in self.algorithms:
             for s in self.seeds:
                 run_path = self.get_run_dir(algo, s)
-                completed = (run_path / "candidate_history.csv").exists()
-                effective_budget = self.n_sobol_init + self.n_batches * self.batch_size
+                status = self._run_status(algo, s)
+                effective_budget = self.total_eval_budget
                 self.manifest_rows.append({
                     "algorithm": algo,
                     "seed": s,
                     "budget": effective_budget,
+                    "requested_budget": self.total_eval_budget,
+                    "effective_budget": effective_budget,
+                    "final_batch_size": self.final_batch_size,
                     "n_sobol_init": self.n_sobol_init,
                     "n_batches": self.n_batches,
                     "batch_size": self.batch_size,
                     "run_dir": str(run_path),
-                    "status": "completed" if completed else "pending",
+                    "status": status,
                 })
         manifest_df = pd.DataFrame(self.manifest_rows)
         manifest_df.to_csv(self.output_dir / "campaign_manifest.csv", index=False)
@@ -162,14 +228,25 @@ class BenchmarkCampaignRunner:
             plot_benchmark_feasibility_comparison,
         )
 
-        seed_histories: Dict[str, Dict[int, pd.DataFrame]] = {algo: {} for algo in self.algorithms}
-
-        for algo in self.algorithms:
-            for s in self.seeds:
-                run_path = self.get_run_dir(algo, s)
-                history_csv = run_path / "metrics_history.csv"
-                if history_csv.exists():
-                    seed_histories[algo][s] = pd.read_csv(history_csv)
+        seed_histories: Dict[str, Dict[int, pd.DataFrame]] = {}
+        manifest_path = self.output_dir / "campaign_manifest.csv"
+        if manifest_path.exists():
+            pairs = pd.read_csv(manifest_path)[["algorithm", "seed"]].itertuples(index=False, name=None)
+        else:
+            pairs = ((algo, seed) for algo in self.algorithms for seed in self.seeds)
+        reporting_metadata = None
+        for algo, seed in pairs:
+            get_benchmark_algorithm(algo)
+            seed = int(seed)
+            if self._run_status(algo, seed, require_signature=False) != "completed":
+                continue
+            run_path = self.get_run_dir(algo, seed)
+            state = json.loads((run_path / "benchmark_state.json").read_text())
+            metadata = (state["evaluation_kind"], state["reporting_scales"], state["reporting_ref_point_physical_norm"])
+            if reporting_metadata is not None and metadata != reporting_metadata:
+                raise ValueError("Completed benchmark runs have incompatible reporting settings.")
+            reporting_metadata = metadata
+            seed_histories.setdefault(algo, {})[seed] = pd.read_csv(run_path / "metrics_history.csv")
 
         agg_df, summary_df = compute_aggregate_benchmark_metrics(seed_histories)
 
@@ -198,10 +275,11 @@ class BenchmarkCampaignRunner:
         Enforces equal evaluation budget and seed-paired initial Sobol design
         across all algorithm-seed combinations.
         """
+        self.evaluation_kind = "mock" if mock_evaluator is not None else "astra"
         self.run_campaign_manifest()
 
         total_runs = len(self.algorithms) * len(self.seeds)
-        effective_budget = self.n_sobol_init + self.n_batches * self.batch_size
+        effective_budget = self.total_eval_budget
 
         if dry_run:
             print(f"[DRY-RUN] Benchmark Campaign Plan:")
@@ -209,7 +287,7 @@ class BenchmarkCampaignRunner:
             print(f"  - Algorithms ({len(self.algorithms)}): {self.algorithms}")
             print(f"  - Seeds ({len(self.seeds)}): {self.seeds}")
             print(f"  - Total Runs: {total_runs}")
-            print(f"  - Per-run Budget: {effective_budget} evals ({self.n_sobol_init} Sobol + {self.n_batches} x {self.batch_size} batches)")
+            print(f"  - Per-run Budget: {effective_budget} evals ({self.n_sobol_init} Sobol + {self.n_batches} batches, final q={self.final_batch_size})")
             print(f"  - Total Planned Evaluations: {total_runs * effective_budget}")
             return pd.DataFrame(self.manifest_rows)
 
@@ -218,19 +296,19 @@ class BenchmarkCampaignRunner:
         for s in self.seeds:
             for algo in self.algorithms:
                 run_dir = self.get_run_dir(algo, s)
-                if (run_dir / "candidate_history.csv").exists():
+                status = self._run_status(algo, s)
+                if status == "completed":
                     print(f"Skipping already completed benchmark run: {algo} seed {s}")
                     continue
+                if status != "pending":
+                    raise RuntimeError(
+                        f"Benchmark run {run_dir} is {status}; preserve its artifacts and "
+                        "select a new output directory. Automatic recovery requires the complete resume-state refactor."
+                    )
 
                 print(f"\nExecuting Benchmark Run: algorithm='{algo}', seed={s}...")
-                constrained = "constrained" in algo
-                if "nehvi" in algo:
-                    acq_type = "qLogNEHVI"
-                elif "ehvi" in algo:
-                    acq_type = "qEHVI"
-                else:
-                    acq_type = "qLogNEHVI"
-
+                spec = get_benchmark_algorithm(algo)
+                self._save_run_state(algo, s, "running", 0)
                 runner = MoboCampaignRunner(
                     config=self.config,
                     output_dir=run_dir,
@@ -238,15 +316,28 @@ class BenchmarkCampaignRunner:
                     num_batches=self.n_batches,
                     batch_size=self.batch_size,
                     seed=s,
-                    acq_type=acq_type,
-                    constrained=constrained,
+                    acq_type=spec.acquisition,
+                    optimization_mode=spec.optimization_mode,
+                    constrained=spec.constrained,
+                    num_workers=self.num_workers,
+                    total_eval_budget=self.total_eval_budget,
                     evaluator=mock_evaluator,
                     device=self.device,
                 )
-                results, tracker, _ = runner.run()
+                results, _, _ = runner.run()
 
-                metrics_df = compute_campaign_metrics_history(results, tracker.reporting_ref_point, self.config)
+                if len(results) != self.total_eval_budget:
+                    raise RuntimeError(f"Benchmark returned {len(results)} evaluations; expected {self.total_eval_budget}.")
+                metrics_df = compute_campaign_metrics_history(
+                    results=results,
+                    scales=DEFAULT_REPORTING_SCALES,
+                    reporting_ref_point_norm=[-value for value in self.benchmark_config.reporting_ref_point],
+                )
                 metrics_df.to_csv(run_dir / "metrics_history.csv", index=False)
+                self._save_run_state(algo, s, "completed", len(results))
+                if self._run_status(algo, s) != "completed":
+                    self._save_run_state(algo, s, "incomplete", len(results))
+                    raise RuntimeError(f"Benchmark run {run_dir} has incomplete persisted evaluation or metric history.")
 
         self.analyze_completed_results()
         return self.run_campaign_manifest()

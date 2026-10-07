@@ -25,6 +25,7 @@ def run_benchmark(args: argparse.Namespace) -> None:
         n_sobol_init=getattr(args, "n_sobol_init", 10),
         batch_size=getattr(args, "batch_size", 4),
         device=getattr(args, "device", "auto"),
+        num_workers=getattr(args, "num_workers", None),
     )
     mock_eval = (
         CliMockEvaluator(Path(args.output_dir))
@@ -57,7 +58,7 @@ def register_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
         "--output-dir", type=str, default="results/publication_benchmark", help="Output directory"
     )
     run_bm_parser.add_argument(
-        "--algorithms", nargs="+", type=str, default=None, help="Algorithms to benchmark (space-separated)"
+        "--algorithms", nargs="+", type=str, default=None, help="Implemented algorithms: constrained_qlognehvi, unconstrained_qlognehvi, qlogehvi, scalarized_bo"
     )
     run_bm_parser.add_argument(
         "--seeds", nargs="+", type=int, default=list(range(42, 52)), help="List of random seeds"

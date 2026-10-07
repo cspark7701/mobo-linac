@@ -208,6 +208,8 @@ mobo-linac run-constrained --config configs/publication_200MeV.yaml --n-iteratio
 mobo-linac run-benchmark --config configs/publication_200MeV.yaml --seeds 42 43 44 --budget 40 --num-workers 12
 ```
 
+The benchmark dispatcher supports `constrained_qlognehvi`, `unconstrained_qlognehvi`, `qlogehvi`, and `scalarized_bo`; choose a subset with `--algorithms`. NSGA-II and Sobol-only benchmark executors are not implemented and are rejected. The budget includes initial samples and failed evaluations, with a smaller final batch when needed. Runs are skipped only when `benchmark_state.json` and persisted evaluation/metric counts confirm completion; incomplete or incompatible outputs require a new output directory until campaign recovery is implemented.
+
 ### 4. Run Robustness & Engineering Sensitivity Analysis
 ```bash
 mobo-linac run-robustness --config configs/publication_200MeV.yaml --num-perturbations 50 --num-workers 12

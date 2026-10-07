@@ -34,7 +34,7 @@ def test_benchmark_config_defaults():
 def test_benchmark_config_validation_passes():
     """Valid BenchmarkConfig should pass validation without error."""
     cfg = BenchmarkConfig(
-        algorithms=["constrained_qlognehvi", "sobol"],
+        algorithms=["constrained_qlognehvi", "unconstrained_qlognehvi"],
         seeds=[42, 43],
         total_eval_budget=20,
         n_sobol_init=8,
@@ -59,7 +59,7 @@ def test_benchmark_config_validation_fails_unsupported_algorithm():
 def test_benchmark_config_validation_fails_budget_too_small():
     """Budget <= n_sobol_init should raise ValueError."""
     cfg = BenchmarkConfig(
-        algorithms=["sobol"],
+        algorithms=["unconstrained_qlognehvi"],
         seeds=[42],
         total_eval_budget=10,
         n_sobol_init=10,
@@ -95,7 +95,7 @@ def test_benchmark_runner_budget_equality(tmp_path):
     runner = BenchmarkCampaignRunner(
         config=config,
         output_dir=tmp_path / "benchmark",
-        algorithms=["constrained_qlognehvi", "sobol"],
+        algorithms=["constrained_qlognehvi", "unconstrained_qlognehvi"],
         seeds=[42, 43],
         total_eval_budget=20,
         n_sobol_init=8,
@@ -113,7 +113,7 @@ def test_benchmark_runner_manifest_structure(tmp_path):
     runner = BenchmarkCampaignRunner(
         config=config,
         output_dir=tmp_path / "bm",
-        algorithms=["constrained_qlognehvi", "sobol"],
+        algorithms=["constrained_qlognehvi", "unconstrained_qlognehvi"],
         seeds=[42, 43],
         total_eval_budget=20,
         n_sobol_init=8,
@@ -224,7 +224,7 @@ def test_cli_benchmark_dry_run(tmp_path):
     from mobo_linac.cli import main
     sys.argv = [
         "mobo-linac", "run-benchmark",
-        "--algorithms", "constrained_qlognehvi", "sobol",
+        "--algorithms", "constrained_qlognehvi", "unconstrained_qlognehvi",
         "--seeds", "42",
         "--budget", "14",
         "--n-sobol-init", "6",

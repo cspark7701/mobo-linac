@@ -68,3 +68,43 @@ def test_cli_mock_evaluator_workflows(tmp_path):
     sys.argv = ["mobo-linac", "run-verification", "--input", str(dir_un), "--output-dir", str(dir_ver), "--mock-evaluator"]
     main()
     assert (dir_ver / "verification_manifest.json").exists()
+
+
+def test_benchmark_cli_forwards_workers_and_algorithm_settings(tmp_path, monkeypatch):
+    from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
+
+    captured = {}
+
+    class RecordingBenchmarkRunner:
+        def __init__(self, **kwargs):
+            captured.update(kwargs)
+
+        def execute_benchmark_campaigns(self, **kwargs):
+            captured.update(kwargs)
+
+    monkeypatch.setattr(
+        "mobo_linac.campaigns.benchmark.BenchmarkCampaignRunner", RecordingBenchmarkRunner
+    )
+    main([
+        "run-benchmark", "--algorithms", "scalarized_bo", "qlogehvi",
+        "--seeds", "7", "8", "--num-workers", "3", "--budget", "5",
+        "--n-sobol-init", "2", "-q", "2", "--device", "cpu",
+        "--output-dir", str(tmp_path), "--mock-evaluator",
+    ])
+    assert captured["num_workers"] == 3
+    assert captured["algorithms"] == ["scalarized_bo", "qlogehvi"]
+    assert captured["seeds"] == [7, 8]
+    assert captured["total_eval_budget"] == 5
+    assert captured["batch_size"] == 2
+    assert captured["device"] == "cpu"
+    assert captured["mock_evaluator"] is not None
+
+
+@pytest.mark.parametrize("algorithm", ["nsga2", "sobol"])
+def test_benchmark_cli_rejects_unimplemented_algorithms(tmp_path, algorithm):
+    with pytest.raises(ValueError, match="no implemented executor"):
+        main([
+            "run-benchmark", "--algorithms", algorithm, "--seeds", "42",
+            "--output-dir", str(tmp_path / "unsupported"), "--dry-run",
+        ])
+    assert not (tmp_path / "unsupported").exists()

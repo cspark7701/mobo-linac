@@ -86,6 +86,7 @@ class MoboCampaignRunner:
         resume_from: Optional[Union[str, Path]] = None,
         evaluator: Optional[Any] = None,
         device: Optional[Union[str, torch.device]] = None,
+        total_eval_budget: Optional[int] = None,
     ):
         if device is None or (isinstance(device, str) and device.lower() in ("auto", "")):
             self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -107,6 +108,13 @@ class MoboCampaignRunner:
         self.run_name = run_name
         self.base_results_dir = Path(base_results_dir)
         self.num_initial_samples = num_initial_samples
+        if total_eval_budget is not None:
+            if batch_size < 1 or num_initial_samples < 1 or total_eval_budget <= num_initial_samples:
+                raise ValueError("total_eval_budget must exceed positive initial samples, with batch_size >= 1.")
+            required_batches = (total_eval_budget - num_initial_samples + batch_size - 1) // batch_size
+            if num_batches != required_batches:
+                raise ValueError("num_batches must cover total_eval_budget exactly (including a final partial batch).")
+        self.total_eval_budget = total_eval_budget
         self.num_batches = num_batches
         self.batch_size = batch_size
         self.seed = seed
@@ -362,11 +370,16 @@ class MoboCampaignRunner:
         lower_b, upper_b = bounds[0], bounds[1]
 
         for iteration in range(start_iteration, self.num_batches + 1):
+            proposal_batch_size = self.batch_size
+            if self.total_eval_budget is not None:
+                proposal_batch_size = min(proposal_batch_size, self.total_eval_budget - len(results))
+                if proposal_batch_size <= 0:
+                    break
             print(f"--- Iteration {iteration:02d}/{self.num_batches:02d} ---")
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
 
             if train_X.shape[0] < 2:
-                new_sobol = sobol_engine.draw(self.batch_size).to(dtype=torch.double)
+                new_sobol = sobol_engine.draw(proposal_batch_size).to(dtype=torch.double)
                 next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
             elif self.optimization_mode == "scalarized_bo":
                 # Scalarized single-objective GP surrogate with qLogNEI
@@ -406,7 +419,7 @@ class MoboCampaignRunner:
                 candidates, _ = generate_next_candidates(
                     acq_func=acq_func,
                     bounds=bounds_dev,
-                    batch_size=self.batch_size,
+                    batch_size=proposal_batch_size,
                     num_restarts=getattr(exec_cfg, "acqf_num_restarts", 10),
                     raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
                     maxiter=getattr(exec_cfg, "acqf_maxiter", 200),
@@ -461,7 +474,7 @@ class MoboCampaignRunner:
                 next_cand_tensor, _ = generate_next_candidates(
                     acq_func=acq_func,
                     bounds=bounds,
-                    batch_size=self.batch_size,
+                    batch_size=proposal_batch_size,
                     num_restarts=getattr(exec_cfg, "acqf_num_restarts", 10),
                     raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
                     maxiter=getattr(exec_cfg, "acqf_maxiter", 200),

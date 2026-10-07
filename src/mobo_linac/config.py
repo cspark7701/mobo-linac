@@ -7,10 +7,16 @@ and Markdown documentation generator for accelerator Bayesian optimization.
 
 from dataclasses import asdict, dataclass, field
 import json
+import math
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import torch
 import yaml
+
+from mobo_linac.benchmark_algorithms import (
+    SUPPORTED_BENCHMARK_ALGORITHMS,
+    get_benchmark_algorithm,
+)
 
 
 @dataclass
@@ -190,15 +196,7 @@ class GpModelConfig:
 class BenchmarkConfig:
     """Configuration for paired multi-seed benchmark campaigns."""
 
-    algorithms: List[str] = field(
-        default_factory=lambda: [
-            "constrained_qlognehvi",
-            "unconstrained_qlognehvi",
-            "scalarized_bo",
-            "nsga2",
-            "sobol",
-        ]
-    )
+    algorithms: List[str] = field(default_factory=lambda: list(SUPPORTED_BENCHMARK_ALGORITHMS))
     seeds: List[int] = field(default_factory=lambda: list(range(42, 52)))
     total_eval_budget: int = 40
     n_sobol_init: int = 10
@@ -209,23 +207,23 @@ class BenchmarkConfig:
 
     def validate(self) -> None:
         """Validates benchmark configuration fields."""
-        supported = [
-            "constrained_qlognehvi",
-            "unconstrained_qlognehvi",
-            "qlogehvi",
-            "scalarized_bo",
-            "nsga2",
-            "sobol",
-        ]
+        if not self.algorithms or len(set(self.algorithms)) != len(self.algorithms):
+            raise ValueError("Benchmark algorithms must be non-empty and unique.")
         for algo in self.algorithms:
-            if algo not in supported:
-                raise ValueError(f"Unsupported algorithm '{algo}'. Supported: {supported}")
+            get_benchmark_algorithm(algo)
+        if self.n_sobol_init < 1:
+            raise ValueError("n_sobol_init must be >= 1.")
         if self.total_eval_budget <= self.n_sobol_init:
             raise ValueError("total_eval_budget must be greater than n_sobol_init.")
         if self.batch_size < 1:
             raise ValueError("batch_size must be >= 1.")
-        if len(self.seeds) == 0:
-            raise ValueError("At least one seed must be specified.")
+        if not self.seeds or len(set(self.seeds)) != len(self.seeds):
+            raise ValueError("Benchmark seeds must be non-empty and unique.")
+        if len(self.reporting_ref_point) != 3 or not all(
+            isinstance(v, (int, float)) and math.isfinite(v) and v > 0
+            for v in self.reporting_ref_point
+        ):
+            raise ValueError("reporting_ref_point must contain three finite positive normalized physical values.")
 
 
 @dataclass
