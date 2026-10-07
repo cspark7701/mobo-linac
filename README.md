@@ -337,3 +337,46 @@ For individual scalarized GPs, use `save_model_artifact` and `load_model_artifac
 from `mobo_linac.models`. Artifacts use tensor/state dictionaries and `weights_only=True`
 loading; unsupported versions fail. Prediction reproduction assumes a compatible
 PyTorch/BoTorch/GPyTorch environment; full software environments are not bundled.
+
+### Configuration resolution and validation
+
+An omitted `--config` uses one discovery policy: search `./configs` first, then the
+repository's `configs` directory, preferring `publication_200MeV.yaml`,
+`publication.yaml`, then `mobo_200MeV.yaml`. An explicit path must exist and never
+selects a fallback. `resolve_config_path()` returns the actual absolute path;
+`load_config()` records it in `config.resolved_path`. New campaigns write this
+source separately in `config_source.json`; scientific configuration JSON/YAML and
+checkpoint dictionaries retain their dataclass fields. Installed environments without
+bundled configurations must supply a path. Explicit perturbation files use the same
+resolver; omitted perturbation settings discover `perturbation_config.yaml`.
+
+Dataclass annotations/defaults and shared field rules generate runtime field validation,
+the exported JSON Schema, and the generated Markdown field inventory. Supported optional
+fields retain `null` values, including fixed noise, per-objective noise vectors, coupling
+targets, reporting scales, and the configuration name. Unknown fields fail instead of being
+ignored. YAML unquoted scientific notation such as `195.0e6` is parsed as a number;
+quoted numeric strings, booleans in numeric fields, NaN/Inf, and fractional counts fail.
+JSON Schema describes field types/ranges; runtime validation additionally checks relations
+such as bound ordering, objective signs/alias collisions, and noise-vector dimensions.
+Always use `load_config()` or `config.validate()` before execution.
+
+Design bounds must be finite and **strictly increasing**. Fixed machine settings belong
+in the ASTRA template, outside the optimization vector, until explicit fixed-variable
+support is added. Optimizer budgets/workers/timeouts must be positive integers;
+iterations and retries can be zero. Exit-plane distance must be positive and its loss
+tolerance nonnegative. Scalar weights follow configured objective order and must be
+finite, nonnegative, have matching dimensions, and contain a positive value; normalization
+handles very large finite weights without overflow. The scalarized CLI accepts any
+configured objective count; the predefined Option 2 suite still requires three objectives.
+`qLogNEI` belongs to scalarized BO; scalarized BO does not support `constrained=True`.
+
+Runner and CLI preflight rejects invalid settings before creating campaign output or
+starting GP/ASTRA work. Evaluation requests validate finite parameter dimensions,
+namelist override keys/values, and the three known positive source scales before
+reserving ASTRA attempts. Valid source scales remain recorded as unsupported for the
+fixed input particle distribution, as described in the robustness execution contract.
+
+```bash
+mobo-linac validate-config --config configs/mobo_200MeV.yaml \
+  --export-schema /tmp/mobo_schema.json --export-docs /tmp/mobo_config.md
+```

@@ -255,6 +255,13 @@ def run_astra_eval(
     Returns:
         Dict containing execution status, objectives, diagnostics, paths, and manifest info.
     """
+    from mobo_linac.config import MoboConfig, config_from_dict, validate_evaluation_settings, ExecutionConfig
+    if isinstance(config, dict):
+        config = config_from_dict(config)
+    if isinstance(config, MoboConfig):
+        config.validate()
+    ExecutionConfig(timeout_sec=timeout, clean_on_success=clean_on_success).validate()
+    validate_evaluation_settings(parameters, config, namelist_overrides, source_settings)
     if workdir_manager is None:
         workdir_manager = AstraWorkDirManager(
             base_results_dir=base_results_dir,

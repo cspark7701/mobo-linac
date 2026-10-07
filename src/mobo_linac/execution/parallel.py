@@ -140,6 +140,13 @@ def evaluate_candidates_parallel(
     Returns:
         List of structured result dictionaries aligned with input candidates.
     """
+    from mobo_linac.config import ExecutionConfig, MoboConfig, config_from_dict
+    if isinstance(config, dict):
+        config = config_from_dict(config)
+    if isinstance(config, MoboConfig):
+        config.validate()
+    ExecutionConfig(timeout_sec=timeout, max_workers=max_workers if max_workers is not None else 1,
+                    retries=retries, clean_on_success=clean_on_success).validate()
     n_candidates = len(candidates)
     if n_candidates == 0:
         return []
@@ -152,11 +159,12 @@ def evaluate_candidates_parallel(
         eval_ids_list = list(eval_ids)
 
     if requests is None:
-        requests = [EvaluationRequest(eid, [float(p) for p in cand])
+        requests = [EvaluationRequest(eid, list(cand))
                     for cand, eid in zip(candidates, eval_ids_list)]
     if len(requests) != n_candidates:
         raise ValueError("requests length must match candidates length")
     for request, cand, eid in zip(requests, candidates, eval_ids_list):
+        request.validate(config)
         if request.eval_id != eid or list(request.parameters) != list(cand):
             raise ValueError("Request identity/parameters must match the candidate batch")
 

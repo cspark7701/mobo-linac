@@ -17,7 +17,7 @@ import yaml
 
 from mobo_linac.astra.workdir import validate_component, write_once_json
 from mobo_linac.io.results import DESIGN_VAR_COLUMNS
-from mobo_linac.config import MoboConfig, load_config
+from mobo_linac.config import MoboConfig, load_config, resolve_config_path
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.candidate_evaluator import (
     CandidateEvaluatorBase,
@@ -57,6 +57,11 @@ class PerturbationSpecification:
     laser_spot_size_relative_std: float = 0.010
     laser_pulse_duration_relative_std: float = 0.010
 
+    def __post_init__(self):
+        for name, value in vars(self).items():
+            if isinstance(value, bool) or not isinstance(value, (int, float)) or not np.isfinite(value) or value < 0:
+                raise ValueError(f"{name} must be finite and nonnegative.")
+
     @classmethod
     def from_dict(cls, d: Dict[str, Any]) -> "PerturbationSpecification":
         """Constructs specification from dictionary (e.g., perturbation_config.yaml)."""
@@ -84,9 +89,7 @@ class PerturbationSpecification:
     @classmethod
     def from_yaml(cls, yaml_path: Union[str, Path]) -> "PerturbationSpecification":
         """Loads specification from a YAML configuration file."""
-        p = Path(yaml_path)
-        if not p.exists():
-            return cls()
+        p = resolve_config_path(yaml_path)
         with open(p, "r", encoding="utf-8") as f:
             data = yaml.safe_load(f) or {}
         return cls.from_dict(data)
@@ -105,14 +108,10 @@ class PerturbedMachineState:
     channel_deltas: Dict[str, float] = field(default_factory=dict)
 
 
-def load_perturbation_spec(
-    config_path: Union[str, Path] = "configs/perturbation_config.yaml"
-) -> PerturbationSpecification:
-    """Loads PerturbationSpecification from config path with fallback to defaults."""
-    p = Path(config_path)
-    if p.exists():
-        return PerturbationSpecification.from_yaml(p)
-    return PerturbationSpecification()
+def load_perturbation_spec(config_path: Optional[Union[str, Path]] = None) -> PerturbationSpecification:
+    """Resolve omitted defaults separately from explicit requested perturbation files."""
+    path = resolve_config_path(config_path, default_names=("perturbation_config.yaml",))
+    return PerturbationSpecification.from_yaml(path)
 
 
 def generate_perturbed_machine_states(

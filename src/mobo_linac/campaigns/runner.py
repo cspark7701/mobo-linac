@@ -31,7 +31,7 @@ from mobo_linac.acquisition.mobo import (
     build_acquisition_function,
     generate_next_candidates,
 )
-from mobo_linac.config import MoboConfig, config_from_dict, load_config
+from mobo_linac.config import MoboConfig, config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
 from mobo_linac.campaigns.state import prepare_resume_state, restore_rng_state
 from mobo_linac.campaigns.recovery import load_resume_candidate, reconcile_resume
 from mobo_linac.io.journal import repair_journal_tail, write_streaming_csv, same_evaluation
@@ -106,8 +106,6 @@ class MoboCampaignRunner:
         self._requested_device = device
         self._requested_num_workers = num_workers
         self._config_explicit = config is not None
-        if config is None and not (resume or resume_from):
-            config = "configs/mobo_200MeV.yaml"
         num_initial_samples = 16 if num_initial_samples is None else num_initial_samples
         num_batches = 6 if num_batches is None else num_batches
         batch_size = 4 if batch_size is None else batch_size
@@ -121,17 +119,18 @@ class MoboCampaignRunner:
         else:
             self.device = device
 
-        if isinstance(config, (str, Path)):
-            config_path = Path(config)
-            if not config_path.exists():
-                if resume or resume_from:
-                    raise FileNotFoundError(f"Requested resume configuration not found: {config_path}")
-                config_path = Path("configs/mobo_200MeV.yaml")
-            self.config = load_config(config_path)
-            self.config_path = config_path
+        if isinstance(config, (str, Path)) or (config is None and not (resume or resume_from)):
+            self.config = load_config(config)
+            self.config_path = self.config.resolved_path
         else:
             self.config = config
-            self.config_path = None
+            self.config_path = getattr(config, "resolved_path", None)
+        if self.config is not None:
+            self.config.validate()
+        validate_campaign_options(num_initial_samples=num_initial_samples, num_batches=num_batches,
+                                  batch_size=batch_size, num_workers=num_workers, seed=seed,
+                                  acq_type=acq_type, optimization_mode="scalarized_bo" if (resume or resume_from) and acq_type == "qLogNEI" else optimization_mode,
+                                  total_eval_budget=total_eval_budget)
 
         self.run_name = run_name
         self.base_results_dir = Path(base_results_dir)
@@ -153,6 +152,9 @@ class MoboCampaignRunner:
         self.resume_from = resume_from
         self.custom_evaluator = evaluator
 
+        if optimization_mode == "scalarized_bo" and constrained:
+            raise ValueError("scalarized_bo does not support constrained=True.")
+
         # Normalize optimization mode and constrained flag
         if optimization_mode == "constrained_mobo" or (constrained and optimization_mode == "unconstrained_mobo"):
             self.optimization_mode = "constrained_mobo"
@@ -164,15 +166,16 @@ class MoboCampaignRunner:
             self.optimization_mode = "unconstrained_mobo"
             self.constrained = False
 
-        if scalar_weights is not None:
-            w_tensor = torch.tensor(scalar_weights, dtype=torch.double)
-            expected = len(self.config.objectives) if self.config is not None else len(w_tensor)
-            if w_tensor.shape != (expected,) or not torch.isfinite(w_tensor).all() or (w_tensor < 0).any() or w_tensor.sum() <= 0:
-                raise ValueError("Scalar weights must match objectives and be finite, nonnegative, with positive sum.")
-            self.scalar_weights = w_tensor / w_tensor.sum()
-        else:
-            objective_count = len(self.config.objectives) if self.config is not None else 3
-            self.scalar_weights = torch.full((objective_count,), 1.0 / objective_count, dtype=torch.double)
+        objective_count = len(self.config.objectives) if self.config is not None else (len(scalar_weights) if scalar_weights is not None else 3)
+        self.scalar_weights = normalize_scalar_weights(scalar_weights, objective_count)
+        if self._requested_reporting_ref is not None and self.config is not None:
+            ref = torch.as_tensor(self._requested_reporting_ref, dtype=torch.double)
+            if ref.shape != (objective_count,) or not torch.isfinite(ref).all():
+                raise ValueError("Reporting reference must match finite configured objectives.")
+        if self.config is not None and num_batches > 0 and self.config.model.noise_mode == "measured_fixed":
+            model = self.config.model
+            if model.fixed_noise_variance is None and (self.constrained or self.optimization_mode == "scalarized_bo" or model.objective_noise_variances is None):
+                raise ValueError("This measured_fixed campaign requires explicit fixed noise for all fitted channels.")
 
         if resume_from and output_dir is None:
             source = Path(resume_from)
@@ -225,8 +228,7 @@ class MoboCampaignRunner:
             if self._requested_acquisition not in (saved_acquisition, state.acquisition_mode):
                 raise ValueError("Incompatible resume acquisition mode.")
         if state.version == "2.0" and self._requested_weights is not None:
-            weights = torch.as_tensor(self._requested_weights, dtype=torch.double)
-            weights = weights / weights.sum()
+            weights = normalize_scalar_weights(self._requested_weights, len(state.scalar_weights))
             if weights.shape != (len(state.scalar_weights),) or not torch.allclose(weights, torch.tensor(state.scalar_weights, dtype=torch.double)):
                 raise ValueError("Incompatible resume scalar weights.")
         if self._requested_budget is not None and self._requested_budget != state.total_eval_budget:
@@ -318,6 +320,7 @@ class MoboCampaignRunner:
         resume_state = self._prepare_resume() if (self.resume or self.resume_from) else None
         if resume_state is None and ((self.run_dir / "evaluations_stream.jsonl").exists() or (self.run_dir / "checkpoints" / "pending_batch.pt").exists()):
             raise ValueError("Existing campaign journal/proposal requires resume, not a fresh run.")
+        self.config.validate()
         schema = ResultSchema.from_config(self.config)
         if self._requested_reporting_ref is not None:
             requested_ref = torch.as_tensor(self._requested_reporting_ref, dtype=torch.double)
@@ -366,6 +369,7 @@ class MoboCampaignRunner:
                 self.export_environment_info(self.run_dir / "environment.txt")
             self.config.save_yaml(self.run_dir / "config.yaml")
             self.config.save_json(self.run_dir / "config.json")
+            (self.run_dir / "config_source.json").write_text(json.dumps({"resolved_path": str(self.config_path) if self.config_path else None, "source": "file" if self.config_path else "in_memory"}, indent=2))
 
         bounds = self.config.get_parameter_bounds_tensor()
 

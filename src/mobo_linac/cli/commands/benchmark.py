@@ -39,7 +39,7 @@ def analyze_benchmark(args: argparse.Namespace) -> None:
     """Aggregates and analyzes completed benchmark campaigns."""
     from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
 
-    config = load_config("configs/publication_200MeV.yaml")
+    config = load_config()
     runner = BenchmarkCampaignRunner(config=config, output_dir=args.output_dir)
     agg_df, summary_df = runner.analyze_completed_results()
     print(f"Benchmark analysis complete. Aggregate metrics saved in {args.output_dir}")
@@ -52,7 +52,7 @@ def register_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
         "run-benchmark", help="Run a paired multi-seed benchmark campaign"
     )
     run_bm_parser.add_argument(
-        "--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file"
+        "--config", type=str, default=None, help="Path to config file"
     )
     run_bm_parser.add_argument(
         "--output-dir", type=str, default="results/publication_benchmark", help="Output directory"

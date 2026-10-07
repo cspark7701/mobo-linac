@@ -22,7 +22,7 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
     subparser.add_argument(
         "--config",
         type=str,
-        default="configs/publication.yaml",
+        default=None,
         help="Path to config file",
     )
     subparser.add_argument(

@@ -5,11 +5,13 @@ Defines declarative schemas, strict physical validation, JSON Schema exporter,
 and Markdown documentation generator for accelerator Bayesian optimization.
 """
 
-from dataclasses import asdict, dataclass, field
+from dataclasses import MISSING, asdict, dataclass, field, fields, is_dataclass
 import json
 import math
+import re
+from copy import deepcopy
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Union, get_args, get_origin, get_type_hints
 import torch
 import yaml
 
@@ -33,22 +35,17 @@ class DesignVariableConfig:
     is_coupled: bool = False
     coupled_targets: Optional[List[str]] = None
 
-    def __post_init__(self) -> None:
-        self.nominal_value = float(self.nominal_value)
-        self.ratio = float(self.ratio)
-        self.lower_bound = float(self.lower_bound)
-        self.upper_bound = float(self.upper_bound)
-
     def validate(self) -> None:
         """Validate bounds ordering, nominal value validity, and coupling rules."""
+        _validate_fields(self, types_only=True)
         if not self.name or not isinstance(self.name, str):
             raise ValueError("Design variable must have a non-empty name string.")
         if not self.astra_key or not isinstance(self.astra_key, str):
             raise ValueError(f"Design variable '{self.name}' must have a non-empty astra_key string.")
-        if self.lower_bound > self.upper_bound:
+        if self.lower_bound >= self.upper_bound:
             raise ValueError(
                 f"Invalid bounds for design variable '{self.name}': "
-                f"lower_bound ({self.lower_bound}) > upper_bound ({self.upper_bound})"
+                f"lower_bound ({self.lower_bound}) >= upper_bound ({self.upper_bound}); fixed variables must be removed from the optimization vector"
             )
         if self.ratio < 0:
             raise ValueError(f"Design variable '{self.name}' has negative search ratio: {self.ratio}")
@@ -62,6 +59,7 @@ class DesignVariableConfig:
                     raise ValueError(
                         f"Design variable '{self.name}' contains invalid coupled target: '{target}'"
                     )
+        _validate_fields(self)
 
 
 @dataclass
@@ -79,6 +77,7 @@ class ObjectiveConfig:
 
     def validate(self) -> None:
         """Validate objective names, aliases, direction and normalization scale."""
+        _validate_fields(self, types_only=True)
         if not isinstance(self.aliases, (list, tuple)) or any(not isinstance(a, str) or not a for a in self.aliases):
             raise ValueError("Objective aliases must be non-empty strings.")
         if self.reporting_scale is not None and (not isinstance(self.reporting_scale, (int, float)) or isinstance(self.reporting_scale, bool) or not 0 < self.reporting_scale < float("inf")):
@@ -100,6 +99,7 @@ class ObjectiveConfig:
             raise ValueError(f"Minimization objective '{self.name}' must have model_sign = -1.")
         if self.physical_direction == "maximize" and self.model_sign != 1:
             raise ValueError(f"Maximization objective '{self.name}' must have model_sign = 1.")
+        _validate_fields(self)
 
 
 @dataclass
@@ -115,18 +115,9 @@ class ConstraintsConfig:
     max_mean_kinetic_energy_eV: float = 205.0e6
     min_transmission: float = 0.90
 
-    def __post_init__(self) -> None:
-        self.max_sigma_x_m = float(self.max_sigma_x_m)
-        self.max_sigma_y_m = float(self.max_sigma_y_m)
-        self.max_sigma_xp_rad = float(self.max_sigma_xp_rad)
-        self.max_sigma_yp_rad = float(self.max_sigma_yp_rad)
-        self.max_sigma_z_m = float(self.max_sigma_z_m)
-        self.min_mean_kinetic_energy_eV = float(self.min_mean_kinetic_energy_eV)
-        self.max_mean_kinetic_energy_eV = float(self.max_mean_kinetic_energy_eV)
-        self.min_transmission = float(self.min_transmission)
-
     def validate(self) -> None:
         """Validate beam diagnostic thresholds and transmission ranges."""
+        _validate_fields(self, types_only=True)
         if self.min_mean_kinetic_energy_eV > self.max_mean_kinetic_energy_eV:
             raise ValueError(
                 f"Invalid kinetic energy constraints: min ({self.min_mean_kinetic_energy_eV}) > max ({self.max_mean_kinetic_energy_eV})"
@@ -143,6 +134,7 @@ class ConstraintsConfig:
             raise ValueError(
                 f"min_transmission must be in (0.0, 1.0], got {self.min_transmission}"
             )
+        _validate_fields(self)
 
 
 @dataclass
@@ -162,6 +154,7 @@ class ExecutionConfig:
 
     def validate(self) -> None:
         """Validate execution parameters."""
+        _validate_fields(self, types_only=True)
         if self.timeout_sec <= 0:
             raise ValueError(f"timeout_sec must be positive, got {self.timeout_sec}")
         if self.max_workers <= 0:
@@ -172,6 +165,7 @@ class ExecutionConfig:
             raise ValueError(f"acqf_num_restarts must be positive, got {self.acqf_num_restarts}")
         if self.acqf_raw_samples <= 0:
             raise ValueError(f"acqf_raw_samples must be positive, got {self.acqf_raw_samples}")
+        _validate_fields(self)
 
 
 @dataclass
@@ -187,6 +181,7 @@ class GpModelConfig:
 
     def validate(self) -> None:
         """Validate GP model config fields."""
+        _validate_fields(self, types_only=True)
         if self.covar_type not in ("matern52", "rbf"):
             raise ValueError(f"Invalid covar_type '{self.covar_type}'. Must be 'matern52' or 'rbf'.")
         if self.noise_mode not in ("deterministic_fixed", "fixed", "inferred", "measured_fixed"):
@@ -199,6 +194,9 @@ class GpModelConfig:
             raise ValueError("relative_noise_ratio must be positive.")
         if self.min_noise_variance <= 0:
             raise ValueError("min_noise_variance must be positive.")
+        if self.noise_mode == "inferred" and (self.fixed_noise_variance is not None or self.objective_noise_variances is not None):
+            raise ValueError("inferred noise cannot accept explicit fixed noise.")
+        _validate_fields(self)
 
 
 @dataclass
@@ -216,6 +214,7 @@ class BenchmarkConfig:
 
     def validate(self) -> None:
         """Validates benchmark configuration fields."""
+        _validate_fields(self, types_only=True)
         if not self.algorithms or len(set(self.algorithms)) != len(self.algorithms):
             raise ValueError("Benchmark algorithms must be non-empty and unique.")
         for algo in self.algorithms:
@@ -233,6 +232,7 @@ class BenchmarkConfig:
             for v in self.reporting_ref_point
         ):
             raise ValueError("reporting_ref_point must contain three finite positive normalized physical values.")
+        _validate_fields(self)
 
 
 @dataclass
@@ -251,8 +251,7 @@ class MoboConfig:
 
     def validate(self) -> None:
         """Validate entire configuration system."""
-        if not self.name:
-            self.name = "mobo_200MeV"
+        _validate_fields(self, types_only=True)
         if not self.design_variables:
             raise ValueError("No design_variables defined in MoboConfig.")
         if not self.objectives:
@@ -284,12 +283,17 @@ class MoboConfig:
 
         self.execution.validate()
         self.model.validate()
+        if self.model.objective_noise_variances is not None and len(self.model.objective_noise_variances) != len(self.objectives):
+            raise ValueError("objective_noise_variances must match the configured objective count.")
+        _validate_fields(self)
 
     def get_constraint_profile(self, profile_name: str = "nominal") -> ConstraintsConfig:
-        """Returns the specified constraint sensitivity profile, falling back to main constraints."""
+        """Return a declared profile; nominal defaults to the main constraints."""
         if profile_name in self.sensitivity_profiles:
             return self.sensitivity_profiles[profile_name]
-        return self.constraints
+        if profile_name == "nominal":
+            return self.constraints
+        raise ValueError(f"Unknown constraint profile: {profile_name}")
 
     def get_parameter_bounds_tensor(self) -> torch.Tensor:
         """
@@ -297,6 +301,7 @@ class MoboConfig:
         First row: lower bounds.
         Second row: upper bounds.
         """
+        self.validate()
         lower = [dv.lower_bound for dv in self.design_variables]
         upper = [dv.upper_bound for dv in self.design_variables]
         bounds = torch.tensor([lower, upper], dtype=torch.double)
@@ -308,14 +313,16 @@ class MoboConfig:
 
     def save_json(self, output_path: Union[str, Path]) -> Path:
         """Save configuration to JSON file."""
+        self.validate()
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
-            json.dump(asdict(self), f, indent=2)
+            json.dump(asdict(self), f, indent=2, allow_nan=False)
         return path
 
     def save_yaml(self, output_path: Union[str, Path]) -> Path:
         """Save configuration to YAML file."""
+        self.validate()
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         with open(path, "w", encoding="utf-8") as f:
@@ -323,121 +330,143 @@ class MoboConfig:
         return path
 
 
-def export_config_schema(output_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
-    """
-    Exports a standard JSON Schema (draft-07 compatible) describing MoboConfig.
-    """
-    schema = {
-        "$schema": "http://json-schema.org/draft-07/schema#",
-        "title": "MoboConfig",
-        "description": "Declarative configuration schema for Linac Multi-Objective Bayesian Optimization",
-        "type": "object",
-        "required": ["version", "description", "design_variables", "objectives", "constraints"],
-        "properties": {
-            "name": {"type": "string", "default": "mobo_200MeV"},
-            "version": {"type": "string"},
-            "description": {"type": "string"},
-            "design_variables": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                    "type": "object",
-                    "required": [
-                        "name",
-                        "astra_key",
-                        "unit",
-                        "nominal_value",
-                        "ratio",
-                        "lower_bound",
-                        "upper_bound",
-                    ],
-                    "properties": {
-                        "name": {"type": "string"},
-                        "astra_key": {"type": "string"},
-                        "unit": {"type": "string"},
-                        "nominal_value": {"type": "number"},
-                        "ratio": {"type": "number", "minimum": 0.0},
-                        "lower_bound": {"type": "number"},
-                        "upper_bound": {"type": "number"},
-                        "is_coupled": {"type": "boolean", "default": False},
-                        "coupled_targets": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                        },
-                    },
-                },
-            },
-            "objectives": {
-                "type": "array",
-                "minItems": 1,
-                "items": {
-                    "type": "object",
-                    "required": ["name", "explicit_name", "unit", "physical_direction", "model_sign"],
-                    "properties": {
-                        "name": {"type": "string"},
-                        "explicit_name": {"type": "string"},
-                        "unit": {"type": "string"},
-                        "physical_direction": {"type": "string", "enum": ["minimize", "maximize"]},
-                        "model_sign": {"type": "integer", "enum": [-1, 1]},
-                        "aliases": {"type": "array", "items": {"type": "string", "minLength": 1}},
-                        "reporting_scale": {"type": ["number", "null"], "exclusiveMinimum": 0},
-                    },
-                },
-            },
-            "constraints": {
-                "type": "object",
-                "properties": {
-                    "max_sigma_x_m": {"type": "number", "exclusiveMinimum": 0.0},
-                    "max_sigma_y_m": {"type": "number", "exclusiveMinimum": 0.0},
-                    "max_sigma_xp_rad": {"type": "number", "exclusiveMinimum": 0.0},
-                    "max_sigma_yp_rad": {"type": "number", "exclusiveMinimum": 0.0},
-                    "max_sigma_z_m": {"type": "number", "exclusiveMinimum": 0.0},
-                    "min_mean_kinetic_energy_eV": {"type": "number", "exclusiveMinimum": 0.0},
-                    "max_mean_kinetic_energy_eV": {"type": "number", "exclusiveMinimum": 0.0},
-                    "min_transmission": {"type": "number", "exclusiveMinimum": 0.0, "maximum": 1.0},
-                },
-            },
-            "sensitivity_profiles": {
-                "type": "object",
-                "additionalProperties": {"$ref": "#/properties/constraints"},
-            },
-            "execution": {
-                "type": "object",
-                "properties": {
-                    "timeout_sec": {"type": "integer", "minimum": 1},
-                    "max_workers": {"type": "integer", "minimum": 1},
-                    "retries": {"type": "integer", "minimum": 0},
-                    "clean_on_success": {"type": "boolean"},
-                    "acqf_num_restarts": {"type": "integer", "minimum": 1},
-                    "acqf_raw_samples": {"type": "integer", "minimum": 1},
-                    "acqf_maxiter": {"type": "integer", "minimum": 1},
-                    "acqf_batch_limit": {"type": "integer", "minimum": 1},
-                    "z_stop_m": {"type": "number"},
-                    "z_loss_tolerance_m": {"type": "number"},
-                },
-            },
-            "model": {
-                "type": "object",
-                "properties": {
-                    "covar_type": {"type": "string", "enum": ["matern52", "rbf"]},
-                    "noise_mode": {
-                        "type": "string",
-                        "enum": ["deterministic_fixed", "fixed", "inferred", "measured_fixed"],
-                    },
-                    "fixed_noise_variance": {"type": ["number", "null"]},
-                    "relative_noise_ratio": {"type": "number", "exclusiveMinimum": 0.0},
-                    "min_noise_variance": {"type": "number", "exclusiveMinimum": 0.0},
-                },
-            },
-        },
+# The dataclass annotations/defaults and these constraints define both runtime
+# field validation and exported schema/docs. Relational checks remain in validate().
+_IDENTIFIER = r"^[A-Za-z_][A-Za-z0-9_]*$"
+FIELD_RULES = {
+    "DesignVariableConfig": {
+        "name": {"minLength": 1}, "astra_key": {"minLength": 1},
+        "ratio": {"minimum": 0}, "coupled_targets": {"items": {"type": "string", "minLength": 1}, "uniqueItems": True},
+    },
+    "ObjectiveConfig": {
+        "name": {"pattern": _IDENTIFIER}, "explicit_name": {"pattern": _IDENTIFIER},
+        "aliases": {"items": {"type": "string", "pattern": _IDENTIFIER}, "uniqueItems": True},
+        "physical_direction": {"enum": ["minimize", "maximize"]}, "model_sign": {"enum": [-1, 1]},
+        "reporting_scale": {"exclusiveMinimum": 0},
+    },
+    "ConstraintsConfig": {
+        **{name: {"exclusiveMinimum": 0} for name in get_type_hints(ConstraintsConfig)},
+        "min_transmission": {"exclusiveMinimum": 0, "maximum": 1},
+    },
+    "ExecutionConfig": {
+        **{name: {"minimum": 1} for name in ("timeout_sec", "max_workers", "acqf_num_restarts", "acqf_raw_samples", "acqf_maxiter", "acqf_batch_limit")},
+        "retries": {"minimum": 0}, "z_stop_m": {"exclusiveMinimum": 0},
+        "z_loss_tolerance_m": {"minimum": 0},
+    },
+    "GpModelConfig": {
+        "covar_type": {"enum": ["matern52", "rbf"]},
+        "noise_mode": {"enum": ["deterministic_fixed", "fixed", "inferred", "measured_fixed"]},
+        **{name: {"exclusiveMinimum": 0} for name in ("fixed_noise_variance", "relative_noise_ratio", "min_noise_variance")},
+        "objective_noise_variances": {"minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}},
+    },
+    "BenchmarkConfig": {
+        "algorithms": {"minItems": 1, "uniqueItems": True, "items": {"type": "string", "enum": list(SUPPORTED_BENCHMARK_ALGORITHMS)}},
+        "seeds": {"minItems": 1, "uniqueItems": True, "items": {"type": "integer", "minimum": 0, "maximum": 2**32 - 1}},
+        **{name: {"minimum": 1} for name in ("total_eval_budget", "n_sobol_init", "batch_size")},
+        "reporting_ref_point": {"minItems": 3, "maxItems": 3, "items": {"type": "number", "exclusiveMinimum": 0}},
+        "constraint_profile": {"minLength": 1}, "output_dir": {"minLength": 1},
+    },
+    "MoboConfig": {"version": {"minLength": 1}, "design_variables": {"minItems": 1}, "objectives": {"minItems": 1}},
+}
+
+
+def _type_schema(annotation):
+    origin, args = get_origin(annotation), get_args(annotation)
+    if origin is Union:
+        base = _type_schema(next(arg for arg in args if arg is not type(None)))
+        base["type"] = [base["type"], "null"]
+        return base
+    if origin is list:
+        return {"type": "array", "items": _type_schema(args[0])}
+    if origin is dict:
+        return {"type": "object", "additionalProperties": _type_schema(args[1])}
+    if is_dataclass(annotation):
+        return _dataclass_schema(annotation)
+    return {"type": {str: "string", float: "number", int: "integer", bool: "boolean"}[annotation]}
+
+
+def _dataclass_schema(cls):
+    hints = get_type_hints(cls)
+    properties, required = {}, []
+    for item in fields(cls):
+        definition = _type_schema(hints[item.name])
+        definition.update(deepcopy(FIELD_RULES.get(cls.__name__, {}).get(item.name, {})))
+        if item.default is not MISSING:
+            definition["default"] = item.default
+        elif item.default_factory is not MISSING:
+            default = item.default_factory()
+            definition["default"] = asdict(default) if is_dataclass(default) else default
+        else:
+            required.append(item.name)
+        properties[item.name] = definition
+    return {"type": "object", "properties": properties, "required": required, "additionalProperties": False}
+
+
+def _validate_value(value, definition, path):
+    types = definition["type"]
+    types = types if isinstance(types, list) else [types]
+    if value is None and "null" in types:
+        return
+    matches = {
+        "string": isinstance(value, str), "boolean": isinstance(value, bool),
+        "integer": type(value) is int,
+        "number": isinstance(value, (float, int)) and not isinstance(value, bool) and math.isfinite(value),
+        "array": isinstance(value, list), "object": isinstance(value, dict), "null": value is None,
     }
+    if not any(matches[t] for t in types):
+        raise ValueError(f"{path} must have type {types} with finite numeric values.")
+    if "enum" in definition and value not in definition["enum"]:
+        raise ValueError(f"{path} must be one of {definition['enum']}.")
+    if isinstance(value, (int, float)) and not isinstance(value, bool):
+        for key, invalid in (("minimum", lambda limit: value < limit), ("maximum", lambda limit: value > limit),
+                             ("exclusiveMinimum", lambda limit: value <= limit)):
+            if key in definition and invalid(definition[key]):
+                raise ValueError(f"{path} violates {key}={definition[key]}.")
+    if isinstance(value, str):
+        if len(value) < definition.get("minLength", 0) or ("pattern" in definition and not re.fullmatch(definition["pattern"], value)):
+            raise ValueError(f"{path} is an invalid identifier/string.")
+    if isinstance(value, list):
+        if len(value) < definition.get("minItems", 0) or len(value) > definition.get("maxItems", math.inf):
+            raise ValueError(f"{path} has invalid array length.")
+        if definition.get("uniqueItems") and any(value[i] in value[:i] for i in range(len(value))):
+            raise ValueError(f"{path} must contain unique values.")
+        for index, item in enumerate(value):
+            _validate_value(item, definition["items"], f"{path}[{index}]")
+    if isinstance(value, dict):
+        properties = definition.get("properties", {})
+        missing = set(definition.get("required", ())) - value.keys()
+        if missing:
+            raise ValueError(f"{path} missing required fields: {sorted(missing)}.")
+        for name, item in value.items():
+            rule = properties.get(name, definition.get("additionalProperties", False))
+            if rule is False:
+                raise ValueError(f"Unknown configuration field: {path}.{name}.")
+            _validate_value(item, rule, f"{path}.{name}")
 
+
+def _validate_fields(config, types_only=False):
+    definition = _dataclass_schema(type(config))
+    def types(definition):
+        result = {key: value for key, value in definition.items() if key in ("type", "required", "additionalProperties")}
+        if "properties" in definition:
+            result["properties"] = {name: types(item) for name, item in definition["properties"].items()}
+        if "items" in definition:
+            result["items"] = types(definition["items"])
+        if isinstance(result.get("additionalProperties"), dict):
+            result["additionalProperties"] = types(result["additionalProperties"])
+        return result
+    _validate_value(asdict(config), types(definition) if types_only else definition, type(config).__name__)
+
+
+def export_config_schema(output_path: Optional[Union[str, Path]] = None) -> Dict[str, Any]:
+    """Export draft-07 field schema; relational checks are described explicitly."""
+    schema = {"$schema": "http://json-schema.org/draft-07/schema#", "title": "MoboConfig",
+              "description": "Finite values; validate() also checks ordered nondegenerate bounds, objective signs/aliases, and noise-vector dimensions.",
+              **_dataclass_schema(MoboConfig), "definitions": {"BenchmarkConfig": _dataclass_schema(BenchmarkConfig)}}
     if output_path is not None:
-        p = Path(output_path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        with open(p, "w", encoding="utf-8") as f:
-            json.dump(schema, f, indent=2)
-
+        path = Path(output_path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(json.dumps(schema, indent=2, allow_nan=False), encoding="utf-8")
     return schema
 
 
@@ -445,6 +474,7 @@ def generate_config_markdown_docs(config: MoboConfig) -> str:
     """
     Generates comprehensive GitHub-flavored Markdown documentation from a MoboConfig instance.
     """
+    config.validate()
     lines: List[str] = []
     lines.append(f"# Linac MOBO Configuration: `{config.name}` (v{config.version})\n")
     if config.description:
@@ -490,34 +520,74 @@ def generate_config_markdown_docs(config: MoboConfig) -> str:
     lines.append(f"- **Acquisition Optimization Restarts / Raw Samples**: `{config.execution.acqf_num_restarts}` / `{config.execution.acqf_raw_samples}`")
     lines.append("")
 
+    lines.append("## 5. Supported Configuration Fields\n")
+    lines.append("Bounds must be finite and strictly increasing. Fixed machine settings belong in the ASTRA template, outside the optimization vector.\n")
+    lines.append("| Field | Type | Required | Default | Field constraints |")
+    lines.append("| :--- | :--- | :--- | :--- | :--- |")
+    def document(definition, prefix=""):
+        for name, item in definition.get("properties", {}).items():
+            path = prefix + name
+            constraints = {key: item[key] for key in ("minimum", "exclusiveMinimum", "maximum", "enum", "pattern", "minLength", "minItems", "maxItems", "uniqueItems") if key in item}
+            if "items" in item and "properties" not in item["items"]:
+                constraints["items"] = item["items"]
+            default = json.dumps(item["default"]) if "default" in item else "—"
+            lines.append(f"| `{path}` | `{item['type']}` | {name in definition.get('required', [])} | `{default}` | `{json.dumps(constraints)}` |")
+            nested = item.get("items", item)
+            document(nested, path + ("[]." if "items" in item else "."))
+            if isinstance(item.get("additionalProperties"), dict):
+                document(item["additionalProperties"], path + ".<profile>.")
+    document(export_config_schema())
+    document(_dataclass_schema(BenchmarkConfig), "benchmark.")
     return "\n".join(lines)
 
 
-def load_config(config_path: Union[str, Path] = "configs/publication_200MeV.yaml") -> MoboConfig:
-    """
-    Load configuration from YAML file.
-    """
-    path = Path(config_path).resolve()
-    if not path.exists():
-        fallback_path = Path("configs/publication.yaml").resolve()
-        if fallback_path.exists():
-            path = fallback_path
-        else:
-            path = Path("configs/mobo_200MeV.yaml").resolve()
+DEFAULT_CONFIG_NAMES = ("publication_200MeV.yaml", "publication.yaml", "mobo_200MeV.yaml")
 
-    with open(path, "r", encoding="utf-8") as f:
-        data = yaml.safe_load(f)
 
+def resolve_config_path(config_path: Optional[Union[str, Path]] = None, *, default_names=DEFAULT_CONFIG_NAMES) -> Path:
+    """Explicit paths never fall back. Omitted defaults search cwd then repository."""
+    if config_path is not None:
+        path = Path(config_path).expanduser().resolve()
+        if not path.is_file():
+            raise FileNotFoundError(f"Requested configuration file not found: {path}")
+        return path
+    roots = (Path.cwd() / "configs", Path(__file__).resolve().parents[2] / "configs")
+    for root in dict.fromkeys(roots):
+        for name in default_names:
+            path = root / name
+            if path.is_file():
+                return path.resolve()
+    raise FileNotFoundError("No default configuration found; supply an explicit --config path.")
+
+
+class _ConfigYamlLoader(yaml.SafeLoader):
+    pass
+
+
+_ConfigYamlLoader.add_implicit_resolver(
+    "tag:yaml.org,2002:float",
+    re.compile(r"^[-+]?(?:[0-9]+(?:\.[0-9]*)?|\.[0-9]+)[eE][-+]?[0-9]+$"),
+    list("-+0123456789."),
+)
+
+
+def load_config(config_path: Optional[Union[str, Path]] = None) -> MoboConfig:
+    """Load YAML/JSON through one resolver and record the actual source separately."""
+    path = resolve_config_path(config_path)
+    with path.open(encoding="utf-8") as stream:
+        data = yaml.load(stream, Loader=_ConfigYamlLoader)
     if not isinstance(data, dict):
-        raise ValueError(f"YAML configuration at {path} must contain a top-level dictionary.")
-
-    return config_from_dict(data, default_name=path.stem)
+        raise ValueError(f"Configuration at {path} must contain a top-level dictionary.")
+    config = config_from_dict(data, default_name=path.stem)
+    config.resolved_path = path  # provenance, deliberately outside serialized scientific fields
+    return config
 
 
 def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") -> MoboConfig:
     """Reconstruct saved YAML/JSON/checkpoint configuration through the same validators."""
     if not isinstance(data, dict):
         raise ValueError("Saved configuration must be a dictionary.")
+    _validate_value(data, _dataclass_schema(MoboConfig), "MoboConfig")
     design_vars = [DesignVariableConfig(**dv) for dv in data.get("design_variables", [])]
     objs = [ObjectiveConfig(**obj) for obj in data.get("objectives", [])]
     constraints = ConstraintsConfig(**data.get("constraints", {}))
@@ -531,9 +601,9 @@ def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") ->
     model_cfg = GpModelConfig(**data.get("model", {}))
 
     config = MoboConfig(
-        name=str(data.get("name", default_name)),
-        version=str(data.get("version", "1.0")),
-        description=str(data.get("description", "")),
+        name=data.get("name", default_name),
+        version=data["version"],
+        description=data["description"],
         design_variables=design_vars,
         objectives=objs,
         constraints=constraints,
@@ -543,3 +613,69 @@ def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") ->
     )
     config.validate()
     return config
+
+
+def normalize_scalar_weights(weights, objective_count):
+    """Validate dimensions/finite weights and normalize without sum overflow."""
+    if type(objective_count) is not int or objective_count < 1:
+        raise ValueError("Scalar weights require at least one objective.")
+    if weights is None:
+        return torch.full((objective_count,), 1.0 / objective_count, dtype=torch.double)
+    if any(isinstance(value, bool) for value in weights):
+        raise ValueError("Scalar weights must be numeric, not boolean.")
+    values = torch.as_tensor(weights, dtype=torch.double)
+    if (values.shape != (objective_count,) or not torch.isfinite(values).all()
+            or (values < 0).any() or not (values > 0).any()):
+        raise ValueError("Scalar weights must match objectives and be finite, nonnegative, with positive sum.")
+    scaled = values / values.max()
+    return scaled / scaled.sum()
+
+
+def validate_campaign_options(*, num_initial_samples, num_batches, batch_size, num_workers=None,
+                              seed=42, acq_type="qLogNEHVI", optimization_mode="unconstrained_mobo",
+                              total_eval_budget=None):
+    """Validate orchestration options before any campaign side effects."""
+    for name, value, minimum in (("num_initial_samples", num_initial_samples, 1),
+                                 ("num_batches", num_batches, 0), ("batch_size", batch_size, 1),
+                                 ("seed", seed, 0)):
+        if type(value) is not int or value < minimum:
+            raise ValueError(f"{name} must be an integer >= {minimum}.")
+    if seed >= 2**32:
+        raise ValueError("seed must be less than 2**32.")
+    if num_workers is not None and (type(num_workers) is not int or num_workers < 1):
+        raise ValueError("num_workers must be a positive integer.")
+    if total_eval_budget is not None and (type(total_eval_budget) is not int or total_eval_budget <= num_initial_samples):
+        raise ValueError("total_eval_budget must exceed positive initial samples.")
+    if optimization_mode not in ("scalarized_bo", "constrained_mobo", "unconstrained_mobo"):
+        raise ValueError(f"Unsupported optimization_mode: {optimization_mode}")
+    if acq_type not in ("qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI", "qLogNEI"):
+        raise ValueError(f"Unsupported acquisition: {acq_type}")
+    if optimization_mode == "scalarized_bo" and acq_type not in ("qLogNEI", "qLogNEHVI"):
+        raise ValueError("scalarized_bo uses qLogNEI; other MOBO acquisitions are unsupported.")
+    if acq_type == "qLogNEI" and optimization_mode != "scalarized_bo":
+        raise ValueError("qLogNEI requires scalarized_bo optimization mode.")
+
+
+def validate_evaluation_settings(parameters, config=None, namelist_overrides=None, source_settings=None):
+    """Validate finite machine/source requests before reserving simulation attempts."""
+    count = len(config.design_variables) if isinstance(config, MoboConfig) else len(config["design_variables"]) if isinstance(config, dict) else 6
+    if len(parameters) != count:
+        raise ValueError("Parameter vector length must match configured design variables.")
+    if any(isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) for value in parameters):
+        raise ValueError("Design parameters must be finite numbers.")
+    source_settings = {} if source_settings is None else source_settings
+    known_sources = {"bunch_charge_scale", "laser_spot_scale", "laser_pulse_duration_scale"}
+    if not isinstance(source_settings, dict) or set(source_settings) - known_sources:
+        raise ValueError("Unknown source settings; use the supported charge/laser scale names.")
+    for key, value in source_settings.items():
+        _validate_value(value, {"type": "number", "exclusiveMinimum": 0}, f"source_settings.{key}")
+    if namelist_overrides is not None:
+        if not isinstance(namelist_overrides, dict):
+            raise ValueError("namelist_overrides must be a dictionary.")
+        for key, value in namelist_overrides.items():
+            if not isinstance(key, str) or not re.fullmatch(r"[A-Za-z_]\w*:[A-Za-z_]\w*(?:\([0-9, ]+\))?", key):
+                raise ValueError(f"Invalid namelist override key: {key}")
+            values = value if isinstance(value, (list, tuple)) else [value]
+            if not values or any(not isinstance(item, (str, bool, int, float)) or
+                                 (isinstance(item, (int, float)) and not math.isfinite(item)) for item in values):
+                raise ValueError(f"Namelist override {key} must contain finite numeric, boolean, or string values.")

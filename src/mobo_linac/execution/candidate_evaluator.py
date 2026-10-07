@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 import numpy as np
 
-from mobo_linac.config import MoboConfig, load_config
+from mobo_linac.config import MoboConfig, load_config, ExecutionConfig
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
 from mobo_linac.execution.requests import EvaluationRequest
@@ -110,9 +110,11 @@ class CandidateEvaluatorBase(ABC):
         template_in: str = "astra.in",
     ):
         self.config = config or load_config()
+        self.config.validate()
+        ExecutionConfig(timeout_sec=timeout, max_workers=num_workers).validate()
         self.base_output_dir = Path(base_output_dir)
-        self.num_workers = int(num_workers)
-        self.timeout = int(timeout)
+        self.num_workers = num_workers
+        self.timeout = timeout
         self.template_dir = Path(template_dir)
         self.template_in = template_in
 
@@ -143,6 +145,8 @@ class CandidateEvaluatorBase(ABC):
         """
         Executes evaluation tasks in parallel, mapping outputs to EvaluationOutcome records.
         """
+        for task in tasks:
+            task.to_request().validate(self.config)
         if not tasks:
             return []
 

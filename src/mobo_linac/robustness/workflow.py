@@ -13,9 +13,13 @@ from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_MAPPING_
 def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
                             num_workers=4, seed=42, dry_run=False, batch_evaluator=None):
     output_dir = Path(output_dir)
-    output_dir.mkdir(parents=True, exist_ok=True)
-    if num_perturbations <= 0:
+    config.validate()
+    if type(num_perturbations) is not int or num_perturbations <= 0:
         raise ValueError("Robustness analysis requires at least one perturbation")
+    from mobo_linac.config import validate_campaign_options
+    validate_campaign_options(num_initial_samples=1, num_batches=0, batch_size=1,
+                              num_workers=num_workers, seed=seed)
+    output_dir.mkdir(parents=True, exist_ok=True)
     if dry_run:
         print("[DRY-RUN] Robustness Analysis Plan:")
         print(f"  - Input Candidates: {len(results)}; selection requires observed feasibility")

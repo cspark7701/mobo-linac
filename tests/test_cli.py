@@ -224,3 +224,55 @@ def test_verification_absent_input_requires_explicit_mock(tmp_path, monkeypatch)
     records = json.loads((tmp_path / 'verification' / 'verification_manifest.json').read_text())['records']
     assert records and all(record['verification_status'].startswith('MOCK_') for record in records)
     assert all(record['input_sha256'] is None for record in records)
+
+
+@pytest.mark.parametrize("command", ["run-unconstrained", "run-constrained", "run-scalarized",
+    "run-scalarized-suite", "run-validation", "run-benchmark", "run-robustness", "run-verification"])
+def test_cli_missing_explicit_config_fails_before_output(tmp_path, command):
+    destination = tmp_path / "output"
+    with pytest.raises(FileNotFoundError, match="Requested configuration"):
+        main([command, "--config", str(tmp_path / "missing.yaml"), "--output-dir", str(destination), "--dry-run"])
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("weights", [["nan", "1", "1"], ["-1", "1", "1"],
+    ["0", "0", "0"], ["1", "1"]])
+def test_cli_invalid_scalar_weights_fail_even_in_dry_run(tmp_path, weights):
+    destination = tmp_path / "output"
+    with pytest.raises(ValueError, match="Scalar weights"):
+        main(["run-scalarized", "--weights", *weights, "--output-dir", str(destination), "--dry-run"])
+    assert not destination.exists()
+
+
+@pytest.mark.parametrize("option,value", [("--num-initial-samples", "0"), ("--n-iterations", "-1"),
+    ("--batch-size", "0"), ("--num-workers", "0"), ("--seed", "-1")])
+def test_cli_invalid_run_limits_fail_before_output(tmp_path, option, value):
+    destination = tmp_path / "output"
+    with pytest.raises(ValueError):
+        main(["run-unconstrained", option, value, "--output-dir", str(destination), "--dry-run"])
+    assert not destination.exists()
+
+
+def test_cli_scalarized_weights_follow_custom_objective_count(tmp_path, capsys):
+    from mobo_linac.config import load_config
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.objectives = config.objectives[:2]
+    path = tmp_path / "two_objectives.yaml"
+    config.save_yaml(path)
+    main(["run-scalarized", "--config", str(path), "--weights", "2", "1", "--dry-run"])
+    assert "[DRY-RUN]" in capsys.readouterr().out
+    with pytest.raises(ValueError, match="Scalar weights"):
+        main(["run-scalarized-suite", "--config", str(path), "--dry-run"])
+
+
+def test_cli_default_plan_reports_actual_resolved_path(capsys):
+    from mobo_linac.config import resolve_config_path
+    main(["run-unconstrained", "--dry-run"])
+    assert str(resolve_config_path()) in capsys.readouterr().out
+
+
+def test_scalarized_cli_rejects_incompatible_acquisition(tmp_path):
+    output = tmp_path / "invalid"
+    with pytest.raises(ValueError, match="scalarized_bo uses qLogNEI"):
+        main(["run-scalarized", "--acquisition", "qLogEHVI", "--output-dir", str(output), "--dry-run"])
+    assert not output.exists()

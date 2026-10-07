@@ -213,3 +213,241 @@ def test_config_serialization(tmp_path):
     yaml_path = tmp_path / "config.yaml"
     config.save_yaml(yaml_path)
     assert yaml_path.exists()
+
+
+def test_explicit_missing_path_never_uses_default(tmp_path):
+    from mobo_linac.config import resolve_config_path
+    path = tmp_path / "missing.yaml"
+    with pytest.raises(FileNotFoundError, match="Requested configuration"):
+        load_config(path)
+    with pytest.raises(FileNotFoundError):
+        resolve_config_path(path)
+
+
+def test_default_resolution_records_actual_source(tmp_path, monkeypatch):
+    from dataclasses import asdict
+    from mobo_linac.config import resolve_config_path
+    source = Path("configs/mobo_200MeV.yaml").resolve()
+    local = tmp_path / "configs"
+    local.mkdir()
+    target = local / "mobo_200MeV.yaml"
+    target.write_text(source.read_text())
+    monkeypatch.chdir(tmp_path)
+    config = load_config()
+    assert config.resolved_path == target.resolve() == resolve_config_path()
+    assert "resolved_path" not in asdict(config)
+
+
+@pytest.mark.parametrize("section,field", [
+    ("design_variables", "nominal_value"), ("design_variables", "lower_bound"),
+    ("design_variables", "upper_bound"), ("design_variables", "ratio"),
+    ("constraints", "max_sigma_x_m"), ("constraints", "max_mean_kinetic_energy_eV"),
+    ("model", "fixed_noise_variance"), ("model", "relative_noise_ratio"),
+    ("model", "min_noise_variance"), ("execution", "z_stop_m"),
+    ("execution", "z_loss_tolerance_m"),
+])
+@pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
+def test_all_numeric_config_fields_reject_nonfinite(section, field, value):
+    config = load_config("configs/mobo_200MeV.yaml")
+    target = config.design_variables[0] if section == "design_variables" else getattr(config, section)
+    setattr(target, field, value)
+    with pytest.raises(ValueError, match="finite"):
+        config.validate()
+
+
+@pytest.mark.parametrize("field,value", [("acqf_maxiter", 0), ("acqf_batch_limit", -1),
+    ("timeout_sec", 1.5), ("max_workers", True), ("retries", -1),
+    ("z_stop_m", 0), ("z_loss_tolerance_m", -0.1), ("clean_on_success", "false")])
+def test_execution_limits_share_strict_field_rules(field, value):
+    config = ExecutionConfig()
+    setattr(config, field, value)
+    with pytest.raises(ValueError):
+        config.validate()
+
+
+def test_fixed_design_variables_are_rejected():
+    config = load_config("configs/mobo_200MeV.yaml")
+    variable = config.design_variables[0]
+    variable.lower_bound = variable.upper_bound = variable.nominal_value
+    with pytest.raises(ValueError, match="fixed variables"):
+        config.validate()
+
+
+@pytest.mark.parametrize("noise", [[0.01], [0.01, float("nan"), 0.02], [0.01, 0, 0.02]])
+def test_noise_vectors_require_positive_finite_matching_outputs(noise):
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.model.objective_noise_variances = noise
+    with pytest.raises(ValueError):
+        config.validate()
+
+
+def test_inferred_noise_rejects_fixed_noise_configuration():
+    with pytest.raises(ValueError, match="inferred noise"):
+        GpModelConfig(noise_mode="inferred", fixed_noise_variance=0.01).validate()
+
+
+def test_schema_and_roundtrip_cover_every_dataclass_field(tmp_path):
+    from dataclasses import asdict, fields
+    from mobo_linac.config import config_from_dict, BenchmarkConfig
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = export_config_schema()
+    jsonschema.Draft7Validator.check_schema(schema)
+    config = load_config("configs/publication_200MeV.yaml")
+    config.name = None
+    config.model.objective_noise_variances = [0.01, 0.02, 0.03]
+    config.model.fixed_noise_variance = None
+    config.objectives[0].aliases = ["horizontal_emit"]
+    config.objectives[0].reporting_scale = 1e-6
+    value = asdict(config)
+    jsonschema.validate(value, schema)
+    assert asdict(config_from_dict(value)) == value
+    for suffix, save in (("json", config.save_json), ("yaml", config.save_yaml)):
+        path = tmp_path / f"config.{suffix}"
+        save(path)
+        assert asdict(load_config(path)) == value
+    pairs = [(MoboConfig, schema), (DesignVariableConfig, schema["properties"]["design_variables"]["items"]),
+             (ObjectiveConfig, schema["properties"]["objectives"]["items"]),
+             (ConstraintsConfig, schema["properties"]["constraints"]),
+             (ExecutionConfig, schema["properties"]["execution"]),
+             (GpModelConfig, schema["properties"]["model"]),
+             (BenchmarkConfig, schema["definitions"]["BenchmarkConfig"])]
+    for cls, definition in pairs:
+        assert set(definition["properties"]) == {field.name for field in fields(cls)}
+    docs = generate_config_markdown_docs(config)
+    assert "model.objective_noise_variances" in docs
+    assert "execution.acqf_maxiter" in docs
+    assert "design_variables[].coupled_targets" in docs
+
+
+@pytest.mark.parametrize("section,field,value", [("execution", "acqf_maxiter", 0),
+    ("execution", "clean_on_success", 1), ("model", "objective_noise_variances", [0]),
+    ("objectives", "name", "invalid name"), ("model", "surprise", 1)])
+def test_schema_and_runtime_reject_same_invalid_fields(section, field, value):
+    from dataclasses import asdict
+    from mobo_linac.config import config_from_dict
+    jsonschema = pytest.importorskip("jsonschema")
+    data = asdict(load_config("configs/mobo_200MeV.yaml"))
+    target = data[section][0] if section == "objectives" else data[section]
+    target[field] = value
+    with pytest.raises(ValueError):
+        config_from_dict(data)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(data, export_config_schema())
+
+
+@pytest.mark.parametrize("kwargs", [{"num_initial_samples": 0}, {"num_batches": -1},
+    {"batch_size": 0}, {"num_workers": 0}, {"seed": -1}, {"optimization_mode": "typo"},
+    {"scalar_weights": [1, 2]}, {"scalar_weights": [float("inf"), 1, 1]},
+    {"reporting_ref_point": [1, 2]}])
+def test_runner_invalid_options_create_no_directory(tmp_path, kwargs):
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    output = tmp_path / "invalid"
+    with pytest.raises(ValueError):
+        MoboCampaignRunner(config=load_config("configs/mobo_200MeV.yaml"), output_dir=output, **kwargs)
+    assert not output.exists()
+
+
+def test_large_finite_scalar_weights_normalize_without_overflow():
+    from mobo_linac.config import normalize_scalar_weights
+    weights = normalize_scalar_weights([1e308, 1e308, 1e308], 3)
+    torch.testing.assert_close(weights, torch.full((3,), 1/3, dtype=torch.double))
+
+
+@pytest.mark.parametrize("setting", [float("nan"), float("inf"), 0, -1])
+def test_invalid_source_scales_fail_before_attempt_creation(tmp_path, setting):
+    from mobo_linac.astra.runner import run_astra_eval
+    output = tmp_path / "invalid"
+    with pytest.raises(ValueError):
+        run_astra_eval([0.2, 1, -1, 0, 0, 0], base_results_dir=output,
+                       source_settings={"bunch_charge_scale": setting})
+    assert not output.exists()
+
+
+def test_nonfinite_namelist_override_fails_before_attempt_creation(tmp_path):
+    from mobo_linac.astra.runner import run_astra_eval
+    output = tmp_path / "invalid"
+    with pytest.raises(ValueError, match="finite"):
+        run_astra_eval([0.2, 1, -1, 0, 0, 0], base_results_dir=output,
+                       namelist_overrides={"charge:nrad": float("nan")})
+    assert not output.exists()
+
+
+def test_campaign_records_resolved_default_source(tmp_path):
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.execution import MockBatchEvaluator
+    runner = MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=2, num_batches=0,
+                               evaluator=MockBatchEvaluator(tmp_path), export_plots=False, export_env_info=False)
+    runner.run()
+    recorded = json.loads((tmp_path / "config_source.json").read_text())
+    assert Path(recorded["resolved_path"]) == runner.config_path == runner.config.resolved_path
+    assert recorded["source"] == "file"
+
+
+def test_perturbation_explicit_missing_path_is_rejected(tmp_path):
+    from mobo_linac.robustness.evaluator import load_perturbation_spec
+    with pytest.raises(FileNotFoundError):
+        load_perturbation_spec(tmp_path / "missing.yaml")
+
+
+def test_nonfinite_design_request_is_rejected_before_directory(tmp_path):
+    from mobo_linac.astra.runner import run_astra_eval
+    output = tmp_path / "invalid"
+    with pytest.raises(ValueError, match="finite"):
+        run_astra_eval([float("nan"), 1, -1, 0, 0, 0], base_results_dir=output)
+    assert not output.exists()
+
+
+def test_scalarized_acquisition_combination_is_validated():
+    from mobo_linac.config import validate_campaign_options
+    values = dict(num_initial_samples=2, num_batches=1, batch_size=1, acq_type="qLogNEI")
+    validate_campaign_options(**values, optimization_mode="scalarized_bo")
+    with pytest.raises(ValueError, match="qLogNEI requires"):
+        validate_campaign_options(**values, optimization_mode="unconstrained_mobo")
+
+
+def test_nullable_fields_and_required_defaults_match_schema():
+    from dataclasses import asdict
+    from mobo_linac.config import config_from_dict
+    jsonschema = pytest.importorskip("jsonschema")
+    schema = export_config_schema()
+    value = asdict(load_config("configs/mobo_200MeV.yaml"))
+    for dv in value["design_variables"]:
+        if not dv["is_coupled"]:
+            dv["coupled_targets"] = None
+    value["model"]["objective_noise_variances"] = None
+    value["objectives"][0]["reporting_scale"] = None
+    jsonschema.validate(value, schema)
+    assert asdict(config_from_dict(value)) == value
+    del value["version"]
+    with pytest.raises(ValueError, match="missing required"):
+        config_from_dict(value)
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(value, schema)
+
+
+def test_benchmark_reference_dimension_fails_before_output(tmp_path):
+    from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.objectives = config.objectives[:2]
+    output = tmp_path / "invalid"
+    with pytest.raises(ValueError, match="reporting reference"):
+        BenchmarkCampaignRunner(config, output_dir=output)
+    assert not output.exists()
+
+
+def test_benchmark_preserves_resolved_configuration_source(tmp_path):
+    from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
+    config = load_config("configs/mobo_200MeV.yaml")
+    benchmark = BenchmarkCampaignRunner(config, output_dir=tmp_path)
+    assert benchmark.config.resolved_path == config.resolved_path
+
+
+def test_invalid_batch_parameters_are_not_coerced_before_validation(tmp_path, monkeypatch):
+    from mobo_linac.execution.parallel import evaluate_candidates_parallel
+    def forbid(*args, **kwargs):
+        pytest.fail("Invalid request reached a worker")
+    monkeypatch.setattr("mobo_linac.execution.parallel._worker_eval_task", forbid)
+    output = tmp_path / "invalid"
+    with pytest.raises(ValueError, match="finite numbers"):
+        evaluate_candidates_parallel([[True, 1, -1, 0, 0, 0]], max_workers=1, base_results_dir=output)
+    assert not output.exists()

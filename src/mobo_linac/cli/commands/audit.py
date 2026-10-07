@@ -39,13 +39,9 @@ def run_robustness(args: argparse.Namespace) -> None:
     from mobo_linac.io.results import load_evaluation_results
     from mobo_linac.robustness.workflow import run_robustness_workflow
 
-    config_path = getattr(args, "config", "configs/publication.yaml")
-    if not Path(config_path).exists():
-        config_path = "configs/mobo_200MeV.yaml"
-    config = load_config(config_path)
+    config = load_config(getattr(args, "config", None))
 
     output_dir = Path(getattr(args, "output_dir", "results/robustness"))
-    output_dir.mkdir(parents=True, exist_ok=True)
 
     input_path = getattr(args, "history_path", None) or getattr(args, "pareto_csv", None)
 
@@ -83,7 +79,7 @@ def run_verification(args: argparse.Namespace) -> None:
     from mobo_linac.io.results import load_evaluation_results
     from mobo_linac.verification.verifier import run_verification_pipeline
 
-    config = load_config(getattr(args, "config", "configs/publication_200MeV.yaml"))
+    config = load_config(getattr(args, "config", None))
     output_dir = Path(getattr(args, "output_dir", "results/verification"))
     input_path = getattr(args, "history_path", None) or getattr(args, "pareto_csv", None) or getattr(args, "input", None)
     results = []
@@ -134,7 +130,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
         "run-robustness", help="Perform robustness and sensitivity analysis over Pareto candidates"
     )
     run_rob_parser.add_argument(
-        "--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file"
+        "--config", type=str, default=None, help="Path to config file"
     )
     run_rob_parser.add_argument(
         "--input", "--history-path", dest="history_path", type=str, default=None, help="Path to Pareto candidates CSV/JSON"
@@ -167,7 +163,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
         "run-verification", help="Rerun Pareto candidates independently for verification"
     )
     run_ver_parser.add_argument(
-        "--config", type=str, default="configs/publication_200MeV.yaml", help="Path to config file"
+        "--config", type=str, default=None, help="Path to config file"
     )
     run_ver_parser.add_argument(
         "--input", "--history-path", dest="history_path", type=str, default=None, help="Path to Pareto candidates CSV/JSON"
@@ -195,7 +191,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
         "validate-config", help="Validate YAML/JSON configuration files and export schema/docs"
     )
     val_cfg_parser.add_argument(
-        "--config", type=str, default="configs/publication.yaml", help="Path to configuration file to validate"
+        "--config", type=str, default=None, help="Path to configuration file to validate"
     )
     val_cfg_parser.add_argument(
         "--export-schema", type=str, default=None, help="Export JSON Schema to file path"
@@ -211,14 +207,11 @@ def validate_config(args: argparse.Namespace) -> None:
     import sys
     from mobo_linac.config import export_config_schema, generate_config_markdown_docs, load_config
 
-    config_path = getattr(args, "config", "configs/publication.yaml")
-    p = Path(config_path)
-    if not p.exists():
-        print(f"ERROR: Configuration file not found: {p}")
-        sys.exit(1)
-
+    p = getattr(args, "config", None)
     try:
         cfg = load_config(p)
+        p = cfg.resolved_path
+        print(f"  - Config: {p}")
         print(f"✓ Configuration '{cfg.name}' (v{cfg.version}) is VALID.")
         print(f"  - Design Variables: {len(cfg.design_variables)}")
         print(f"  - Objectives: {len(cfg.objectives)}")

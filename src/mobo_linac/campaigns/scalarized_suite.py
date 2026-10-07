@@ -23,7 +23,7 @@ import pandas as pd
 import torch
 
 from mobo_linac.campaigns.runner import MoboCampaignRunner
-from mobo_linac.config import config_from_dict
+from mobo_linac.config import config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
 from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
 from mobo_linac.io.results import load_evaluation_results, get_train_tensors
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
@@ -318,7 +318,7 @@ def export_phase1_cases_latex_table(
 
 
 def run_scalarized_suite(
-    config: Union[str, Path] = "configs/mobo_200MeV.yaml",
+    config: Optional[Union[str, Path]] = None,
     n_iterations: int = 20,
     batch_size: int = 8,
     num_initial_samples: int = 16,
@@ -351,6 +351,15 @@ def run_scalarized_suite(
     Returns:
         Aggregation metadata dictionary.
     """
+    config = load_config(config)
+    validate_campaign_options(num_initial_samples=num_initial_samples, num_batches=n_iterations,
+                              batch_size=batch_size, num_workers=num_workers, seed=seed)
+    if cases_to_run and any(case not in OPTION_2_CASES for case in cases_to_run):
+        raise ValueError("Unknown scalarized suite case.")
+    for case in (cases_to_run or OPTION_2_CASES):
+        normalize_scalar_weights(OPTION_2_CASES[case]["weights"], len(config.objectives))
+    if seed + (len(cases_to_run or OPTION_2_CASES) - 1) * 100 >= 2**32:
+        raise ValueError("Suite case seeds must be less than 2**32.")
     base_out = Path(output_dir)
     base_out.mkdir(parents=True, exist_ok=True)
 
@@ -381,7 +390,7 @@ def run_scalarized_suite(
         print(f"  - Output Dir: {case_dir}")
 
         runner = MoboCampaignRunner(
-            config=str(config),
+            config=config,
             run_name=f"scalarized_{case_key}",
             output_dir=case_dir,
             num_initial_samples=num_initial_samples,

@@ -80,10 +80,11 @@ class BenchmarkCampaignRunner:
         benchmark_config: Optional[BenchmarkConfig] = None,
         num_workers: Optional[int] = None,
     ):
+        config.validate()
         self.device = device
         self.evaluation_kind = "astra"
         self.num_workers = config.execution.max_workers if num_workers is None else num_workers
-        if self.num_workers < 1:
+        if type(self.num_workers) is not int or self.num_workers < 1:
             raise ValueError("num_workers must be >= 1.")
         self.benchmark_config = benchmark_config or BenchmarkConfig(
             algorithms=list(SUPPORTED_BENCHMARK_ALGORITHMS) if algorithms is None else algorithms,
@@ -94,9 +95,13 @@ class BenchmarkCampaignRunner:
             output_dir=str(output_dir),
         )
         self.benchmark_config.validate()
+        if len(self.benchmark_config.reporting_ref_point) != len(config.objectives):
+            raise ValueError("Benchmark reporting reference must match configured objectives.")
         self.config = replace(
             config, constraints=config.get_constraint_profile(self.benchmark_config.constraint_profile)
         )
+        if hasattr(config, "resolved_path"):
+            self.config.resolved_path = config.resolved_path
         self.output_dir = Path(self.benchmark_config.output_dir)
         self.algorithms = list(self.benchmark_config.algorithms)
         self.seeds = list(self.benchmark_config.seeds)
