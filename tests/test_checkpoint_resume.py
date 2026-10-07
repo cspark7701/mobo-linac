@@ -778,3 +778,62 @@ def test_resume_pending_file_repairs_truncated_tail_and_retains_completed_work(t
         ).run()
     assert evaluator.submissions[0][0] == ["eval_000001", "eval_000003"]
     assert len(results) == len(load_streaming_records(tmp_path)) == 3
+
+
+@pytest.mark.parametrize("mode", ["unconstrained_mobo", "constrained_mobo", "scalarized_bo"])
+def test_configured_two_variable_mixed_objective_campaign(tmp_path, mode):
+    import pandas as pd
+    from mobo_linac.io.results import load_evaluation_results
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.design_variables = config.design_variables[:2]
+    config.objectives = [config.objectives[2], config.objectives[0]]
+    config.objectives[1].physical_direction = "maximize"
+    config.objectives[1].model_sign = 1
+    config.objectives[0].reporting_scale = 2e6
+    directory = tmp_path / mode
+    runner = MoboCampaignRunner(config=config, output_dir=directory, num_initial_samples=2,
+                                num_batches=1, batch_size=1, device="cpu", export_plots=True,
+                                optimization_mode=mode, evaluator=MockBatchEvaluator(directory))
+    results, tracker, _ = runner.run()
+    x, y, feasible = get_train_tensors(results, config=config)
+    assert x.shape == (3, 2) and y.shape == (3, 2)
+    assert runner.scalar_weights.tolist() == [0.5, 0.5]
+    for extension in ("csv", "json"):
+        restored = load_evaluation_results(directory / f"candidate_history.{extension}", config)
+        assert [r.objectives_physical for r in restored] == [r.objectives_physical for r in results]
+        assert [r.objectives_model for r in restored] == [r.objectives_model for r in results]
+        assert [r.x_physical for r in restored] == [r.x_physical for r in results]
+    stream = pd.read_csv(directory / "evaluations_stream.csv")
+    assert "model_norm_emit_x_pos" in stream and "gun_phase_deg" not in stream
+    pareto = pd.read_csv(directory / "pareto_all.csv", float_precision="round_trip")
+    assert set(pareto.norm_emit_x_m_rad) <= {r.objectives_physical[1] for r in results}
+    assert set(pareto.sigma_energy_eV) <= {r.objectives_physical[0] for r in results}
+    assert tracker.history[0]["reporting_ref_point_physical"][1] == tracker.reporting_ref_point[1]
+    assert load_run_checkpoint(directory).reporting_scales == [2e6, 1e-6]
+    resumed = MoboCampaignRunner(output_dir=directory, resume=True, num_batches=2,
+                                 export_plots=False, device="cpu", evaluator=MockBatchEvaluator(directory))
+    continued, _, _ = resumed.run()
+    assert len(continued) == 4
+    assert list(pd.read_csv(directory / "evaluations_stream.csv").columns) == list(stream.columns)
+
+
+def test_configured_all_failed_campaign_exports_empty_headers(tmp_path):
+    import pandas as pd
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.design_variables = config.design_variables[:2]
+    config.objectives = [config.objectives[2], config.objectives[0]]
+    runner = MoboCampaignRunner(config=config, output_dir=tmp_path, num_initial_samples=1,
+                                num_batches=0, export_plots=False, device="cpu",
+                                evaluator=MockBatchEvaluator(tmp_path, failure_rate=1.0))
+    results, _, _ = runner.run()
+    assert not results[0].simulation_valid
+    assert pd.read_csv(tmp_path / "objectives_model.csv").shape == (0, 2)
+    assert pd.read_csv(tmp_path / "pareto_feasible.csv").shape == (0, 4)
+
+
+@pytest.mark.parametrize("weights", [[1.0], [0.0, 0.0], [1.0, -1.0], [float("nan"), 1.0]])
+def test_scalar_weights_require_configured_finite_nonnegative_values(tmp_path, weights):
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.objectives = config.objectives[:2]
+    with pytest.raises(ValueError, match="Scalar weights"):
+        MoboCampaignRunner(config=config, output_dir=tmp_path, scalar_weights=weights)

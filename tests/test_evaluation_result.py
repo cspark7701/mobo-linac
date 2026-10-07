@@ -195,3 +195,23 @@ def test_exclude_invalid_from_gp_train_tensors():
     assert train_feas_mask.shape[0] == 2
     assert train_feas_mask[0].item() is True
     assert train_feas_mask[1].item() is False
+
+
+@pytest.mark.parametrize("objectives, category", [
+    ({"norm_emit_x": 1e-6}, "MISSING_OUTPUT"),
+    ({"norm_emit_x": None, "norm_emit_y": 1e-6, "sigma_energy": 1e5}, "NAN_INF_DIAGNOSTICS"),
+    ({"norm_emit_x": 1e-6, "emit_x": 2e-6, "norm_emit_y": 1e-6, "sigma_energy": 1e5}, "NAN_INF_DIAGNOSTICS"),
+    ([1e-6], "MISSING_OUTPUT"),
+])
+def test_missing_or_conflicting_objectives_never_train(objectives, category):
+    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.io.results import get_train_tensors
+    raw = MockBatchEvaluator()([0.0] * 6)
+    raw["objectives"] = objectives
+    result = create_evaluation_result(raw)
+    assert not result.simulation_valid
+    assert result.failure_category == category
+    assert get_train_tensors([result])[0].shape == (0, 6)
+    if category == "MISSING_OUTPUT":
+        assert result.objectives_physical is None
+        assert result.objectives_model is None

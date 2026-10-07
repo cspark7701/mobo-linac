@@ -14,7 +14,7 @@ import torch
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.constraints import ConstraintEvaluator
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, finite_measurement, normalize_diagnostics
-from mobo_linac.objectives import transform_to_model_space
+from mobo_linac.result_schema import ResultSchema
 
 
 class FailureCategory(str, Enum):
@@ -45,8 +45,8 @@ class EvaluationResult:
     objectives_physical: Optional[List[float]] = None
     objectives_model: Optional[List[float]] = None
     diagnostics: Dict[str, float] = field(default_factory=dict)
-    simulation_valid: bool = False
-    physically_feasible: bool = False
+    simulation_valid: Optional[bool] = False
+    physically_feasible: Optional[bool] = False
     failure_category: str = FailureCategory.UNHANDLED_EXCEPTION.value
     failure_reason: Optional[str] = None
     runtime_s: float = 0.0
@@ -100,6 +100,10 @@ def create_evaluation_result(
     raw_diags = raw_res.get("diagnostics", manifest.get("diagnostics"))
     raw_diags = normalize_diagnostics(raw_diags) if isinstance(raw_diags, dict) else {}
 
+    schema = ResultSchema.from_config(config)
+    objs_phys = schema.extract(raw_objs)
+    objs_model = schema.transform(objs_phys).tolist() if objs_phys is not None else None
+
     # Determine failure category and simulation validity
     simulation_valid = False
     physically_feasible = False
@@ -109,12 +113,12 @@ def create_evaluation_result(
     if status == "timeout" or (error_msg and "timeout" in error_msg.lower()):
         failure_category = FailureCategory.ASTRA_TIMEOUT.value
         failure_reason = error_msg or "ASTRA execution timed out"
-    elif not raw_objs or not raw_diags:
+    elif objs_phys is None or not raw_diags:
         failure_category = FailureCategory.MISSING_OUTPUT.value
         failure_reason = error_msg or "Simulation output or diagnostics missing"
     else:
         # 1. Check for NaN or Inf in objectives and diagnostics first
-        all_vals = (list(raw_objs.values()) if isinstance(raw_objs, dict) else list(raw_objs)) + list(raw_diags.values())
+        all_vals = objs_phys + list(raw_diags.values())
         has_nan_inf = any(not finite_measurement(value) for value in all_vals)
 
         # 2. Check for premature beam loss / incomplete particle tracking
@@ -186,22 +190,6 @@ def create_evaluation_result(
                         physically_feasible = False
                         failure_category = FailureCategory.INFEASIBLE_BEAM.value
                         failure_reason = "Beam diagnostics violated constraint thresholds"
-
-    # Extract physical and model objectives if valid/available
-    objs_phys: Optional[List[float]] = None
-    objs_model: Optional[List[float]] = None
-
-    if raw_objs and isinstance(raw_objs, dict):
-        norm_emit_x = float(raw_objs.get("norm_emit_x", raw_objs.get("emit_x", 1e-3)))
-        norm_emit_y = float(raw_objs.get("norm_emit_y", raw_objs.get("emit_y", 1e-3)))
-        sigma_energy = float(raw_objs.get("sigma_energy", 1e8))
-        objs_phys = [norm_emit_x, norm_emit_y, sigma_energy]
-        objs_model_tensor = transform_to_model_space(objs_phys, config)
-        objs_model = objs_model_tensor.tolist()
-    elif isinstance(raw_objs, (list, tuple)):
-        objs_phys = [float(v) for v in raw_objs]
-        objs_model_tensor = transform_to_model_space(objs_phys, config)
-        objs_model = objs_model_tensor.tolist()
 
     diags_clean: Dict[str, float] = {}
     if raw_diags and isinstance(raw_diags, dict):

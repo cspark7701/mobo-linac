@@ -74,10 +74,19 @@ class ObjectiveConfig:
     physical_direction: str  # "minimize" or "maximize"
     model_sign: int  # -1 for minimization (maximization in BoTorch), 1 for maximization
 
+    aliases: List[str] = field(default_factory=list)
+    reporting_scale: Optional[float] = None
+
     def validate(self) -> None:
-        """Validate objective direction, name, and BoTorch model sign."""
+        """Validate objective names, aliases, direction and normalization scale."""
+        if not isinstance(self.aliases, (list, tuple)) or any(not isinstance(a, str) or not a for a in self.aliases):
+            raise ValueError("Objective aliases must be non-empty strings.")
+        if self.reporting_scale is not None and (not isinstance(self.reporting_scale, (int, float)) or isinstance(self.reporting_scale, bool) or not 0 < self.reporting_scale < float("inf")):
+            raise ValueError("Objective reporting_scale must be finite and positive.")
         if not self.name or not isinstance(self.name, str):
             raise ValueError("Objective must have a non-empty name string.")
+        if not isinstance(self.explicit_name, str) or not self.explicit_name:
+            raise ValueError("Objective must have a non-empty explicit_name string.")
         if self.physical_direction not in ("minimize", "maximize"):
             raise ValueError(
                 f"Invalid physical_direction '{self.physical_direction}' for objective '{self.name}'. "
@@ -267,6 +276,8 @@ class MoboConfig:
                 raise ValueError(f"Duplicate objective name: '{obj.name}'")
             obj_names.add(obj.name)
 
+        from mobo_linac.result_schema import ResultSchema
+        ResultSchema.from_config(self)
         self.constraints.validate()
         for name, profile in self.sensitivity_profiles.items():
             profile.validate()
@@ -368,6 +379,8 @@ def export_config_schema(output_path: Optional[Union[str, Path]] = None) -> Dict
                         "unit": {"type": "string"},
                         "physical_direction": {"type": "string", "enum": ["minimize", "maximize"]},
                         "model_sign": {"type": "integer", "enum": [-1, 1]},
+                        "aliases": {"type": "array", "items": {"type": "string", "minLength": 1}},
+                        "reporting_scale": {"type": ["number", "null"], "exclusiveMinimum": 0},
                     },
                 },
             },

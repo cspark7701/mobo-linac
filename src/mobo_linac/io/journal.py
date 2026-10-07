@@ -128,14 +128,14 @@ def repair_journal_tail(output_dir: Union[str, Path]) -> None:
                 os.fsync(stream.fileno())
 
 
-def write_streaming_csv(output_dir: Union[str, Path], records=None) -> Path:
+def write_streaming_csv(output_dir: Union[str, Path], records=None, config=None) -> Path:
     """Atomically rebuild the CSV view from validated, deduplicated JSONL records."""
     out_dir = Path(output_dir)
     records = load_streaming_records(out_dir) if records is None else records
     records = sorted(records, key=lambda r: (r.batch_idx if r.batch_idx is not None else -1,
                                             r.candidate_idx if r.candidate_idx is not None else -1,
                                             r.result.evaluation_id))
-    frame = results_to_dataframe([r.result for r in records])
+    frame = results_to_dataframe([r.result for r in records], config=config)
     frame["batch_idx"] = [r.batch_idx for r in records]
     frame["candidate_idx"] = [r.candidate_idx for r in records]
     path = out_dir / "evaluations_stream.csv"
@@ -153,7 +153,7 @@ def write_streaming_csv(output_dir: Union[str, Path], records=None) -> Path:
     return path
 
 
-def append_record(output_dir, result, batch_idx=None, candidate_idx=None) -> Path:
+def append_record(output_dir, result, batch_idx=None, candidate_idx=None, config=None) -> Path:
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     records = load_streaming_records(out_dir)
@@ -176,4 +176,4 @@ def append_record(output_dir, result, batch_idx=None, candidate_idx=None) -> Pat
         finally:
             os.close(directory_fd)
         records.append(record)
-    return write_streaming_csv(out_dir, records)
+    return write_streaming_csv(out_dir, records, config=config)

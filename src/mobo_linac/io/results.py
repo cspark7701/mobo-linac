@@ -14,6 +14,7 @@ import torch
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from mobo_linac.evaluation import EvaluationResult
+from mobo_linac.result_schema import ResultSchema
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, diagnostic_observations, finite_measurement, normalize_diagnostics
 
 DESIGN_VAR_COLUMNS = [
@@ -46,14 +47,10 @@ def results_to_dataframe(
     Converts a list of EvaluationResult objects into a structured Pandas DataFrame.
     Dynamically binds column headers from config if provided, falling back to canonical linac defaults.
     """
-    if config is not None and hasattr(config, "design_variables") and hasattr(config, "objectives"):
-        design_var_cols = [dv.name for dv in config.design_variables]
-        physical_obj_cols = [obj.explicit_name for obj in config.objectives]
-        model_obj_cols = [f"model_{obj.name}_neg" for obj in config.objectives]
-    else:
-        design_var_cols = DESIGN_VAR_COLUMNS
-        physical_obj_cols = PHYSICAL_OBJ_COLUMNS
-        model_obj_cols = MODEL_OBJ_COLUMNS
+    schema = ResultSchema.from_config(config)
+    design_var_cols = list(schema.design_columns)
+    physical_obj_cols = list(schema.physical_columns)
+    model_obj_cols = list(schema.model_columns)
 
     rows = []
     for res in results:
@@ -92,8 +89,8 @@ def results_to_dataframe(
         # Add diagnostics if available
         diags = normalize_diagnostics(res.diagnostics)
         sigma_energy_val = diags.get("sigma_energy_eV", diags.get("sigma_energy", np.nan))
-        if pd.isna(sigma_energy_val) and res.objectives_physical and len(res.objectives_physical) > 2:
-            sigma_energy_val = float(res.objectives_physical[2])
+        if pd.isna(sigma_energy_val) and "sigma_energy_eV" in row:
+            sigma_energy_val = row["sigma_energy_eV"]
 
         row["sigma_x_m"] = diags.get("sigma_x_m", np.nan)
         row["sigma_y_m"] = diags.get("sigma_y_m", np.nan)
@@ -101,14 +98,15 @@ def results_to_dataframe(
         row["sigma_yp_rad"] = diags.get("sigma_yp_rad", np.nan)
         row["sigma_z_m"] = diags.get("sigma_z_m", np.nan)
         row["mean_kinetic_energy_eV"] = diags.get("mean_kinetic_energy_eV", np.nan)
-        row["sigma_energy_eV"] = sigma_energy_val
+        row.setdefault("sigma_energy_eV", sigma_energy_val)
         row["n_particles_initial"] = diags.get("n_particles_initial", np.nan)
         row["n_particles_final"] = diags.get("n_particles_final", np.nan)
         row["transmission_fraction"] = diags.get("transmission_fraction", np.nan)
 
         rows.append(row)
 
-    return pd.DataFrame(rows)
+    columns = list(dict.fromkeys(["evaluation_id", "run_id", "simulation_valid", "physically_feasible", "failure_category", "failure_reason", "runtime_s", "work_dir"] + design_var_cols + physical_obj_cols + model_obj_cols + ["sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m", "mean_kinetic_energy_eV", "sigma_energy_eV", "n_particles_initial", "n_particles_final", "transmission_fraction"]))
+    return pd.DataFrame(rows, columns=columns)
 
 
 @dataclass(frozen=True)
@@ -126,6 +124,7 @@ def get_training_observations(
     results: List[EvaluationResult],
     exclude_invalid: bool = True,
     require_diagnostics: bool = False,
+    config=None,
 ) -> TrainingObservations:
     """Select observed finite rows without fabricating missing diagnostic values.
 
@@ -133,6 +132,7 @@ def get_training_observations(
     channels. Objective-only training retains finite archived objective records.
     Selection preserves evaluation order and identifies rows by run/evaluation ID.
     """
+    schema = ResultSchema.from_config(config)
     selected = []
     diagnostic_rows = []
     identities = set()
@@ -143,6 +143,8 @@ def get_training_observations(
             continue
         if not all(finite_measurement(value) for value in result.x_physical + result.objectives_model):
             continue
+        if len(result.x_physical) != len(schema.design_columns) or len(result.objectives_model) != len(schema.signs):
+            raise ValueError("Training observation width does not match result schema.")
         observed = diagnostic_observations(result.diagnostics) if require_diagnostics else None
         if require_diagnostics and observed is None:
             continue
@@ -153,9 +155,9 @@ def get_training_observations(
         selected.append(result)
         if require_diagnostics:
             diagnostic_rows.append(observed)
-    train_X = torch.tensor([r.x_physical for r in selected], dtype=torch.double) if selected else torch.empty((0, 6), dtype=torch.double)
-    train_Y = torch.tensor([r.objectives_model for r in selected], dtype=torch.double) if selected else torch.empty((0, 3), dtype=torch.double)
-    feasible = torch.tensor([r.physically_feasible for r in selected], dtype=torch.bool)
+    train_X = torch.tensor([r.x_physical for r in selected], dtype=torch.double) if selected else torch.empty((0, len(schema.design_columns)), dtype=torch.double)
+    train_Y = torch.tensor([r.objectives_model for r in selected], dtype=torch.double) if selected else torch.empty((0, len(schema.signs)), dtype=torch.double)
+    feasible = torch.tensor([r.physically_feasible is True for r in selected], dtype=torch.bool)
     constraints = None
     if require_diagnostics:
         constraints = (torch.tensor(diagnostic_rows, dtype=torch.double) if selected
@@ -167,22 +169,24 @@ def get_training_observations(
 def get_train_tensors(
     results: List[EvaluationResult],
     exclude_invalid: bool = True,
+    config=None,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Return finite objective observations; constrained callers use the shared selector."""
-    observed = get_training_observations(results, exclude_invalid)
+    observed = get_training_observations(results, exclude_invalid, config=config)
     return observed.train_X, observed.train_Y, observed.feasible
 
 
 def get_constraint_tensors(
     results: List[EvaluationResult],
     exclude_invalid: bool = True,
+    config=None,
 ) -> torch.Tensor:
     """Return complete measured diagnostics in canonical order, without imputation.
 
     Use get_training_observations(require_diagnostics=True) to obtain identically
     selected design/objective rows and their stable evaluation identities.
     """
-    return get_training_observations(results, exclude_invalid, require_diagnostics=True).constraints
+    return get_training_observations(results, exclude_invalid, require_diagnostics=True, config=config).constraints
 
 
 
@@ -195,14 +199,10 @@ def save_evaluation_results(
     """
     Saves candidate history JSON, CSV, Pareto front, and hypervolume history into run directory.
     """
-    if config is not None and hasattr(config, "design_variables") and hasattr(config, "objectives"):
-        design_var_cols = [dv.name for dv in config.design_variables]
-        physical_obj_cols = [obj.explicit_name for obj in config.objectives]
-        model_obj_cols = [f"model_{obj.name}_neg" for obj in config.objectives]
-    else:
-        design_var_cols = DESIGN_VAR_COLUMNS
-        physical_obj_cols = PHYSICAL_OBJ_COLUMNS
-        model_obj_cols = MODEL_OBJ_COLUMNS
+    schema = ResultSchema.from_config(config)
+    design_var_cols = list(schema.design_columns)
+    physical_obj_cols = list(schema.physical_columns)
+    model_obj_cols = list(schema.model_columns)
 
     run_path = Path(run_dir)
     run_path.mkdir(parents=True, exist_ok=True)
@@ -219,24 +219,13 @@ def save_evaluation_results(
     df.to_csv(csv_path, index=False)
 
     # 3. Save train_X.csv & train_Y.csv
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
-    if train_X.shape[0] > 0:
-        np.savetxt(run_path / "train_X.csv", train_X.numpy(), delimiter=",", header=",".join(design_var_cols))
-        np.savetxt(run_path / "train_Y.csv", train_Y.numpy(), delimiter=",", header=",".join(model_obj_cols))
-
-        # Save pareto.csv if feasible valid samples exist
-        feasible_mask = train_feas_mask
-        if feasible_mask.sum().item() > 0:
-            feas_X = train_X[feasible_mask]
-            feas_Y = train_Y[feasible_mask]
-            pareto_mask = is_non_dominated(feas_Y)
-            pareto_X = feas_X[pareto_mask]
-            pareto_Y_model = feas_Y[pareto_mask]
-            pareto_Y_phys = -pareto_Y_model  # restore physical values for minimization
-
-            pareto_data = np.hstack([pareto_X.numpy(), pareto_Y_phys.numpy()])
-            pareto_headers = design_var_cols + physical_obj_cols
-            np.savetxt(run_path / "pareto.csv", pareto_data, delimiter=",", header=",".join(pareto_headers))
+    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=config)
+    pd.DataFrame(train_X.numpy(), columns=design_var_cols).to_csv(run_path / "train_X.csv", index=False)
+    pd.DataFrame(train_Y.numpy(), columns=model_obj_cols).to_csv(run_path / "train_Y.csv", index=False)
+    feasible_X, feasible_Y = train_X[train_feas_mask], train_Y[train_feas_mask]
+    mask = is_non_dominated(feasible_Y) if len(feasible_Y) else torch.zeros(0, dtype=torch.bool)
+    pareto_data = np.hstack([feasible_X[mask].numpy(), schema.transform(feasible_Y[mask]).numpy()])
+    pd.DataFrame(pareto_data, columns=design_var_cols + physical_obj_cols).to_csv(run_path / "pareto.csv", index=False)
 
     # 4. Save hypervolume.csv if provided
     if hypervolumes is not None:
@@ -260,14 +249,10 @@ def load_evaluation_results(
     if not path.exists():
         raise FileNotFoundError(f"Result file not found: {path}")
 
-    if config is not None and hasattr(config, "design_variables") and hasattr(config, "objectives"):
-        design_var_cols = [dv.name for dv in config.design_variables]
-        physical_obj_cols = [obj.explicit_name for obj in config.objectives]
-        model_obj_cols = [f"model_{obj.name}_neg" for obj in config.objectives]
-    else:
-        design_var_cols = DESIGN_VAR_COLUMNS
-        physical_obj_cols = PHYSICAL_OBJ_COLUMNS
-        model_obj_cols = MODEL_OBJ_COLUMNS
+    schema = ResultSchema.from_config(config)
+    design_var_cols = list(schema.design_columns)
+    physical_obj_cols = list(schema.physical_columns)
+    model_obj_cols = list(schema.model_columns)
 
     n_vars = len(design_var_cols)
     n_objs = len(physical_obj_cols)
@@ -277,30 +262,25 @@ def load_evaluation_results(
             data = json.load(f)
         return [EvaluationResult.from_dict(d) for d in data]
     elif path.suffix == ".csv":
-        df = pd.read_csv(path)
+        with path.open(encoding="utf-8") as stream:
+            legacy_header = stream.readline().startswith("# ")
+        df = pd.read_csv(path, float_precision="round_trip")
+        if legacy_header:
+            df.rename(columns={df.columns[0]: df.columns[0][2:]}, inplace=True)
+        if not set(design_var_cols).issubset(df.columns):
+            raise ValueError("CSV lacks named design columns required by the result schema.")
         results = []
-        for _, row in df.iterrows():
-            x_phys = [float(row[col]) for col in design_var_cols if col in row and not pd.isna(row[col])]
-            if len(x_phys) != n_vars and len(row) >= n_vars:
-                try:
-                    vals = [float(v) for v in row.values[:n_vars] if pd.notna(v)]
-                    if len(vals) == n_vars:
-                        x_phys = vals
-                except Exception:
-                    pass
-
-            objs_phys = [float(row[col]) for col in physical_obj_cols if col in row and not pd.isna(row[col])]
-            if len(objs_phys) != n_objs and len(row) >= (n_vars + n_objs):
-                try:
-                    vals_obj = [float(v) for v in row.values[n_vars : n_vars + n_objs] if pd.notna(v)]
-                    if len(vals_obj) == n_objs:
-                        objs_phys = vals_obj
-                except Exception:
-                    pass
-
-            objs_model = [float(row[col]) for col in model_obj_cols if col in row and not pd.isna(row[col])]
-            if len(objs_model) != n_objs and len(objs_phys) == n_objs:
-                objs_model = [-val for val in objs_phys]
+        for row_index, row in df.iterrows():
+            x_phys = [float(row.get(col, np.nan)) for col in design_var_cols]
+            objs_phys = schema.extract(row.to_dict())
+            # Earlier config-bound exports used model_{name}_neg for canonical objectives.
+            model_keys = [col if col in row else f"model_{names[0]}_neg" if sign == -1 else col
+                          for col, names, sign in zip(model_obj_cols, schema.objective_aliases, schema.signs)]
+            objs_model = [float(row[col]) for col in model_keys] if all(col in row for col in model_keys) else None
+            if objs_model is None and objs_phys is not None:
+                objs_model = schema.transform(objs_phys).tolist()
+            if objs_phys is None and objs_model is not None:
+                objs_phys = schema.transform(objs_model).tolist()
 
             diags = {}
             for diag_col in [
@@ -315,12 +295,20 @@ def load_evaluation_results(
                 if diag_col in row and not pd.isna(row[diag_col]):
                     diags[diag_col] = float(row[diag_col])
 
-            is_pareto = "pareto" in path.name.lower()
-            sim_valid = bool(row.get("simulation_valid", True if is_pareto else False))
-            phys_feas = bool(row.get("physically_feasible", True if is_pareto else False))
+            def observed_bool(name):
+                value = row.get(name)
+                if value is None or pd.isna(value):
+                    return None
+                if isinstance(value, (bool, np.bool_)):
+                    return bool(value)
+                if isinstance(value, str) and value.lower() in ("true", "false"):
+                    return value.lower() == "true"
+                raise ValueError(f"Invalid CSV boolean status: {name}")
+            sim_valid = observed_bool("simulation_valid")
+            phys_feas = observed_bool("physically_feasible")
 
             res = EvaluationResult(
-                evaluation_id=str(row.get("evaluation_id", "eval_000000")),
+                evaluation_id=str(row.get("evaluation_id", f"legacy_row_{row_index:06d}")),
                 run_id=str(row.get("run_id", "default_run")),
                 x_physical=x_phys if len(x_phys) == n_vars else x_phys,
                 objectives_physical=objs_phys if len(objs_phys) == n_objs else None,
@@ -623,10 +611,11 @@ def append_streaming_evaluation(
     result: EvaluationResult,
     batch_idx: Optional[int] = None,
     candidate_idx: Optional[int] = None,
+    config=None,
 ) -> Path:
     """Durably append JSONL first, then derive the CSV view; write errors propagate."""
     from mobo_linac.io.journal import append_record
-    return append_record(output_dir, result, batch_idx, candidate_idx)
+    return append_record(output_dir, result, batch_idx, candidate_idx, config=config)
 
 
 def load_streaming_evaluations(output_dir: Union[str, Path]) -> List[EvaluationResult]:

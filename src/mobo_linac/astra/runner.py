@@ -253,7 +253,9 @@ def run_astra_eval(
             target_z = float(config["execution"].get("z_stop_m", target_z))
             z_tol = float(config["execution"].get("z_loss_tolerance_m", z_tol))
 
-    parser = AstraOutputParser(target_z_stop=target_z, z_loss_tolerance=z_tol)
+    from mobo_linac.config import config_from_dict
+    objective_config = config_from_dict(config) if isinstance(config, dict) else config
+    parser = AstraOutputParser(target_z_stop=target_z, z_loss_tolerance=z_tol, config=objective_config)
 
     try:
         # Initialize Astra inside isolated eval_dir

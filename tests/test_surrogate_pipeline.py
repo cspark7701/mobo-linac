@@ -68,7 +68,11 @@ def test_selected_identity_rows_reach_both_gp_models(monkeypatch):
                                     ["sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m", "mean_kinetic_energy_eV", "transmission_fraction"],
                                     [0.5e-3] * 5 + [200e6, 1.0]))) for index in (1, 2, 3)]
     del records[1].diagnostics["sigma_yp_rad"]
-    observed = get_training_observations(records, require_diagnostics=True)
+    from mobo_linac.config import load_config
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.design_variables = config.design_variables[:1]
+    config.objectives = config.objectives[:1]
+    observed = get_training_observations(records, require_diagnostics=True, config=config)
     calls = []
     def record_build(**kwargs):
         calls.append(kwargs)

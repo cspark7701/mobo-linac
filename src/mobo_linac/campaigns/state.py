@@ -10,10 +10,10 @@ import warnings
 import numpy as np
 import torch
 
-from mobo_linac.config import MoboConfig
+from mobo_linac.config import MoboConfig, config_from_dict
 from mobo_linac.io.results import CheckpointState, get_train_tensors
 from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference_point
-from mobo_linac.metrics.reporting import DEFAULT_REPORTING_SCALES
+from mobo_linac.result_schema import ResultSchema
 
 
 def prepare_resume_state(
@@ -27,7 +27,7 @@ def prepare_resume_state(
         raise ValueError("Checkpoint lacks the saved configuration required for safe resume.")
     current = asdict(config)
     for section in ("design_variables", "objectives", "constraints", "model"):
-        if state.config.get(section) != current[section]:
+        if asdict(config_from_dict(state.config)).get(section) != current[section]:
             raise ValueError(f"Incompatible checkpoint configuration: {section} changed.")
     for name in current["execution"]:
         if name == "max_workers":
@@ -51,17 +51,17 @@ def prepare_resume_state(
         draws = state.num_initial_samples
         for iteration in range(1, state.iteration + 1):
             prior = [r for r, batch in zip(state.results, state.evaluation_batches) if batch < iteration]
-            if get_train_tensors(prior)[0].shape[0] < 2:
+            if get_train_tensors(prior, config=config)[0].shape[0] < 2:
                 draws += state.evaluation_batches.count(iteration)
         state.sobol_state = {"seed": state.seed, "dimension": len(config.design_variables), "num_generated": draws}
-        state.reporting_scales = list(DEFAULT_REPORTING_SCALES)
+        state.reporting_scales = list(ResultSchema.from_config(config).scales)
         if state.reporting_ref_point is None:
-            initial_y = get_train_tensors(state.results[:state.num_initial_samples])[1]
-            state.reporting_ref_point = compute_reference_point(initial_y).tolist()
+            initial_y = get_train_tensors(state.results[:state.num_initial_samples], config=config)[1]
+            state.reporting_ref_point = compute_reference_point(initial_y, config=config).tolist()
         tracker = HypervolumeTracker(state.reporting_ref_point, config)
         for iteration in range(state.iteration + 1):
             prefix = [r for r, batch in zip(state.results, state.evaluation_batches) if batch <= iteration]
-            _, y, feasible = get_train_tensors(prefix)
+            _, y, feasible = get_train_tensors(prefix, config=config)
             tracker.track_iteration(iteration, y, feasible)
         state.metric_history = tracker.history
         state.hypervolumes = [record["feasible_hypervolume"] for record in tracker.history]
@@ -110,7 +110,7 @@ def prepare_resume_state(
     if (weights.shape != (len(config.objectives),) or not np.isfinite(weights).all()
             or (weights < 0).any() or not np.isclose(weights.sum(), 1.0)):
         raise ValueError("Invalid checkpoint scalar weights.")
-    if state.reporting_scales != list(DEFAULT_REPORTING_SCALES):
+    if state.reporting_scales != list(ResultSchema.from_config(config).scales):
         raise ValueError("Incompatible checkpoint reporting scales.")
     if not bootstrap and (len(state.reporting_ref_point) != len(config.objectives)
             or not all(math.isfinite(v) for v in state.reporting_ref_point)):
@@ -138,7 +138,7 @@ def prepare_resume_state(
         raise ValueError("Invalid checkpoint metric history length.")
     for iteration, record in enumerate(state.metric_history):
         prefix = [r for r, batch in zip(state.results, batches) if batch <= iteration]
-        _, y, feasible = get_train_tensors(prefix)
+        _, y, feasible = get_train_tensors(prefix, config=config)
         if (record.get("iteration") != iteration
                 or record.get("reporting_ref_point_model") != state.reporting_ref_point
                 or record.get("num_valid_points") != y.shape[0]

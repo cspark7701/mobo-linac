@@ -39,9 +39,6 @@ from mobo_linac.execution.parallel import BatchEvaluator
 from mobo_linac.models.gp import build_scalarized_gp_model, fit_gp_models
 from mobo_linac.io.results import (
     CheckpointState,
-    DESIGN_VAR_COLUMNS,
-    MODEL_OBJ_COLUMNS,
-    PHYSICAL_OBJ_COLUMNS,
     append_streaming_evaluation,
     get_training_observations,
     get_train_tensors,
@@ -53,7 +50,7 @@ from mobo_linac.metrics.hypervolume import (
     HypervolumeTracker,
     compute_reference_point,
 )
-from mobo_linac.metrics.reporting import DEFAULT_REPORTING_SCALES
+from mobo_linac.result_schema import ResultSchema
 from mobo_linac.models.pipeline import SurrogatePipeline
 
 from mobo_linac.plotting.visualizations import (
@@ -163,9 +160,13 @@ class MoboCampaignRunner:
 
         if scalar_weights is not None:
             w_tensor = torch.tensor(scalar_weights, dtype=torch.double)
+            expected = len(self.config.objectives) if self.config is not None else len(w_tensor)
+            if w_tensor.shape != (expected,) or not torch.isfinite(w_tensor).all() or (w_tensor < 0).any() or w_tensor.sum() <= 0:
+                raise ValueError("Scalar weights must match objectives and be finite, nonnegative, with positive sum.")
             self.scalar_weights = w_tensor / w_tensor.sum()
         else:
-            self.scalar_weights = torch.tensor([1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0], dtype=torch.double)
+            objective_count = len(self.config.objectives) if self.config is not None else 3
+            self.scalar_weights = torch.full((objective_count,), 1.0 / objective_count, dtype=torch.double)
 
         if resume_from and output_dir is None:
             source = Path(resume_from)
@@ -309,6 +310,7 @@ class MoboCampaignRunner:
         Executes the optimization campaign.
         """
         resume_state = self._prepare_resume() if (self.resume or self.resume_from) else None
+        schema = ResultSchema.from_config(self.config)
         if self.optimization_mode == "scalarized_bo":
             mode_str = f"Scalarized BO (weights={self.scalar_weights.tolist()})"
         elif self.constrained:
@@ -400,7 +402,7 @@ class MoboCampaignRunner:
                             raise ValueError("Evaluator returned conflicting candidate completions.")
                         return
                     append_streaming_evaluation(self.run_dir, eval_res, batch_idx=batch_idx,
-                                                candidate_idx=position)
+                                                candidate_idx=position, config=self.config)
                     completions[identity] = eval_res
                 except Exception as error:
                     callback_error = error
@@ -455,7 +457,7 @@ class MoboCampaignRunner:
                     "evaluation_batches": evaluation_batches,
                     "metric_history": deepcopy(tracker.history) if tracker is not None else [],
                     "pending_proposal": pending,
-                    "reporting_scales": list(DEFAULT_REPORTING_SCALES),
+                    "reporting_scales": list(schema.scales),
                     "planned_num_batches": self.num_batches,
                     "num_workers": self.num_workers,
                     "total_eval_budget": self.total_eval_budget,
@@ -476,7 +478,7 @@ class MoboCampaignRunner:
         if resume_state is not None:
             repair_journal_tail(self.run_dir)
             if (self.run_dir / "evaluations_stream.jsonl").exists():
-                write_streaming_csv(self.run_dir)
+                write_streaming_csv(self.run_dir, config=self.config)
             if resume_state.pending_proposal is None and pending_path.exists():
                 pending_path.unlink()  # Checkpoint won the durable commit before interruption.
             initial_candidates = deepcopy(resume_state.initial_design)
@@ -491,7 +493,7 @@ class MoboCampaignRunner:
             reporting_ref_point = torch.tensor(resume_state.reporting_ref_point, dtype=torch.double)
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
             tracker.history = deepcopy(resume_state.metric_history)
-            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
+            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
             print(f"\nResuming campaign '{self.run_id}' from iteration {start_iteration} ({len(results)} existing evaluations)...\n")
         else:
             print(f"--- Step 0: Initial Design (Sobol Sampling: {self.num_initial_samples} samples) ---")
@@ -503,9 +505,9 @@ class MoboCampaignRunner:
             results = _evaluate_with_streaming(initial_candidates, batch_idx=0)
             evaluation_batches = [0] * len(results)
 
-            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
+            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
 
-            reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10)
+            reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10, config=self.config)
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
 
             hv_init = tracker.track_iteration(0, train_Y, train_feas_mask)
@@ -517,7 +519,7 @@ class MoboCampaignRunner:
                 f"HV: {hv_init['feasible_hypervolume']:.6e}\n"
             )
 
-            save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
+            save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist(), config=self.config)
             tracker.save_csv(self.run_dir / "hypervolume.csv")
 
             _persist_checkpoint(0)
@@ -531,7 +533,7 @@ class MoboCampaignRunner:
                 if proposal_batch_size <= 0:
                     break
             print(f"--- Iteration {iteration:02d}/{self.num_batches:02d} ---")
-            training = get_training_observations(results, exclude_invalid=True, require_diagnostics=self.constrained)
+            training = get_training_observations(results, exclude_invalid=True, require_diagnostics=self.constrained, config=self.config)
             train_X, train_Y, train_feas_mask = training.train_X, training.train_Y, training.feasible
 
             if (resume_state is not None and resume_state.pending_proposal is not None
@@ -547,7 +549,7 @@ class MoboCampaignRunner:
                 train_Y_dev = train_Y.to(dtype=torch.double, device=self.device)
                 # Scale objectives to dimensionless O(1) space [1 um*rad, 1 um*rad, 1 MeV]
                 # so weights reflect true physical trade-off balance
-                scales_dev = torch.tensor(DEFAULT_REPORTING_SCALES, dtype=torch.double, device=self.device)
+                scales_dev = torch.tensor(schema.scales, dtype=torch.double, device=self.device)
                 train_Y_scaled = train_Y_dev / scales_dev
                 scalar_Y = (train_Y_scaled * weights_dev).sum(dim=-1, keepdim=True)
 
@@ -616,7 +618,7 @@ class MoboCampaignRunner:
                     botorch_constraints = None
                     objective_slice = None
 
-                acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05)
+                acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05, config=self.config)
 
                 acq_func = build_acquisition_function(
                     model=gp_model,
@@ -648,7 +650,7 @@ class MoboCampaignRunner:
             results.extend(batch_results)
             evaluation_batches.extend([iteration] * len(batch_results))
 
-            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
+            train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
             hv_record = tracker.track_iteration(iteration, train_Y, train_feas_mask)
 
             print(
@@ -659,34 +661,35 @@ class MoboCampaignRunner:
                 f"HV: {hv_record['feasible_hypervolume']:.6e}\n"
             )
 
-            save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist())
+            save_evaluation_results(results, self.run_dir, tracker.to_dataframe()["feasible_hypervolume"].tolist(), config=self.config)
             tracker.save_csv(self.run_dir / "hypervolume.csv")
 
             _persist_checkpoint(iteration)
 
 
         # Export CSV datasets
-        df_all = results_to_dataframe(results)
+        df_all = results_to_dataframe(results, config=self.config)
         df_all.to_csv(self.run_dir / "evaluations.csv", index=False)
         df_all.to_csv(self.run_dir / "candidate_history.csv", index=False)
 
         valid_mask = df_all["simulation_valid"] == True
         df_valid = df_all[valid_mask]
-        if not df_valid.empty:
-            df_valid[PHYSICAL_OBJ_COLUMNS].to_csv(self.run_dir / "objectives_physical.csv", index=False)
-            df_valid[MODEL_OBJ_COLUMNS].to_csv(self.run_dir / "objectives_model.csv", index=False)
+        df_valid[list(schema.physical_columns)].to_csv(self.run_dir / "objectives_physical.csv", index=False)
+        df_valid[list(schema.model_columns)].to_csv(self.run_dir / "objectives_model.csv", index=False)
 
         diag_cols = [c for c in df_all.columns if any(k in c for k in ["sigma", "energy", "transmission", "feasible"])]
         df_all[diag_cols].to_csv(self.run_dir / "constraints.csv", index=False)
 
-        # Export Pareto sets
+        # Export Pareto sets, including headers for empty sets.
+        for name in ("pareto.csv", "pareto_all.csv", "pareto_feasible.csv"):
+            pd.DataFrame(columns=list(schema.design_columns + schema.physical_columns)).to_csv(self.run_dir / name, index=False)
         if train_X.shape[0] > 0:
             pareto_mask_all = is_non_dominated(train_Y)
             p_X_all = train_X[pareto_mask_all]
-            p_Y_all_phys = -train_Y[pareto_mask_all]
+            p_Y_all_phys = schema.transform(train_Y[pareto_mask_all])
             df_p_all = pd.DataFrame(
                 np.hstack([p_X_all.numpy(), p_Y_all_phys.numpy()]),
-                columns=DESIGN_VAR_COLUMNS + PHYSICAL_OBJ_COLUMNS,
+                columns=list(schema.design_columns + schema.physical_columns),
             )
             df_p_all.to_csv(self.run_dir / "pareto.csv", index=False)
             df_p_all.to_csv(self.run_dir / "pareto_all.csv", index=False)
@@ -696,10 +699,10 @@ class MoboCampaignRunner:
                 feas_Y = train_Y[train_feas_mask]
                 pareto_mask_feas = is_non_dominated(feas_Y)
                 p_X_feas = feas_X[pareto_mask_feas]
-                p_Y_feas_phys = -feas_Y[pareto_mask_feas]
+                p_Y_feas_phys = schema.transform(feas_Y[pareto_mask_feas])
                 df_p_feas = pd.DataFrame(
                     np.hstack([p_X_feas.numpy(), p_Y_feas_phys.numpy()]),
-                    columns=DESIGN_VAR_COLUMNS + PHYSICAL_OBJ_COLUMNS,
+                    columns=list(schema.design_columns + schema.physical_columns),
                 )
                 df_p_feas.to_csv(self.run_dir / "pareto_feasible.csv", index=False)
 
@@ -711,8 +714,8 @@ class MoboCampaignRunner:
             figures_dir = self.run_dir / "figures"
             figures_dir.mkdir(parents=True, exist_ok=True)
             plot_hypervolume_progress(tracker.to_dataframe(), figures_dir / "hypervolume_progress.png")
-            plot_pareto_front(results, figures_dir / "pareto_front.png")
-            plot_objective_evolution(results, figures_dir / "objective_evolution.png")
+            plot_pareto_front(results, figures_dir / "pareto_front.png", config=self.config)
+            plot_objective_evolution(results, figures_dir / "objective_evolution.png", config=self.config)
             plot_constraint_diagnostics(results, figures_dir / "constraint_diagnostics.png")
 
         print(f"=== Campaign Complete: {self.run_id} ===")

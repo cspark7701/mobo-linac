@@ -70,23 +70,32 @@ def plot_hypervolume_progress(
 def plot_objective_evolution(
     results: List[EvaluationResult],
     output_path: Optional[Union[str, Path]] = None,
+    config=None,
 ) -> plt.Figure:
     """Three-panel time-series of each physical objective across evaluations."""
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, config)
     valid = df[df["simulation_valid"]].reset_index(drop=True)
     idx = range(1, len(valid) + 1)
 
-    fig, axes = plt.subplots(3, 1, figsize=(11, 8), sharex=True)
+    from mobo_linac.result_schema import ResultSchema
+    schema = ResultSchema.from_config(config)
+    fig, axes = plt.subplots(len(schema.signs), 1, figsize=(11, 3 * len(schema.signs)), sharex=True, squeeze=False)
+    axes = axes[:, 0]
     colors = ["steelblue", "darkorange", "seagreen"]
     cols = ["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
     scales = [EMIT_SCALE, EMIT_SCALE, ENERGY_SCALE]
 
-    for ax, col, scale, label, color in zip(axes, cols, scales, OBJ_LABELS, colors):
+    if config is not None:
+        cols = schema.physical_columns
+        scales = [1.0 / scale for scale in schema.scales]
+    labels = cols if config is not None else OBJ_LABELS
+    for i, (ax, col, scale, label) in enumerate(zip(axes, cols, scales, labels)):
+        color = colors[i % len(colors)]
         vals = valid[col] * scale
         ax.plot(idx, vals, color=color, linewidth=1.5, alpha=0.8)
         ax.scatter(idx, vals, c=color, s=18, zorder=3)
         # rolling minimum line
-        ax.plot(idx, vals.cummin(), color=color, linestyle="--",
+        ax.plot(idx, (vals.cummin() if schema.signs[i] == -1 else vals.cummax()), color=color, linestyle="--",
                 linewidth=1.2, alpha=0.5, label="Best so far")
         ax.set_ylabel(label, fontsize=11)
         ax.grid(True, linestyle=":", alpha=0.6)

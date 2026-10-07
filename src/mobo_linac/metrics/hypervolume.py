@@ -16,12 +16,14 @@ from botorch.utils.multi_objective.hypervolume import Hypervolume
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from mobo_linac.config import MoboConfig, load_config
+from mobo_linac.objectives import transform_to_physical_space
 
 
 def compute_reference_point(
     train_Y: torch.Tensor,
     offset_ratio: float = 0.10,
     default_ref_point: Optional[Sequence[float]] = None,
+    config=None,
 ) -> torch.Tensor:
     """
     Computes a model-space reference point (maximization space) from initial candidate evaluations.
@@ -42,6 +44,13 @@ def compute_reference_point(
 
     if train_Y is None or train_Y.shape[0] == 0:
         # Default fallback for 3D linac objectives (-emit_x, -emit_y, -sigma_energy)
+        if config is not None:
+            from mobo_linac.result_schema import ResultSchema
+            schema = ResultSchema.from_config(config)
+            legacy = {"norm_emit_x": -1e-4, "norm_emit_y": -1e-4, "sigma_energy": -1e7}
+            return torch.tensor([legacy.get(obj.name, -10 * scale) for obj, scale in zip(config.objectives, schema.scales)], dtype=torch.double)
+        if train_Y is not None and train_Y.shape[-1] != 3:
+            raise ValueError("An empty noncanonical objective tensor requires a configured reference point.")
         return torch.tensor([-1.0e-4, -1.0e-4, -1.0e7], dtype=torch.double)
 
     train_Y_double = train_Y.to(dtype=torch.double)
@@ -203,7 +212,7 @@ class HypervolumeTracker:
         record = {
             "iteration": iteration,
             "reporting_ref_point_model": self._reporting_ref_point.tolist(),
-            "reporting_ref_point_physical": (-self._reporting_ref_point).tolist(),
+            "reporting_ref_point_physical": transform_to_physical_space(self._reporting_ref_point, self.config).tolist(),
             "acquisition_ref_point_model": acq_ref_list,
             "all_point_hypervolume": all_hv,
             "feasible_hypervolume": feas_hv,

@@ -310,3 +310,39 @@ def test_dynamic_config_column_binding(tmp_path):
     assert loaded_csv[0].x_physical == [1.1, 2.2, 3.3, 4.4]
     assert loaded_csv[0].objectives_physical == [1.0e-6, 2.0e5]
     assert loaded_csv[0].objectives_model == [-1.0e-6, -2.0e5]
+
+
+def test_configured_empty_shapes_headers_and_csv_unknown_status(tmp_path):
+    from mobo_linac.config import load_config
+    from mobo_linac.io.results import get_train_tensors
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.design_variables = config.design_variables[:2]
+    config.objectives = [config.objectives[2], config.objectives[0]]
+    x, y, feasible = get_train_tensors([], config=config)
+    assert x.shape == (0, 2) and y.shape == (0, 2) and feasible.shape == (0,)
+    paths = save_evaluation_results([], tmp_path, config=config)
+    assert load_evaluation_results(paths["json"], config) == []
+    assert load_evaluation_results(paths["csv"], config) == []
+    assert list(pd.read_csv(tmp_path / "train_X.csv").columns) == [v.name for v in config.design_variables]
+    assert list(pd.read_csv(tmp_path / "train_Y.csv").columns) == ["model_sigma_energy_neg", "model_emit_x_neg"]
+    columns = [v.name for v in config.design_variables] + [o.explicit_name for o in config.objectives]
+    path = tmp_path / "pareto_legacy.csv"
+    pd.DataFrame([[0.1, 0.2, 1e5, 1e-6]], columns=columns).to_csv(path, index=False)
+    result = load_evaluation_results(path, config)[0]
+    assert result.objectives_model == [-1e5, -1e-6]
+    assert result.simulation_valid is None and result.physically_feasible is None
+    path.write_text("a,b,c,d\n1,2,3,4\n")
+    with pytest.raises(ValueError, match="named design"):
+        load_evaluation_results(path, config)
+
+
+def test_named_legacy_model_headers_and_unknown_status_are_preserved(tmp_path):
+    from mobo_linac.io.results import get_train_tensors
+    path = tmp_path / "pareto.csv"
+    columns = ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg", "model_norm_emit_x_neg", "model_norm_emit_y_neg", "model_sigma_energy_neg"]
+    pd.DataFrame([[0.1] * 6 + [-1e-6, -2e-6, -3e5]], columns=columns).to_csv(path, index=False)
+    result = load_evaluation_results(path)[0]
+    assert result.objectives_physical == [1e-6, 2e-6, 3e5]
+    assert result.physically_feasible is None and result.simulation_valid is None
+    assert get_train_tensors([result])[0].shape == (0, 6)
+    assert get_train_tensors([result], exclude_invalid=False)[2].tolist() == [False]

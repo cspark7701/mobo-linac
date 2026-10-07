@@ -51,7 +51,8 @@ class AstraOutputParser:
     from ASTRA simulation objects and working directories.
     """
 
-    def __init__(self, target_z_stop: float = 16.2, z_loss_tolerance: float = 0.1):
+    def __init__(self, target_z_stop: float = 16.2, z_loss_tolerance: float = 0.1, config=None):
+        self.config = config
         self.target_z_stop = float(target_z_stop)
         self.z_loss_tolerance = float(z_loss_tolerance)
 
@@ -206,6 +207,18 @@ class AstraOutputParser:
             "norm_emit_y": norm_emit_y,
             "sigma_energy": sigma_energy,
         }
+
+        if self.config is not None:
+            from mobo_linac.objectives import extract_physical_objectives
+            try:
+                objectives = extract_physical_objectives(raw_stats, self.config)
+                if status == SimulationStatus.SUCCESS and not all(math.isfinite(value) for value in objectives.values()):
+                    status = SimulationStatus.NUMERICAL_ERROR
+                    error_message = "Configured objectives contain invalid or conflicting observations"
+            except KeyError:
+                objectives = None
+                status = SimulationStatus.OUTPUT_MISSING
+                error_message = "Configured objective statistics missing"
 
         diagnostics.update({"emit_x": norm_emit_x, "emit_y": norm_emit_y,
                             "sigma_energy": sigma_energy, "sigma_energy_eV": sigma_energy})

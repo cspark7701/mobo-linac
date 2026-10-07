@@ -58,21 +58,21 @@ def run_robustness(args: argparse.Namespace) -> None:
     if input_path and Path(input_path).exists():
         p = Path(input_path)
         if p.is_dir():
-            target = p / "pareto.csv"
-            if not target.exists():
-                target = p / "candidate_history.json"
+            target = p / "candidate_history.json"
             if not target.exists():
                 target = p / "candidate_history.csv"
-            results = load_evaluation_results(target)
+            if not target.exists():
+                target = p / "pareto.csv"
+            results = load_evaluation_results(target, config=config)
         else:
-            results = load_evaluation_results(p)
+            results = load_evaluation_results(p, config=config)
     else:
         results_dir = Path("results")
         cand_files = list(results_dir.glob("**/pareto.csv")) + list(results_dir.glob("**/candidate_history.json"))
         if cand_files:
             latest = max(cand_files, key=lambda f: f.stat().st_mtime)
             print(f"Loading Pareto candidates from {latest} for robustness analysis...")
-            results = load_evaluation_results(latest)
+            results = load_evaluation_results(latest, config=config)
 
     if not results:
         print("WARNING: No Pareto candidates found for robustness analysis. Creating dummy candidate.")
@@ -87,14 +87,14 @@ def run_robustness(args: argparse.Namespace) -> None:
         }
         results.append(create_evaluation_result(raw_res, config))
 
-    rep_candidates = select_representative_pareto_candidates(results)
-
     if getattr(args, "dry_run", False):
         print("[DRY-RUN] Robustness Analysis Plan:")
         print(f"  - Output Directory: {output_dir.resolve()}")
-        print(f"  - Candidates ({len(rep_candidates)}): {list(rep_candidates.keys())}")
+        print(f"  - Input Candidates: {len(results)}; feasibility must be observed for selection")
         print(f"  - Perturbations per Candidate: {getattr(args, 'num_perturbations', 20)}")
         return
+
+    rep_candidates = select_representative_pareto_candidates(results)
 
     if getattr(args, "mock_evaluator", False):
         evaluator = CliMockEvaluator(output_dir)
@@ -154,16 +154,16 @@ def run_verification(args: argparse.Namespace) -> None:
                 target_file = p / "pareto.csv"
             if not target_file.exists():
                 target_file = p / "candidate_history.csv"
-            results = load_evaluation_results(target_file)
+            results = load_evaluation_results(target_file, config=config)
         else:
-            results = load_evaluation_results(p)
+            results = load_evaluation_results(p, config=config)
     else:
         results_dir = Path("results")
         candidates_files = list(results_dir.glob("**/candidate_history.json")) + list(results_dir.glob("**/pareto.csv"))
         if candidates_files:
             latest_file = max(candidates_files, key=lambda f: f.stat().st_mtime)
             print(f"Loading evaluation results from {latest_file} for verification...")
-            results = load_evaluation_results(latest_file)
+            results = load_evaluation_results(latest_file, config=config)
 
     if not results:
         print("WARNING: No evaluation results found for verification. Creating dummy evaluation result.")

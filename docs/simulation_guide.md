@@ -170,6 +170,18 @@ The campaign parent is the single journal writer. JSONL writes are flushed and s
 
 Benchmark dispatch still requires a new directory for incomplete experiments. Campaign resume does not automatically reconcile benchmark-level metrics or completion markers.
 
+### Objective and result schema contract
+
+`ResultSchema.from_config(config)` freezes the ordered design columns, physical and model objective columns, accepted aliases, signs, and engineering scales. The campaign carries that order through evaluation, complete-case training, streaming CSV, JSON history, checkpoints, Pareto exports, and objective plots. Pass `config=` (or the schema itself) to result I/O and tensor helpers for custom layouts; omitted configuration explicitly selects the legacy six-variable, three-objective linac contract, independent of the current directory.
+
+Each objective accepts its `name`, `explicit_name`, and optional `aliases`. Canonical emittance objectives also accept `emit_x` and `emit_y`. Aliases must identify only one objective. Missing required objectives leave both objective vectors absent; nonfinite, nonnumeric, or conflicting supplied aliases invalidate the evaluation. ASTRA objective extraction uses observed final statistics with these names; aliases do not convert units.
+
+Physical minimization uses `model_sign: -1`; maximization uses `model_sign: 1`. Both transformations validate the objective width and use the configured signs. Physical Pareto values and reference-point metadata restore those signs. Empty results retain configured tensor dimensions and CSV headers. Canonical model headers remain `model_emit_x_neg`, `model_emit_y_neg`, and `model_sigma_energy_neg`; custom objectives use `model_<name>_neg` or `model_<name>_pos`.
+
+Scalarized BO defaults to equal weights across the configured objectives. Supplied weights must have that width, be finite and nonnegative, and have a positive sum. Optional `reporting_scale` is a finite positive engineering scale in the objective's physical units. The canonical objectives retain scales `1e-6`, `1e-6`, and `1e6` in configured order; other objectives default to `1.0` unless a scale is provided. Saved scales participate in resume compatibility checks. Hypervolume tracking retains its existing fixed, unnormalized campaign reference point.
+
+CSV loading binds named columns and supports earlier named model headers and NumPy's `# ` header prefix. It never guesses values by position or infers validity/feasibility from a filename. Missing status fields remain `None` (unknown) and are excluded from default training and feasible selection. Use a campaign's candidate history for observed status metadata; robustness CLI directory inputs prefer that history over its compact Pareto CSV. Unknown feasibility requires fresh evidence before feasible-only analysis. JSON history and journal payload formats are preserved.
+
 ## 4. Benchmark, Robustness, Verification, & Publication Workflow
 
 ### 4.1 Seed-Paired Benchmark Campaign Protocol

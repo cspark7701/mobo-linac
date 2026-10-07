@@ -22,8 +22,27 @@ from mobo_linac.plotting.common import (
 def plot_pareto_front(
     results: List[EvaluationResult],
     output_path: Optional[Union[str, Path]] = None,
+    config=None,
 ) -> plt.Figure:
     """2D projections of objective space highlighting feasible Pareto front."""
+    if config is not None:
+        from itertools import combinations
+        from mobo_linac.result_schema import ResultSchema
+        schema = ResultSchema.from_config(config)
+        df = results_to_dataframe(results, config)
+        pairs = list(combinations(schema.physical_columns, 2))
+        fig, axes = plt.subplots(1, max(1, len(pairs)), figsize=(6 * max(1, len(pairs)), 5), squeeze=False)
+        for ax, (x, y) in zip(axes.flat, pairs):
+            valid = df[df.simulation_valid == True]
+            feasible = valid[valid.physically_feasible == True]
+            ax.scatter(valid[x], valid[y], color="lightgray", label="All valid")
+            ax.scatter(feasible[x], feasible[y], color="steelblue", label="Feasible")
+            ax.set_xlabel(x)
+            ax.set_ylabel(y)
+            ax.legend()
+        fig.tight_layout()
+        save_fig(fig, output_path)
+        return fig
     df = results_to_dataframe(results)
     valid = df[df["simulation_valid"]]
     feas = valid[valid["physically_feasible"]]

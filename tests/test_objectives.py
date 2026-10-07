@@ -54,3 +54,34 @@ def test_extract_physical_objectives():
     assert objs["norm_emit_x"] == 1.2e-6
     assert objs["norm_emit_y_m_rad"] == 2.2e-6
     assert objs["sigma_energy_eV"] == 50.0
+
+
+def test_schema_reorders_scales_and_preserves_mixed_directions():
+    from mobo_linac.result_schema import ResultSchema
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.objectives = [config.objectives[2], config.objectives[0]]
+    config.objectives[1].physical_direction = "maximize"
+    config.objectives[1].model_sign = 1
+    schema = ResultSchema.from_config(config)
+    assert schema.scales == (1e6, 1e-6)
+    assert schema.model_columns == ("model_sigma_energy_neg", "model_norm_emit_x_pos")
+    assert schema.extract({"sigma_energy_eV": 4e5, "emit_x": 2e-6}) == [4e5, 2e-6]
+    model = transform_to_model_space([4e5, 2e-6], config)
+    assert model.tolist() == [-4e5, 2e-6]
+    assert transform_to_physical_space(model, config).tolist() == [4e5, 2e-6]
+    with pytest.raises(ValueError, match="width"):
+        transform_to_model_space([1.0], config)
+
+
+def test_schema_rejects_ambiguous_aliases_and_bad_scales():
+    from mobo_linac.result_schema import ResultSchema
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.objectives[0].aliases = ["sigma_energy"]
+    with pytest.raises(ValueError, match="aliases"):
+        config.validate()
+    config.objectives[0].aliases = ["observed_emit"]
+    config.objectives[0].reporting_scale = 4e-6
+    assert ResultSchema.from_config(config).scales[0] == 4e-6
+    config.objectives[0].reporting_scale = float("nan")
+    with pytest.raises(ValueError, match="reporting_scale"):
+        config.validate()

@@ -189,3 +189,22 @@ def test_parser_missing_and_corrupted_output(tmp_path):
     res_nan = parser.parse_astra_simulation(sim_nan)
     assert res_nan.status == SimulationStatus.NUMERICAL_ERROR
     assert res_nan.simulation_valid is False
+
+
+def test_configured_parser_extracts_observed_aliases_and_missing_custom_objective():
+    from mobo_linac.config import load_config, ObjectiveConfig
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.objectives = [config.objectives[2], ObjectiveConfig("brightness", "brightness_value", "1", "maximize", 1, aliases=["observed_brightness"])]
+    stats = nominal_stats()
+    stats["observed_brightness"] = [2.0, 4.0]
+    result = AstraOutputParser(config=config).parse_astra_simulation(MockAstraSim(stats))
+    assert result.simulation_valid
+    assert result.objectives["brightness"] == 4.0
+    stats["brightness"] = [5.0]
+    conflict = AstraOutputParser(config=config).parse_astra_simulation(MockAstraSim(stats))
+    assert not conflict.simulation_valid and conflict.status == SimulationStatus.NUMERICAL_ERROR
+    del stats["brightness"]
+    del stats["observed_brightness"]
+    missing = AstraOutputParser(config=config).parse_astra_simulation(MockAstraSim(stats))
+    assert missing.objectives is None
+    assert missing.status == SimulationStatus.OUTPUT_MISSING
