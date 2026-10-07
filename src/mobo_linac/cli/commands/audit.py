@@ -36,13 +36,8 @@ def analyze_run(args: argparse.Namespace) -> None:
 
 def run_robustness(args: argparse.Namespace) -> None:
     """Executes robustness analysis over Pareto candidates."""
-    from mobo_linac.execution.parallel import BatchEvaluator
-    from mobo_linac.io.results import DESIGN_VAR_COLUMNS, load_evaluation_results
-    from mobo_linac.metrics.pareto import select_representative_pareto_candidates
-    from mobo_linac.robustness.evaluator import (
-        compute_robustness_summary,
-        generate_perturbed_parameters,
-    )
+    from mobo_linac.io.results import load_evaluation_results
+    from mobo_linac.robustness.workflow import run_robustness_workflow
 
     config_path = getattr(args, "config", "configs/publication.yaml")
     if not Path(config_path).exists():
@@ -74,62 +69,13 @@ def run_robustness(args: argparse.Namespace) -> None:
             print(f"Loading Pareto candidates from {latest} for robustness analysis...")
             results = load_evaluation_results(latest, config=config)
 
-    if not results:
-        print("WARNING: No Pareto candidates found for robustness analysis. Creating dummy candidate.")
-        dummy_x = [0.15, 1.0, -2.0, 35.0, -40.0, 320.0]
-        raw_res = {
-            "eval_id": 1,
-            "status": "SUCCESS",
-            "parameters": dummy_x,
-            "design_parameters": dict(zip(DESIGN_VAR_COLUMNS, dummy_x)),
-            "objectives": {"norm_emit_x": 1.0e-6, "norm_emit_y": 1.0e-6, "sigma_energy": 0.5e6},
-            "diagnostics": {"transmission_fraction": 1.0},
-        }
-        results.append(create_evaluation_result(raw_res, config))
-
-    if getattr(args, "dry_run", False):
-        print("[DRY-RUN] Robustness Analysis Plan:")
-        print(f"  - Output Directory: {output_dir.resolve()}")
-        print(f"  - Input Candidates: {len(results)}; feasibility must be observed for selection")
-        print(f"  - Perturbations per Candidate: {getattr(args, 'num_perturbations', 20)}")
-        return
-
-    rep_candidates = select_representative_pareto_candidates(results)
-
-    if getattr(args, "mock_evaluator", False):
-        evaluator = CliMockEvaluator(output_dir)
-    else:
-        evaluator = BatchEvaluator(
-            base_results_dir=output_dir / "work",
-            template_dir=".",
-            max_workers=getattr(args, "num_workers", 4),
-            timeout=config.execution.timeout_sec,
-        )
-
-    summaries = []
-    num_perts = getattr(args, "num_perturbations", 20)
-    seed = getattr(args, "seed", 42)
-
-    for label, candidate_res in rep_candidates.items():
-        nom_x = candidate_res.x_physical
-        perturbed_xs = generate_perturbed_parameters(
-            nominal_x=nom_x,
-            num_perturbations=num_perts,
-            seed=seed,
-        )
-        raw_perturbed = evaluator.evaluate_batch(perturbed_xs, run_id=f"robust_{label}")
-        perturbed_results = [create_evaluation_result(r, config) for r in raw_perturbed]
-
-        summary = compute_robustness_summary(label, candidate_res, perturbed_results)
-        summaries.append(summary)
-        print(
-            f"  ✓ Candidate '{label}': Feasibility P = {summary['probability_of_feasibility']:.2f}, "
-            f"Robust Score = {summary['robust_score']:.3f}"
-        )
-
-    summary_df = pd.DataFrame(summaries)
-    summary_df.to_csv(output_dir / "robustness_summary.csv", index=False)
-    print(f"=== Robustness Analysis Complete -> Saved in {output_dir.resolve()} ===")
+    mock = CliMockEvaluator(output_dir) if getattr(args, "mock_evaluator", False) else None
+    run_robustness_workflow(
+        results, config, output_dir,
+        num_perturbations=getattr(args, "num_perturbations", 20),
+        num_workers=getattr(args, "num_workers", 4), seed=getattr(args, "seed", 42),
+        dry_run=getattr(args, "dry_run", False), batch_evaluator=mock,
+    )
 
 
 def run_verification(args: argparse.Namespace) -> None:

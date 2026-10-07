@@ -1,0 +1,45 @@
+# Task Completion Summary: Task 132
+
+## Summary
+Implemented Task 08 from `docs/05_refactor_tasks/`: carry complete robustness requests through serial and process-pool execution, share CLI/script planning and reporting, retain requested/applied perturbation evidence, and explicitly identify unsupported source jitter.
+
+## Key Changes
+- **Complete requests**: Added serializable `EvaluationRequest` with evaluation identity, parameters, per-task namelist overrides, source settings, and metadata. `EvaluationTask.to_request()` and `BatchEvaluator.evaluate_requests()` carry the complete payload to workers and ASTRA. Batch/request identity and parameter alignment are checked before submission; ordering, retry isolation, and completion callbacks remain intact. Legacy parameter-only batch calls remain available.
+- **Execution and application evidence**: Candidate execution now forwards per-task overrides and source settings, preserves raw execution details, and honors configured retries/cleanup. ASTRA manifests and start records retain source settings and request metadata. Final manifests record successful namelist assignments, applied overrides, requested deltas, source application status, and confirmed lattice deltas. Confirmation checks all configured targets against their final assigned values, so an override that replaces a requested lattice setting cannot still claim that original jitter was applied. Rejected overrides fail visibly rather than being silently dropped.
+- **Reproducible full-state planning**: Robustness plans retain the three generated source scales, all sampled deltas, seed, sample index, nominal candidate identity, nominal settings, specification, and unsupported-channel reasons. The canonical six design-variable names identify the established jitter model; configured variable order, ASTRA keys, and coupling targets are honored. Noncanonical layouts require an explicit jitter model instead of positional guesses. Invalid standard deviations and incomplete candidate layouts are rejected.
+- **Physical source mapping decision**: Reviewed the actual `astra.in`, fixed `pal_photo2.ini` distribution, perturbation configuration, runner, and available source-generation paths. The template reads a fixed particle distribution; the executor does not invoke a configured generator that applies charge, spot-size, or duration scales. These channels are therefore retained as requested but reported as unsupported. No charge/generator namelist key or source transformation was invented, and nominal particle-source bytes remain unchanged.
+- **Shared entry points**: CLI and production script use `run_robustness_workflow` and the same planner/executor. Configuration reaches ASTRA mappings in both paths. The script uses the configured result loader instead of hard-coded design columns and fabricated objective/diagnostic defaults. Real execution requires measured candidate history; absent data does not create a synthetic nominal candidate. Both paths support explicit dry-run/mock operation. Historical CLI/script role seeds are retained; direct multi-candidate class plans retain their existing seed offsets.
+- **Audited reports**: Unique `robustness_runs/robustness_<uuid>/` sessions retain complete request/result/application records, configuration, specification, attempt links, and JSON summaries. Summary CSVs identify unsupported channels/reasons, evaluated channels, backend kinds, scope, and whether all requested jitter was evaluated. Mock/unconfirmed application evidence cannot claim evaluated physical channels. Root CSV/LaTeX reports remain latest-report compatibility outputs. LaTeX captions identify unsupported source jitter and synthetic mocks; the shared workflow projects actual nominal summary values into the table's expected column names.
+- **Documentation**: README and simulation guide explain source limitations, complete-request interfaces, seeds, configured layout requirements, report evidence, and compatibility. Local ignored task/index documents record completion.
+
+## Acceptance Criteria
+- [x] A recording simulator receives supported lattice channels, per-task overrides, requested source scales, identity, and metadata in sequential and two-worker execution.
+- [x] Identical seeds/specifications yield identical complete requests, including source scales and metadata; zero jitter preserves nominal lattice values and unity source scales.
+- [x] Reports identify unsupported charge/laser channels and never label them, mocks, or unconfirmed backend perturbations as physically evaluated.
+- [x] Configured parameter keys and coupled targets are honored through both CLI and script entry points.
+- [x] Source distribution snapshots retain their nominal bytes; no unsupported source mapping is silently applied.
+
+## Validation Results
+Used `/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/bin/python` with `OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1` and source-tree `PYTHONPATH`.
+
+- Broader affected regression command: `PYTHONPATH=/home/cspark/Work/projects/mobo-linac/src python -m pytest tests/test_candidate_evaluator.py tests/test_robustness_analysis.py tests/test_parallel_evaluation.py tests/test_parameter_mapping.py tests/test_astra_workdirs.py tests/test_astra_parser.py tests/test_evaluation_result.py tests/test_result_serialization.py tests/test_checkpoint_resume.py tests/test_cli.py tests/test_objectives.py tests/test_reporting_metrics.py tests/test_package_layout.py -m 'not integration' -q --tb=short` — **203 passed, 1 skipped, 2 deselected**, 74.25 seconds.
+- Complete-request focused command covering candidate execution, robustness, parallel evaluation, and parameter mappings — **34 passed, 1 deselected**, 4.82 seconds.
+- Independent verification compatibility: `python -m pytest tests/test_pareto_verification.py -q --tb=short` — **7 passed**, 2.30 seconds.
+- Recording-simulator tests run the actual request/worker/runner/provenance path with one and two workers, actual template text, disposable fake field/distribution files, and no external simulator launch. They verify source retention, all supported targets, override values, cleanup evidence, and request alignment.
+- An initial entry-point fixture used JSON scientific notation through the existing YAML loader and hit its numeric parsing limitation. The fixture now writes valid YAML; configuration loading behavior was not changed as part of this task.
+- CUDA continuation was skipped because CUDA is unavailable. Real ASTRA integration tests were excluded. `git diff --check` passed. No production campaign, archived output rewrite, git push, or remote workflow query occurred. These are affected regressions, not a claim that the entire repository suite passed.
+
+## Scope and Limitations
+- Nominal 200 MeV beam physics, source distribution, configured thresholds, objective units, perturbation standard deviations, random draw order, and archived outputs remain unchanged. UUID provenance allocation is independent of scientific RNG state.
+- This task does not implement physical charge, spot-size, or duration jitter. A verified source-generation pipeline and physical validation are prerequisites for counting those channels as evaluated. Current real scores characterize applied lattice jitter only.
+- The established jitter planner supports the six canonical lattice variable names, including reordered variables and configured target mappings. Other design layouts fail explicitly rather than receiving an invented channel model. Existing robustness metric formulas remain unchanged; generalized reporting is separate work.
+- Historical CLI/script execution uses the supplied seed for each representative role. Direct multi-candidate class plans retain `seed + candidate_index * 100`; each complete request records its actual seed.
+- Generic explicit overrides remain the caller's responsibility. Successfully assigned values and effective input snapshots provide application evidence; rejected assignments fail. Mock results remain explicitly synthetic, and legacy custom evaluators without full application evidence remain unconfirmed.
+- Legacy three-argument custom evaluators remain supported for lattice parameters. Tasks with overrides require `request_evaluator(request, config=...)`; injected batch backends must implement the complete `evaluate_requests` interface. No adapter silently strips settings to fit the old interface.
+- Compact Pareto CSVs without measured status/feasibility cannot supply feasible candidate selection. Use candidate history. The script no longer invents missing diagnostics or nominal candidates.
+- Complete sessions retain request/configuration/result evidence; root CSV/LaTeX reports are replaceable compatibility views. Attempt manifests retain request metadata even when execution fails before a session report is finalized.
+- Configured verification service consolidation remains Task 09. Centralized configuration parsing remains Task 11.
+- `docs/05_refactor_tasks/` is ignored by `.gitignore`; its local completion edits do not appear in the ordinary git file list.
+
+## Status
+Completed.

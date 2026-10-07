@@ -104,6 +104,7 @@ def apply_parameters_to_astra(
     parameters: Sequence[float],
     config: Optional[Union[Any, Dict[str, Any]]] = None,
     namelist_overrides: Optional[Dict[str, Any]] = None,
+    applied_values: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
     """
     Applies design parameters and optional namelist overrides to an ASTRA simulation instance.
@@ -112,11 +113,17 @@ def apply_parameters_to_astra(
         astra_sim: Astra instance or dict-like object representing ASTRA namelists.
         parameters: Sequence of floating-point values matching the design variables.
         config: Optional MoboConfig or config dictionary containing design_variables definitions.
-        namelist_overrides: Optional dict mapping ASTRA keys (e.g. 'charge:q_total') to override values.
+        namelist_overrides: Optional dict mapping ASTRA keys (e.g. 'charge:lspch') to override values.
 
     Returns:
-        List of parameter names that were applied.
+        List of parameter names that were applied. Failed assignments raise; optional
+        applied_values records successful assignments, including explicit overrides.
     """
+    def assign(key, value):
+        astra_sim[key] = value
+        if applied_values is not None:
+            applied_values[key] = value
+
     applied_names: List[str] = []
     if config is not None:
         if hasattr(config, "design_variables"):
@@ -151,9 +158,9 @@ def apply_parameters_to_astra(
 
                 if is_coupled and coupled_targets:
                     for target_key in coupled_targets:
-                        astra_sim[target_key] = val
+                        assign(target_key, val)
                 elif astra_key:
-                    astra_sim[astra_key] = val
+                    assign(astra_key, val)
 
             applied_names = param_names
     else:
@@ -161,24 +168,48 @@ def apply_parameters_to_astra(
         if len(parameters) != 6:
             raise ValueError(f"Expected 6 design parameters for default mapping, got {len(parameters)}")
 
-        astra_sim["solenoid:maxb(1)"] = float(parameters[0])
-        astra_sim["quadrupole:q_grad(1)"] = float(parameters[1])
-        astra_sim["quadrupole:q_grad(2)"] = float(parameters[2])
-        astra_sim["cavity:phi(1)"] = float(parameters[3])
-        astra_sim["cavity:phi(2)"] = float(parameters[4])
-        astra_sim["cavity:phi(3)"] = float(parameters[4])
-        astra_sim["cavity:phi(4)"] = float(parameters[5])
-        astra_sim["cavity:phi(5)"] = float(parameters[5])
+        assign("solenoid:maxb(1)", float(parameters[0]))
+        assign("quadrupole:q_grad(1)", float(parameters[1]))
+        assign("quadrupole:q_grad(2)", float(parameters[2]))
+        assign("cavity:phi(1)", float(parameters[3]))
+        assign("cavity:phi(2)", float(parameters[4]))
+        assign("cavity:phi(3)", float(parameters[4]))
+        assign("cavity:phi(4)", float(parameters[5]))
+        assign("cavity:phi(5)", float(parameters[5]))
         applied_names = list(PARAMETER_NAMES)
 
     if namelist_overrides:
         for override_key, override_val in namelist_overrides.items():
-            try:
-                astra_sim[override_key] = override_val
-            except Exception:
-                pass
+            assign(override_key, override_val)
 
     return applied_names
+
+
+def applied_lattice_perturbations(parameters, config, assigned_values, requested_deltas):
+    """Confirm that each channel's complete configured target set kept its requested value."""
+    channels = [
+        ("solenoid_field_T", "solenoid_field_relative_error", ["solenoid:maxb(1)"]),
+        ("quad_1_gradient_T_m", "quad1_gradient_relative_error", ["quadrupole:q_grad(1)"]),
+        ("quad_2_gradient_T_m", "quad2_gradient_relative_error", ["quadrupole:q_grad(2)"]),
+        ("gun_phase_deg", "gun_phase_error_deg", ["cavity:phi(1)"]),
+        ("acc1_acc2_phase_deg", "cavity_phase_acc12_error_deg", ["cavity:phi(2)", "cavity:phi(3)"]),
+        ("acc3_acc4_phase_deg", "cavity_phase_acc34_error_deg", ["cavity:phi(4)", "cavity:phi(5)"]),
+    ]
+    by_name = {name: (channel, targets) for name, channel, targets in channels}
+    if config is None:
+        targets_and_values = [(channel, targets, value)
+                              for (_, channel, targets), value in zip(channels, parameters)]
+    else:
+        targets_and_values = []
+        for variable, value in zip(config.design_variables, parameters):
+            if variable.name not in by_name:
+                continue
+            channel, _ = by_name[variable.name]
+            targets = variable.coupled_targets if variable.is_coupled else [variable.astra_key]
+            targets_and_values.append((channel, targets, value))
+    return {channel: requested_deltas[channel] for channel, targets, value in targets_and_values
+            if channel in requested_deltas and targets
+            and all(assigned_values.get(target) == float(value) for target in targets)}
 
 
 def run_astra_eval(
@@ -197,6 +228,8 @@ def run_astra_eval(
     namelist_overrides: Optional[Dict[str, Any]] = None,
     attempt_id: Optional[str] = None,
     retry_index: int = 0,
+    source_settings: Optional[Dict[str, float]] = None,
+    request_metadata: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     """
     Runs an isolated ASTRA simulation for a given candidate parameter set.
@@ -216,6 +249,8 @@ def run_astra_eval(
         config: Optional MoboConfig or config dictionary for dynamic parameter mapping.
         attempt_id: Optional explicit identity; a previously reserved attempt is rejected.
         retry_index: Zero-based retry ordinal retained in attempt provenance.
+        source_settings: Requested source scales, retained as unsupported with the fixed distribution.
+        request_metadata: Candidate identity, seeds and requested perturbations for audit.
 
     Returns:
         Dict containing execution status, objectives, diagnostics, paths, and manifest info.
@@ -242,6 +277,11 @@ def run_astra_eval(
     applied_param_names: List[str] = list(PARAMETER_NAMES)
     astra_cmd: str = os.environ.get("ASTRA_BIN", "")
 
+    request_metadata = request_metadata or {}
+    source_settings = source_settings or {}
+    applied_perturbations = {}
+    applied_overrides = {}
+    applied_namelist_values = {}
     input_hashes = {}
     executed_input_hashes = {}
     output_hashes = {}
@@ -251,6 +291,8 @@ def run_astra_eval(
         "attempt_id": attempt_id, "retry_index": retry_index,
         "parameters": [float(p) for p in parameters], "eval_dir": str(eval_dir),
         "start_time": iso_start,
+        "source_settings": source_settings, "request_metadata": request_metadata,
+        "namelist_overrides": namelist_overrides,
     })
 
     try:
@@ -289,8 +331,13 @@ def run_astra_eval(
             parameters,
             config=config,
             namelist_overrides=namelist_overrides,
+            applied_values=applied_namelist_values,
         )
 
+        applied_overrides = dict(namelist_overrides or {})
+        applied_perturbations = applied_lattice_perturbations(
+            parameters, objective_config, applied_namelist_values,
+            request_metadata.get("channel_deltas", {}))
         # Materialize effective inputs before launch, then preserve their exact bytes.
         if hasattr(astra_sim, "write_input"):
             astra_sim.write_input()
@@ -365,6 +412,14 @@ def run_astra_eval(
         "executable": executable,
         "provenance_dir": str(provenance_dir),
         "namelist_overrides": namelist_overrides,
+        "applied_namelist_overrides": applied_overrides,
+        "applied_namelist_values": applied_namelist_values,
+        "source_settings": source_settings,
+        "source_application": {key: "nominal" if value == 1.0 else "unsupported"
+                               for key, value in source_settings.items()},
+        "request_metadata": request_metadata,
+        "requested_perturbations": request_metadata.get("channel_deltas", {}),
+        "applied_perturbations": applied_perturbations,
         "run_id": run_id,
         "eval_id": formatted_eval_id,
         "parameters": [float(p) for p in parameters],

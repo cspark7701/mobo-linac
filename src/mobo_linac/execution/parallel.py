@@ -13,6 +13,7 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
+from mobo_linac.execution.requests import EvaluationRequest
 from mobo_linac.astra.runner import run_astra_eval
 
 
@@ -62,6 +63,9 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
                 config=config,
                 attempt_id=attempt_id,
                 retry_index=attempts - 1,
+                namelist_overrides=task_args.get("request", {}).get("namelist_overrides"),
+                source_settings=task_args.get("request", {}).get("source_settings", {}),
+                request_metadata=task_args.get("request", {}).get("metadata", {}),
             )
             res.setdefault("run_id", run_id)
             res.setdefault("eval_id", eval_id)
@@ -109,6 +113,7 @@ def evaluate_candidates_parallel(
     mp_context: Optional[str] = None,
     config: Optional[Union[Any, Dict[str, Any]]] = None,
     on_evaluation_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
+    requests: Optional[Sequence[EvaluationRequest]] = None,
 ) -> List[Dict[str, Any]]:
     """
     Evaluates a batch of candidate parameter vectors in parallel using ProcessPoolExecutor.
@@ -130,6 +135,7 @@ def evaluate_candidates_parallel(
         mp_context: Multiprocessing start method ('spawn', 'forkserver', 'fork').
         config: Optional MoboConfig or config dictionary for dynamic parameter mapping.
         on_evaluation_complete: Optional callback invoked immediately whenever any candidate finishes.
+        requests: Optional complete requests; identities and parameters must match the batch.
 
     Returns:
         List of structured result dictionaries aligned with input candidates.
@@ -144,6 +150,15 @@ def evaluate_candidates_parallel(
         if len(eval_ids) != n_candidates:
             raise ValueError(f"eval_ids length ({len(eval_ids)}) must match candidates length ({n_candidates})")
         eval_ids_list = list(eval_ids)
+
+    if requests is None:
+        requests = [EvaluationRequest(eid, [float(p) for p in cand])
+                    for cand, eid in zip(candidates, eval_ids_list)]
+    if len(requests) != n_candidates:
+        raise ValueError("requests length must match candidates length")
+    for request, cand, eid in zip(requests, candidates, eval_ids_list):
+        if request.eval_id != eid or list(request.parameters) != list(cand):
+            raise ValueError("Request identity/parameters must match the candidate batch")
 
     if max_workers is None or max_workers <= 0:
         cpu_cnt = os.cpu_count() or 1
@@ -174,6 +189,7 @@ def evaluate_candidates_parallel(
             "clean_on_success": clean_on_success,
             "use_symlinks": use_symlinks,
             "config": serializable_config,
+            "request": requests[idx].to_dict(),
         }
         tasks.append(task)
 
@@ -271,6 +287,31 @@ class BatchEvaluator:
             candidates=candidates,
             run_id=run_id,
             eval_ids=eval_ids,
+            max_workers=self.max_workers,
+            timeout=self.timeout,
+            retries=self.retries,
+            base_results_dir=self.base_results_dir,
+            template_dir=self.template_dir,
+            template_in=self.template_in,
+            clean_on_success=self.clean_on_success,
+            use_symlinks=self.use_symlinks,
+            mp_context=self.mp_context,
+            config=self.config,
+            on_evaluation_complete=on_evaluation_complete,
+        )
+
+    def evaluate_requests(
+        self,
+        requests: Sequence[EvaluationRequest],
+        run_id: str = "batch_run",
+        on_evaluation_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
+    ) -> List[Dict[str, Any]]:
+        """Execute complete per-candidate requests without dropping overrides or metadata."""
+        return evaluate_candidates_parallel(
+            candidates=[request.parameters for request in requests],
+            eval_ids=[request.eval_id for request in requests],
+            requests=requests,
+            run_id=run_id,
             max_workers=self.max_workers,
             timeout=self.timeout,
             retries=self.retries,

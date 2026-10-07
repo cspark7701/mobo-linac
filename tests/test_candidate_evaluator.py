@@ -133,3 +133,176 @@ def test_pareto_verifier_plan_and_execution(sample_candidate, tmp_path):
     assert next_manifest != manifest_p
     assert manifest_p.read_bytes() == original_manifest
     assert next_tex.exists()
+
+
+@pytest.fixture
+def recording_astra_project(tmp_path, monkeypatch):
+    """A recording simulator with the real template and disposable fake field files."""
+    import json
+    import os
+    from mobo_linac.astra.workdir import DEFAULT_STATIC_FILES
+    from mobo_linac.config import load_config
+
+    project = tmp_path / 'template'
+    project.mkdir()
+    template = Path(__file__).resolve().parents[1] / 'astra.in'
+    (project / 'astra.in').write_bytes(template.read_bytes())
+    for name in DEFAULT_STATIC_FILES:
+        (project / name).write_text('fixed input bytes')
+    executable = project / 'stub_astra'
+    executable.write_bytes(b'recording executable')
+    monkeypatch.setenv('ASTRA_BIN', str(executable))
+    monkeypatch.chdir(project)
+    class RecordingAstra:
+        particles = []
+        def __init__(self, input_file, workdir, **kwargs):
+            self.directory = Path(workdir)
+            self.template = Path(input_file).read_text()
+            self.values = {}
+            self.command = os.environ['ASTRA_BIN']
+            self.output = {}
+        def __setitem__(self, key, value):
+            if key == 'charge:unsupported_test_key':
+                raise ValueError('unsupported namelist override')
+            self.values[key] = value
+        def write_input(self):
+            (self.directory / 'astra.in').write_text(self.template + '\n' + json.dumps(self.values, sort_keys=True))
+        def run(self):
+            (self.directory / 'applied.json').write_text(json.dumps(self.values, sort_keys=True))
+            self.output = {'stats': {key: [value] for key, value in {
+                'norm_emit_x': 1e-6, 'norm_emit_y': 1e-6, 'sigma_energy': 0.5e6,
+                'sigma_x': 0.5e-3, 'sigma_y': 0.5e-3, 'sigma_xp': 0.4e-3,
+                'sigma_yp': 0.4e-3, 'sigma_z': 0.5e-3,
+                'mean_kinetic_energy': 200e6, 'transmission_fraction': 1.0, 'z': 16.2,
+            }.items()}}
+    monkeypatch.setattr('mobo_linac.astra.runner.Astra', RecordingAstra)
+    config = load_config(template.parents[0] / 'configs/publication_200MeV.yaml')
+    # Use a different configured key and coupled targets, without changing jitter units.
+    config.design_variables[0].astra_key = 'solenoid:maxb(2)'
+    config.design_variables[4].coupled_targets = ['cavity:phi(2)', 'cavity:phi(6)']
+    config.execution.clean_on_success = True
+    return project, config
+
+
+@pytest.mark.parametrize('workers', [1, 2])
+def test_complete_requests_reach_serial_and_process_backend(sample_candidate, recording_astra_project, tmp_path, workers):
+    import json
+    from mobo_linac.robustness.evaluator import SOURCE_CHANNELS
+
+    project, config = recording_astra_project
+    evaluator = RobustnessEvaluator(config=config, base_output_dir=tmp_path / 'results', num_workers=workers)
+    tasks = evaluator.generate_evaluation_plan([sample_candidate], num_perturbations=3, seed=73)
+    for index, task in enumerate(tasks):
+        task.namelist_overrides = {'charge:nrad': index + 10}
+    outcomes = evaluator.evaluate_plan_parallel(tasks)
+    assert len(outcomes) == len(tasks)
+    for task, outcome in zip(tasks, outcomes):
+        raw = outcome.execution_details
+        assert raw['status'] == 'success', raw['error']
+        manifest = json.loads(Path(raw['manifest_path']).read_text())
+        assert manifest['source_settings'] == task.source_settings
+        assert manifest['request_metadata'] == task.metadata
+        assert manifest['requested_perturbations'] == task.metadata['channel_deltas']
+        assert manifest['applied_namelist_overrides'] == task.namelist_overrides
+        assigned = manifest['applied_namelist_values']
+        assert assigned['solenoid:maxb(2)'] == task.parameters[0]
+        assert assigned['cavity:phi(6)'] == task.parameters[4]
+        assert assigned['cavity:phi(4)'] == task.parameters[5]
+        assert 'solenoid:maxb(1)' not in assigned
+        assert assigned['charge:nrad'] == task.namelist_overrides['charge:nrad']
+        supported = set(task.metadata['channel_deltas']) - set(SOURCE_CHANNELS)
+        assert set(manifest['applied_perturbations']) == supported
+        assert all(value == 'unsupported' for value in manifest['source_application'].values())
+        assert not Path(raw['eval_dir']).exists()
+        inputs = Path(raw['manifest_path']).parent / 'inputs'
+        assert "Distribution = 'pal_photo2.ini'" in (inputs / 'astra.in').read_text()
+        assert (inputs / 'pal_photo2.ini').read_bytes() == (project / 'pal_photo2.ini').read_bytes()
+
+
+def test_override_failure_is_not_silently_applied(sample_candidate, recording_astra_project, tmp_path):
+    import json
+    project, config = recording_astra_project
+    evaluator = RobustnessEvaluator(config=config, base_output_dir=tmp_path)
+    tasks = evaluator.generate_evaluation_plan([sample_candidate], num_perturbations=1)
+    tasks[0].namelist_overrides = {'charge:unsupported_test_key': 1}
+    outcome = evaluator.evaluate_plan_parallel(tasks)[0]
+    raw = outcome.execution_details
+    assert raw['status'] == 'failed'
+    assert 'unsupported namelist override' in raw['error']
+    manifest = json.loads(Path(raw['manifest_path']).read_text())
+    assert manifest['applied_namelist_overrides'] == {}
+    assert manifest['applied_perturbations'] == {}
+    assert Path(raw['eval_dir']).exists()
+    with pytest.raises(ValueError, match='complete-request'):
+        evaluator.evaluate_plan_parallel(tasks, custom_evaluator=lambda *args, **kwargs: {})
+
+
+def test_request_evaluator_receives_full_state_and_config(sample_candidate, tmp_path):
+    from mobo_linac.config import load_config
+    from mobo_linac.execution.requests import EvaluationRequest
+
+    config = load_config()
+    evaluator = RobustnessEvaluator(config=config, base_output_dir=tmp_path)
+    tasks = evaluator.generate_evaluation_plan([sample_candidate], num_perturbations=2)
+    tasks[0].namelist_overrides = {'charge:nrad': 16}
+    captured = []
+    def recording(request, *, config):
+        assert isinstance(request, EvaluationRequest)
+        captured.append((request.to_dict(), config))
+        return sample_candidate
+    evaluator.evaluate_plan_parallel(tasks, request_evaluator=recording)
+    assert [record for record, _ in captured] == [task.to_request().to_dict() for task in tasks]
+    assert all(cfg is config for _, cfg in captured)
+
+
+def test_lattice_override_is_recorded_without_claiming_original_jitter(sample_candidate, recording_astra_project, tmp_path):
+    project, config = recording_astra_project
+    evaluator = RobustnessEvaluator(config=config, base_output_dir=tmp_path)
+    tasks = evaluator.generate_evaluation_plan([sample_candidate], num_perturbations=1)
+    tasks[0].namelist_overrides = {'solenoid:maxb(2)': 0.7}
+    manifest = evaluator.evaluate_plan_parallel(tasks)[0].execution_details['manifest']
+    assert manifest['applied_namelist_values']['solenoid:maxb(2)'] == 0.7
+    assert manifest['requested_perturbations']['solenoid_field_relative_error'] != 0
+    assert 'solenoid_field_relative_error' not in manifest['applied_perturbations']
+
+
+def test_cli_and_script_honor_config_through_shared_workflow(sample_candidate, recording_astra_project, tmp_path):
+    import argparse
+    import json
+    from dataclasses import asdict
+    from mobo_linac.cli.commands.audit import run_robustness
+    from mobo_linac.io.results import save_evaluation_results
+    from scripts.run_robustness_analysis import run_robustness_analysis
+
+    project, config = recording_astra_project
+    import yaml
+    config_file = tmp_path / 'custom_config.yaml'
+    config_file.write_text(yaml.safe_dump(asdict(config)))
+    history = tmp_path / 'nominal_history'
+    save_evaluation_results([sample_candidate], history, config=config)
+    # Use the complete candidate-history schema, including observed feasibility.
+    input_file = history / 'candidate_history.csv'
+    outputs = [tmp_path / 'cli', tmp_path / 'script']
+    common = {'config': str(config_file), 'num_workers': 1, 'num_perturbations': 2,
+              'seed': 17, 'pareto_csv': str(input_file), 'mock_evaluator': False, 'dry_run': False}
+    run_robustness(argparse.Namespace(**common, output_dir=str(outputs[0]), history_path=str(input_file)))
+    run_robustness_analysis(argparse.Namespace(**common, output_dir=str(outputs[1])))
+    requests_by_entry = []
+    for output in outputs:
+        archives = list(output.glob('robustness_runs/*/robustness_requests.json'))
+        assert archives
+        captured = []
+        for archive in archives:
+            payload = json.loads(archive.read_text())
+            assert payload['config']['design_variables'][0]['astra_key'] == 'solenoid:maxb(2)'
+            for record in payload['records']:
+                request = record['request']
+                assert record['applied_namelist_values']['solenoid:maxb(2)'] == request['parameters'][0]
+                assert record['applied_namelist_values']['cavity:phi(6)'] == request['parameters'][4]
+                assert record['result']['simulation_valid'] is True
+                assert request['metadata']['seed'] == 17
+                captured.append(request)
+        requests_by_entry.append(sorted(captured, key=lambda request: request['eval_id']))
+        assert (output / 'robustness_summary.csv').exists()
+        assert 'unsupported' in (output / 'robustness_table.tex').read_text()
+    assert requests_by_entry[0] == requests_by_entry[1]

@@ -14,6 +14,7 @@ import numpy as np
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
+from mobo_linac.execution.requests import EvaluationRequest
 
 
 @dataclass
@@ -26,6 +27,11 @@ class EvaluationTask:
     nominal_result: Optional[EvaluationResult] = None
     namelist_overrides: Optional[Dict[str, Any]] = None
     metadata: Dict[str, Any] = field(default_factory=dict)
+    source_settings: Dict[str, float] = field(default_factory=dict)
+
+    def to_request(self) -> EvaluationRequest:
+        return EvaluationRequest(self.task_id, list(self.parameters), self.namelist_overrides,
+                                 dict(self.source_settings), dict(self.metadata))
 
 
 @dataclass
@@ -35,6 +41,7 @@ class EvaluationOutcome:
     task: EvaluationTask
     evaluated_result: EvaluationResult
     metric_deltas: Dict[str, float] = field(default_factory=dict)
+    execution_details: Dict[str, Any] = field(default_factory=dict)
 
 
 def compute_metric_deltas(
@@ -121,6 +128,7 @@ class CandidateEvaluatorBase(ABC):
         tasks: List[EvaluationTask],
         custom_evaluator: Optional[Any] = None,
         on_task_complete: Optional[Callable[[EvaluationOutcome], None]] = None,
+        request_evaluator: Optional[Any] = None,
     ) -> List[EvaluationOutcome]:
         """
         Executes evaluation tasks in parallel, mapping outputs to EvaluationOutcome records.
@@ -130,13 +138,16 @@ class CandidateEvaluatorBase(ABC):
 
         outcomes: List[EvaluationOutcome] = []
 
-        if custom_evaluator is not None:
+        if custom_evaluator is not None and request_evaluator is not None:
+            raise ValueError("Choose a legacy evaluator or a complete-request evaluator")
+        if custom_evaluator is not None and any(task.namelist_overrides for task in tasks):
+            raise ValueError("Namelist overrides require a complete-request evaluator")
+        if custom_evaluator is not None or request_evaluator is not None:
             for task in tasks:
-                raw_res = custom_evaluator(
-                    task.parameters,
-                    run_id=task.task_id,
-                    eval_id=task.role,
-                )
+                if request_evaluator is not None:
+                    raw_res = request_evaluator(task.to_request(), config=self.config)
+                else:
+                    raw_res = custom_evaluator(task.parameters, run_id=task.task_id, eval_id=task.role)
                 eval_res = (
                     raw_res
                     if isinstance(raw_res, EvaluationResult)
@@ -147,6 +158,7 @@ class CandidateEvaluatorBase(ABC):
                     task=task,
                     evaluated_result=eval_res,
                     metric_deltas=deltas,
+                    execution_details=raw_res if isinstance(raw_res, dict) else {},
                 )
                 outcomes.append(outcome)
                 if on_task_complete is not None:
@@ -159,17 +171,17 @@ class CandidateEvaluatorBase(ABC):
             max_workers=self.num_workers,
             timeout=self.timeout,
             config=self.config,
+            retries=self.config.execution.retries,
+            clean_on_success=self.config.execution.clean_on_success,
         )
 
-        cand_params = [t.parameters for t in tasks]
-        eval_ids = [t.task_id for t in tasks]
-
-        raw_results = evaluator.evaluate_batch(
-            candidates=cand_params,
+        raw_results = evaluator.evaluate_requests(
+            requests=[task.to_request() for task in tasks],
             run_id="candidate_eval",
-            eval_ids=eval_ids,
         )
 
+        if len(raw_results) != len(tasks):
+            raise ValueError("Backend returned an incomplete candidate batch")
         for task, raw_r in zip(tasks, raw_results):
             eval_res = create_evaluation_result(raw_r, self.config)
             deltas = self.compute_relative_metric_deltas(task.nominal_result, eval_res)
@@ -177,6 +189,7 @@ class CandidateEvaluatorBase(ABC):
                 task=task,
                 evaluated_result=eval_res,
                 metric_deltas=deltas,
+                execution_details=raw_r,
             )
             outcomes.append(outcome)
             if on_task_complete is not None:

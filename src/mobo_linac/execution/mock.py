@@ -125,6 +125,15 @@ class MockBatchEvaluator:
 
         return raw_results
 
+    def evaluate_requests(self, requests, run_id="mock_batch"):
+        """Retain full requests while explicitly identifying synthetic evaluations."""
+        results = self.evaluate_batch([request.parameters for request in requests], run_id=run_id,
+                                      eval_ids=[request.eval_id for request in requests])
+        for request, result in zip(requests, results):
+            result["request"] = request.to_dict()
+            result["execution_kind"] = "mock"
+        return results
+
 
 # Alias for backward compatibility
 CliMockEvaluator = MockBatchEvaluator

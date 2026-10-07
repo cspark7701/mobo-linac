@@ -4,6 +4,7 @@ Provides process-safe parallel evaluation of ASTRA simulation batches,
 candidate evaluation base abstractions, and canonical mock evaluation infrastructure.
 """
 
+from mobo_linac.execution.requests import EvaluationRequest
 from mobo_linac.execution.candidate_evaluator import (
     CandidateEvaluatorBase,
     EvaluationOutcome,
@@ -24,6 +25,7 @@ __all__ = [
     "evaluate_candidates_parallel",
     "CandidateEvaluatorBase",
     "EvaluationTask",
+    "EvaluationRequest",
     "EvaluationOutcome",
     "compute_metric_deltas",
     "MockBatchEvaluator",

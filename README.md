@@ -230,6 +230,8 @@ The benchmark dispatcher supports `constrained_qlognehvi`, `unconstrained_qlogne
 mobo-linac run-robustness --config configs/publication_200MeV.yaml --num-perturbations 50 --num-workers 12
 ```
 
+Robustness CLI and script runs share complete evaluation requests and honor configured lattice mappings. Charge, laser spot-size, and pulse-duration jitter are sampled and retained as requested source scales, but are explicitly unsupported for the fixed `pal_photo2.ini` source; current physical scores cover applied lattice jitter. Request archives record seeds, requested/applied settings, unsupported channels, and exact attempt links. See the [robustness execution contract](docs/simulation_guide.md#42-machine--beam-perturbation-robustness-analysis).
+
 ### 5. Run Independent Pareto Candidate Verification Reruns
 ```bash
 mobo-linac run-verification --config configs/publication_200MeV.yaml --output-dir results/verification

@@ -6,14 +6,17 @@ computing mean, standard deviation, percentile intervals, probability of feasibi
 worst constraint margins, and identifying robust operating points.
 """
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
+import uuid
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import pandas as pd
 import torch
 import yaml
 
+from mobo_linac.astra.workdir import validate_component, write_once_json
+from mobo_linac.io.results import DESIGN_VAR_COLUMNS
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.candidate_evaluator import (
@@ -27,6 +30,17 @@ from mobo_linac.metrics.pareto import (
     detect_and_report_candidate_duplicates,
 )
 from mobo_linac.metrics.reporting import normalize_objectives_physical
+
+
+SOURCE_CHANNELS = {
+    "bunch_charge_relative_jitter": "bunch_charge_scale",
+    "laser_spot_size_relative_jitter": "laser_spot_scale",
+    "laser_pulse_duration_relative_jitter": "laser_pulse_duration_scale",
+}
+SOURCE_MAPPING_REASON = (
+    "The ASTRA template reads a fixed particle distribution; no verified source-generation "
+    "mapping applies this scale. The source distribution is unchanged."
+)
 
 
 @dataclass
@@ -127,6 +141,12 @@ def generate_perturbed_machine_states(
     else:
         pert_spec = spec
 
+    if len(nominal_x) != 6:
+        raise ValueError("The established jitter model requires six canonical lattice parameters")
+    if num_perturbations < 0:
+        raise ValueError("num_perturbations must be nonnegative")
+    if any(not np.isfinite(value) or value < 0 for value in asdict(pert_spec).values()):
+        raise ValueError("Jitter standard deviations must be finite and nonnegative")
     rng = np.random.default_rng(seed)
     nominal_arr = np.array(nominal_x, dtype=np.float64)
 
@@ -336,13 +356,28 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
         candidates: Sequence[EvaluationResult],
         num_perturbations: int = 50,
         seed: int = 42,
+        roles: Optional[Sequence[str]] = None,
     ) -> List[EvaluationTask]:
         """Generates perturbed machine state evaluation tasks for each candidate."""
+        design_names = [dv.name for dv in self.config.design_variables]
+        if len(design_names) != 6 or set(design_names) != set(DESIGN_VAR_COLUMNS):
+            raise ValueError("Robustness jitter requires the six canonical design-variable names")
+        if roles is not None and len(roles) != len(candidates):
+            raise ValueError("roles must match candidates")
+        source_stds = {
+            "bunch_charge_relative_jitter": self.spec.bunch_charge_relative_std,
+            "laser_spot_size_relative_jitter": self.spec.laser_spot_size_relative_std,
+            "laser_pulse_duration_relative_jitter": self.spec.laser_pulse_duration_relative_std,
+        }
         tasks: List[EvaluationTask] = []
         for c_idx, cand in enumerate(candidates):
-            c_label = f"cand_{c_idx+1}"
+            if len(cand.x_physical) != len(design_names):
+                raise ValueError("Candidate parameters must match the configured design layout")
+            c_label = roles[c_idx] if roles is not None else f"cand_{c_idx+1}"
+            validate_component(c_label)
+            nominal_by_name = dict(zip(design_names, cand.x_physical))
             p_states = generate_perturbed_machine_states(
-                nominal_x=cand.x_physical,
+                nominal_x=[nominal_by_name[name] for name in DESIGN_VAR_COLUMNS],
                 num_perturbations=num_perturbations,
                 seed=seed + c_idx * 100,
                 spec=self.spec,
@@ -351,11 +386,18 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
                 task = EvaluationTask(
                     task_id=f"pert_{c_label}_sample_{p_idx+1:03d}",
                     role=f"{c_label}_pert_{p_idx+1:03d}",
-                    parameters=p_state.parameters,
+                    parameters=[p_state.parameters[DESIGN_VAR_COLUMNS.index(name)] for name in design_names],
+                    source_settings={name: getattr(p_state, name) for name in SOURCE_CHANNELS.values()},
                     nominal_result=cand,
                     metadata={
                         "candidate_label": c_label,
                         "sample_idx": p_idx,
+                        "seed": seed + c_idx * 100,
+                        "nominal_evaluation_id": cand.evaluation_id,
+                        "nominal_run_id": cand.run_id,
+                        "nominal_parameters": list(cand.x_physical),
+                        "perturbation_specification": asdict(self.spec),
+                        "unsupported_channels": {channel: SOURCE_MAPPING_REASON for channel, std in source_stds.items() if std > 0},
                         "channel_deltas": p_state.channel_deltas,
                     },
                 )
@@ -368,12 +410,43 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
         num_perturbations: int = 50,
         seed: int = 42,
         custom_evaluator: Optional[Any] = None,
+        request_evaluator: Optional[Any] = None,
+        roles: Optional[Sequence[str]] = None,
+        batch_evaluator: Optional[Any] = None,
     ) -> List[Dict[str, Any]]:
         """
         Executes robustness evaluation plan and computes statistical summaries.
         """
-        tasks = self.generate_evaluation_plan(candidates, num_perturbations=num_perturbations, seed=seed)
-        outcomes = self.evaluate_plan_parallel(tasks, custom_evaluator=custom_evaluator)
+        if num_perturbations <= 0:
+            raise ValueError("Robustness evaluation requires at least one perturbation")
+        tasks = self.generate_evaluation_plan(candidates, num_perturbations=num_perturbations, seed=seed, roles=roles)
+        if batch_evaluator is not None:
+            if custom_evaluator is not None or request_evaluator is not None:
+                raise ValueError("Choose one robustness backend")
+            raw_results = batch_evaluator.evaluate_requests([task.to_request() for task in tasks], run_id="candidate_eval")
+            if len(raw_results) != len(tasks):
+                raise ValueError("Backend returned an incomplete robustness batch")
+            outcomes = [EvaluationOutcome(task, create_evaluation_result(raw, self.config), execution_details=raw)
+                        for task, raw in zip(tasks, raw_results)]
+        else:
+            outcomes = self.evaluate_plan_parallel(tasks, custom_evaluator=custom_evaluator,
+                                                  request_evaluator=request_evaluator)
+        session = self.base_output_dir / "robustness_runs" / ("robustness_" + uuid.uuid4().hex)
+        session.mkdir(parents=True, exist_ok=False)
+        request_records = []
+        for outcome in outcomes:
+            evidence = outcome.execution_details.get("manifest", {})
+            request_records.append({
+                "request": outcome.task.to_request().to_dict(),
+                "result": outcome.evaluated_result.to_dict(),
+                "execution_kind": outcome.execution_details.get("execution_kind", "astra" if evidence else "unconfirmed"),
+                "applied_perturbations": evidence.get("applied_perturbations", {}),
+                "applied_namelist_overrides": evidence.get("applied_namelist_overrides", {}),
+                "applied_namelist_values": evidence.get("applied_namelist_values", {}),
+                "source_application": evidence.get("source_application", {}),
+            })
+        request_path = write_once_json(session / "robustness_requests.json", {"config": asdict(self.config),
+                            "perturbation_specification": asdict(self.spec), "records": request_records})
 
         # Group by candidate
         by_cand: Dict[str, List[EvaluationResult]] = {}
@@ -395,7 +468,27 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
                 nominal_result=nom_res,
                 perturbed_results=pert_res_list,
             )
+            records = [record for record in request_records if record["request"]["metadata"]["candidate_label"] == c_lbl]
+            unsupported = {channel: reason for record in records
+                           for channel, reason in record["request"]["metadata"]["unsupported_channels"].items()}
+            evaluated = sorted({channel for record in records if record["result"]["simulation_valid"]
+                                and record["execution_kind"] == "astra"
+                                for channel, delta in record["applied_perturbations"].items() if delta != 0})
+            summary.update({
+                "perturbation_scope": "supported_lattice_only" if unsupported else "supported_requests",
+                "unsupported_channels": sorted(unsupported),
+                "unsupported_channel_reasons": unsupported,
+                "evaluated_channels": evaluated,
+                "execution_kinds": sorted({record["execution_kind"] for record in records}),
+                "full_requested_jitter_evaluated": bool(records) and not unsupported
+                    and all(record["execution_kind"] == "astra" and record["result"]["simulation_valid"]
+                            and all(record["applied_perturbations"].get(channel) == delta
+                                    for channel, delta in record["request"]["metadata"]["channel_deltas"].items() if delta != 0)
+                            for record in records),
+                "request_manifest_path": str(request_path),
+            })
             summaries.append(summary)
+        write_once_json(session / "robustness_summary.json", {"summaries": summaries})
 
         return summaries
 

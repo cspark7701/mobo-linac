@@ -177,3 +177,69 @@ def test_compute_robustness_summary(sample_pareto_results):
     assert summary["mean_emit_x"] > 0
     assert summary["is_fragile"] is False
 
+
+
+def test_complete_plan_reproducibility_zero_jitter_and_reordered_config(sample_pareto_results, tmp_path):
+    from dataclasses import fields
+    from copy import deepcopy
+    from mobo_linac.config import load_config
+    from mobo_linac.robustness.evaluator import RobustnessEvaluator
+
+    config = load_config()
+    evaluator = RobustnessEvaluator(config=config, base_output_dir=tmp_path)
+    first = evaluator.generate_evaluation_plan(sample_pareto_results[:2], num_perturbations=4, seed=91)
+    second = evaluator.generate_evaluation_plan(sample_pareto_results[:2], num_perturbations=4, seed=91)
+    assert [task.to_request().to_dict() for task in first] == [task.to_request().to_dict() for task in second]
+    assert first[0].metadata['seed'] == 91
+    assert first[4].metadata['seed'] == 191
+    zero = PerturbationSpecification(**{field.name: 0.0 for field in fields(PerturbationSpecification)})
+    zero_tasks = RobustnessEvaluator(config=config, spec=zero).generate_evaluation_plan(sample_pareto_results[:1], 3, 91)
+    for task in zero_tasks:
+        assert task.parameters == sample_pareto_results[0].x_physical
+        assert all(scale == 1.0 for scale in task.source_settings.values())
+        assert all(delta == 0.0 for delta in task.metadata['channel_deltas'].values())
+        assert task.metadata['unsupported_channels'] == {}
+        assert task.namelist_overrides is None
+    reordered = deepcopy(config)
+    reordered.design_variables.reverse()
+    candidate = deepcopy(sample_pareto_results[0])
+    candidate.x_physical.reverse()
+    reordered_task = RobustnessEvaluator(config=reordered).generate_evaluation_plan([candidate], 4, 91)[0]
+    assert reordered_task.parameters == list(reversed(first[0].parameters))
+    assert reordered_task.source_settings == first[0].source_settings
+    assert reordered_task.metadata['channel_deltas'] == first[0].metadata['channel_deltas']
+
+
+def test_reports_never_claim_unapplied_source_or_mock_jitter(sample_pareto_results, tmp_path):
+    import json
+    from pathlib import Path
+    from mobo_linac.execution.mock import MockBatchEvaluator
+    from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_CHANNELS
+
+    evaluator = RobustnessEvaluator(base_output_dir=tmp_path)
+    mock = MockBatchEvaluator(tmp_path)
+    summary = evaluator.evaluate_candidates(sample_pareto_results[:1], 3, seed=31, batch_evaluator=mock)[0]
+    assert summary['unsupported_channels'] == sorted(SOURCE_CHANNELS)
+    assert summary['execution_kinds'] == ['mock']
+    assert summary['evaluated_channels'] == []
+    assert summary['full_requested_jitter_evaluated'] is False
+    archive = Path(summary['request_manifest_path'])
+    payload = json.loads(archive.read_text())
+    assert 'config' in payload
+    records = payload['records']
+    assert len(records) == 3
+    for record in records:
+        assert record['request']['source_settings']['bunch_charge_scale'] != 1.0
+        assert record['applied_perturbations'] == {}
+        assert record['request']['metadata']['seed'] == 31
+        assert record['request']['metadata']['unsupported_channels']
+    original = archive.read_bytes()
+    next_summary = evaluator.evaluate_candidates(sample_pareto_results[:1], 3, seed=31, batch_evaluator=mock)[0]
+    assert next_summary['request_manifest_path'] != str(archive)
+    assert archive.read_bytes() == original
+
+
+@pytest.mark.parametrize('std', [-0.01, float('nan'), float('inf')])
+def test_invalid_jitter_spec_rejected(std):
+    with pytest.raises(ValueError, match='finite and nonnegative'):
+        generate_perturbed_machine_states([0.2, 1, -1, 0, 0, 0], spec=PerturbationSpecification(gun_phase_std_deg=std))
