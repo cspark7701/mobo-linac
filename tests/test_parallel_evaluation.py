@@ -295,3 +295,81 @@ def test_real_parallel_astra_evaluations():
         assert res["objectives"] is not None
         assert "norm_emit_x" in res["objectives"]
         assert Path(res["manifest_path"]).exists()
+
+
+@pytest.mark.parametrize('cleanup', [False, True])
+def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monkeypatch, cleanup):
+    from mobo_linac.astra.workdir import file_sha256, read_evaluation_manifest
+    from mobo_linac.evaluation import create_evaluation_result
+    from mobo_linac.config import load_config
+    from mobo_linac.io.results import (
+        append_streaming_evaluation, load_streaming_evaluations,
+        save_evaluation_results, load_evaluation_results, CheckpointState,
+    )
+
+    executable = temp_project['base_dir'] / 'stub_astra'
+    executable.write_bytes(b'stub executable bytes')
+    directories = []
+    class StubAstra:
+        command = str(executable)
+        particles = []
+        def __init__(self, input_file, workdir, **kwargs):
+            self.directory = Path(workdir)
+            self.values = {}
+            self.output = {}
+            directories.append(self.directory)
+        def __setitem__(self, name, value):
+            self.values[name] = value
+        def write_input(self):
+            (self.directory / 'astra.in').write_text(json.dumps(self.values, sort_keys=True))
+        def run(self):
+            assert not (self.directory / 'stale.out').exists()
+            if len(directories) == 1:
+                (self.directory / 'stale.out').write_text('failed attempt output')
+                raise RuntimeError('transient simulation failure')
+            (self.directory / 'beam.out').write_text('fresh beam output')
+            self.output = {'stats': {key: [value] for key, value in {
+                'norm_emit_x': 1e-6, 'norm_emit_y': 1e-6, 'sigma_energy': 0.5e6,
+                'sigma_x': 0.5e-3, 'sigma_y': 0.5e-3, 'sigma_xp': 0.5e-3,
+                'sigma_yp': 0.5e-3, 'sigma_z': 0.5e-3,
+                'mean_kinetic_energy': 200e6, 'transmission_fraction': 1.0, 'z': 16.2,
+            }.items()}}
+    monkeypatch.setattr('mobo_linac.astra.runner.Astra', StubAstra)
+    config = load_config()
+    result = _worker_eval_task({
+        'candidate_idx': 0, 'parameters': [0.2, 1, -1, 0, 0, 0],
+        'run_id': 'retry', 'eval_id': 1, 'retries': 1,
+        'base_results_dir': temp_project['results_dir'],
+        'template_dir': temp_project['template_dir'], 'config': config,
+        'clean_on_success': cleanup,
+    })
+    assert result['status'] == 'success', result['error']
+    history = result['attempt_history']
+    assert [entry['status'] for entry in history] == ['failed', 'success']
+    assert len({entry['attempt_id'] for entry in history}) == 2
+    assert directories[0] != directories[1]
+    manifests = [read_evaluation_manifest(entry['manifest_path']) for entry in history]
+    assert 'stale.out' in manifests[0]['output_hashes']
+    assert 'stale.out' not in manifests[1]['output_hashes']
+    assert 'beam.out' in manifests[1]['output_hashes']
+    for entry, manifest in zip(history, manifests):
+        archive = Path(entry['manifest_path']).parent
+        assert manifest['executable']['sha256'] == file_sha256(executable)
+        for name, digest in manifest['input_hashes'].items():
+            assert file_sha256(archive / 'inputs' / name) == digest
+        assert 'solenoid:maxb(1)' in (archive / 'inputs' / 'astra.in').read_text()
+    assert directories[0].exists()
+    assert directories[1].exists() is (not cleanup)
+    accepted = create_evaluation_result(result, config)
+    assert accepted.attempt_id == history[-1]['attempt_id']
+    assert accepted.manifest_path == history[-1]['manifest_path']
+    record_dir = temp_project['base_dir'] / 'records'
+    append_streaming_evaluation(record_dir, accepted, batch_idx=0)
+    assert load_streaming_evaluations(record_dir)[0].to_dict() == accepted.to_dict()
+    save_evaluation_results([accepted], record_dir, config=config)
+    for name in ['candidate_history.json', 'candidate_history.csv']:
+        loaded = load_evaluation_results(record_dir / name, config)[0]
+        assert loaded.attempt_id == accepted.attempt_id
+        assert loaded.manifest_path == accepted.manifest_path
+        assert loaded.attempt_history == history
+    assert CheckpointState.from_dict({'iteration': 1, 'results_serialized': [accepted.to_dict()]}).results[0].attempt_id == accepted.attempt_id

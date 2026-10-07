@@ -44,7 +44,7 @@ class ResultSchema:
         flattened = [name for group in aliases for name in group]
         if len(flattened) != len(set(flattened)):
             raise ValueError("Objective names and aliases must identify exactly one objective.")
-        reserved = {"evaluation_id", "run_id", "simulation_valid", "physically_feasible", "failure_category", "failure_reason", "runtime_s", "work_dir", "batch_idx", "candidate_idx"}
+        reserved = {"evaluation_id", "run_id", "simulation_valid", "physically_feasible", "failure_category", "failure_reason", "runtime_s", "work_dir", "batch_idx", "candidate_idx", "attempt_id", "manifest_path", "attempt_history"}
         if any(name in reserved for name in flattened):
             raise ValueError("Objective names cannot use result metadata columns.")
         design = tuple(dv.name for dv in config.design_variables)

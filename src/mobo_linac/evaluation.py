@@ -51,6 +51,9 @@ class EvaluationResult:
     failure_reason: Optional[str] = None
     runtime_s: float = 0.0
     work_dir: str = ""
+    attempt_id: Optional[str] = None
+    manifest_path: Optional[str] = None
+    attempt_history: List[Dict[str, Any]] = field(default_factory=list)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert result object to dictionary representation."""
@@ -209,4 +212,7 @@ def create_evaluation_result(
         failure_reason=failure_reason,
         runtime_s=runtime_s,
         work_dir=work_dir,
+        attempt_id=raw_res.get("attempt_id", manifest.get("attempt_id")),
+        manifest_path=raw_res.get("manifest_path"),
+        attempt_history=raw_res.get("attempt_history", []),
     )

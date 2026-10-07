@@ -119,7 +119,7 @@ def test_pareto_verifier_plan_and_execution(sample_candidate, tmp_path):
             "run_id": run_id,
             "parameters": params,
             "objectives": {"norm_emit_x": 3.5001e-6, "norm_emit_y": 3.6001e-6, "sigma_energy": 0.9001e6},
-            "diagnostics": {"transmission_fraction": 1.0, "mean_kinetic_energy": 200e6},
+            "diagnostics": dict(sample_candidate.diagnostics),
         }
 
     cands_dict = {"knee_point": sample_candidate}
@@ -128,3 +128,8 @@ def test_pareto_verifier_plan_and_execution(sample_candidate, tmp_path):
     assert records[0]["verification_status"] == "VERIFIED"
     assert manifest_p.exists()
     assert tex_p.exists()
+    original_manifest = manifest_p.read_bytes()
+    _, next_manifest, next_tex = verifier.verify_candidates(cands_dict, mock_evaluator=mock_eval)
+    assert next_manifest != manifest_p
+    assert manifest_p.read_bytes() == original_manifest
+    assert next_tex.exists()

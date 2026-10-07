@@ -1,11 +1,14 @@
 import hashlib
 import json
 import os
+import shutil
+import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import pandas as pd
 
+from mobo_linac.astra.workdir import read_evaluation_manifest, validate_component, write_once_json
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.candidate_evaluator import (
@@ -88,8 +91,11 @@ def run_independent_verification_rerun(
         Verification result record dictionary.
     """
     out_path = Path(output_dir)
-    work_path = out_path / "candidate_inputs" / role
-    work_path.mkdir(parents=True, exist_ok=True)
+    validate_component(role)
+    verification_run_id = "rerun_" + uuid.uuid4().hex
+    work_path = out_path / "candidate_inputs" / role / verification_run_id
+    work_path.mkdir(parents=True, exist_ok=False)
+    raw_res = {}
 
     x_phys = candidate.x_physical
     orig_objs = candidate.objectives_physical or [1.0e-6, 1.0e-6, 1.0e6]
@@ -132,13 +138,11 @@ def run_independent_verification_rerun(
         rerun_feas = eval_res.physically_feasible
         rerun_valid = eval_res.simulation_valid
 
-        eval_dir = Path(raw_res.get("eval_dir", work_path))
-        input_file = eval_dir / "astra.in"
-        input_sha256 = compute_file_sha256(input_file)
-        field_files = ["gun.dat", "PAL_SOL_A.dat", "TWS_Sband.dat", "pal_photo2.ini"]
-        field_maps_sha256 = {f: compute_file_sha256(eval_dir / f) for f in field_files if (eval_dir / f).exists()}
-        astra_bin = os.environ.get("ASTRA_BIN", "bin/astra")
-        executable_sha256 = compute_file_sha256(astra_bin)
+        manifest = read_evaluation_manifest(raw_res["manifest_path"])
+        hashes = manifest.get("input_hashes", {})
+        input_sha256 = hashes.get("astra.in", "UNKNOWN")
+        field_maps_sha256 = {name: digest for name, digest in hashes.items() if name != "astra.in"}
+        executable_sha256 = manifest.get("executable", {}).get("sha256") or "UNKNOWN"
 
     if not rerun_valid:
         status = "RERUN_FAILED"
@@ -171,7 +175,12 @@ def run_independent_verification_rerun(
         else:
             status = "REJECTED"
 
+    record_path = work_path / "verification_record.json"
     record = {
+        "verification_run_id": verification_run_id,
+        "attempt_id": raw_res.get("attempt_id"),
+        "manifest_path": raw_res.get("manifest_path"),
+        "record_path": str(record_path),
         "role": role,
         "original_evaluation_id": candidate.evaluation_id,
         "solenoid_field_T": x_phys[0],
@@ -201,6 +210,7 @@ def run_independent_verification_rerun(
         "executable_sha256": executable_sha256,
     }
 
+    write_once_json(record_path, record)
     return record
 
 
@@ -231,6 +241,7 @@ def run_verification_pipeline(
     out_path = Path(output_dir)
     out_path.mkdir(parents=True, exist_ok=True)
 
+    session_path = create_verification_session(out_path)
     candidates = select_verification_candidates(results)
     records = []
 
@@ -242,7 +253,7 @@ def run_verification_pipeline(
             role=role,
             candidate=candidate,
             config=config,
-            output_dir=out_path,
+            output_dir=session_path,
             mock_rerun_data=mock_data,
             mock_evaluator=mock_evaluator,
         )
@@ -253,25 +264,32 @@ def run_verification_pipeline(
             f"Max Diff={rec['max_diff_pct']:.6f}% | Status: {rec['verification_status']}"
         )
 
-    # Save DataFrame / CSV
-    df = pd.DataFrame(records)
-    csv_path = out_path / "verification_summary.csv"
-    df.to_csv(csv_path, index=False)
+    manifest_path, tex_path = save_verification_reports(records, session_path, out_path)
+    print(f"Pareto verification complete! Artifacts in: {session_path.resolve()}")
+    return records, manifest_path, tex_path
 
-    # Save JSON manifest
-    manifest_path = out_path / "verification_manifest.json"
-    manifest_data = {
+
+def create_verification_session(out_path):
+    session = Path(out_path) / "verification_runs" / ("verification_" + uuid.uuid4().hex)
+    session.mkdir(parents=True, exist_ok=False)
+    return session
+
+
+def save_verification_reports(records, session_path, out_path):
+    """Archive reports once; root reports are compatibility views of the latest run."""
+    pd.DataFrame(records).to_csv(session_path / "verification_summary.csv", index=False, mode="x")
+    manifest_path = write_once_json(session_path / "verification_manifest.json", {
         "timestamp": pd.Timestamp.now().isoformat(),
+        "verification_run_id": session_path.name,
         "total_candidates_verified": len(records),
         "records": records,
-    }
-    manifest_path.write_text(json.dumps(manifest_data, indent=2), encoding="utf-8")
-
-    # Save LaTeX table
-    tex_path = export_verification_latex_table(records, out_path / "verification_table.tex")
-
-    print(f"Pareto verification complete! Artifacts in: {out_path.resolve()}")
-    return records, manifest_path, tex_path
+    })
+    tex_path = export_verification_latex_table(records, session_path / "verification_table.tex")
+    for name in ("verification_summary.csv", "verification_manifest.json", "verification_table.tex"):
+        temporary = Path(out_path) / ("." + name + "." + uuid.uuid4().hex)
+        shutil.copyfile(session_path / name, temporary)
+        os.replace(temporary, Path(out_path) / name)
+    return manifest_path, tex_path
 
 
 def export_verification_latex_table(
@@ -348,33 +366,19 @@ class ParetoVerifier(CandidateEvaluatorBase):
         out_path = self.base_output_dir
         out_path.mkdir(parents=True, exist_ok=True)
 
+        session_path = create_verification_session(out_path)
         records: List[Dict[str, Any]] = []
         for role, cand in candidates_dict.items():
             rec = run_independent_verification_rerun(
                 role=role,
                 candidate=cand,
                 config=self.config,
-                output_dir=out_path,
+                output_dir=session_path,
                 mock_evaluator=mock_evaluator,
                 tol_verified=self.tol_verified,
                 tol_conditional=self.tol_conditional,
             )
             records.append(rec)
 
-        df = pd.DataFrame(records)
-        csv_path = out_path / "verification_summary.csv"
-        df.to_csv(csv_path, index=False)
-
-        manifest_path = out_path / "verification_manifest.json"
-        manifest_data = {
-            "timestamp": pd.Timestamp.now().isoformat(),
-            "total_candidates_verified": len(records),
-            "records": records,
-        }
-        manifest_path.write_text(json.dumps(manifest_data, indent=2), encoding="utf-8")
-
-        tex_path = export_verification_latex_table(records, out_path / "verification_table.tex")
+        manifest_path, tex_path = save_verification_reports(records, session_path, out_path)
         return records, manifest_path, tex_path
-
-
-

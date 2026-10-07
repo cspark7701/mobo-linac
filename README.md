@@ -161,9 +161,13 @@ results/YYYYMMDD_HHMMSS/
 ├── run_complete.json      # Completion marker with artifact checksums
 ├── candidate_history.csv  # Detailed history of candidate proposals
 ├── constraints.csv        # Diagnostic values and constraint statuses
+├── work/eval_<id>/attempt_<uuid>/ # Fresh simulation inputs and outputs per attempt
+├── provenance/eval_<id>/attempt_<uuid>/ # Retained manifests, input snapshots and hashes
 ├── gp_checkpoint/         # Saved PyTorch / GPyTorch GP model checkpoints
 └── figures/               # Generated figures (Pareto front, hypervolume, etc.)
 ```
+
+Each retry and independent rerun has a fresh attempt ID beneath its logical evaluation ID. Candidate records retain `attempt_id`, `manifest_path`, and retry history. Successful workdir cleanup retains provenance; resume uses completed journal/checkpoint records. Verification archives each run under `verification_runs/`, with root reports showing the latest completed verification. See the [attempt provenance contract](docs/simulation_guide.md#21-process-isolated-working-directories).
 
 Run exports use one writer during iterations and finalization. `pareto.csv` always matches `pareto_all.csv`; use `pareto_feasible.csv` for feasible-only points. Reporting comparisons require matching recorded scientific conventions. Elapsed wall time is measured separately from summed simulation runtime, and completion is published after required datasets, checkpoints, and requested figures succeed. See the [artifact and reporting contract](docs/simulation_guide.md#run-artifact-and-reporting-contract).
 

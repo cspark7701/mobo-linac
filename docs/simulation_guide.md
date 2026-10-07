@@ -49,12 +49,27 @@ Beams must satisfy 8 physical constraints to be classified as physically feasibl
 
 ### 2.1 Process-Isolated Working Directories
 To eliminate file race conditions during multi-core parallel evaluations, every ASTRA simulation executes inside a dedicated working directory:
-$$\mathcal{D}_i = \text{\texttt{results/<run\_id>/work/eval\_00000i/}}$$
+$$\mathcal{D}_i = \text{\texttt{results/<run\_id>/work/eval\_00000i/attempt\_<uuid>/}}$$
 
 Each directory contains:
 - Regenerated `astra.in`
 - Clean copies of static field maps and particle distributions (`gun.dat`, `PAL_SOL_A.dat`, `TWS_Sband.dat`, `pal_photo2.ini`)
 - Isolated simulation log and output files (`astra.Log`, `astra.out`)
+
+Every retry and independent rerun uses a new UUID attempt ID beneath a stable logical evaluation ID. Existing preparation destinations and manifest files are rejected instead of overwritten. Failed attempts retain their own outputs, preventing stale files from entering a retry. Resume reuses accepted journal/checkpoint records and does not prepare their workdirs again.
+
+Retained provenance lives at `results/<run_id>/provenance/<eval_id>/<attempt_id>/`:
+
+- `attempt_started.json` records reservation, logical identity, retry index, parameters, and start time.
+- `inputs/` contains copies of effective input bytes, including dereferenced field maps/distributions, before execution.
+- `inputs_after_execution/` records those input files after the simulator returns.
+- `manifest.json` records status, parameters/overrides, timing, objectives, diagnostics, workdir, input/output SHA-256 hashes, and the resolved executable path/hash when available. Unknown executable hashes remain unknown.
+
+Candidate CSV/JSON, journals, and checkpoints link the exact accepted `attempt_id` and `manifest_path`; worker results also retain every retry's manifest link. Successful cleanup removes only the workdir after its final manifest exists, preserving input snapshots and hashes. Output files are disposable when cleanup is requested; their hashes remain. Interrupted attempts can retain a start record without a final manifest and must not be treated as completed evaluations. Provenance capture failures produce failed evaluations and retain the workdir.
+
+`read_evaluation_manifest(path)` accepts an exact manifest file or a directory containing `manifest.json`, including the old `work/<eval_id>/manifest.json` layout. It does not guess which attempt was accepted. Cleanup of a legacy workdir with a manifest first retains the old manifest and file snapshots under `provenance/<eval_id>/legacy/`; historical archives are not rewritten automatically. Old evaluation records remain readable with unknown attempt links.
+
+Independent verification retains unique rerun records and report sessions under `verification_runs/verification_<uuid>/`. Returned report paths identify that archived session. Root `verification_summary.csv`, `verification_manifest.json`, and `verification_table.tex` remain compatibility views of the latest completed report, while earlier sessions remain intact.
 
 ### 2.2 Strict Evaluation Failure Semantics
 Numerical simulation validity (`simulation_valid`) is strictly separated from physical beam feasibility (`physically_feasible`):

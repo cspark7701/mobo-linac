@@ -8,6 +8,7 @@ resilience against single-candidate failures.
 
 import multiprocessing
 import os
+import uuid
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
@@ -42,9 +43,11 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
     attempts = 0
     max_attempts = retries + 1
     last_res: Dict[str, Any] = {}
+    attempt_history = []
 
     while attempts < max_attempts:
         attempts += 1
+        attempt_id = "attempt_" + uuid.uuid4().hex
         try:
             res = run_astra_eval(
                 parameters=parameters,
@@ -57,17 +60,24 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
                 clean_on_success=clean_on_success,
                 use_symlinks=use_symlinks,
                 config=config,
+                attempt_id=attempt_id,
+                retry_index=attempts - 1,
             )
             res.setdefault("run_id", run_id)
             res.setdefault("eval_id", eval_id)
             res.setdefault("parameters", parameters)
             res["candidate_idx"] = candidate_idx
             res["retries_attempted"] = attempts - 1
+            res.setdefault("attempt_id", attempt_id)
+            attempt_history.append({"attempt_id": res["attempt_id"], "manifest_path": res.get("manifest_path"), "status": res["status"]})
+            res["attempt_history"] = list(attempt_history)
             if res["status"] == "success":
                 return res
             last_res = res
         except Exception as e:
+            attempt_history.append({"attempt_id": attempt_id, "manifest_path": None, "status": "failed", "error": str(e)})
             last_res = {
+                "attempt_id": attempt_id, "attempt_history": list(attempt_history),
                 "candidate_idx": candidate_idx,
                 "run_id": run_id,
                 "eval_id": eval_id,

@@ -62,6 +62,8 @@ def results_to_dataframe(
             "failure_reason": res.failure_reason or "",
             "runtime_s": res.runtime_s,
             "work_dir": res.work_dir,
+            "attempt_id": res.attempt_id, "manifest_path": res.manifest_path,
+            "attempt_history": json.dumps(res.attempt_history),
         }
 
         # Add design variables
@@ -104,7 +106,7 @@ def results_to_dataframe(
 
         rows.append(row)
 
-    columns = list(dict.fromkeys(["evaluation_id", "run_id", "simulation_valid", "physically_feasible", "failure_category", "failure_reason", "runtime_s", "work_dir"] + design_var_cols + physical_obj_cols + model_obj_cols + ["sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m", "mean_kinetic_energy_eV", "sigma_energy_eV", "n_particles_initial", "n_particles_final", "transmission_fraction"]))
+    columns = list(dict.fromkeys(["evaluation_id", "run_id", "simulation_valid", "physically_feasible", "failure_category", "failure_reason", "runtime_s", "work_dir", "attempt_id", "manifest_path", "attempt_history"] + design_var_cols + physical_obj_cols + model_obj_cols + ["sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m", "mean_kinetic_energy_eV", "sigma_energy_eV", "n_particles_initial", "n_particles_final", "transmission_fraction"]))
     return pd.DataFrame(rows, columns=columns)
 
 
@@ -287,6 +289,9 @@ def load_evaluation_results(
                 failure_reason=str(row.get("failure_reason", "")) if not pd.isna(row.get("failure_reason")) else None,
                 runtime_s=float(row.get("runtime_s", 0.0)),
                 work_dir=str(row.get("work_dir", "")),
+                attempt_id=None if pd.isna(row.get("attempt_id")) else str(row["attempt_id"]),
+                manifest_path=None if pd.isna(row.get("manifest_path")) else str(row["manifest_path"]),
+                attempt_history=json.loads(row["attempt_history"]) if isinstance(row.get("attempt_history"), str) else [],
             )
             results.append(res)
 

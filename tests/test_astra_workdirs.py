@@ -200,3 +200,87 @@ def test_real_astra_isolated_run():
 
         assert res1["manifest"]["parameters"] == params1
         assert res2["manifest"]["parameters"] == params2
+
+
+def test_destination_reuse_and_legacy_cleanup_preserve_evidence(temp_project):
+    from mobo_linac.astra.workdir import read_evaluation_manifest
+
+    manager = AstraWorkDirManager(temp_project['results_dir'], temp_project['template_dir'])
+    directory = manager.prepare_eval_dir('legacy', 1)
+    (directory / 'astra.in').write_text('original effective input')
+    manifest = {'eval_id': 'eval_000001', 'status': 'success'}
+    manager.save_manifest(directory, manifest)
+    with pytest.raises(FileExistsError):
+        manager.prepare_eval_dir('legacy', 1)
+    with pytest.raises(FileExistsError):
+        manager.save_manifest(directory, {'status': 'failed'})
+    assert read_evaluation_manifest(directory) == manifest
+    manager.cleanup_eval_dir(directory)
+    archive = manager.get_provenance_dir('legacy', 1, 'legacy')
+    assert read_evaluation_manifest(archive) == manifest
+    assert (archive / 'legacy_files' / 'astra.in').read_text() == 'original effective input'
+
+
+def test_concurrent_attempts_of_same_logical_evaluation(temp_project):
+    manager = AstraWorkDirManager(temp_project['results_dir'], temp_project['template_dir'])
+    def prepare(_):
+        attempt, archive = manager.reserve_attempt('run', 1)
+        directory = manager.prepare_eval_dir('run', 1, attempt_id=attempt)
+        manager.save_manifest(archive, {'attempt_id': attempt})
+        return directory, archive
+    with ThreadPoolExecutor(max_workers=4) as executor:
+        records = list(executor.map(prepare, range(8)))
+    assert len({directory for directory, _ in records}) == 8
+    first, archive = records[0]
+    manager.cleanup_eval_dir(first)
+    assert (archive / 'manifest.json').exists()
+    with pytest.raises(FileExistsError):
+        manager.reserve_attempt('run', 1, first.name)
+    with pytest.raises(ValueError):
+        manager.cleanup_eval_dir(first.parent)
+
+
+@pytest.mark.parametrize('identity', ['../outside', '/outside', '..', 'a/b', 'a\\b'])
+def test_attempt_identity_rejects_path_components(temp_project, identity):
+    manager = AstraWorkDirManager(temp_project['results_dir'], temp_project['template_dir'])
+    with pytest.raises(ValueError):
+        manager.reserve_attempt('run', 1, identity)
+
+
+def test_failed_preparation_still_records_attempt(temp_project):
+    (temp_project['template_dir'] / 'TWS_Sband.dat').unlink()
+    result = run_astra_eval([0.2, 1, -1, 0, 0, 0], 'missing_input', 1,
+                            base_results_dir=temp_project['results_dir'],
+                            template_dir=temp_project['template_dir'])
+    assert result['status'] == 'failed'
+    manifest = json.loads(Path(result['manifest_path']).read_text())
+    assert 'Required static file' in manifest['error']
+    assert manifest['attempt_id'] == result['attempt_id']
+
+
+def test_input_snapshot_dereferences_mutable_symlink(temp_project):
+    from mobo_linac.astra.workdir import file_sha256
+
+    manager = AstraWorkDirManager(temp_project['results_dir'], temp_project['template_dir'])
+    attempt, archive = manager.reserve_attempt('symlink', 1)
+    directory = manager.prepare_eval_dir('symlink', 1, attempt_id=attempt, use_symlinks=True)
+    hashes = manager.snapshot_inputs(directory, archive)
+    source = temp_project['template_dir'] / 'gun.dat'
+    source.write_text('changed after evaluation')
+    snapshot = archive / 'inputs' / 'gun.dat'
+    assert not snapshot.is_symlink()
+    assert snapshot.read_text() == 'GUN DATA MOCK'
+    assert file_sha256(snapshot) == hashes['gun.dat']
+
+
+def test_provenance_failure_retains_workdir_and_final_failure_record(temp_project, monkeypatch):
+    manager = AstraWorkDirManager(temp_project['results_dir'], temp_project['template_dir'])
+    (temp_project['template_dir'] / 'TWS_Sband.dat').unlink()
+    def fail_snapshot(*args, **kwargs):
+        raise OSError('snapshot storage unavailable')
+    monkeypatch.setattr(manager, 'snapshot_inputs', fail_snapshot)
+    result = run_astra_eval([0.2, 1, -1, 0, 0, 0], 'audit_failure', 1,
+                            workdir_manager=manager, clean_on_success=True)
+    assert result['status'] == 'failed'
+    assert Path(result['eval_dir']).exists()
+    assert json.loads(Path(result['manifest_path']).read_text())['provenance_error'] == 'snapshot storage unavailable'

@@ -174,3 +174,30 @@ def test_run_verification_pipeline(sample_pareto_results, tmp_path):
     assert tex_path.exists()
     assert (tmp_path / "pipeline_verify" / "verification_summary.csv").exists()
 
+
+
+def test_repeated_verification_retains_records_and_reports(sample_pareto_results, tmp_path):
+    import json
+    from pathlib import Path
+    from mobo_linac.verification.verifier import run_verification_pipeline
+
+    candidate = sample_pareto_results[0]
+    config = load_config()
+    mock = {'objectives_physical': candidate.objectives_physical,
+            'diagnostics': candidate.diagnostics}
+    first = run_independent_verification_rerun('knee', candidate, config, tmp_path, mock)
+    first_bytes = Path(first['record_path']).read_bytes()
+    second = run_independent_verification_rerun('knee', candidate, config, tmp_path, mock)
+    assert first['record_path'] != second['record_path']
+    assert Path(first['record_path']).read_bytes() == first_bytes
+    assert json.loads(Path(second['record_path']).read_text())['verification_run_id'] == second['verification_run_id']
+    roles = select_verification_candidates([candidate])
+    mocks = {role: mock for role in roles}
+    _, first_manifest, first_tex = run_verification_pipeline([candidate], config, tmp_path, mocks)
+    saved = first_manifest.read_bytes()
+    _, second_manifest, second_tex = run_verification_pipeline([candidate], config, tmp_path, mocks)
+    assert first_manifest != second_manifest
+    assert first_tex.exists() and second_tex.exists()
+    assert first_manifest.read_bytes() == saved
+    assert (tmp_path / 'verification_manifest.json').read_bytes() == second_manifest.read_bytes()
+    assert len(list((tmp_path / 'verification_runs').iterdir())) == 2

@@ -8,6 +8,7 @@ extracting objectives and diagnostics and generating execution manifests.
 import os
 import shutil
 import time
+import shlex
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
@@ -86,7 +87,7 @@ from mobo_linac.astra.parser import (
     ParsedAstraResult,
     SimulationStatus,
 )
-from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id
+from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id, file_sha256, write_once_json
 
 PARAMETER_NAMES = [
     "solenoid:maxb(1)",
@@ -194,6 +195,8 @@ def run_astra_eval(
     workdir_manager: Optional[AstraWorkDirManager] = None,
     config: Optional[Union[Any, Dict[str, Any]]] = None,
     namelist_overrides: Optional[Dict[str, Any]] = None,
+    attempt_id: Optional[str] = None,
+    retry_index: int = 0,
 ) -> Dict[str, Any]:
     """
     Runs an isolated ASTRA simulation for a given candidate parameter set.
@@ -211,6 +214,8 @@ def run_astra_eval(
         use_symlinks: Use symlinks for static data files instead of copying.
         workdir_manager: Optional custom AstraWorkDirManager instance.
         config: Optional MoboConfig or config dictionary for dynamic parameter mapping.
+        attempt_id: Optional explicit identity; a previously reserved attempt is rejected.
+        retry_index: Zero-based retry ordinal retained in attempt provenance.
 
     Returns:
         Dict containing execution status, objectives, diagnostics, paths, and manifest info.
@@ -222,12 +227,8 @@ def run_astra_eval(
         )
 
     formatted_eval_id = format_eval_id(eval_id)
-    eval_dir = workdir_manager.prepare_eval_dir(
-        run_id=run_id,
-        eval_id=formatted_eval_id,
-        template_in=template_in,
-        use_symlinks=use_symlinks,
-    )
+    attempt_id, provenance_dir = workdir_manager.reserve_attempt(run_id, formatted_eval_id, attempt_id)
+    eval_dir = workdir_manager.get_eval_dir(run_id, formatted_eval_id) / attempt_id
 
     t_start = time.time()
     iso_start = datetime.fromtimestamp(t_start).isoformat()
@@ -241,23 +242,35 @@ def run_astra_eval(
     applied_param_names: List[str] = list(PARAMETER_NAMES)
     astra_cmd: str = os.environ.get("ASTRA_BIN", "")
 
-    target_z = 16.2
-    z_tol = 0.1
-    if config is not None:
-        if hasattr(config, "execution"):
-            if hasattr(config.execution, "z_stop_m"):
-                target_z = float(config.execution.z_stop_m)
-            if hasattr(config.execution, "z_loss_tolerance_m"):
-                z_tol = float(config.execution.z_loss_tolerance_m)
-        elif isinstance(config, dict) and "execution" in config:
-            target_z = float(config["execution"].get("z_stop_m", target_z))
-            z_tol = float(config["execution"].get("z_loss_tolerance_m", z_tol))
-
-    from mobo_linac.config import config_from_dict
-    objective_config = config_from_dict(config) if isinstance(config, dict) else config
-    parser = AstraOutputParser(target_z_stop=target_z, z_loss_tolerance=z_tol, config=objective_config)
+    input_hashes = {}
+    executed_input_hashes = {}
+    output_hashes = {}
+    executable = {"command": astra_cmd, "path": None, "sha256": None}
+    write_once_json(provenance_dir / "attempt_started.json", {
+        "schema_version": 1, "run_id": run_id, "eval_id": formatted_eval_id,
+        "attempt_id": attempt_id, "retry_index": retry_index,
+        "parameters": [float(p) for p in parameters], "eval_dir": str(eval_dir),
+        "start_time": iso_start,
+    })
 
     try:
+        workdir_manager.prepare_eval_dir(run_id, formatted_eval_id, template_in=template_in,
+                                        use_symlinks=use_symlinks, attempt_id=attempt_id)
+        target_z = 16.2
+        z_tol = 0.1
+        if config is not None:
+            if hasattr(config, "execution"):
+                if hasattr(config.execution, "z_stop_m"):
+                    target_z = float(config.execution.z_stop_m)
+                if hasattr(config.execution, "z_loss_tolerance_m"):
+                    z_tol = float(config.execution.z_loss_tolerance_m)
+            elif isinstance(config, dict) and "execution" in config:
+                target_z = float(config["execution"].get("z_stop_m", target_z))
+                z_tol = float(config["execution"].get("z_loss_tolerance_m", z_tol))
+
+        from mobo_linac.config import config_from_dict
+        objective_config = config_from_dict(config) if isinstance(config, dict) else config
+        parser = AstraOutputParser(target_z_stop=target_z, z_loss_tolerance=z_tol, config=objective_config)
         # Initialize Astra inside isolated eval_dir
         astra_sim = Astra(
             input_file=str(input_file),
@@ -278,6 +291,18 @@ def run_astra_eval(
             namelist_overrides=namelist_overrides,
         )
 
+        # Materialize effective inputs before launch, then preserve their exact bytes.
+        if hasattr(astra_sim, "write_input"):
+            astra_sim.write_input()
+        input_hashes = workdir_manager.snapshot_inputs(eval_dir, provenance_dir)
+        command_path = Path(astra_cmd).expanduser()
+        if not command_path.is_file():
+            tokens = shlex.split(astra_cmd)
+            token = tokens[0] if tokens else ""
+            resolved = shutil.which(token) or str(eval_dir / token)
+            command_path = Path(resolved)
+        executable = {"command": astra_cmd, "path": str(command_path.resolve()),
+                      "sha256": file_sha256(command_path) if command_path.is_file() else None}
         # Execute simulation
         astra_sim.run()
 
@@ -298,7 +323,7 @@ def run_astra_eval(
 
     except Exception as e:
         error_msg = str(e)
-        parsed_result = parser.parse_astra_simulation(
+        parsed_result = AstraOutputParser().parse_astra_simulation(
             astra_sim=None,
             eval_dir=eval_dir,
             error_context=error_msg,
@@ -312,7 +337,34 @@ def run_astra_eval(
     iso_end = datetime.fromtimestamp(t_end).isoformat()
     duration = t_end - t_start
 
+    provenance_error = None
+    try:
+        if eval_dir.exists():
+            if not input_hashes:
+                if (provenance_dir / "inputs").exists():
+                    raise RuntimeError("Input snapshot did not complete; partial provenance retained.")
+                input_hashes = workdir_manager.snapshot_inputs(eval_dir, provenance_dir)
+            executed_input_hashes = workdir_manager.snapshot_inputs(
+                eval_dir, provenance_dir, "inputs_after_execution", input_hashes)
+            output_hashes = {str(path.relative_to(eval_dir)): file_sha256(path)
+                             for path in eval_dir.rglob("*") if path.is_file()
+                             and str(path.relative_to(eval_dir)) not in input_hashes}
+    except Exception as exc:
+        provenance_error = str(exc)
+        status = "failed"
+        error_msg = f"{error_msg or ''} Provenance capture failed: {exc}".strip()
+
     manifest = {
+        "schema_version": 1,
+        "provenance_error": provenance_error,
+        "attempt_id": attempt_id,
+        "retry_index": retry_index,
+        "input_hashes": input_hashes,
+        "input_hashes_after_execution": executed_input_hashes,
+        "output_hashes": output_hashes,
+        "executable": executable,
+        "provenance_dir": str(provenance_dir),
+        "namelist_overrides": namelist_overrides,
         "run_id": run_id,
         "eval_id": formatted_eval_id,
         "parameters": [float(p) for p in parameters],
@@ -330,9 +382,12 @@ def run_astra_eval(
         "diagnostics": diagnostics,
     }
 
-    manifest_path = workdir_manager.save_manifest(eval_dir, manifest)
+    manifest_path = workdir_manager.save_manifest(provenance_dir, manifest)
 
     result = {
+        "run_id": run_id, "eval_id": formatted_eval_id,
+        "parameters": [float(p) for p in parameters],
+        "attempt_id": attempt_id,
         "status": status,
         "objectives": objectives,
         "diagnostics": diagnostics,
