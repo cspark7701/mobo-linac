@@ -31,6 +31,8 @@ from mobo_linac.acquisition.mobo import (
 )
 from mobo_linac.config import MoboConfig, config_from_dict, load_config
 from mobo_linac.campaigns.state import prepare_resume_state, restore_rng_state
+from mobo_linac.campaigns.recovery import load_resume_candidate, reconcile_resume
+from mobo_linac.io.journal import repair_journal_tail, write_streaming_csv, same_evaluation
 from mobo_linac.constraints import get_botorch_constraint_functions
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
@@ -43,8 +45,6 @@ from mobo_linac.io.results import (
     append_streaming_evaluation,
     get_constraint_tensors,
     get_train_tensors,
-    load_run_checkpoint,
-    load_streaming_evaluations,
     results_to_dataframe,
     save_evaluation_results,
     save_run_checkpoint,
@@ -195,9 +195,9 @@ class MoboCampaignRunner:
         torch.set_default_dtype(torch.double)
 
     def _prepare_resume(self) -> "CheckpointState":
-        """Resolve and validate a completed checkpoint before any destination writes."""
+        """Validate checkpoints, pending work, and the journal before destination writes."""
         target = self.resume_from or self.run_dir
-        checkpoint = load_run_checkpoint(target)
+        checkpoint, completed, pending = load_resume_candidate(target)
         if checkpoint is None:
             raise FileNotFoundError(f"No valid checkpoint found to resume at '{target}'")
         if not self._config_explicit:
@@ -245,14 +245,19 @@ class MoboCampaignRunner:
         self.num_batches = planned_batches if self._requested_num_batches is None else self._requested_num_batches
         if self.total_eval_budget is not None:
             remaining = self.total_eval_budget - len(state.results)
-            required = state.iteration + (remaining + self.batch_size - 1) // self.batch_size
+            if state.pending_proposal is not None:
+                remaining -= len(state.pending_proposal["candidates"])
+                required = state.iteration + 1 + (remaining + self.batch_size - 1) // self.batch_size
+            else:
+                required = state.iteration + (remaining + self.batch_size - 1) // self.batch_size
             if self._requested_num_batches is None:
                 self.num_batches = required
             elif self.num_batches != required:
                 raise ValueError("Resume iteration count must consume the saved total budget with the selected batch size.")
         if type(self.num_batches) is not int:
             raise ValueError("Resume iteration target must be an integer.")
-        if self.num_batches < state.iteration:
+        minimum_iteration = state.pending_proposal["batch_idx"] if state.pending_proposal else state.iteration
+        if self.num_batches < minimum_iteration:
             raise ValueError("Resume iteration target is earlier than the completed checkpoint.")
         requested_device = self._requested_device
         if requested_device is None or str(requested_device).lower() in ("auto", ""):
@@ -274,6 +279,9 @@ class MoboCampaignRunner:
                     torch.Generator(device=f"cuda:{index}").set_state(rng.cpu())
             except RuntimeError as error:
                 raise ValueError(f"Invalid checkpoint CUDA RNG state: {error}") from error
+        self._recovered_completions = reconcile_resume(
+            state, completed, pending, self.config, self.run_dir, self._requested_weights
+        )
         return state
 
     def export_environment_info(self, target_path: Path) -> None:
@@ -317,6 +325,9 @@ class MoboCampaignRunner:
         )
 
         if resume_state is None:
+            if ((self.run_dir / "evaluations_stream.jsonl").exists()
+                    or (self.run_dir / "checkpoints" / "pending_batch.pt").exists()):
+                raise ValueError("Existing campaign journal/proposal requires resume, not a fresh run.")
             if self.export_env_info:
                 self.export_environment_info(self.run_dir / "environment.txt")
             self.config.save_yaml(self.run_dir / "config.yaml")
@@ -341,44 +352,93 @@ class MoboCampaignRunner:
 
         def _evaluate_with_streaming(
             cand_list: List[List[float]],
-            e_ids: Optional[List[int]] = None,
-            batch_idx: Optional[int] = None,
+            batch_idx: int,
         ) -> List[EvaluationResult]:
-            def _stream_callback(raw_res: Dict[str, Any]):
-                try:
-                    eval_res = create_evaluation_result(raw_res, self.config)
-                    append_streaming_evaluation(self.run_dir, eval_res, batch_idx=batch_idx)
-                except Exception:
-                    pass
-
-            import inspect
-            sig = inspect.signature(evaluator.evaluate_batch)
-            if "on_evaluation_complete" in sig.parameters:
-                raw_out = evaluator.evaluate_batch(
-                    cand_list,
-                    run_id=self.run_id,
-                    eval_ids=e_ids,
-                    on_evaluation_complete=_stream_callback,
-                )
+            active = resume_state.pending_proposal if resume_state is not None else None
+            if active is not None and active["batch_idx"] == batch_idx:
+                proposal = active
+                if cand_list != proposal["candidates"]:
+                    raise ValueError("Recovery candidates differ from durable pending proposal.")
+                completions = dict(self._recovered_completions)
             else:
-                raw_out = evaluator.evaluate_batch(cand_list, run_id=self.run_id, eval_ids=e_ids)
-                for r in raw_out:
-                    _stream_callback(r)
+                ids = [f"eval_{len(results) + i + 1:06d}" for i in range(len(cand_list))]
+                proposal = {"version": "1.0", "batch_idx": batch_idx,
+                            "candidates": cand_list, "evaluation_ids": ids}
+                _persist_checkpoint(batch_idx - 1, pending=proposal)
+                completions = {}
+            identities = proposal["evaluation_ids"]
+            missing_positions = [i for i, identity in enumerate(identities) if identity not in completions]
+            missing_ids = [identities[i] for i in missing_positions]
+            missing_candidates = [cand_list[i] for i in missing_positions]
+            callback_error = None
 
-            return [create_evaluation_result(r, self.config) for r in raw_out]
+            def _stream_callback(raw_res: Dict[str, Any]):
+                nonlocal callback_error
+                try:
+                    raw_res = dict(raw_res)
+                    manifest = raw_res.get("manifest") or {}
+                    identity = raw_res.get("eval_id", manifest.get("eval_id"))
+                    if identity is None:
+                        index = raw_res.get("candidate_idx")
+                        if type(index) is not int or index < 0 or index >= len(missing_ids):
+                            raise ValueError("Evaluator completion lacks a stable candidate identity.")
+                        identity = missing_ids[index]
+                    elif isinstance(identity, int) or str(identity).isdigit():
+                        identity = f"eval_{int(identity):06d}"
+                    if identity not in missing_ids:
+                        raise ValueError("Evaluator returned an unexpected candidate identity.")
+                    position = identities.index(identity)
+                    raw_res["eval_id"] = identity
+                    raw_res.setdefault("run_id", manifest.get("run_id", self.run_id))
+                    raw_res.setdefault("parameters", manifest.get("parameters", cand_list[position]))
+                    eval_res = create_evaluation_result(raw_res, self.config)
+                    if eval_res.run_id != self.run_id or eval_res.x_physical != cand_list[position]:
+                        raise ValueError("Evaluator completion disagrees with submitted candidate.")
+                    previous = completions.get(identity)
+                    if previous is not None:
+                        if not same_evaluation(previous, eval_res):
+                            raise ValueError("Evaluator returned conflicting candidate completions.")
+                        return
+                    append_streaming_evaluation(self.run_dir, eval_res, batch_idx=batch_idx,
+                                                candidate_idx=position)
+                    completions[identity] = eval_res
+                except Exception as error:
+                    callback_error = error
+                    raise
+
+            if missing_ids:
+                import inspect
+                sig = inspect.signature(evaluator.evaluate_batch)
+                kwargs = dict(run_id=self.run_id, eval_ids=missing_ids)
+                if "on_evaluation_complete" in sig.parameters:
+                    kwargs["on_evaluation_complete"] = _stream_callback
+                raw_out = evaluator.evaluate_batch(missing_candidates, **kwargs)
+                if callback_error is not None:
+                    raise callback_error  # Also detect custom evaluators that swallow callback errors.
+                for index, raw in enumerate(raw_out):
+                    raw = dict(raw)
+                    raw.setdefault("candidate_idx", index)
+                    _stream_callback(raw)
+            if set(completions) != set(identities):
+                raise ValueError("Evaluator did not return every submitted candidate completion.")
+            return [completions[identity] for identity in identities]
 
         start_iteration = 1
         results: List[EvaluationResult] = []
         evaluation_batches: List[int] = []
         initial_candidates: List[List[float]] = []
 
-        def _persist_checkpoint(iteration: int):
+        tracker = None
+        reporting_ref_point = None
+        pending_path = self.run_dir / "checkpoints" / "pending_batch.pt"
+
+        def _persist_checkpoint(iteration: int, pending=None):
             checkpoint_mode = "scalarized_qLogNEI" if self.optimization_mode == "scalarized_bo" else self.acq_type
             save_run_checkpoint(
                 iteration=iteration,
                 results=results,
-                hypervolumes=[record["feasible_hypervolume"] for record in tracker.history],
-                checkpoint_path=self.run_dir / "checkpoints" / f"checkpoint_iter_{iteration:02d}.pt",
+                hypervolumes=[record["feasible_hypervolume"] for record in tracker.history] if tracker is not None else [],
+                checkpoint_path=pending_path if pending is not None else self.run_dir / "checkpoints" / f"checkpoint_iter_{iteration:02d}.pt",
                 acquisition_mode=checkpoint_mode,
                 config=self.config,
                 reporting_ref_point=reporting_ref_point,
@@ -393,7 +453,8 @@ class MoboCampaignRunner:
                     "initial_design": initial_candidates,
                     "sobol_state": {"seed": self.seed, "dimension": bounds.shape[1], "num_generated": sobol_engine.num_generated},
                     "evaluation_batches": evaluation_batches,
-                    "metric_history": deepcopy(tracker.history),
+                    "metric_history": deepcopy(tracker.history) if tracker is not None else [],
+                    "pending_proposal": pending,
                     "reporting_scales": list(DEFAULT_REPORTING_SCALES),
                     "planned_num_batches": self.num_batches,
                     "num_workers": self.num_workers,
@@ -404,7 +465,25 @@ class MoboCampaignRunner:
                 },
             )
 
+            if pending is None and pending_path.exists():
+                pending_path.unlink()
+                directory_fd = os.open(pending_path.parent, os.O_RDONLY)
+                try:
+                    os.fsync(directory_fd)
+                finally:
+                    os.close(directory_fd)
+
         if resume_state is not None:
+            repair_journal_tail(self.run_dir)
+            if (self.run_dir / "evaluations_stream.jsonl").exists():
+                write_streaming_csv(self.run_dir)
+            if resume_state.pending_proposal is None and pending_path.exists():
+                pending_path.unlink()  # Checkpoint won the durable commit before interruption.
+            initial_candidates = deepcopy(resume_state.initial_design)
+            sobol_engine.fast_forward(resume_state.sobol_state["num_generated"])
+            restore_rng_state(resume_state)
+
+        if resume_state is not None and resume_state.iteration >= 0:
             results = resume_state.results
             evaluation_batches = list(resume_state.evaluation_batches)
             initial_candidates = deepcopy(resume_state.initial_design)
@@ -412,15 +491,14 @@ class MoboCampaignRunner:
             reporting_ref_point = torch.tensor(resume_state.reporting_ref_point, dtype=torch.double)
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
             tracker.history = deepcopy(resume_state.metric_history)
-            sobol_engine.fast_forward(resume_state.sobol_state["num_generated"])
-            restore_rng_state(resume_state)
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
             print(f"\nResuming campaign '{self.run_id}' from iteration {start_iteration} ({len(results)} existing evaluations)...\n")
         else:
             print(f"--- Step 0: Initial Design (Sobol Sampling: {self.num_initial_samples} samples) ---")
-            sobol_samples = sobol_engine.draw(self.num_initial_samples).to(dtype=torch.double)
-            lower_b, upper_b = bounds[0], bounds[1]
-            initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
+            if resume_state is None:
+                sobol_samples = sobol_engine.draw(self.num_initial_samples).to(dtype=torch.double)
+                lower_b, upper_b = bounds[0], bounds[1]
+                initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
 
             results = _evaluate_with_streaming(initial_candidates, batch_idx=0)
             evaluation_batches = [0] * len(results)
@@ -455,7 +533,10 @@ class MoboCampaignRunner:
             print(f"--- Iteration {iteration:02d}/{self.num_batches:02d} ---")
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
 
-            if train_X.shape[0] < 2:
+            if (resume_state is not None and resume_state.pending_proposal is not None
+                    and resume_state.pending_proposal["batch_idx"] == iteration):
+                next_cand_list = deepcopy(resume_state.pending_proposal["candidates"])
+            elif train_X.shape[0] < 2:
                 new_sobol = sobol_engine.draw(proposal_batch_size).to(dtype=torch.double)
                 next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
             elif self.optimization_mode == "scalarized_bo":
@@ -563,10 +644,7 @@ class MoboCampaignRunner:
                 next_cand_list = next_cand_tensor.detach().cpu().tolist()
 
 
-            start_eval_id = len(results) + 1
-            eval_ids = [start_eval_id + i for i in range(len(next_cand_list))]
-
-            batch_results = _evaluate_with_streaming(next_cand_list, e_ids=eval_ids, batch_idx=iteration)
+            batch_results = _evaluate_with_streaming(next_cand_list, batch_idx=iteration)
             results.extend(batch_results)
             evaluation_batches.extend([iteration] * len(batch_results))
 

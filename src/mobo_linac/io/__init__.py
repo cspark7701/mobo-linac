@@ -15,6 +15,7 @@ from mobo_linac.io.results import (
     save_evaluation_results,
     save_run_checkpoint,
 )
+from mobo_linac.io.journal import JournalRecord, load_streaming_records
 
 __all__ = [
     "CheckpointState",
@@ -26,4 +27,6 @@ __all__ = [
     "get_train_tensors",
     "append_streaming_evaluation",
     "load_streaming_evaluations",
+    "JournalRecord",
+    "load_streaming_records",
 ]

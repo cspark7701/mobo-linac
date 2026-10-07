@@ -208,7 +208,7 @@ mobo-linac run-constrained --config configs/publication_200MeV.yaml --n-iteratio
 mobo-linac run-benchmark --config configs/publication_200MeV.yaml --seeds 42 43 44 --budget 40 --num-workers 12
 ```
 
-The benchmark dispatcher supports `constrained_qlognehvi`, `unconstrained_qlognehvi`, `qlogehvi`, and `scalarized_bo`; choose a subset with `--algorithms`. NSGA-II and Sobol-only benchmark executors are not implemented and are rejected. The budget includes initial samples and failed evaluations, with a smaller final batch when needed. Runs are skipped only when `benchmark_state.json` and persisted evaluation/metric counts confirm completion; incomplete or incompatible outputs require a new output directory until campaign recovery is implemented.
+The benchmark dispatcher supports `constrained_qlognehvi`, `unconstrained_qlognehvi`, `qlogehvi`, and `scalarized_bo`; choose a subset with `--algorithms`. NSGA-II and Sobol-only benchmark executors are not implemented and are rejected. The budget includes initial samples and failed evaluations, with a smaller final batch when needed. Runs are skipped only when `benchmark_state.json` and persisted evaluation/metric counts confirm completion. The dispatcher does not automatically resume incomplete experiments or reconcile their benchmark completion markers; incomplete or incompatible outputs require a new output directory.
 
 ### 4. Run Robustness & Engineering Sensitivity Analysis
 ```bash
@@ -225,9 +225,9 @@ mobo-linac run-verification --config configs/publication_200MeV.yaml --output-di
 mobo-linac resume --run-dir results/<run_id>
 ```
 
-Version 2 checkpoints restore the saved configuration, optimization mode, scalar weights, initial design, worker count, iteration plan, metric history, and proposal RNG state. Resume continues from the last completed batch in the original run directory. `--n-iterations` sets the total BO iteration target; `--batch-size` changes only future batches. Campaigns with a fixed evaluation budget retain that budget and adjust the remaining batch count.
+Version 2 checkpoints restore the saved configuration, optimization mode, scalar weights, initial design, worker count, iteration plan, metric history, and proposal RNG state. Each batch's proposal and candidate IDs are saved before submission. Resume merges durable JSONL completions with checkpoint history, evaluates only missing candidates, and restores the original candidate order, including after interruption during the initial design. `--n-iterations` sets the total BO iteration target; `--batch-size` changes only batches proposed after the pending batch is recovered. Campaigns with a fixed evaluation budget retain that budget and adjust the remaining batch count.
 
-Legacy version 1 checkpoints require an explicit `--n-iterations` target and, for scalarized BO, `--legacy-scalar-weights` containing the original weights. Their migration assumes fixed-size completed batches and cannot guarantee exact historical fallback or GPU RNG continuation. Recovery of partially streamed batches remains planned in Task 03. See [checkpoint continuation](docs/simulation_guide.md#33-checkpoint-continuation) for details.
+Legacy version 1 checkpoints require an explicit `--n-iterations` target and, for scalarized BO, `--legacy-scalar-weights` containing the original weights. Their migration assumes fixed-size completed batches and cannot guarantee exact historical fallback or GPU RNG continuation. Legacy flat JSONL records are decoded directly; work beyond a checkpoint without a saved proposal is rejected rather than silently discarded. See [checkpoint continuation](docs/simulation_guide.md#33-checkpoint-continuation) for journal authority and corruption handling.
 
 > **Tip**: Pass `--dry-run` to preview planned execution details without starting ASTRA simulations, or `--mock-evaluator` for fast CI testing without an ASTRA binary.
 

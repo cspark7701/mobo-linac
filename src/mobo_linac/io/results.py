@@ -378,6 +378,7 @@ class CheckpointState:
     device: Optional[str] = None
     cuda_rng_states: Optional[List[torch.Tensor]] = None
     python_rng_state: Optional[Tuple[Any, ...]] = None
+    pending_proposal: Optional[Dict[str, Any]] = None
     migration_notes: List[str] = field(default_factory=list)
     version: str = "2.0"
     checkpoint_file: Optional[str] = None
@@ -428,7 +429,7 @@ class CheckpointState:
             "run_id", "optimization_mode", "scalar_weights", "num_initial_samples",
             "initial_design", "sobol_state", "evaluation_batches", "metric_history",
             "reporting_scales", "planned_num_batches", "num_workers", "total_eval_budget", "device",
-            "cuda_rng_states", "python_rng_state",
+            "cuda_rng_states", "python_rng_state", "pending_proposal",
         )
         config = data.get("config")
         state = cls(
@@ -498,8 +499,16 @@ def _atomic_torch_save(data: Any, target_path: Path) -> None:
     target_path.parent.mkdir(parents=True, exist_ok=True)
     tmp_path = target_path.with_name(f"{target_path.name}.tmp.{os.getpid()}")
     try:
-        torch.save(data, tmp_path)
+        with tmp_path.open("wb") as stream:
+            torch.save(data, stream)
+            stream.flush()
+            os.fsync(stream.fileno())
         os.replace(tmp_path, target_path)
+        directory_fd = os.open(target_path.parent, os.O_RDONLY)
+        try:
+            os.fsync(directory_fd)
+        finally:
+            os.close(directory_fd)
     except Exception:
         if tmp_path.exists():
             try:
@@ -593,6 +602,8 @@ def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[Checkpoin
                 iter_files = sorted(ckpt_dir.glob("checkpoint_iter_*.pt"))
                 if iter_files:
                     target_file = iter_files[-1]
+        if target_file is None and (path / "checkpoints" / "pending_batch.pt").exists():
+            target_file = path / "checkpoints" / "pending_batch.pt"
     elif path.exists():
         target_file = path
 
@@ -614,64 +625,14 @@ def append_streaming_evaluation(
     output_dir: Union[str, Path],
     result: EvaluationResult,
     batch_idx: Optional[int] = None,
+    candidate_idx: Optional[int] = None,
 ) -> Path:
-    """
-    Appends a single EvaluationResult to evaluations_stream.csv and evaluations_stream.jsonl
-    in real time, immediately flushing to disk for zero-data-loss streaming persistence.
-    """
-    out_dir = Path(output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    csv_path = out_dir / "evaluations_stream.csv"
-    jsonl_path = out_dir / "evaluations_stream.jsonl"
-
-    df_row = results_to_dataframe([result])
-    if batch_idx is not None:
-        df_row["batch_idx"] = batch_idx
-
-    file_exists = csv_path.exists()
-    df_row.to_csv(csv_path, mode="a", header=not file_exists, index=False)
-
-    # Append JSONL record with sync for process-safe atomic streaming
-    res_dict = result.to_dict()
-    if batch_idx is not None:
-        res_dict["batch_idx"] = batch_idx
-
-    with open(jsonl_path, "a") as f:
-        f.write(json.dumps(res_dict) + "\n")
-        f.flush()
-        os.fsync(f.fileno())
-
-    return csv_path
+    """Durably append JSONL first, then derive the CSV view; write errors propagate."""
+    from mobo_linac.io.journal import append_record
+    return append_record(output_dir, result, batch_idx, candidate_idx)
 
 
 def load_streaming_evaluations(output_dir: Union[str, Path]) -> List[EvaluationResult]:
-    """
-    Loads all streamed evaluation results from output_dir if available.
-    Prefers evaluations_stream.jsonl for exact typed reconstruction,
-    falling back to evaluations_stream.csv or load_evaluation_results.
-    """
-    out_dir = Path(output_dir)
-    jsonl_path = out_dir / "evaluations_stream.jsonl"
-    csv_path = out_dir / "evaluations_stream.csv"
-
-    if jsonl_path.exists():
-        results = []
-        with open(jsonl_path, "r") as f:
-            for line in f:
-                line_str = line.strip()
-                if line_str:
-                    try:
-                        d = json.loads(line_str)
-                        results.append(EvaluationResult.from_dict(d))
-                    except Exception:
-                        pass
-        if results:
-            return results
-
-    if csv_path.exists():
-        return load_evaluation_results(csv_path)
-
-    return []
-
-
-
+    """Load exact typed JSONL records, including legacy batch metadata, without CSV fallback."""
+    from mobo_linac.io.journal import load_streaming_records
+    return [record.result for record in load_streaming_records(output_dir)]

@@ -122,23 +122,31 @@ Numerical simulation validity (`simulation_valid`) is strictly separated from ph
 Version 2 campaign checkpoints record the run identity, full configuration, optimization mode and normalized scalar weights, initial sample count and physical design, actual Sobol draw position, CPU Torch/NumPy/Python and CUDA RNG states, evaluation batch membership, complete metric records, worker count, planned iterations, and optional evaluation budget. Failed evaluations remain in their original batches; valid-data filtering does not shift historical iteration boundaries.
 
 ```bash
-# Continue the saved campaign plan from the latest completed checkpoint.
+# Recover pending work and continue the saved campaign plan.
 mobo-linac resume --run-dir results/<run_id>
 
 # Extend a campaign without a fixed evaluation budget to 20 total BO batches.
 mobo-linac resume --run-dir results/<run_id> --n-iterations 20
 
-# Override only the size of future batches at the checkpoint boundary.
+# Override the size of batches proposed after pending work is recovered.
 mobo-linac resume --run-dir results/<run_id> --batch-size 2
 ```
 
 The checkpoint configuration is authoritative, including when the CLI runs outside the project directory. The runner rejects changes to design-variable order, bounds and ASTRA mappings, objective definitions/signs, constraints, model settings, execution settings other than worker count, reporting scales, or run identity before writing artifacts. Existing configuration and environment metadata are preserved. The default device restores the saved device; CPU/GPU transitions and incompatible CUDA topology are rejected. Exact continuation depends on the same numerical environment and deterministic proposal/evaluation behavior.
 
-Explicit initial-count, seed, optimization-mode, acquisition, scalar-weight, and total-budget changes are rejected. Worker count can be overridden. Batch-size changes preserve every completed batch and affect future proposals only. With a fixed evaluation budget, the runner computes the remaining batches from the actual evaluation count, including failures, and keeps a smaller final batch when needed; an explicit iteration target must agree with that budget.
+Explicit initial-count, seed, optimization-mode, acquisition, scalar-weight, and total-budget changes are rejected. Worker count can be overridden. Batch-size changes preserve completed batches and the already submitted pending proposal, affecting later proposals only. With a fixed evaluation budget, the runner computes the remaining batches from the actual evaluation count and saved pending count, including failures, and keeps a smaller final batch when needed; an explicit iteration target must agree with that budget and include the pending batch.
 
 Version 1 migration is explicit and emits a warning. It infers initial count and batch membership using the old fixed-size completed-batch contract, reconstructs metrics from raw evaluation prefixes, and estimates Sobol consumption for the low-data branch. Supply the original planned iteration target with `--n-iterations`; scalarized checkpoints also require `--legacy-scalar-weights`, for example `0.6 0.3 0.1`. Legacy checkpoints did not record acquisition fallback draws, Python RNG, CUDA RNG, or the original device, so migration is best effort on CPU and cannot guarantee exact continuation.
 
-Checkpoints describe completed batches. This task does not reconcile streamed records or recover an in-flight batch; those operations remain Task 03. Benchmark dispatch also still requires a new directory for incomplete experiments rather than automatically resuming them.
+Before submitting each batch, the runner atomically saves `checkpoints/pending_batch.pt`: the completed base history, proposal candidates and IDs, batch index, and post-proposal RNG/Sobol state. The initial pending snapshot uses iteration `-1` with empty completed history, allowing recovery before checkpoint 0. A pending proposal is removed only after its complete batch checkpoint is durable. If interruption occurs after the checkpoint commit but before removal, resume verifies that the checkpoint covers the proposal and clears it without repeating evaluations.
+
+`evaluations_stream.jsonl` is authoritative for individual completions. Its version 1 envelope separates `evaluation` fields from `batch_idx` and `candidate_idx`. The reader also migrates legacy flat JSONL records in memory and never falls back to the lossy CSV view. Resume merges records by run/evaluation identity, verifies candidates and batch positions, and submits only missing IDs. Successful and failed completions both count as finished work. Completion order does not change the order of training data or metrics.
+
+Identical duplicate records are deduplicated; conflicting duplicates, malformed interior JSON, invalid schemas, or records that disagree with the checkpoint/proposal raise errors before recovery writes or submissions. Only an incomplete, unterminated trailing JSON record is tolerated, with a warning, and its partial bytes are removed after validation before appending. A complete JSON record without a newline is retained and delimited before later appends. Legacy streamed work beyond a checkpoint without a durable proposal cannot be recovered safely and is rejected.
+
+The campaign parent is the single journal writer. JSONL writes are flushed and synced before the CSV view is atomically regenerated; a stale or missing CSV cannot change recovery. Callback persistence errors propagate through sequential, process-pool, and mock evaluators and stop campaign completion. Evaluators without completion callbacks can still recover whole returned batches, but cannot journal individual results before their batch returns. Only durably journaled work is reused; a solver completion lost before its callback was persisted may need evaluation again. Concurrent campaign writers in the same directory are unsupported.
+
+Benchmark dispatch still requires a new directory for incomplete experiments. Campaign resume does not automatically reconcile benchmark-level metrics or completion markers.
 
 ## 4. Benchmark, Robustness, Verification, & Publication Workflow
 

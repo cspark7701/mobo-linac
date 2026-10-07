@@ -17,6 +17,99 @@ from mobo_linac.io.results import (
     save_run_checkpoint,
 )
 import torch
+import json
+
+from mobo_linac.io.journal import load_streaming_records, write_streaming_csv
+from mobo_linac.io.results import append_streaming_evaluation, load_streaming_evaluations
+
+
+def test_versioned_journal_round_trip_preserves_metadata(tmp_path, sample_results):
+    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=2, candidate_idx=1)
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=2, candidate_idx=0)
+    (tmp_path / "evaluations_stream.csv").write_text("corrupt csv")
+    records = load_streaming_records(tmp_path)
+    assert [r.result.to_dict() for r in records] == [r.to_dict() for r in reversed(sample_results)]
+    assert [(r.batch_idx, r.candidate_idx) for r in records] == [(2, 1), (2, 0)]
+    payload = json.loads((tmp_path / "evaluations_stream.jsonl").read_text().splitlines()[0])
+    assert payload["version"] == "1.0"
+    assert "batch_idx" not in payload["evaluation"]
+    csv_path = write_streaming_csv(tmp_path)
+    assert pd.read_csv(csv_path)["evaluation_id"].tolist() == [r.evaluation_id for r in sample_results]
+
+
+def test_legacy_flat_journal_round_trip_without_csv(tmp_path, sample_results):
+    payload = sample_results[0].to_dict()
+    payload["batch_idx"] = 3
+    (tmp_path / "evaluations_stream.jsonl").write_text(json.dumps(payload) + "\n")
+    assert load_streaming_evaluations(tmp_path)[0].to_dict() == sample_results[0].to_dict()
+    assert load_streaming_records(tmp_path)[0].batch_idx == 3
+    assert not (tmp_path / "evaluations_stream.csv").exists()
+
+
+@pytest.mark.parametrize("suffix", [b'{"version":', b'{"evaluation": {"run_id": "unfinished',
+                                    b'{"evaluation": {"runtime_s": 1e',
+                                    b'{"evaluation": {"work_dir": "\\u00'])
+def test_truncated_trailing_record_repaired_before_append(tmp_path, sample_results, suffix):
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0, candidate_idx=0)
+    journal = tmp_path / "evaluations_stream.jsonl"
+    with journal.open("ab") as stream:
+        stream.write(suffix)
+    with pytest.warns(RuntimeWarning, match="truncated trailing"):
+        assert len(load_streaming_records(tmp_path)) == 1
+    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0, candidate_idx=1)
+    assert len(load_streaming_records(tmp_path)) == 2
+    assert len(journal.read_text().splitlines()) == 2
+
+
+@pytest.mark.parametrize("bad_record", ['not json\n', 'not json', '{bad}\n', '{bad}', '{"version": "99", "evaluation": {}}\n', '{}\n'])
+def test_malformed_or_invalid_journal_is_not_hidden_by_csv(tmp_path, sample_results, bad_record):
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0)
+    journal = tmp_path / "evaluations_stream.jsonl"
+    journal.write_text(journal.read_text() + bad_record)
+    before = journal.read_bytes()
+    with pytest.raises(ValueError, match="journal"):
+        load_streaming_evaluations(tmp_path)
+    with pytest.raises(ValueError, match="journal"):
+        append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0)
+    assert journal.read_bytes() == before
+
+
+def test_duplicate_journal_records_are_idempotent_and_conflicts_rejected(tmp_path, sample_results):
+    first = sample_results[0]
+    append_streaming_evaluation(tmp_path, first, batch_idx=0, candidate_idx=0)
+    journal = tmp_path / "evaluations_stream.jsonl"
+    original_line = journal.read_text()
+    append_streaming_evaluation(tmp_path, first, batch_idx=0, candidate_idx=0)
+    assert journal.read_text() == original_line
+    journal.write_text(original_line + original_line)
+    assert len(load_streaming_records(tmp_path)) == 1
+    payload = json.loads(original_line)
+    payload["evaluation"]["work_dir"] = "conflicting attempt"
+    journal.write_text(original_line + json.dumps(payload) + "\n")
+    with pytest.raises(ValueError, match="Conflicting duplicate"):
+        load_streaming_records(tmp_path)
+
+
+def test_valid_unterminated_journal_record_gets_delimited_on_append(tmp_path, sample_results):
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0)
+    journal = tmp_path / "evaluations_stream.jsonl"
+    journal.write_text(journal.read_text().rstrip("\n"))
+    assert len(load_streaming_records(tmp_path)) == 1
+    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0)
+    assert len(load_streaming_records(tmp_path)) == 2
+
+
+def test_csv_write_failure_preserves_authoritative_journal(tmp_path, sample_results, monkeypatch):
+    def fail_csv(*args, **kwargs):
+        raise OSError("CSV view unavailable")
+    with monkeypatch.context() as patch:
+        patch.setattr("mobo_linac.io.journal.write_streaming_csv", fail_csv)
+        with pytest.raises(OSError, match="CSV view unavailable"):
+            append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0)
+    assert len(load_streaming_records(tmp_path)) == 1
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0)
+    assert len(load_streaming_records(tmp_path)) == 1
+    assert len(pd.read_csv(tmp_path / "evaluations_stream.csv")) == 1
 
 
 @pytest.fixture
@@ -217,6 +310,3 @@ def test_dynamic_config_column_binding(tmp_path):
     assert loaded_csv[0].x_physical == [1.1, 2.2, 3.3, 4.4]
     assert loaded_csv[0].objectives_physical == [1.0e-6, 2.0e5]
     assert loaded_csv[0].objectives_model == [-1.0e-6, -2.0e5]
-
-
-

@@ -9,6 +9,27 @@ import shutil
 import pytest
 import numpy as np
 
+
+@pytest.mark.parametrize("max_workers", [1, 2])
+def test_callback_persistence_errors_propagate_in_serial_and_parallel(tmp_path, monkeypatch, max_workers):
+    def worker(**kwargs):
+        return {"status": "failed", "error": "simulated beam loss", "objectives": None}
+
+    def callback(result):
+        assert result["run_id"] == "durable_run"
+        assert result["eval_id"] in ["eval_000009", "eval_000010"]
+        assert len(result["parameters"]) == 6
+        raise OSError("journal write failed")
+
+    monkeypatch.setattr("mobo_linac.execution.parallel.run_astra_eval", worker)
+    with pytest.raises(OSError, match="journal write failed"):
+        evaluate_candidates_parallel(
+            [[0.2, 1, -1, 0, 0, 0], [0.3, 1, -1, 0, 0, 0]],
+            run_id="durable_run", eval_ids=["eval_000009", "eval_000010"],
+            max_workers=max_workers, base_results_dir=tmp_path,
+            on_evaluation_complete=callback,
+        )
+
 from mobo_linac.execution.parallel import (
     BatchEvaluator,
     evaluate_candidates_parallel,

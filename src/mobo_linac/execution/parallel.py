@@ -58,6 +58,9 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
                 use_symlinks=use_symlinks,
                 config=config,
             )
+            res.setdefault("run_id", run_id)
+            res.setdefault("eval_id", eval_id)
+            res.setdefault("parameters", parameters)
             res["candidate_idx"] = candidate_idx
             res["retries_attempted"] = attempts - 1
             if res["status"] == "success":
@@ -66,6 +69,9 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
         except Exception as e:
             last_res = {
                 "candidate_idx": candidate_idx,
+                "run_id": run_id,
+                "eval_id": eval_id,
+                "parameters": parameters,
                 "status": "failed",
                 "objectives": None,
                 "diagnostics": None,
@@ -169,10 +175,7 @@ def evaluate_candidates_parallel(
             res = _worker_eval_task(task)
             results[idx] = res
             if on_evaluation_complete is not None:
-                try:
-                    on_evaluation_complete(res)
-                except Exception:
-                    pass
+                on_evaluation_complete(res)
         return [r for r in results if r is not None]
 
     # ProcessPoolExecutor setup
@@ -194,6 +197,9 @@ def evaluate_candidates_parallel(
                 # Catch worker process crash or unhandled exception
                 res = {
                     "candidate_idx": idx,
+                    "run_id": run_id,
+                    "eval_id": eval_ids_list[idx],
+                    "parameters": tasks[idx]["parameters"],
                     "status": "failed",
                     "objectives": None,
                     "diagnostics": None,
@@ -205,10 +211,7 @@ def evaluate_candidates_parallel(
                 results[idx] = res
 
             if on_evaluation_complete is not None and results[idx] is not None:
-                try:
-                    on_evaluation_complete(results[idx])
-                except Exception:
-                    pass
+                on_evaluation_complete(results[idx])
     finally:
         executor.shutdown(wait=True)
 

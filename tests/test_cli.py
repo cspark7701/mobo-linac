@@ -175,3 +175,30 @@ def test_cli_resume_uses_embedded_config_outside_project_cwd(tmp_path, monkeypat
     monkeypatch.chdir(unrelated)
     main(["resume", "--run-dir", str(run_dir), "--mock-evaluator"])
     assert len(load_run_checkpoint(run_dir).results) == 1
+
+
+def test_cli_recovers_initial_design_before_first_completed_checkpoint(tmp_path):
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.io.results import load_run_checkpoint, load_streaming_evaluations
+
+    class InterruptedEvaluator(MockBatchEvaluator):
+        def evaluate_batch(self, candidates, run_id, eval_ids, on_evaluation_complete):
+            result = self._generate_candidate_result(candidates[1], run_id, eval_ids[1])
+            on_evaluation_complete(result)
+            raise RuntimeError("before checkpoint zero")
+
+    with pytest.raises(RuntimeError, match="before checkpoint zero"):
+        MoboCampaignRunner(
+            output_dir=tmp_path, num_initial_samples=3, num_batches=0,
+            optimization_mode="scalarized_bo", scalar_weights=[0.6, 0.3, 0.1],
+            evaluator=InterruptedEvaluator(tmp_path), device="cpu", export_plots=False,
+        ).run()
+    assert not (tmp_path / "checkpoints" / "checkpoint.pt").exists()
+    main(["resume", "--run-dir", str(tmp_path), "--mock-evaluator"])
+    state = load_run_checkpoint(tmp_path)
+    assert state.iteration == 0
+    assert state.optimization_mode == "scalarized_bo"
+    assert state.scalar_weights == pytest.approx([0.6, 0.3, 0.1])
+    assert [r.evaluation_id for r in state.results] == ["eval_000001", "eval_000002", "eval_000003"]
+    assert len(load_streaming_evaluations(tmp_path)) == 3

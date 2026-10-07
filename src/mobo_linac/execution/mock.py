@@ -121,10 +121,7 @@ class MockBatchEvaluator:
             raw_results.append(res)
 
             if on_evaluation_complete is not None:
-                try:
-                    on_evaluation_complete(res)
-                except Exception:
-                    pass
+                on_evaluation_complete(res)
 
         return raw_results
 

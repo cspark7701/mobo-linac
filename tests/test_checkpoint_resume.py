@@ -355,7 +355,7 @@ def test_batch_size_override_keeps_completed_membership(tmp_path):
 def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
     class InterruptedEvaluator(MockBatchEvaluator):
         def evaluate_batch(self, candidates, **kwargs):
-            if (kwargs.get("eval_ids") or [0])[0] == 5:
+            if (kwargs.get("eval_ids") or [0])[0] == "eval_000005":
                 raise RuntimeError("interrupted before second batch")
             return super().evaluate_batch(candidates, **kwargs)
 
@@ -374,8 +374,8 @@ def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
     results, _, _ = runner.run()
     assert len(results) == 7
     assert runner.total_eval_budget == 7
-    assert runner.num_batches == 2
-    assert load_run_checkpoint(tmp_path).evaluation_batches == [0, 0, 1, 1, 2, 2, 2]
+    assert runner.num_batches == 3  # The durable second proposal retains its original size.
+    assert load_run_checkpoint(tmp_path).evaluation_batches == [0, 0, 1, 1, 2, 2, 3]
 
 
 def test_legacy_completed_checkpoint_migration(tmp_path):
@@ -509,3 +509,272 @@ def test_resume_rejects_explicit_device_change_even_without_cuda(tmp_path):
     with pytest.raises(ValueError, match="device differs"):
         MoboCampaignRunner(output_dir=tmp_path, resume=True, device="cuda").run()
     assert (tmp_path / "config.yaml").read_bytes() == original_config
+
+
+class InterruptingStreamEvaluator(MockBatchEvaluator):
+    """Complete one chosen candidate out of order, then interrupt the parent."""
+
+    def __init__(self, run_dir, interrupt_batch=None, completion_position=1, **kwargs):
+        super().__init__(run_dir, **kwargs)
+        self.interrupt_batch = interrupt_batch
+        self.completion_position = completion_position
+        self.submissions = []
+
+    def evaluate_batch(self, candidates, run_id="mock", eval_ids=None, on_evaluation_complete=None):
+        self.submissions.append((list(eval_ids), candidates))
+        if len(self.submissions) - 1 == self.interrupt_batch:
+            position = self.completion_position
+            result = self._generate_candidate_result(candidates[position], run_id, eval_ids[position])
+            on_evaluation_complete(result)
+            raise RuntimeError("Injected parent interruption")
+        return super().evaluate_batch(candidates, run_id, eval_ids, on_evaluation_complete)
+
+
+@pytest.mark.parametrize("mode", ["unconstrained_mobo", "constrained_mobo", "scalarized_bo"])
+@pytest.mark.parametrize("interrupted_batch", [0, 1])
+def test_partial_batch_recovery_matches_uninterrupted_campaign(tmp_path, mode, interrupted_batch):
+    from mobo_linac.io.journal import load_streaming_records
+
+    options = dict(num_initial_samples=3, num_batches=3, batch_size=3, seed=101,
+                   optimization_mode=mode, scalar_weights=[0.6, 0.3, 0.1], device="cpu",
+                   export_plots=False, export_env_info=False)
+    failed = ["eval_000002", "eval_000005"]
+    full_dir = tmp_path / "full"
+    full, full_tracker, _ = MoboCampaignRunner(
+        **options, output_dir=full_dir, evaluator=MockBatchEvaluator(full_dir, fail_eval_ids=failed),
+    ).run()
+    interrupted_dir = tmp_path / "interrupted"
+    evaluator = InterruptingStreamEvaluator(interrupted_dir, interrupted_batch, fail_eval_ids=failed)
+    with pytest.raises(RuntimeError, match="parent interruption"):
+        MoboCampaignRunner(**options, output_dir=interrupted_dir, evaluator=evaluator).run()
+    pending = load_run_checkpoint(interrupted_dir / "checkpoints" / "pending_batch.pt")
+    assert pending.pending_proposal["batch_idx"] == interrupted_batch
+    ids = pending.pending_proposal["evaluation_ids"]
+    completed_id = ids[1]
+    if interrupted_batch == 0:
+        assert not (interrupted_dir / "checkpoints" / "checkpoint.pt").exists()
+    # A stale CSV must never override the exact journal.
+    (interrupted_dir / "evaluations_stream.csv").write_text("stale,csv\n")
+    resumed_evaluator = InterruptingStreamEvaluator(interrupted_dir, fail_eval_ids=failed)
+    resumed, tracker, _ = MoboCampaignRunner(
+        output_dir=interrupted_dir, resume=True, evaluator=resumed_evaluator,
+        device="cpu", export_plots=False, export_env_info=False,
+    ).run()
+    assert resumed_evaluator.submissions[0][0] == [identity for identity in ids if identity != completed_id]
+    assert [r.x_physical for r in resumed] == [r.x_physical for r in full]
+    assert [r.evaluation_id for r in resumed] == [r.evaluation_id for r in full]
+    assert [r.simulation_valid for r in resumed] == [r.simulation_valid for r in full]
+    assert tracker.history == full_tracker.history
+    assert len(load_streaming_records(interrupted_dir)) == len(full)
+    assert not (interrupted_dir / "checkpoints" / "pending_batch.pt").exists()
+    idle_evaluator = InterruptingStreamEvaluator(interrupted_dir)
+    again, again_tracker, _ = MoboCampaignRunner(
+        output_dir=interrupted_dir, resume=True, evaluator=idle_evaluator, device="cpu",
+        export_plots=False, export_env_info=False,
+    ).run()
+    assert idle_evaluator.submissions == []
+    assert len(again) == len(full)
+    assert again_tracker.history == tracker.history
+
+
+def test_repeated_initial_batch_interruptions_preserve_completed_work(tmp_path):
+    from mobo_linac.io.journal import load_streaming_records
+
+    with pytest.raises(RuntimeError, match="parent interruption"):
+        MoboCampaignRunner(
+            output_dir=tmp_path, num_initial_samples=3, num_batches=0, device="cpu",
+            evaluator=InterruptingStreamEvaluator(tmp_path, 0, completion_position=2),
+            export_plots=False, export_env_info=False,
+        ).run()
+    evaluator = InterruptingStreamEvaluator(tmp_path, 0, completion_position=1)
+    with pytest.raises(RuntimeError, match="parent interruption"):
+        MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=evaluator, device="cpu",
+                           export_plots=False, export_env_info=False).run()
+    assert evaluator.submissions[0][0] == ["eval_000001", "eval_000002"]
+    final_evaluator = InterruptingStreamEvaluator(tmp_path)
+    results, _, _ = MoboCampaignRunner(
+        output_dir=tmp_path, resume=True, evaluator=final_evaluator, device="cpu",
+        export_plots=False, export_env_info=False,
+    ).run()
+    assert final_evaluator.submissions[0][0] == ["eval_000001"]
+    assert [r.evaluation_id for r in results] == ["eval_000001", "eval_000002", "eval_000003"]
+    assert len(load_streaming_records(tmp_path)) == 3
+
+
+@pytest.mark.parametrize("after_commit", [False, True])
+@pytest.mark.parametrize("interrupted_iteration", [0, 1])
+def test_checkpoint_commit_interruption_does_not_repeat_completed_batch(tmp_path, monkeypatch, after_commit, interrupted_iteration):
+    import mobo_linac.campaigns.runner as runner_module
+
+    original_save = runner_module.save_run_checkpoint
+
+    def interrupt_save(**kwargs):
+        target = Path(kwargs["checkpoint_path"])
+        if target.name == f"checkpoint_iter_{interrupted_iteration:02d}.pt":
+            if after_commit:
+                original_save(**kwargs)
+            raise RuntimeError("Injected checkpoint interruption")
+        return original_save(**kwargs)
+
+    with monkeypatch.context() as patch:
+        patch.setattr(runner_module, "save_run_checkpoint", interrupt_save)
+        with pytest.raises(RuntimeError, match="checkpoint interruption"):
+            MoboCampaignRunner(
+                output_dir=tmp_path, num_initial_samples=3, num_batches=interrupted_iteration, batch_size=2,
+                evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+            ).run()
+    evaluator = InterruptingStreamEvaluator(tmp_path)
+    results, tracker, _ = MoboCampaignRunner(
+        output_dir=tmp_path, resume=True, evaluator=evaluator, device="cpu", export_plots=False,
+    ).run()
+    assert evaluator.submissions == []
+    assert len(results) == 3 + interrupted_iteration * 2
+    assert len(tracker.history) == interrupted_iteration + 1
+    assert not (tmp_path / "checkpoints" / "pending_batch.pt").exists()
+
+
+@pytest.mark.parametrize("swallow_callback_error", [False, True])
+def test_campaign_callback_persistence_failure_is_observable(tmp_path, monkeypatch, swallow_callback_error):
+    import mobo_linac.campaigns.runner as runner_module
+
+    def fail_append(*args, **kwargs):
+        raise OSError("Injected journal disk failure")
+
+    class SwallowingEvaluator(MockBatchEvaluator):
+        def evaluate_batch(self, candidates, run_id, eval_ids, on_evaluation_complete):
+            results = super().evaluate_batch(candidates, run_id, eval_ids)
+            for result in results:
+                try:
+                    on_evaluation_complete(result)
+                except OSError:
+                    pass
+            return results
+
+    evaluator = SwallowingEvaluator(tmp_path) if swallow_callback_error else MockBatchEvaluator(tmp_path)
+    with monkeypatch.context() as patch:
+        patch.setattr(runner_module, "append_streaming_evaluation", fail_append)
+        with pytest.raises(OSError, match="journal disk failure"):
+            MoboCampaignRunner(
+                output_dir=tmp_path, num_initial_samples=2, num_batches=0, evaluator=evaluator,
+                device="cpu", export_plots=False,
+            ).run()
+    assert (tmp_path / "checkpoints" / "pending_batch.pt").exists()
+    assert not (tmp_path / "checkpoints" / "checkpoint.pt").exists()
+    recovered, _, _ = MoboCampaignRunner(
+        output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
+        device="cpu", export_plots=False,
+    ).run()
+    assert len(recovered) == 2
+
+
+def test_pending_batch_size_override_applies_after_recovered_batch(tmp_path):
+    options = dict(output_dir=tmp_path, num_initial_samples=3, num_batches=3, batch_size=2,
+                   total_eval_budget=8, device="cpu", export_plots=False, export_env_info=False)
+    with pytest.raises(RuntimeError, match="parent interruption"):
+        MoboCampaignRunner(**options, evaluator=InterruptingStreamEvaluator(tmp_path, 1)).run()
+    evaluator = InterruptingStreamEvaluator(tmp_path)
+    runner = MoboCampaignRunner(output_dir=tmp_path, resume=True, batch_size=3, device="cpu",
+                                evaluator=evaluator, export_plots=False, export_env_info=False)
+    results, tracker, _ = runner.run()
+    assert evaluator.submissions[0][0] == ["eval_000004"]
+    assert len(evaluator.submissions[1][0]) == 3
+    assert runner.num_batches == 2
+    assert len(results) == 8
+    assert len(tracker.history) == 3
+
+
+def test_inflight_fallback_recovery_restores_post_proposal_rng(tmp_path, monkeypatch):
+    import random
+    import mobo_linac.acquisition.mobo as acquisition_module
+
+    def fail_optimizer(**kwargs):
+        torch.rand(3)
+        np.random.random()
+        random.random()
+        raise RuntimeError("Forced fallback")
+
+    monkeypatch.setattr(acquisition_module, "optimize_acqf", fail_optimizer)
+    options = dict(num_initial_samples=3, num_batches=3, batch_size=2, seed=85,
+                   device="cpu", export_plots=False, export_env_info=False)
+    full_dir, split_dir = tmp_path / "full", tmp_path / "split"
+    full, full_tracker, _ = MoboCampaignRunner(
+        **options, output_dir=full_dir, evaluator=MockBatchEvaluator(full_dir),
+    ).run()
+    with pytest.raises(RuntimeError, match="parent interruption"):
+        MoboCampaignRunner(**options, output_dir=split_dir,
+                           evaluator=InterruptingStreamEvaluator(split_dir, 1)).run()
+    pending = load_run_checkpoint(split_dir / "checkpoints" / "pending_batch.pt")
+    assert pending.sobol_state["num_generated"] == 5
+    # Disturb all parent RNGs before recovery.
+    torch.rand(100)
+    np.random.random(100)
+    random.random()
+    resumed, tracker, _ = MoboCampaignRunner(
+        output_dir=split_dir, resume=True, evaluator=MockBatchEvaluator(split_dir),
+        device="cpu", export_plots=False, export_env_info=False,
+    ).run()
+    assert [r.x_physical for r in resumed] == [r.x_physical for r in full]
+    assert tracker.history == full_tracker.history
+    assert load_run_checkpoint(split_dir).sobol_state == load_run_checkpoint(full_dir).sobol_state
+
+
+@pytest.mark.parametrize("corruption", ["interior_json", "unknown_identity", "candidate", "batch", "pending_ids", "pending_metrics"])
+def test_recovery_conflicts_fail_before_writes(tmp_path, corruption):
+    import json
+
+    with pytest.raises(RuntimeError, match="parent interruption"):
+        MoboCampaignRunner(
+            output_dir=tmp_path, num_initial_samples=3, num_batches=2, batch_size=2,
+            evaluator=InterruptingStreamEvaluator(tmp_path, 1), device="cpu", export_plots=False,
+        ).run()
+    journal = tmp_path / "evaluations_stream.jsonl"
+    pending_path = tmp_path / "checkpoints" / "pending_batch.pt"
+    if corruption.startswith("pending"):
+        payload = load_run_checkpoint(pending_path).to_dict()
+        if corruption == "pending_ids":
+            payload["pending_proposal"]["evaluation_ids"][0] = "eval_999999"
+        else:
+            payload["metric_history"][0]["feasible_hypervolume"] += 1
+            payload["hypervolumes"][0] += 1
+        torch.save(payload, pending_path)
+    else:
+        lines = journal.read_text().splitlines()
+        record = json.loads(lines[-1])
+        if corruption == "interior_json":
+            lines.insert(1, "malformed interior record")
+        else:
+            if corruption == "unknown_identity":
+                record["evaluation"]["evaluation_id"] = "eval_999999"
+            elif corruption == "candidate":
+                record["evaluation"]["x_physical"][0] += 1
+            else:
+                record["batch_idx"] = 0
+            lines[-1] = json.dumps(record)
+        journal.write_text("\n".join(lines) + "\n")
+    before = {str(p.relative_to(tmp_path)): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+    evaluator = InterruptingStreamEvaluator(tmp_path)
+    with pytest.raises(ValueError):
+        MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=evaluator,
+                           device="cpu", export_plots=False).run()
+    assert evaluator.submissions == []
+    assert before == {str(p.relative_to(tmp_path)): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+
+
+def test_resume_pending_file_repairs_truncated_tail_and_retains_completed_work(tmp_path):
+    from mobo_linac.io.journal import load_streaming_records
+
+    with pytest.raises(RuntimeError, match="parent interruption"):
+        MoboCampaignRunner(
+            output_dir=tmp_path, num_initial_samples=3, num_batches=0,
+            evaluator=InterruptingStreamEvaluator(tmp_path, 0), device="cpu", export_plots=False,
+        ).run()
+    with (tmp_path / "evaluations_stream.jsonl").open("ab") as stream:
+        stream.write(b'{"evaluation":')
+    evaluator = InterruptingStreamEvaluator(tmp_path)
+    with pytest.warns(RuntimeWarning, match="truncated trailing"):
+        results, _, _ = MoboCampaignRunner(
+            resume_from=tmp_path / "checkpoints" / "pending_batch.pt", evaluator=evaluator,
+            device="cpu", export_plots=False,
+        ).run()
+    assert evaluator.submissions[0][0] == ["eval_000001", "eval_000003"]
+    assert len(results) == len(load_streaming_records(tmp_path)) == 3

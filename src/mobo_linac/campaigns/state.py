@@ -1,4 +1,4 @@
-"""Validation and random-state restoration for completed campaign checkpoints."""
+"""Validation and random-state restoration for campaign checkpoints and proposals."""
 
 from copy import deepcopy
 from dataclasses import asdict
@@ -73,11 +73,14 @@ def prepare_resume_state(
             RuntimeWarning,
         )
 
+    bootstrap = state.iteration == -1 and state.pending_proposal is not None
     required = (
         "run_id", "optimization_mode", "scalar_weights", "num_initial_samples", "initial_design",
         "sobol_state", "evaluation_batches", "metric_history", "reporting_scales", "device",
-        "seed", "batch_size", "torch_rng_state", "numpy_rng_state", "reporting_ref_point",
+        "seed", "batch_size", "torch_rng_state", "numpy_rng_state",
     )
+    if not bootstrap:
+        required += ("reporting_ref_point",)
     if state.version == "2.0":
         required += ("planned_num_batches", "num_workers", "python_rng_state", "cuda_rng_states")
     missing = [name for name in required if getattr(state, name) is None]
@@ -92,7 +95,7 @@ def prepare_resume_state(
         raise ValueError("Invalid checkpoint planned iteration count.")
     if state.num_workers is not None and (type(state.num_workers) is not int or state.num_workers < 1):
         raise ValueError("Invalid checkpoint worker count.")
-    if state.iteration < 0 or state.num_initial_samples < 1 or state.batch_size < 1:
+    if (state.iteration < 0 and not bootstrap) or state.num_initial_samples < 1 or state.batch_size < 1:
         raise ValueError("Invalid checkpoint iteration or sample counts.")
     if state.optimization_mode not in ("scalarized_bo", "constrained_mobo", "unconstrained_mobo"):
         raise ValueError("Invalid checkpoint optimization mode.")
@@ -109,13 +112,13 @@ def prepare_resume_state(
         raise ValueError("Invalid checkpoint scalar weights.")
     if state.reporting_scales != list(DEFAULT_REPORTING_SCALES):
         raise ValueError("Incompatible checkpoint reporting scales.")
-    if (len(state.reporting_ref_point) != len(config.objectives)
+    if not bootstrap and (len(state.reporting_ref_point) != len(config.objectives)
             or not all(math.isfinite(v) for v in state.reporting_ref_point)):
         raise ValueError("Invalid checkpoint reporting reference point.")
     batches = state.evaluation_batches
     if (len(batches) != len(state.results) or any(type(b) is not int for b in batches)
             or batches != sorted(batches) or set(batches) != set(range(state.iteration + 1))
-            or batches.count(0) != state.num_initial_samples):
+            or (not bootstrap and batches.count(0) != state.num_initial_samples)):
         raise ValueError("Invalid checkpoint evaluation batch membership.")
     if any(r.run_id != state.run_id for r in state.results):
         raise ValueError("Checkpoint evaluation records disagree with run identity.")
@@ -148,8 +151,39 @@ def prepare_resume_state(
         raise ValueError("Checkpoint hypervolumes disagree with metric history.")
     if state.total_eval_budget is not None and state.total_eval_budget < len(state.results):
         raise ValueError("Checkpoint evaluation count exceeds its total budget.")
+    if bootstrap and (state.results or state.metric_history or state.reporting_ref_point is not None):
+        raise ValueError("Invalid initial pending-proposal base state.")
+    if state.pending_proposal is not None:
+        validate_pending_proposal(state, config)
     validate_rng_state(state)
     return state
+
+
+def validate_pending_proposal(state: CheckpointState, config: MoboConfig) -> None:
+    pending = state.pending_proposal
+    if not isinstance(pending, dict) or pending.get("version") != "1.0":
+        raise ValueError("Unsupported pending proposal schema.")
+    batch = pending.get("batch_idx")
+    if type(batch) is not int or batch != state.iteration + 1:
+        raise ValueError("Pending batch does not follow completed checkpoint.")
+    candidates = np.asarray(pending.get("candidates"), dtype=float)
+    expected = state.num_initial_samples if batch == 0 else state.batch_size
+    if batch > 0 and state.total_eval_budget is not None:
+        expected = min(expected, state.total_eval_budget - len(state.results))
+    if (expected < 1 or candidates.shape != (expected, len(config.design_variables))
+            or not np.isfinite(candidates).all()):
+        raise ValueError("Invalid pending candidate design/count.")
+    bounds = config.get_parameter_bounds_tensor().numpy()
+    if (candidates < bounds[0]).any() or (candidates > bounds[1]).any():
+        raise ValueError("Pending candidates exceed configured bounds.")
+    ids = pending.get("evaluation_ids")
+    expected_ids = [f"eval_{len(state.results) + i + 1:06d}" for i in range(expected)]
+    if ids != expected_ids:
+        raise ValueError("Pending candidate identities do not follow evaluation history.")
+    if batch == 0 and pending["candidates"] != state.initial_design:
+        raise ValueError("Pending initial design disagrees with checkpoint.")
+    if batch > state.planned_num_batches:
+        raise ValueError("Pending batch exceeds the campaign plan.")
 
 
 def validate_rng_state(state: CheckpointState) -> None:
