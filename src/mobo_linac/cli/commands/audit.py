@@ -79,74 +79,46 @@ def run_robustness(args: argparse.Namespace) -> None:
 
 
 def run_verification(args: argparse.Namespace) -> None:
-    """Executes Pareto candidate verification pipeline with fresh ASTRA reruns."""
-    from mobo_linac.io.results import DESIGN_VAR_COLUMNS, load_evaluation_results
+    """Load measured candidates and run the configured verification service."""
+    from mobo_linac.io.results import load_evaluation_results
     from mobo_linac.verification.verifier import run_verification_pipeline
 
-    config_path = getattr(args, "config", "configs/publication.yaml")
-    if not Path(config_path).exists():
-        config_path = "configs/mobo_200MeV.yaml"
-    config = load_config(config_path)
-
-    output_dir = getattr(args, "output_dir", "results/verification")
+    config = load_config(getattr(args, "config", "configs/publication_200MeV.yaml"))
+    output_dir = Path(getattr(args, "output_dir", "results/verification"))
     input_path = getattr(args, "history_path", None) or getattr(args, "pareto_csv", None) or getattr(args, "input", None)
-
     results = []
-    if input_path and Path(input_path).exists():
-        p = Path(input_path)
-        if p.is_dir():
-            target_file = p / "candidate_history.json"
-            if not target_file.exists():
-                target_file = p / "pareto.csv"
-            if not target_file.exists():
-                target_file = p / "candidate_history.csv"
-            results = load_evaluation_results(target_file, config=config)
-        else:
-            results = load_evaluation_results(p, config=config)
+    if input_path:
+        path = Path(input_path)
+        if not path.exists():
+            raise FileNotFoundError(f"Verification input not found: {path}")
+        if path.is_dir():
+            path = next((path / name for name in ("candidate_history.json", "candidate_history.csv", "pareto.csv")
+                         if (path / name).is_file()), path / "candidate_history.json")
+        results = load_evaluation_results(path, config=config)
     else:
-        results_dir = Path("results")
-        candidates_files = list(results_dir.glob("**/candidate_history.json")) + list(results_dir.glob("**/pareto.csv"))
-        if candidates_files:
-            latest_file = max(candidates_files, key=lambda f: f.stat().st_mtime)
-            print(f"Loading evaluation results from {latest_file} for verification...")
-            results = load_evaluation_results(latest_file, config=config)
-
-    if not results:
-        print("WARNING: No evaluation results found for verification. Creating dummy evaluation result.")
-        dummy_x = [0.15, 1.0, -2.0, 35.0, -40.0, 320.0]
-        raw_res = {
-            "eval_id": 1,
-            "status": "SUCCESS",
-            "parameters": dummy_x,
-            "design_parameters": dict(zip(DESIGN_VAR_COLUMNS, dummy_x)),
-            "objectives": {"norm_emit_x": 1.0e-6, "norm_emit_y": 1.0e-6, "sigma_energy": 0.5e6},
-            "diagnostics": {"transmission_fraction": 1.0},
-        }
-        results.append(create_evaluation_result(raw_res, config))
-
+        candidates = list(Path("results").glob("**/candidate_history.json")) + list(Path("results").glob("**/candidate_history.csv"))
+        if candidates:
+            results = load_evaluation_results(max(candidates, key=lambda path: path.stat().st_mtime), config=config)
     if getattr(args, "dry_run", False):
         print("[DRY-RUN] Pareto Verification Plan:")
-        print(f"  - Output Directory: {Path(output_dir).resolve()}")
-        print(f"  - Input Candidates: {len(results)} evaluated candidates")
+        print(f"  - Input Candidates: {len(results)}")
+        print(f"  - Workers: {getattr(args, 'num_workers', None) or config.execution.max_workers}")
         return
-
-    mock_eval = None
-    if getattr(args, "mock_evaluator", False):
-        def mock_eval_fn(x, run_id, eval_id):
-            return {
-                "status": "success",
-                "objectives": {"norm_emit_x": 1.0e-6, "norm_emit_y": 1.0e-6, "sigma_energy": 0.5e6},
-                "diagnostics": {"transmission_fraction": 1.0, "sigma_x_m": 0.5e-3},
-            }
-        mock_eval = mock_eval_fn
-
-    records, manifest_path, tex_path = run_verification_pipeline(
-        results=results,
-        config=config,
-        output_dir=output_dir,
-        mock_evaluator=mock_eval,
-    )
-    print(f"Pareto verification completed successfully for {len(records)} candidates.")
+    mock = bool(getattr(args, "mock_evaluator", False))
+    if not results and not mock:
+        raise ValueError("Verification requires measured candidate history; no input data found")
+    mock_evaluator = None
+    if mock:
+        evaluator = CliMockEvaluator(output_dir)
+        mock_evaluator = evaluator
+        if not results:
+            nominal = [variable.nominal_value for variable in config.design_variables]
+            results = [create_evaluation_result(evaluator(nominal, run_id="mock_nominal"), config)]
+    records, manifest, table = run_verification_pipeline(
+        results, config=config, output_dir=output_dir, mock_evaluator=mock_evaluator,
+        num_workers=getattr(args, "num_workers", None), timeout=getattr(args, "timeout", None),
+        template_dir=getattr(args, "template_dir", "."), template_in=getattr(args, "template_in", "astra.in"))
+    print(f"Verification produced {len(records)} audit records: {manifest}")
 
 
 def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
@@ -212,6 +184,10 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     run_ver_parser.add_argument(
         "--mock-evaluator", action="store_true", help="Use mock evaluator for testing"
     )
+    run_ver_parser.add_argument("--num-workers", type=int, default=None, help="Override configured worker count")
+    run_ver_parser.add_argument("--timeout", type=int, default=None, help="Override configured timeout in seconds")
+    run_ver_parser.add_argument("--template-dir", default=".", help="ASTRA template and static input directory")
+    run_ver_parser.add_argument("--template-in", default="astra.in", help="ASTRA input template filename")
     run_ver_parser.set_defaults(handler=run_verification)
 
     # Subcommand: validate-config

@@ -1,0 +1,45 @@
+# Task Completion Summary: Task 133
+
+## Summary
+Implemented Task 09 from `docs/05_refactor_tasks/`: unify function, class, CLI, and script verification around configured shared execution, explicit comparison outcomes, retained attempt audits, and immutable report sessions.
+
+## Key Changes
+- **Shared service**: `ParetoVerifier` plans `EvaluationTask` requests and executes them through `CandidateEvaluatorBase` and `BatchEvaluator`. Independent rerun and pipeline functions are compatibility wrappers. The service separates selection/planning, execution, attempt auditing, comparison classification, and report export. The sequential private runner loop is removed.
+- **Configured execution**: Configuration reaches simulation mapping, objective extraction, and longitudinal exit checks. Worker count and timeout default to configured values; retries and cleanup are honored. Template directory/filename and invocation identity reach the shared executor. CLI exposes worker, timeout, and template overrides; immutable report manifests retain configuration and actual execution settings. The production script accepts normal verification flags and dispatches the same command.
+- **Configured comparison and selection**: Comparison covers every configured physical objective plus measured transmission, with named deltas and issues. Missing, nonfinite, overflowing, and zero-denominator relative errors remain unknown. A zero-to-zero relative error is also undefined. Transmission participates in maximum error. Verification requires observed validity, complete canonical diagnostics, known feasibility, and matching feasibility classifications. Configured objective order, direction, scales, units, and design dimension drive selection and reporting; the default role names and default knee convention remain compatible.
+- **Attempt audits**: Added `verification/audit.py` to read exact original/rerun manifests, rehash retained before/after input snapshots and the recorded executable, and validate identities, parameters, observations, successful status, and unchanged input state. Numerically agreeing reruns with missing/changed provenance become `AUDIT_FAILED`; known failed original audits also prevent certification. Legacy original provenance remains explicitly unknown instead of receiving invented hashes. Records retain original/rerun run, evaluation, attempt, and manifest identities, hashes, diagnostic completeness, comparison issues, and rerun failure evidence.
+- **Production and explicit mocks**: Missing production data fail before simulation submission. Missing explicit input paths cannot silently select another run. Directory input loading prefers complete candidate history. Synthetic nominal inputs are restricted to explicit CLI mock mode. Mock function/data adapters use `MOCK_*` verification statuses and null physical hashes; missing mock measurements are not filled from the stored candidate. Numerical comparison status remains separately available.
+- **Reports and compatibility**: Unique report sessions and per-role records remain immutable; root report filenames are compatibility views of the latest completed session. CSV nested evidence uses JSON encoding. Tables retain default emittance/energy units and support configured objective order/units for custom layouts. Missing legacy report values/status no longer receive zero/agreement/VERIFIED defaults, and mock status underscores are escaped for LaTeX.
+- **Tests and documentation**: Shared the recording simulator fixture through `tests/conftest.py`. Added sequential/two-worker execution, custom objectives/seven-variable layout, timeout/template/mapping propagation, function/class/CLI equivalence, absent-input behavior, undefined comparisons, transmission error, feasibility changes, original/rerun hash links, and tamper rejection tests. README and simulation guide document the service, statuses, execution settings, audit limits, and actual default tolerance units.
+
+## Acceptance Criteria
+- [x] Custom configuration, timeout, template settings, and configured workers reach real runner code through the shared executor.
+- [x] Function, class, and CLI interfaces produce equivalent physical verification outcomes on the same recording fixture.
+- [x] Absent production inputs fail clearly; missing/nonfinite metrics and zero nominal denominators cannot produce VERIFIED.
+- [x] Original and rerun identities and hashes are linked to exact retained attempts; repeated sessions preserve earlier reports.
+- [x] Changed original or rerun snapshot evidence prevents physical verification even when numerical metrics agree.
+
+## Validation Results
+Used `/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/bin/python` with `OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1` and source-tree `PYTHONPATH`.
+
+- Broader affected regression command: `PYTHONPATH=/home/cspark/Work/projects/mobo-linac/src python -m pytest tests/test_pareto_verification.py tests/test_candidate_evaluator.py tests/test_cli.py tests/test_latex_reporting.py tests/test_robustness_analysis.py tests/test_astra_workdirs.py tests/test_parallel_evaluation.py tests/test_parameter_mapping.py tests/test_astra_parser.py tests/test_evaluation_result.py tests/test_result_serialization.py tests/test_checkpoint_resume.py tests/test_objectives.py tests/test_reporting_metrics.py tests/test_package_layout.py -m 'not integration' -q --tb=short` — **224 passed, 1 skipped, 2 deselected**, 71.07 seconds.
+- Final focused regression command after the final audit/failure-evidence refinements and original-hash/transmission tests: `python -m pytest tests/test_pareto_verification.py tests/test_candidate_evaluator.py tests/test_latex_reporting.py tests/test_cli.py::test_verification_absent_input_requires_explicit_mock -q --tb=short` — **33 passed**, 6.65 seconds.
+- An intermediate generated LaTeX branch had an escaping error and failed collection. Corrected the source escaping; subsequent focused and broader checks passed.
+- Recording simulator tests exercise the actual configured request/worker/runner/manifest/audit path using the repository template text and disposable fake field/distribution/executable files. PID evidence confirms sequential versus process execution, and retained input evidence confirms timeout/mapping propagation. No external ASTRA binary is launched.
+- CUDA continuation was skipped because CUDA is unavailable; two real ASTRA integration tests were excluded. `git diff --check` passed. No production campaign, archived output rewrite, git push, or remote workflow query was performed. These are affected regressions, not a claim that the entire repository suite passed.
+
+## Scope and Limitations
+- Nominal 200 MeV beam physics, configured beam-quality thresholds, objective units/signs, scientific seeds, and archived outputs are unchanged. Verification now actually uses the supplied execution configuration.
+- Relative tolerance defaults remain `1e-3` and `0.10`, corresponding to strictly less than 0.1% and 10%. Earlier guide percent labels were incorrect and are corrected without changing thresholds. Transmission and feasibility changes now participate in acceptance rather than being ignored.
+- A zero nominal denominator requires a separately defined absolute comparison contract if desired; this task reports it as unknown, including zero-to-zero. No absolute tolerance is invented.
+- Default objective sets retain the seven existing role names and distance-from-zero knee convention. Custom objective sets use configured extremes and distance from the observed ideal, with configured physical units in reports. Feasible selection no longer falls back to infeasible observations.
+- Legacy original results can support numerical comparison against a newly audited rerun while their historical provenance remains unknown. This does not certify historical source execution. Known modern original evidence is validated and failed checks block certification.
+- Audits require retained input snapshots and access to executable bytes at the recorded path. Changed/missing executable bytes prevent current audit certification; executable binaries and complete software environments are not archived by this task.
+- Before/after input-state differences prevent certification because the exact launched state cannot be established from conflicting snapshots. Physics and simulator behavior are not altered to hide such differences.
+- Explicit mocks are synthetic, use MOCK-prefixed verification statuses, and cannot claim physical hashes. The existing nominal mock backend primarily models the canonical objectives; missing custom mock objectives remain missing.
+- Root reports are replaceable compatibility views; archived session and attempt paths provide exact identity. Historical publication files are not migrated or rewritten.
+- Generalized publication report consolidation and centralized configuration parsing remain Tasks 13 and 11.
+- `docs/05_refactor_tasks/` remains ignored by `.gitignore`; local task/index completion edits are absent from the ordinary git file list.
+
+## Status
+Completed.

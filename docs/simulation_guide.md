@@ -240,10 +240,29 @@ Each evaluation session retains `robustness_runs/robustness_<uuid>/robustness_re
 Current physical scores describe **applied lattice jitter**, not full-chain source robustness. Mock or legacy custom backends without application evidence never claim evaluated physical channels. Legacy three-argument custom evaluators remain available for lattice parameters; tasks with overrides require the complete `request_evaluator(request, config=...)` interface. Existing nominal beam settings, thresholds, objective units, and archived outputs are preserved.
 
 ### 4.3 Independent Pareto Candidate Rerun Verification
-- **7 Selection Roles**: `min_emit_x`, `min_emit_y`, `min_sigma_energy`, `knee_point`, `crowding_distance_max`, `balanced_feasible`, `robust_recommended`.
-- **Checksums**: SHA-256 hashes recorded for input files and static field maps.
-- **Status Classification**: `VERIFIED` ($\text{Error}_{\text{max}} < 10^{-3}\%$), `CONDITIONALLY_VERIFIED` ($< 0.10\%$), `REJECTED` ($\ge 0.10\%$).
-- **LaTeX Export**: Automated export to `verification_table.tex`.
+
+`ParetoVerifier` is the shared service for planning, configured execution, attempt auditing, comparison, and report export. `run_verification_pipeline` and `run_independent_verification_rerun` are compatibility wrappers; CLI and `scripts/run_pareto_verification.py` use the same service. The class's plan runs through `CandidateEvaluatorBase` and `BatchEvaluator`, honoring configured worker count, timeout, retries, successful cleanup, lattice mappings, objective definitions, and longitudinal exit checks. CLI overrides are `--num-workers`, `--timeout`, `--template-dir`, and `--template-in`. Reports retain the actual settings and configuration.
+
+Production verification requires measured candidate history with known validity and feasibility. Directory inputs prefer `candidate_history.json`, then `candidate_history.csv`, then a Pareto CSV. Missing explicit paths fail instead of falling back to another run. Without an explicit path, existing histories can be discovered; absent data fail before simulation submission. A compact Pareto CSV without measured status cannot supply feasible selection. `--dry-run` can show an empty plan; only explicit `--mock-evaluator` mode may create a synthetic nominal candidate.
+
+Selection uses the configured objective dimension, signs, scales, and design layout, strictly within the observed feasible Pareto set. The default three-objective configuration retains its seven role names: `min_emit_x`, `min_emit_y`, `min_sigma_energy`, `knee_point`, `crowding_distance_max`, `balanced_feasible`, and `robust_recommended`. Other configured objective sets use named objective extremes plus the four shared roles. Custom mixed-direction objectives use distance from the observed ideal for knee selection; default objectives preserve the previous distance-from-zero convention.
+
+Comparisons use every configured physical objective and observed transmission. Relative error is `abs(rerun - stored) / abs(stored) * 100`, including negative stored values. Missing/nonfinite observations, overflowing relative errors, and zero nominal denominators are unknown; even zero-to-zero has no defined relative error. No objective, diagnostic, transmission, or checksum receives a favorable fallback. The maximum error includes transmission. Verified outcomes also require complete measured diagnostic channels, known validity/feasibility, and unchanged feasibility classification.
+
+Default tolerances preserve the existing relative settings: `tol_verified=1e-3` means strictly **less than 0.1%**, and `tol_conditional=0.10` means strictly **less than 10%**. These values do not change beam-quality constraint thresholds. The earlier guide's percent labels were incorrect.
+
+- `VERIFIED` / `CONDITIONALLY_VERIFIED`: complete comparisons within tolerance, matching feasibility, and a successful rerun audit. A known failed original audit also prevents these statuses.
+- `REJECTED`: excessive differences or changed feasibility, even with identical objectives.
+- `COMPARISON_UNKNOWN`: required comparison evidence is missing/nonfinite/undefined or original validity is unknown.
+- `RERUN_FAILED`: the rerun is not a valid simulation.
+- `AUDIT_FAILED`: numerical comparison passes but required provenance or request identity does not.
+- `MOCK_*`: explicit synthetic comparison statuses; these never certify physical execution or fabricate input/executable hashes.
+
+Each immutable report session retains configuration/execution settings, original and rerun run/evaluation/attempt identities, exact manifest links, physical objectives in configured order/units, comparison issues, validity/diagnostic completeness, failure information, and separate original/rerun audits. Auditing verifies retained before/after input bytes, checks that their state did not change during execution, compares manifest observations/parameters/identities, and rehashes the recorded executable path. Cleanup can remove workdirs while snapshots and manifests remain. Missing or changed executable bytes prevent current audit certification; executable bytes themselves are not archived.
+
+Legacy original records without modern retained provenance remain explicitly `UNKNOWN` rather than receiving invented hashes. Such records can still support a numerical comparison against an audited new rerun; this does not certify the historical source execution. New original provenance with failed checks prevents a verified result. Unknown comparisons remain visible in CSV/JSON and tables. Default emittance/energy table units remain compatible; custom objective tables use configured physical order and units.
+
+Reports are archived under `verification_runs/verification_<uuid>/` before publishing root compatibility CSV/JSON/LaTeX files. Returned paths identify that exact session; previous reruns are never overwritten. Raw archives and publication artifacts are not migrated or rewritten automatically.
 
 ---
 

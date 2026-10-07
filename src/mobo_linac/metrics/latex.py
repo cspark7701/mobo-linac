@@ -39,6 +39,50 @@ def generate_verification_latex_table(
     else:
         record_list = records
 
+    record_list = [dict(record) for record in record_list]
+    import json
+    import math
+    def measured(value):
+        try:
+            number = float(value)
+            return number if math.isfinite(number) else float("nan")
+        except (TypeError, ValueError):
+            return float("nan")
+    def escape(value):
+        return str(value).replace("_", r"\_").replace("%", r"\%").replace("&", r"\&")
+    for record in record_list:
+        for key in ("stored_objectives", "rerun_objectives", "objective_units", "objective_order"):
+            if isinstance(record.get(key), str):
+                record[key] = json.loads(record[key])
+    columns = record_list[0].get("objective_order", list(record_list[0].get("stored_objectives", {}))) if record_list else []
+    legacy_columns = ["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
+    units = record_list[0].get("objective_units", {}) if record_list else {}
+    legacy_units = {"norm_emit_x_m_rad": "m*rad", "norm_emit_y_m_rad": "m*rad", "sigma_energy_eV": "eV"}
+    if columns and (columns != legacy_columns or (units and units != legacy_units)):
+        units = record_list[0].get("objective_units", {})
+        headers = ["Candidate Role"] + [f"{prefix} {escape(name)} ({escape(units.get(name, 'unknown'))})"
+                   for name in columns for prefix in ("Stored", "Rerun")] + [r"Max Error (\%)", "Status"]
+        tex = [r"\begin{table}[htbp]", r"\centering", f"\\caption{{{caption}}}", f"\\label{{{label}}}",
+               r"\resizebox{\textwidth}{!}{%", r"\begin{tabular}{l" + "c" * (2 * len(columns) + 2) + "}",
+               r"\toprule", " & ".join(headers) + r" \\", r"\midrule"]
+        for record in record_list:
+            cells = [escape(record.get("role", "candidate"))]
+            for name in columns:
+                for group in ("stored_objectives", "rerun_objectives"):
+                    value = measured(record.get(group, {}).get(name))
+                    cells.append(f"{value:.6g}" if math.isfinite(value) else "--")
+            error = measured(record.get("max_diff_pct"))
+            cells.extend([f"{error:.4f}" if math.isfinite(error) else "--",
+                          escape(record.get("verification_status", "COMPARISON_UNKNOWN"))])
+            tex.append(" & ".join(cells) + r" \\")
+        tex.extend([r"\bottomrule", r"\end{tabular}}", r"\end{table}"])
+        content = "\n".join(tex) + "\n"
+        if output_path is not None:
+            path = Path(output_path)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text(content, encoding="utf-8")
+        return content
+
     tex = [
         r"\begin{table}[htbp]",
         r"\centering",
@@ -56,21 +100,21 @@ def generate_verification_latex_table(
         role = str(role_raw).replace("_", r"\_")
 
         # Stored / rerun emittance
-        s_ex = rec.get("stored_emit_x_m_rad", rec.get("stored_norm_emit_x", 0.0))
-        r_ex = rec.get("rerun_emit_x_m_rad", rec.get("rerun_norm_emit_x", s_ex))
-        if s_ex < 1e-2:  # in m*rad -> scale to um
+        s_ex = measured(rec.get("stored_emit_x_m_rad", rec.get("stored_norm_emit_x")))
+        r_ex = measured(rec.get("rerun_emit_x_m_rad", rec.get("rerun_norm_emit_x")))
+        if "stored_emit_x_m_rad" in rec or "rerun_emit_x_m_rad" in rec or s_ex < 1e-2:  # in m*rad -> scale to um
             s_ex *= 1e6
             r_ex *= 1e6
 
         # Stored / rerun energy spread
-        s_se = rec.get("stored_sigma_energy_eV", rec.get("stored_sigma_e", 0.0))
-        r_se = rec.get("rerun_sigma_energy_eV", rec.get("rerun_sigma_e", s_se))
-        if s_se > 1e2:  # in eV -> scale to MeV
+        s_se = measured(rec.get("stored_sigma_energy_eV", rec.get("stored_sigma_e")))
+        r_se = measured(rec.get("rerun_sigma_energy_eV", rec.get("rerun_sigma_e")))
+        if "stored_sigma_energy_eV" in rec or "rerun_sigma_energy_eV" in rec or s_se > 1e2:  # in eV -> scale to MeV
             s_se *= 1e-6
             r_se *= 1e-6
 
-        err = rec.get("max_diff_pct", rec.get("max_diff_percent", 0.0))
-        status = str(rec.get("verification_status", "VERIFIED"))
+        err = measured(rec.get("max_diff_pct", rec.get("max_diff_percent")))
+        status = escape(rec.get("verification_status", "COMPARISON_UNKNOWN"))
 
         tex.append(f"{role} & {s_ex:.4f} & {r_ex:.4f} & {s_se:.4f} & {r_se:.4f} & {err:.4f} & {status} \\\\")
 

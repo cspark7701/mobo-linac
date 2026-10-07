@@ -10,6 +10,6 @@ import sys
 from mobo_linac.cli import main
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        sys.argv.append("run-verification")
+    if len(sys.argv) == 1 or sys.argv[1] != "run-verification":
+        sys.argv.insert(1, "run-verification")
     main()

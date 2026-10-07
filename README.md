@@ -237,6 +237,8 @@ Robustness CLI and script runs share complete evaluation requests and honor conf
 mobo-linac run-verification --config configs/publication_200MeV.yaml --output-dir results/verification
 ```
 
+Verification uses the configured lattice mapping, exit checks, timeout, workers, and template. Pass `--num-workers`, `--timeout`, or `--template-dir` to override execution settings. Production mode requires measured candidate history; missing metrics and undefined relative errors cannot yield `VERIFIED`. Input snapshots and executable hashes are audited against each retained attempt. Explicit mocks use `MOCK_*` statuses and unknown physical hashes. See the [verification contract](docs/simulation_guide.md#43-independent-pareto-candidate-rerun-verification).
+
 ### 6. Resume Interrupted Campaign from Checkpoint
 ```bash
 mobo-linac resume --run-dir results/<run_id>

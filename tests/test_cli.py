@@ -202,3 +202,25 @@ def test_cli_recovers_initial_design_before_first_completed_checkpoint(tmp_path)
     assert state.scalar_weights == pytest.approx([0.6, 0.3, 0.1])
     assert [r.evaluation_id for r in state.results] == ["eval_000001", "eval_000002", "eval_000003"]
     assert len(load_streaming_evaluations(tmp_path)) == 3
+
+
+def test_verification_absent_input_requires_explicit_mock(tmp_path, monkeypatch):
+    import argparse
+    import json
+    from mobo_linac.cli.commands.audit import run_verification
+    config = Path(__file__).resolve().parents[1] / 'configs/publication_200MeV.yaml'
+    monkeypatch.chdir(tmp_path)
+    args = argparse.Namespace(config=str(config), output_dir=str(tmp_path / 'verification'),
+                              history_path=None, dry_run=False, mock_evaluator=False)
+    with pytest.raises(ValueError, match='requires measured candidate history'):
+        run_verification(args)
+    assert not (tmp_path / 'verification').exists()
+    args.history_path = str(tmp_path / 'does_not_exist.json')
+    with pytest.raises(FileNotFoundError, match='Verification input not found'):
+        run_verification(args)
+    args.history_path = None
+    args.mock_evaluator = True
+    run_verification(args)
+    records = json.loads((tmp_path / 'verification' / 'verification_manifest.json').read_text())['records']
+    assert records and all(record['verification_status'].startswith('MOCK_') for record in records)
+    assert all(record['input_sha256'] is None for record in records)

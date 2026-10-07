@@ -1,384 +1,243 @@
-import hashlib
+"""Configured verification service with legacy function wrappers."""
+from dataclasses import asdict, replace
+import math
 import json
 import os
 import shutil
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
+
 import numpy as np
 import pandas as pd
+import torch
+from botorch.utils.multi_objective.pareto import is_non_dominated
 
-from mobo_linac.astra.workdir import read_evaluation_manifest, validate_component, write_once_json
-from mobo_linac.config import MoboConfig, load_config
-from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
-from mobo_linac.execution.candidate_evaluator import (
-    CandidateEvaluatorBase,
-    EvaluationOutcome,
-    EvaluationTask,
-    compute_metric_deltas,
-)
-from mobo_linac.io.results import DESIGN_VAR_COLUMNS
-from mobo_linac.metrics.pareto import (
-    compute_crowding_distances,
-    select_representative_pareto_candidates,
-)
+from mobo_linac.astra.workdir import file_sha256, format_eval_id, validate_component, write_once_json
+from mobo_linac.config import load_config
+from mobo_linac.diagnostics import diagnostic_observations, normalize_diagnostics
+from mobo_linac.evaluation import EvaluationResult
+from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask, compute_metric_deltas
+from mobo_linac.metrics.pareto import compute_crowding_distances
+from mobo_linac.result_schema import ResultSchema
+from mobo_linac.verification.audit import audit_attempt
 
 
-def compute_file_sha256(file_path: Union[str, Path]) -> str:
-    """Computes SHA-256 hash checksum for a file."""
-    path = Path(file_path)
-    if not path.exists():
-        return "FILE_NOT_FOUND"
-
-    hasher = hashlib.sha256()
-    with open(path, "rb") as f:
-        while chunk := f.read(65536):
-            hasher.update(chunk)
-    return hasher.hexdigest()
+def compute_file_sha256(file_path):
+    """Compatibility helper; missing files do not receive an invented checksum."""
+    return file_sha256(file_path) if Path(file_path).is_file() else None
 
 
-def select_verification_candidates(
-    results: List[EvaluationResult],
-) -> Dict[str, EvaluationResult]:
-    """
-    Selects representative Pareto candidates for verification strictly from the feasible Pareto set.
-
-    Args:
-        results: List of EvaluationResult records.
-
-    Returns:
-        Dict mapping candidate role -> EvaluationResult.
-    """
-    cands = select_representative_pareto_candidates(results)
-    candidates = {
-        "min_emit_x": cands["min_emit_x"],
-        "min_emit_y": cands["min_emit_y"],
-        "min_sigma_energy": cands["min_sigma_energy"],
-        "knee_point": cands["knee_point"],
-        "crowding_distance_max": cands["crowding_distance_max"],
-        "balanced_feasible": cands["balanced"],
-        "robust_recommended": cands["knee_point"],
-    }
-    return candidates
-
-
-
-def run_independent_verification_rerun(
-    role: str,
-    candidate: EvaluationResult,
-    config: MoboConfig,
-    output_dir: Union[str, Path] = "results/verification",
-    mock_rerun_data: Optional[Dict[str, Any]] = None,
-    mock_evaluator: Optional[Any] = None,
-    tol_verified: float = 1.0e-3,
-    tol_conditional: float = 0.10,
-) -> Dict[str, Any]:
-    """
-    Executes an independent rerun for a Pareto candidate in a fresh workdir,
-    computing file checksums, relative differences, and verification status.
-
-    Args:
-        role: Candidate role name (e.g. 'knee_point').
-        candidate: Original EvaluationResult object.
-        config: MoboConfig instance.
-        output_dir: Output verification directory.
-        mock_rerun_data: Optional mock rerun dictionary for unit testing.
-        mock_evaluator: Optional callable for mock batch evaluations in unit testing.
-        tol_verified: Tolerance threshold for VERIFIED status (default 1e-3 i.e. 0.1%).
-        tol_conditional: Tolerance threshold for CONDITIONALLY_VERIFIED status (default 0.10 i.e. 10%).
-
-    Returns:
-        Verification result record dictionary.
-    """
-    out_path = Path(output_dir)
-    validate_component(role)
-    verification_run_id = "rerun_" + uuid.uuid4().hex
-    work_path = out_path / "candidate_inputs" / role / verification_run_id
-    work_path.mkdir(parents=True, exist_ok=False)
-    raw_res = {}
-
-    x_phys = candidate.x_physical
-    orig_objs = candidate.objectives_physical or [1.0e-6, 1.0e-6, 1.0e6]
-    orig_diags = candidate.diagnostics or {}
-    orig_feas = candidate.physically_feasible
-
-    input_sha256 = "UNKNOWN"
-    field_maps_sha256 = {}
-    executable_sha256 = "UNKNOWN"
-
-    if mock_rerun_data is not None:
-        rerun_objs = mock_rerun_data.get("objectives_physical", orig_objs)
-        rerun_diags = mock_rerun_data.get("diagnostics", orig_diags)
-        rerun_feas = mock_rerun_data.get("physically_feasible", True)
-        rerun_valid = mock_rerun_data.get("simulation_valid", True)
-        input_sha256 = mock_rerun_data.get("input_sha256", "3a7b9f8e02d1c4b...")
-        field_maps_sha256 = mock_rerun_data.get("field_maps_sha256", {})
-        executable_sha256 = mock_rerun_data.get("executable_sha256", "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855")
-    elif mock_evaluator is not None:
-        raw_res = mock_evaluator(x_phys, run_id=f"verification_{role}", eval_id=role)
-        eval_res = create_evaluation_result(raw_res, config)
-        rerun_objs = eval_res.objectives_physical or orig_objs
-        rerun_diags = eval_res.diagnostics or orig_diags
-        rerun_feas = eval_res.physically_feasible
-        rerun_valid = eval_res.simulation_valid
-    else:
-        from mobo_linac.astra.runner import run_astra_eval
-
-        raw_res = run_astra_eval(
-            parameters=x_phys,
-            run_id=f"verification_{role}",
-            eval_id=role,
-            base_results_dir=work_path,
-            template_dir=".",
-            clean_on_success=False,
-        )
-        eval_res = create_evaluation_result(raw_res, config)
-        rerun_objs = eval_res.objectives_physical or [1.0e-6, 1.0e-6, 1.0e6]
-        rerun_diags = eval_res.diagnostics or {}
-        rerun_feas = eval_res.physically_feasible
-        rerun_valid = eval_res.simulation_valid
-
-        manifest = read_evaluation_manifest(raw_res["manifest_path"])
-        hashes = manifest.get("input_hashes", {})
-        input_sha256 = hashes.get("astra.in", "UNKNOWN")
-        field_maps_sha256 = {name: digest for name, digest in hashes.items() if name != "astra.in"}
-        executable_sha256 = manifest.get("executable", {}).get("sha256") or "UNKNOWN"
-
-    if not rerun_valid:
-        status = "RERUN_FAILED"
-        diff_ex_pct = float("nan")
-        diff_ey_pct = float("nan")
-        diff_se_pct = float("nan")
-        diff_trans_pct = float("nan")
-        max_diff_pct = float("nan")
-    else:
-        eval_res_tmp = EvaluationResult(
-            evaluation_id=f"rerun_{role}",
-            run_id=f"verification_{role}",
-            x_physical=x_phys,
-            objectives_physical=rerun_objs,
-            diagnostics=rerun_diags,
-            simulation_valid=rerun_valid,
-            physically_feasible=rerun_feas,
-        )
-        deltas = compute_metric_deltas(candidate, eval_res_tmp)
-        diff_ex_pct = deltas["diff_emit_x_pct"]
-        diff_ey_pct = deltas["diff_emit_y_pct"]
-        diff_se_pct = deltas["diff_sigma_energy_pct"]
-        diff_trans_pct = deltas["diff_transmission_pct"]
-        max_diff_pct = deltas["max_diff_pct"]
-
-        if max_diff_pct < tol_verified * 100.0:
-            status = "VERIFIED"
-        elif max_diff_pct < tol_conditional * 100.0 and rerun_feas == orig_feas:
-            status = "CONDITIONALLY_VERIFIED"
-        else:
-            status = "REJECTED"
-
-    record_path = work_path / "verification_record.json"
-    record = {
-        "verification_run_id": verification_run_id,
-        "attempt_id": raw_res.get("attempt_id"),
-        "manifest_path": raw_res.get("manifest_path"),
-        "record_path": str(record_path),
-        "role": role,
-        "original_evaluation_id": candidate.evaluation_id,
-        "solenoid_field_T": x_phys[0],
-        "quad_1_gradient_T_m": x_phys[1],
-        "quad_2_gradient_T_m": x_phys[2],
-        "gun_phase_deg": x_phys[3],
-        "acc1_acc2_phase_deg": x_phys[4],
-        "acc3_acc4_phase_deg": x_phys[5],
-        "stored_emit_x_m_rad": orig_objs[0],
-        "rerun_emit_x_m_rad": rerun_objs[0],
-        "stored_emit_y_m_rad": orig_objs[1],
-        "rerun_emit_y_m_rad": rerun_objs[1],
-        "stored_sigma_energy_eV": orig_objs[2],
-        "rerun_sigma_energy_eV": rerun_objs[2],
-        "stored_transmission": orig_diags.get("transmission_fraction", 1.0),
-        "rerun_transmission": rerun_diags.get("transmission_fraction", 1.0),
-        "stored_feasible": orig_feas,
-        "rerun_feasible": rerun_feas if rerun_valid else False,
-        "diff_emit_x_pct": diff_ex_pct,
-        "diff_emit_y_pct": diff_ey_pct,
-        "diff_sigma_energy_pct": diff_se_pct,
-        "diff_transmission_pct": diff_trans_pct,
-        "max_diff_pct": max_diff_pct,
-        "verification_status": status,
-        "input_sha256": input_sha256,
-        "field_maps_sha256": field_maps_sha256,
-        "executable_sha256": executable_sha256,
-    }
-
-    write_once_json(record_path, record)
-    return record
+def select_verification_candidates(results, config=None):
+    config = config or load_config()
+    schema = ResultSchema.from_config(config)
+    candidates, objectives = [], []
+    for result in results:
+        values = schema.extract(result.objectives_physical)
+        if (result.simulation_valid is True and result.physically_feasible is True
+                and len(result.x_physical) == len(schema.design_columns)
+                and np.isfinite(result.x_physical).all()
+                and values is not None and np.isfinite(values).all()):
+            candidates.append(result)
+            objectives.append(values)
+    if not candidates:
+        raise ValueError("No measured valid, feasible candidates available for verification")
+    values = np.asarray(objectives)
+    mask = is_non_dominated(schema.transform(values)).numpy()
+    candidates = [candidate for candidate, keep in zip(candidates, mask) if keep]
+    values = values[mask]
+    costs = values * -np.asarray(schema.signs) / np.asarray(schema.scales)
+    legacy = list(schema.physical_columns) == ['norm_emit_x_m_rad', 'norm_emit_y_m_rad', 'sigma_energy_eV'] and all(sign == -1 for sign in schema.signs)
+    ideal = np.zeros(values.shape[1]) if legacy else costs.min(axis=0)
+    knee = candidates[int(np.argmin(np.linalg.norm(costs - ideal, axis=1)))]
+    balanced = candidates[int(np.argmin(np.linalg.norm(costs - costs.mean(axis=0), axis=1)))]
+    distances = compute_crowding_distances(costs)
+    finite = np.isfinite(distances)
+    crowd = candidates[int(np.argmax(np.where(finite, distances, -1)))] if finite.any() else knee
+    roles = ['min_emit_x', 'min_emit_y', 'min_sigma_energy'] if legacy else [f'{obj.physical_direction[:3]}_{obj.name}' if obj.physical_direction == 'minimize' else f'max_{obj.name}' for obj in config.objectives]
+    selected = {role: candidates[int(np.argmin(costs[:, index]))] for index, role in enumerate(roles)}
+    selected.update(knee_point=knee, crowding_distance_max=crowd, balanced_feasible=balanced, robust_recommended=knee)
+    return selected
 
 
-def run_verification_pipeline(
-    results: List[EvaluationResult],
-    config: Optional[MoboConfig] = None,
-    output_dir: Union[str, Path] = "results/verification",
-    mock_rerun_data_map: Optional[Dict[str, Dict[str, Any]]] = None,
-    mock_evaluator: Optional[Any] = None,
-) -> Tuple[List[Dict[str, Any]], Path, Path]:
-    """
-    Executes independent Pareto verification pipeline across representative candidates,
-    running fresh ASTRA evaluations, computing checksums, and exporting results.
+def comparison_status(original, rerun, deltas, tol_verified, tol_conditional):
+    if rerun.simulation_valid is not True:
+        return 'RERUN_FAILED'
+    if (not deltas['comparison_complete'] or original.simulation_valid is not True
+            or diagnostic_observations(original.diagnostics) is None
+            or diagnostic_observations(rerun.diagnostics) is None
+            or original.physically_feasible is None or rerun.physically_feasible is None):
+        return 'COMPARISON_UNKNOWN'
+    if original.physically_feasible != rerun.physically_feasible:
+        return 'REJECTED'
+    if deltas['max_diff_pct'] < tol_verified * 100:
+        return 'VERIFIED'
+    if deltas['max_diff_pct'] < tol_conditional * 100:
+        return 'CONDITIONALLY_VERIFIED'
+    return 'REJECTED'
 
-    Args:
-        results: List of EvaluationResult records.
-        config: MoboConfig instance.
-        output_dir: Target verification directory.
-        mock_rerun_data_map: Optional dict mapping role -> mock_rerun_data for testing.
-        mock_evaluator: Optional mock evaluator function.
 
-    Returns:
-        Tuple of (records, json_manifest_path, latex_table_path).
-    """
-    if config is None:
-        config = load_config()
+class ParetoVerifier(CandidateEvaluatorBase):
+    def __init__(self, config=None, base_output_dir='results/verification', num_workers=None,
+                 timeout=None, tol_verified=1e-3, tol_conditional=0.10,
+                 template_dir='.', template_in='astra.in'):
+        config = config or load_config()
+        super().__init__(config=config, base_output_dir=base_output_dir,
+                         num_workers=config.execution.max_workers if num_workers is None else num_workers,
+                         timeout=config.execution.timeout_sec if timeout is None else timeout,
+                         template_dir=template_dir, template_in=template_in)
+        self.tol_verified, self.tol_conditional = float(tol_verified), float(tol_conditional)
+        if not (math.isfinite(self.tol_verified) and math.isfinite(self.tol_conditional)
+                and 0 <= self.tol_verified <= self.tol_conditional):
+            raise ValueError('Verification tolerances must be finite, nonnegative and ordered')
+        if self.timeout <= 0 or self.num_workers <= 0:
+            raise ValueError('Verification timeout and worker count must be positive')
 
-    out_path = Path(output_dir)
-    out_path.mkdir(parents=True, exist_ok=True)
+    def generate_evaluation_plan(self, candidates, roles=None):
+        if roles is not None and len(roles) != len(candidates):
+            raise ValueError('roles must match candidates')
+        tasks = []
+        for index, candidate in enumerate(candidates):
+            role = roles[index] if roles is not None else f'cand_{index+1}'
+            validate_component(role)
+            if len(candidate.x_physical) != len(self.config.design_variables) or not np.isfinite(candidate.x_physical).all():
+                raise ValueError('Candidate parameters must be finite and match the configured layout')
+            tasks.append(EvaluationTask(task_id=f'verification_{role}', role=role,
+                         parameters=list(candidate.x_physical), nominal_result=candidate,
+                         metadata={'role': role, 'original_run_id': candidate.run_id,
+                                   'original_evaluation_id': candidate.evaluation_id,
+                                   'original_attempt_id': candidate.attempt_id}))
+        return tasks
 
-    session_path = create_verification_session(out_path)
-    candidates = select_verification_candidates(results)
-    records = []
+    def verify_candidates(self, candidates_dict, mock_evaluator=None, mock_rerun_data_map=None,
+                          request_evaluator=None):
+        if not candidates_dict:
+            raise ValueError('Verification requires candidate data')
+        if sum(option is not None for option in (mock_evaluator, mock_rerun_data_map, request_evaluator)) > 1:
+            raise ValueError('Choose one verification backend')
+        tasks = self.generate_evaluation_plan(list(candidates_dict.values()), list(candidates_dict))
+        session = create_verification_session(self.base_output_dir)
+        mock = mock_evaluator is not None or mock_rerun_data_map is not None
+        if mock_rerun_data_map is not None and set(candidates_dict) - set(mock_rerun_data_map):
+            raise ValueError('Explicit mock data must cover every candidate role')
+        if mock:
+            def adapter(request, *, config):
+                role = request.metadata['role']
+                if mock_rerun_data_map is not None:
+                    data = mock_rerun_data_map[role]
+                    raw = {'status': 'success' if data.get('simulation_valid', True) else 'failed',
+                           'objectives': data.get('objectives_physical'), 'diagnostics': data.get('diagnostics', {})}
+                else:
+                    raw = mock_evaluator(request.parameters, run_id=f'verification_{role}', eval_id=role)
+                if isinstance(raw, EvaluationResult):
+                    return replace(raw, evaluation_id=request.eval_id, run_id=session.name,
+                                   x_physical=list(request.parameters))
+                return dict(raw, eval_id=request.eval_id, run_id=session.name,
+                            parameters=list(request.parameters), execution_kind='mock')
+            request_evaluator = adapter
+        outcomes = self.evaluate_plan_parallel(tasks, request_evaluator=request_evaluator, run_id=session.name)
+        records = [self.build_record(outcome, session, mock) for outcome in outcomes]
+        manifest, table = save_verification_reports(records, session, self.base_output_dir,
+                          {'config': asdict(self.config), 'timeout_sec': self.timeout, 'num_workers': self.num_workers,
+                           'template_dir': str(self.template_dir.resolve()), 'template_in': self.template_in,
+                           'tol_verified_relative': self.tol_verified, 'tol_conditional_relative': self.tol_conditional})
+        return records, manifest, table
 
-    print(f"=== Starting Independent Pareto Verification ({len(candidates)} candidates) ===")
+    def build_record(self, outcome, session, mock):
+        original, rerun = outcome.task.nominal_result, outcome.evaluated_result
+        schema = ResultSchema.from_config(self.config)
+        deltas = compute_metric_deltas(original, rerun, self.config)
+        status = comparison_status(original, rerun, deltas, self.tol_verified, self.tol_conditional)
+        original_audit = audit_attempt(original, config=self.config)
+        rerun_audit = audit_attempt(rerun, required=True, config=self.config) if not mock else {
+            'run_id': rerun.run_id, 'evaluation_id': rerun.evaluation_id, 'attempt_id': None,
+            'manifest_path': None, 'input_sha256': None, 'input_hashes': {},
+            'executable_sha256': None, 'audit_status': 'MOCK', 'issues': []}
+        if rerun.x_physical != outcome.task.parameters or rerun.evaluation_id not in (outcome.task.task_id, format_eval_id(outcome.task.task_id)):
+            rerun_audit['issues'].append('Rerun request identity or parameters mismatch')
+            rerun_audit['audit_status'] = 'FAILED'
+        audited_status = status
+        if mock:
+            audited_status = 'MOCK_' + status
+        elif status in ('VERIFIED', 'CONDITIONALLY_VERIFIED') and (rerun_audit['audit_status'] != 'VERIFIED' or original_audit['audit_status'] == 'FAILED'):
+            audited_status = 'AUDIT_FAILED'
+        def objective_values(result):
+            values = schema.extract(result.objectives_physical)
+            return dict(zip(schema.physical_columns, values)) if values is not None else {name: None for name in schema.physical_columns}
+        stored, repeated = objective_values(original), objective_values(rerun)
+        path = session / 'candidate_inputs' / outcome.task.role / 'verification_record.json'
+        path.parent.mkdir(parents=True, exist_ok=False)
+        record = {'verification_run_id': session.name, 'role': outcome.task.role,
+                  'original_run_id': original.run_id, 'original_evaluation_id': original.evaluation_id,
+                  'original_attempt_id': original.attempt_id, 'original_manifest_path': original.manifest_path,
+                  'rerun_run_id': rerun.run_id, 'rerun_evaluation_id': rerun.evaluation_id,
+                  'attempt_id': rerun.attempt_id, 'manifest_path': rerun.manifest_path, 'record_path': str(path),
+                  'execution_kind': 'mock' if mock else 'astra', 'comparison_status': status,
+                  'verification_status': audited_status,
+                  'design_parameters': dict(zip(schema.design_columns, original.x_physical)),
+                  'stored_objectives': stored, 'rerun_objectives': repeated,
+                  'objective_units': {obj.explicit_name: obj.unit for obj in self.config.objectives},
+                  'objective_order': list(schema.physical_columns),
+                  'stored_transmission': normalize_diagnostics(original.diagnostics).get('transmission_fraction'),
+                  'rerun_transmission': normalize_diagnostics(rerun.diagnostics).get('transmission_fraction'),
+                  'stored_feasible': original.physically_feasible, 'rerun_feasible': rerun.physically_feasible,
+                  'stored_simulation_valid': original.simulation_valid, 'rerun_simulation_valid': rerun.simulation_valid,
+                  'diagnostics_complete': {'stored': diagnostic_observations(original.diagnostics) is not None,
+                                           'rerun': diagnostic_observations(rerun.diagnostics) is not None},
+                  'rerun_failure_category': rerun.failure_category, 'rerun_failure_reason': rerun.failure_reason,
+                  'original_audit': original_audit, 'rerun_audit': rerun_audit,
+                  'input_sha256': rerun_audit['input_sha256'],
+                  'field_maps_sha256': {key: value for key, value in rerun_audit['input_hashes'].items() if key != 'astra.in'},
+                  'executable_sha256': rerun_audit['executable_sha256'], **deltas}
+        record.update(record['design_parameters'])
+        for suffix, name in [('emit_x_m_rad', 'norm_emit_x_m_rad'), ('emit_y_m_rad', 'norm_emit_y_m_rad'),
+                             ('sigma_energy_eV', 'sigma_energy_eV')]:
+            record['stored_' + suffix] = stored.get(name) if stored.get(name) is not None else float('nan')
+            record['rerun_' + suffix] = repeated.get(name) if repeated.get(name) is not None else float('nan')
+        write_once_json(path, record)
+        return record
 
-    for role, candidate in candidates.items():
-        mock_data = mock_rerun_data_map.get(role) if mock_rerun_data_map else None
-        rec = run_independent_verification_rerun(
-            role=role,
-            candidate=candidate,
-            config=config,
-            output_dir=session_path,
-            mock_rerun_data=mock_data,
-            mock_evaluator=mock_evaluator,
-        )
-        records.append(rec)
-        print(
-            f"Candidate [{role:<20}]: Stored ex={rec['stored_emit_x_m_rad']*1e6:.4f} μm | "
-            f"Rerun ex={rec['rerun_emit_x_m_rad']*1e6:.4f} μm | "
-            f"Max Diff={rec['max_diff_pct']:.6f}% | Status: {rec['verification_status']}"
-        )
 
-    manifest_path, tex_path = save_verification_reports(records, session_path, out_path)
-    print(f"Pareto verification complete! Artifacts in: {session_path.resolve()}")
-    return records, manifest_path, tex_path
+def run_independent_verification_rerun(role, candidate, config, output_dir='results/verification',
+        mock_rerun_data=None, mock_evaluator=None, tol_verified=1e-3, tol_conditional=0.10, **settings):
+    verifier = ParetoVerifier(config=config, base_output_dir=output_dir,
+                             tol_verified=tol_verified, tol_conditional=tol_conditional, **settings)
+    records, _, _ = verifier.verify_candidates({role: candidate}, mock_evaluator=mock_evaluator,
+                    mock_rerun_data_map={role: mock_rerun_data} if mock_rerun_data is not None else None)
+    return records[0]
+
+
+def run_verification_pipeline(results, config=None, output_dir='results/verification',
+                              mock_rerun_data_map=None, mock_evaluator=None, **settings):
+    config = config or load_config()
+    verifier = ParetoVerifier(config=config, base_output_dir=output_dir, **settings)
+    return verifier.verify_candidates(select_verification_candidates(results, config),
+               mock_evaluator=mock_evaluator, mock_rerun_data_map=mock_rerun_data_map)
 
 
 def create_verification_session(out_path):
-    session = Path(out_path) / "verification_runs" / ("verification_" + uuid.uuid4().hex)
+    session = Path(out_path) / 'verification_runs' / ('verification_' + uuid.uuid4().hex)
     session.mkdir(parents=True, exist_ok=False)
     return session
 
 
-def save_verification_reports(records, session_path, out_path):
-    """Archive reports once; root reports are compatibility views of the latest run."""
-    pd.DataFrame(records).to_csv(session_path / "verification_summary.csv", index=False, mode="x")
-    manifest_path = write_once_json(session_path / "verification_manifest.json", {
-        "timestamp": pd.Timestamp.now().isoformat(),
-        "verification_run_id": session_path.name,
-        "total_candidates_verified": len(records),
-        "records": records,
-    })
-    tex_path = export_verification_latex_table(records, session_path / "verification_table.tex")
-    for name in ("verification_summary.csv", "verification_manifest.json", "verification_table.tex"):
-        temporary = Path(out_path) / ("." + name + "." + uuid.uuid4().hex)
+def save_verification_reports(records, session_path, out_path, settings=None):
+    rows = [{key: json.dumps(value, sort_keys=True) if isinstance(value, (dict, list)) else value
+             for key, value in record.items()} for record in records]
+    pd.DataFrame(rows).to_csv(session_path / 'verification_summary.csv', index=False, mode='x')
+    manifest = write_once_json(session_path / 'verification_manifest.json', {
+        'timestamp': pd.Timestamp.now().isoformat(), 'verification_run_id': session_path.name,
+        'total_candidates_verified': len(records), 'settings': settings or {}, 'records': records})
+    table = export_verification_latex_table(records, session_path / 'verification_table.tex')
+    for name in ('verification_summary.csv', 'verification_manifest.json', 'verification_table.tex'):
+        temporary = Path(out_path) / ('.' + name + '.' + uuid.uuid4().hex)
         shutil.copyfile(session_path / name, temporary)
         os.replace(temporary, Path(out_path) / name)
-    return manifest_path, tex_path
+    return manifest, table
 
 
-def export_verification_latex_table(
-    records: List[Dict[str, Any]],
-    output_path: Union[str, Path] = "results/verification/verification_table.tex",
-) -> Path:
-    """
-    Generates publication-ready LaTeX verification table.
-
-    Args:
-        records: List of verification record dictionaries.
-        output_path: Path to output .tex file.
-
-    Returns:
-        Path object of created .tex file.
-    """
+def export_verification_latex_table(records, output_path='results/verification/verification_table.tex'):
     from mobo_linac.metrics.latex import generate_verification_latex_table
     path = Path(output_path)
     generate_verification_latex_table(records, output_path=path)
     return path
-
-
-class ParetoVerifier(CandidateEvaluatorBase):
-    """
-    Independent Pareto candidate verification engine.
-    Executes fresh rerun simulations in isolated directories and checks reproducibility.
-    """
-
-    def __init__(
-        self,
-        config: Optional[MoboConfig] = None,
-        base_output_dir: Union[str, Path] = "results/verification",
-        num_workers: int = 1,
-        timeout: int = 30,
-        tol_verified: float = 1.0e-3,
-        tol_conditional: float = 0.10,
-    ):
-        super().__init__(
-            config=config,
-            base_output_dir=base_output_dir,
-            num_workers=num_workers,
-            timeout=timeout,
-        )
-        self.tol_verified = float(tol_verified)
-        self.tol_conditional = float(tol_conditional)
-
-    def generate_evaluation_plan(
-        self,
-        candidates: Sequence[EvaluationResult],
-        roles: Optional[Sequence[str]] = None,
-    ) -> List[EvaluationTask]:
-        """Generates independent rerun evaluation tasks."""
-        tasks: List[EvaluationTask] = []
-        for idx, cand in enumerate(candidates):
-            role_name = roles[idx] if roles and idx < len(roles) else f"cand_{idx+1}"
-            task = EvaluationTask(
-                task_id=f"verification_{role_name}",
-                role=role_name,
-                parameters=cand.x_physical,
-                nominal_result=cand,
-                metadata={"role": role_name},
-            )
-            tasks.append(task)
-        return tasks
-
-    def verify_candidates(
-        self,
-        candidates_dict: Dict[str, EvaluationResult],
-        mock_evaluator: Optional[Any] = None,
-    ) -> Tuple[List[Dict[str, Any]], Path, Path]:
-        """
-        Runs verification pipeline on candidate dictionary and outputs artifacts.
-        """
-        out_path = self.base_output_dir
-        out_path.mkdir(parents=True, exist_ok=True)
-
-        session_path = create_verification_session(out_path)
-        records: List[Dict[str, Any]] = []
-        for role, cand in candidates_dict.items():
-            rec = run_independent_verification_rerun(
-                role=role,
-                candidate=cand,
-                config=self.config,
-                output_dir=session_path,
-                mock_evaluator=mock_evaluator,
-                tol_verified=self.tol_verified,
-                tol_conditional=self.tol_conditional,
-            )
-            records.append(rec)
-
-        manifest_path, tex_path = save_verification_reports(records, session_path, out_path)
-        return records, manifest_path, tex_path
