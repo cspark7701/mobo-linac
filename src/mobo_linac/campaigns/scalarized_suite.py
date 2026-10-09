@@ -18,14 +18,18 @@ import torch
 from mobo_linac.campaigns.runner import MoboCampaignRunner
 from mobo_linac.campaign_options import normalize_scalar_weights, validate_campaign_options
 from mobo_linac.config import MoboConfig, config_from_dict, load_config
-from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
-from mobo_linac.io.durable import atomic_csv, atomic_json
+from mobo_linac.io.artifacts import validate_run_completion
+from mobo_linac.metrics.exports import RunArtifactWriter
+from mobo_linac.utils.durable import atomic_csv, atomic_json
 from mobo_linac.io.checkpoint import load_run_checkpoint
-from mobo_linac.io.results import get_train_tensors, load_evaluation_results, results_to_dataframe
+from mobo_linac.io.results import get_train_tensors, load_evaluation_results
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
 from mobo_linac.metrics.reporting import validate_campaign_compatibility
 
 from mobo_linac.utils.logger import get_logger
+from mobo_linac.io.run_data import read_run_data
+from mobo_linac.metrics.latex import generate_phase1_cases_latex_table
+from mobo_linac.metrics.publication import scalarized_case_statistics
 
 logger = get_logger(__name__)
 
@@ -101,8 +105,6 @@ def aggregate_scalarized_cases(
         order = {case_id: index for index, case_id in enumerate(aggregate_config.scalarized_cases)}
         discovered.sort(key=lambda item: (order.get(item[0], len(order)), item[0]))
 
-    from mobo_linac.io.run_data import read_run_data
-    from mobo_linac.metrics.publication import scalarized_case_statistics
     summary_rows = []
     for case_key, case_path in discovered:
         run = read_run_data(case_path)
@@ -157,7 +159,6 @@ def aggregate_scalarized_cases(
 
 def export_phase1_cases_latex_table(cases_summary_path, output_path, config=None):
     """Case table with configured objective labels/units when ``config`` is given."""
-    from mobo_linac.metrics.latex import generate_phase1_cases_latex_table
     return generate_phase1_cases_latex_table(cases_summary_path, output_path, config=config)
 
 

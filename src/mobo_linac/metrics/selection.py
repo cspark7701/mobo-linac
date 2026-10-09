@@ -22,6 +22,7 @@ from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.result_schema import ResultSchema, legacy_objective_alias
+from mobo_linac.utils.durable import atomic_json
 
 KNEE_POLICY = "ideal_distance"
 SUPPORTED_POLICIES = (KNEE_POLICY,)
@@ -86,7 +87,6 @@ class RepresentativeSet:
         }
 
     def write(self, path: Union[str, Path]) -> Path:
-        from mobo_linac.io.durable import atomic_json
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_json(path, self.to_dict())

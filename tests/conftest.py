@@ -167,7 +167,7 @@ def recording_astra_project(tmp_path, monkeypatch):
 @pytest.fixture
 def publication_runs(tmp_path):
     """Temporary explicit-contract runs with feasible, infeasible, and failed evaluations."""
-    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     from mobo_linac.io.results import get_train_tensors
     import pandas as pd

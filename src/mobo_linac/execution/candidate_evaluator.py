@@ -14,7 +14,7 @@ import numpy as np
 from mobo_linac.config import MoboConfig
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.parallel import ProcessPoolEvaluator
-from mobo_linac.execution.requests import EvaluationRequest
+from mobo_linac.requests import EvaluationRequest
 from mobo_linac.execution.contracts import Evaluator, evaluate_requests, evaluation_identity
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.diagnostics import finite_measurement, normalize_diagnostics

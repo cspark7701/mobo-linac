@@ -20,11 +20,8 @@ from mobo_linac.io.checkpoint import (
     migrate_to_v3,
     save_run_checkpoint,
 )
-from mobo_linac.io.results import (
-    load_evaluation_results,
-    results_to_dataframe,
-    save_evaluation_results,
-)
+from mobo_linac.io.results import load_evaluation_results, results_to_dataframe
+from mobo_linac.metrics.exports import save_evaluation_results
 import torch
 import json
 
@@ -376,7 +373,8 @@ def test_named_legacy_model_headers_and_unknown_status_are_preserved(tmp_path):
 
 
 def test_artifact_writer_keeps_pareto_semantics_and_clears_stale_rows(tmp_path, sample_results):
-    from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+    from mobo_linac.io.artifacts import validate_run_completion
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.config import load_config
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     from copy import deepcopy
@@ -405,7 +403,7 @@ def test_artifact_writer_keeps_pareto_semantics_and_clears_stale_rows(tmp_path, 
 
 
 def test_export_failure_cannot_leave_completion_marker(tmp_path, sample_results, monkeypatch):
-    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     writer = RunArtifactWriter(tmp_path, TEST_CONFIG)
     tracker = HypervolumeTracker([-1e-4, -1e-4, -1e7], TEST_CONFIG)
@@ -455,7 +453,7 @@ def test_journal_appends_are_constant_time_without_rereading(tmp_path, monkeypat
 
 def test_incremental_artifact_export_matches_full_rebuild(tmp_path):
     """Exports reusing cached conversions are byte-identical to a fresh full rebuild."""
-    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     results = _synthetic_results(30)
     tracker = HypervolumeTracker([-3e-6, -3e-6, -2e5], TEST_CONFIG)

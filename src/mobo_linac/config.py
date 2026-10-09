@@ -18,6 +18,9 @@ import yaml
 
 from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
+from mobo_linac.perturbations import PerturbationSpecification
+from mobo_linac.result_schema import ResultSchema
+from mobo_linac.utils.durable import atomic_json, atomic_write_text
 from mobo_linac.status import DEFAULT_RETRY_STATUSES, SimulationStatus
 from mobo_linac.benchmark_algorithms import (
     SUPPORTED_BENCHMARK_ALGORITHMS,
@@ -334,7 +337,6 @@ class MoboConfig:
             duplicates = sorted({name for name in names if names.count(name) > 1})
             if duplicates:
                 raise ValueError(f"Duplicate {kind}: '{duplicates[0]}'")
-        from mobo_linac.result_schema import ResultSchema
         ResultSchema.from_config(self)
         if "nominal" in self.sensitivity_profiles:
             raise ValueError("The nominal constraint profile is the top-level constraints section; "
@@ -352,7 +354,6 @@ class MoboConfig:
             self.get_constraint_profile(self.benchmark.constraint_profile)
             self.benchmark.resolved_reporting_ref_point(len(self.objectives))
         if self.perturbations is not None:
-            from mobo_linac.robustness.evaluator import PerturbationSpecification
             PerturbationSpecification.from_dict(self.perturbations).validate_for(self)
 
     def scientific_dict(self) -> Dict[str, Any]:
@@ -385,13 +386,11 @@ class MoboConfig:
     def save_json(self, output_path: Union[str, Path]) -> Path:
         """Save configuration to JSON file."""
         self.validate()
-        from mobo_linac.io.durable import atomic_json
         return atomic_json(output_path, asdict(self))
 
     def save_yaml(self, output_path: Union[str, Path]) -> Path:
         """Save configuration to YAML file."""
         self.validate()
-        from mobo_linac.io.durable import atomic_write_text
         return atomic_write_text(output_path, yaml.dump(asdict(self), default_flow_style=False))
 
 
@@ -554,7 +553,6 @@ def export_config_schema(output_path: Optional[Union[str, Path]] = None) -> Dict
               "description": "Finite values; validate() also checks ordered nondegenerate bounds, objective signs/aliases, and noise-vector dimensions.",
               **_dataclass_schema(MoboConfig), "definitions": {"BenchmarkConfig": _dataclass_schema(BenchmarkConfig)}})
     if output_path is not None:
-        from mobo_linac.io.durable import atomic_json
         atomic_json(output_path, schema)
     return schema
 

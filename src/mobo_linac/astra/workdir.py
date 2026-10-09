@@ -10,9 +10,9 @@ import json
 import shutil
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union
 
-from mobo_linac.io.durable import fsync_dir, snapshot_file, write_once_json  # noqa: F401  (re-exported)
+from mobo_linac.utils.durable import fsync_dir, snapshot_file, write_once_json  # noqa: F401  (re-exported)
 
 
 DEFAULT_TEMPLATE_IN = "astra.in"

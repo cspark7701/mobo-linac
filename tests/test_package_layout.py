@@ -40,7 +40,7 @@ def test_subpackage_imports():
     assert mobo_linac.models.build_gp_models is not None
     assert mobo_linac.acquisition.build_acquisition_function is not None
     assert mobo_linac.metrics.HypervolumeTracker is not None
-    assert mobo_linac.io.save_evaluation_results is not None
+    assert mobo_linac.metrics.save_evaluation_results is not None
     assert mobo_linac.plotting.plot_pareto_front is not None
 
 
@@ -162,3 +162,56 @@ def test_astra_template_directory_is_independent_of_working_directory(tmp_path, 
     assert runner.build_evaluator().template_dir == expected
     config.simulation.template_dir = ".."  # relative to the configuration file's directory
     assert resolve_template_dir(config) == expected
+
+
+# Package layers, lowest first. A module may import only from its own or lower layers.
+LAYERS = {
+    "status": 0, "diagnostics": 0, "result_schema": 0, "display": 0, "campaign_options": 0, "config": 0,
+    "benchmark_algorithms": 0, "utils": 0, "evaluation": 0, "objectives": 0, "constraints": 0,
+    "perturbations": 0, "conventions": 0, "requests": 0,
+    "io": 1, "models": 2, "acquisition": 2, "metrics": 2,
+    "astra": 3, "execution": 3, "plotting": 3,
+    "campaigns": 4, "robustness": 4, "verification": 4, "cli": 5,
+}
+# Documented function-level imports: CLI subcommands load their workflow on demand, and
+# Matplotlib-backed plotting is imported only where figures are exported.
+LAZY_ALLOWED = ("mobo_linac.cli", "->mobo_linac.plotting", "mobo_linac.astra.runner->astra")
+
+
+def _package_imports():
+    import ast
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "src" / "mobo_linac"
+    for path in root.rglob("*.py"):
+        parts = path.relative_to(root).with_suffix("").parts
+        module = ".".join(("mobo_linac",) + tuple(p for p in parts if p != "__init__"))
+        tree = ast.parse(path.read_text())
+        top = {id(node) for node in tree.body}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("mobo_linac"):
+                yield module, node.module, id(node) in top
+
+
+def test_package_layers_are_respected():
+    def layer(name):
+        parts = name.split(".")
+        return LAYERS[parts[1]] if len(parts) > 1 else None
+    violations = sorted({f"{source} -> {target}" for source, target, _ in _package_imports()
+                         if layer(source) is not None and layer(target) is not None and layer(target) > layer(source)})
+    assert violations == []
+
+
+def test_function_level_package_imports_are_documented_exceptions():
+    lazy = sorted({f"{source}->{target}" for source, target, top in _package_imports() if not top})
+    undocumented = [item for item in lazy if not any(
+        item.startswith(allowed) or allowed in item for allowed in LAZY_ALLOWED)]
+    assert undocumented == []
+
+
+def test_campaign_engine_imports_without_matplotlib():
+    import subprocess
+    import sys
+    code = ("import sys, mobo_linac.campaigns, mobo_linac.robustness, mobo_linac.verification; "
+            "assert 'matplotlib' not in sys.modules, sorted(m for m in sys.modules if 'matplotlib' in m)[:3]")
+    completed = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stderr

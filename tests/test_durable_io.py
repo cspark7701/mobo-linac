@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 import torch
 
-from mobo_linac.io import durable
+from mobo_linac.utils import durable
 
 
 class Untrusted:

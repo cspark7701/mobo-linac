@@ -906,7 +906,7 @@ def test_requested_plot_failure_prevents_final_completion(tmp_path, monkeypatch)
     import mobo_linac.campaigns.strategies as strategies_module
     def fail_plot(*args, **kwargs):
         raise OSError("Injected figure failure")
-    monkeypatch.setattr(runner_module, "plot_hypervolume_progress", fail_plot)
+    monkeypatch.setattr("mobo_linac.plotting.plot_hypervolume_progress", fail_plot)
     runner = MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=1, num_batches=0,
                                 evaluator=MockEvaluator(tmp_path), export_plots=True, device="cpu")
     with pytest.raises(OSError, match="figure failure"):

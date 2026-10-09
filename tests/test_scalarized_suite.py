@@ -145,7 +145,7 @@ def test_cli_suite_arguments():
 def test_scalarized_aggregation_rejects_different_reporting_references(tmp_path):
     import json
     from mobo_linac.config import load_config
-    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     config = load_config("configs/mobo_200MeV.yaml")
     for name, ref in [("first", [-1e-5, -1e-5, -1e6]), ("second", [-2e-5, -1e-5, -1e6])]:

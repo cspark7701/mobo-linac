@@ -11,7 +11,7 @@ from typing import Any, Callable, Dict, List, Optional, Protocol, Sequence, Unio
 
 from mobo_linac.astra.workdir import format_eval_id
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
-from mobo_linac.execution.requests import EvaluationRequest
+from mobo_linac.requests import EvaluationRequest
 from mobo_linac.io.journal import same_evaluation
 
 RawResult = Union[Dict[str, Any], EvaluationResult]

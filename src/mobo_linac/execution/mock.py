@@ -14,7 +14,7 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 from mobo_linac.astra.workdir import format_eval_id
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
 from mobo_linac.evaluation import EvaluationResult
-from mobo_linac.execution.requests import EvaluationRequest
+from mobo_linac.requests import EvaluationRequest
 
 LEGACY_OBJECTIVES = ("norm_emit_x", "norm_emit_y", "sigma_energy")
 # Synthetic in-limit beam diagnostics of the canonical 200 MeV channels.

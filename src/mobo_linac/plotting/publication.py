@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from mobo_linac.io.run_data import read_run_data, read_comparable_runs
+from mobo_linac.metrics.latex import verification_records, measured
+from mobo_linac.plotting.common import PlotSchema
 
 EMIT_SCALE = 1e6
 ENERGY_SCALE = 1e-6
@@ -123,7 +125,6 @@ def plot_pareto_front_comparison(
     directories = ([phase1_dir] if phase1_dir is not None else []) + [phase2_dir, phase3_dir]
     runs = read_comparable_runs(directories)
     objectives = runs[0].config.objectives
-    from mobo_linac.plotting.common import PlotSchema
     plot_schema = PlotSchema.from_config(runs[0].config)
     def label(objective):
         spec = plot_schema.objective(objective.explicit_name)
@@ -165,7 +166,6 @@ def plot_verification_comparison(
 
     Data source: verification_summary.csv (never hard-coded).
     """
-    from mobo_linac.metrics.latex import verification_records, measured
     records = verification_records(verification_csv)
     df = pd.DataFrame(records)
     columns = records[0].get("objective_order", list(records[0].get("stored_objectives", {}))) if records else []

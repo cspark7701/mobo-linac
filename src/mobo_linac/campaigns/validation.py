@@ -4,6 +4,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Union
 
 from mobo_linac.config import MoboConfig
+from mobo_linac.campaigns.runner import MoboCampaignRunner
 
 
 def run_validation_campaign(
@@ -18,7 +19,6 @@ def run_validation_campaign(
     ``options`` are resolved campaign options (see ``config.resolve_campaign_options``).
     The standard campaign figures and artifacts are the validation outputs.
     """
-    from mobo_linac.campaigns.runner import MoboCampaignRunner
 
     runner = MoboCampaignRunner(
         config=config,

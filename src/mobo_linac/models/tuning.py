@@ -24,6 +24,7 @@ from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
 from mobo_linac.config import GpModelConfig, ExecutionConfig
 from mobo_linac.models.diagnostics import compute_predictive_diagnostics
 from mobo_linac.models.gp import build_gp_models, fit_gp_models, SurrogateSettings
+from mobo_linac.acquisition.mobo import build_acquisition_function, generate_next_candidates
 
 
 @dataclass
@@ -179,7 +180,6 @@ class AcquisitionTuningSummary:
 
 def _evaluate_acquisition(model, train_X, train_Y, ref_point, bounds, acq_type, restarts, raw_samples,
                           batch_size, maxiter, batch_limit, device) -> AcquisitionHyperparameterResult:
-    from mobo_linac.acquisition.mobo import build_acquisition_function, generate_next_candidates
     result = AcquisitionHyperparameterResult(acq_type, restarts, raw_samples, maxiter, batch_limit)
     started = time.perf_counter()
     try:

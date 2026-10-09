@@ -15,6 +15,10 @@ from botorch.models import ModelListGP
 from mobo_linac.config import ConstraintsConfig, MoboConfig
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
 from mobo_linac.models.gp import SurrogateSettings, build_gp_models, channel_record, fit_gp_models, fit_outcomes
+from mobo_linac.models.artifacts import ARTIFACT_VERSION, model_payload
+from mobo_linac.models.artifacts import read_artifact, restore_model
+from mobo_linac.utils import get_device
+from mobo_linac.utils.durable import atomic_torch_save
 
 
 class SurrogatePipeline:
@@ -30,7 +34,6 @@ class SurrogatePipeline:
         device: Optional[Union[str, torch.device]] = None,
         constraint_layout: str = "diagnostics",
     ):
-        from mobo_linac.utils import get_device
         self.device = get_device(device)
         self.bounds = bounds.to(dtype=torch.double, device=self.device)
         self.settings = settings
@@ -146,8 +149,6 @@ class SurrogatePipeline:
 
     def save_artifact(self, path, *, training_ids=None, metadata=None):
         """Persist predictions, transforms, effective noise and fitting evidence."""
-        from mobo_linac.io.durable import atomic_torch_save
-        from mobo_linac.models.artifacts import ARTIFACT_VERSION, model_payload
         if not self.is_fitted:
             raise RuntimeError("Cannot save an unfitted pipeline.")
         ids = self.training_ids if training_ids is None else list(training_ids)
@@ -166,7 +167,6 @@ class SurrogatePipeline:
 
     @classmethod
     def load_artifact(cls, path, device="cpu"):
-        from mobo_linac.models.artifacts import read_artifact, restore_model
         artifact = read_artifact(path)
         if artifact["kind"] != "pipeline":
             raise ValueError("Expected a pipeline artifact.")

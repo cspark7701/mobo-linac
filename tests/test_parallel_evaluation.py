@@ -21,7 +21,7 @@ from mobo_linac.execution.parallel import (
     WorkerTask,
     run_worker_task,
 )
-from mobo_linac.execution.requests import EvaluationRequest, requests_for
+from mobo_linac.requests import EvaluationRequest, requests_for
 
 
 def evaluate_candidates(candidates, run_id, max_workers, base_results_dir, template_dir=None,
@@ -291,7 +291,8 @@ def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monke
     from mobo_linac.config import load_config
     from mobo_linac.io.journal import append_streaming_evaluation, load_streaming_evaluations
     from mobo_linac.io.checkpoint import CheckpointState
-    from mobo_linac.io.results import save_evaluation_results, load_evaluation_results
+    from mobo_linac.io.results import load_evaluation_results
+    from mobo_linac.metrics.exports import save_evaluation_results
 
     executable = temp_project['base_dir'] / 'stub_astra'
     executable.write_bytes(b'stub executable bytes')
@@ -362,7 +363,7 @@ def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monke
 def test_worker_crash_retains_serializable_request_and_order(tmp_path, monkeypatch, submission_crash):
     import pickle
     from concurrent.futures import Future
-    from mobo_linac.execution.requests import EvaluationRequest
+    from mobo_linac.requests import EvaluationRequest
     import mobo_linac.execution.parallel as parallel
     captured = []
     class Pool:

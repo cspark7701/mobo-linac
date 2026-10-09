@@ -1,7 +1,7 @@
 """Durable campaign model and checkpoint commits shared by all strategies."""
 import hashlib
 from uuid import uuid4
-from mobo_linac.io.durable import atomic_json, unlink_durable
+from mobo_linac.utils.durable import atomic_json, unlink_durable
 
 
 def persist_model(run_dir, model, iteration, training_ids, metadata, *, pipeline, save_model):

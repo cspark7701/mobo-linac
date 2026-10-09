@@ -637,7 +637,7 @@ def test_pareto_energy_spread_physical_range(phase2_dir):
 
 def test_new_run_artifacts_have_publication_headers_even_when_empty(tmp_path):
     from mobo_linac.config import load_config
-    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     config = load_config("configs/mobo_200MeV.yaml")
     writer = RunArtifactWriter(tmp_path, config)
@@ -684,7 +684,7 @@ def test_custom_objective_figures_keep_recorded_units_and_close_figures(tmp_path
     import torch
     from mobo_linac.config import load_config, ObjectiveConfig
     from mobo_linac.evaluation import EvaluationResult
-    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     from mobo_linac.metrics.publication import generate_campaign_summary_latex_table
     from mobo_linac.plotting.publication import plot_pareto_front_comparison, plot_verification_comparison

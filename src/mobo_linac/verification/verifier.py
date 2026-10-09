@@ -4,20 +4,18 @@ import math
 import json
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
-import torch
 
 from mobo_linac.astra.workdir import file_sha256, format_eval_id, validate_component
-from mobo_linac.io.durable import atomic_csv, atomic_write_bytes, write_once_json
+from mobo_linac.utils.durable import atomic_csv, atomic_write_bytes, write_once_json
 from mobo_linac.diagnostics import diagnostic_observations, normalize_diagnostics
-from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask, compute_metric_deltas
 from mobo_linac.metrics.selection import select_representatives
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.verification.audit import audit_attempt
+from mobo_linac.metrics.latex import generate_verification_latex_table
 
 
 def compute_file_sha256(file_path):
@@ -190,7 +188,6 @@ def save_verification_reports(records, session_path, out_path, settings=None, co
 
 
 def export_verification_latex_table(records, output_path='results/verification/verification_table.tex', config=None):
-    from mobo_linac.metrics.latex import generate_verification_latex_table
     path = Path(output_path)
     generate_verification_latex_table(records, output_path=path, config=config)
     return path

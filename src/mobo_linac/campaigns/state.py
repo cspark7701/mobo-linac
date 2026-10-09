@@ -1,9 +1,8 @@
 """Validation and random-state restoration for campaign checkpoints and proposals."""
 
 from copy import deepcopy
-from dataclasses import asdict, dataclass, replace
+from dataclasses import dataclass, replace
 import math
-import random
 from typing import Optional, Sequence, Tuple
 import warnings
 
@@ -17,6 +16,8 @@ from mobo_linac.io.checkpoint import CampaignSpec, CheckpointState
 from mobo_linac.io.results import get_train_tensors
 from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference_point
 from mobo_linac.result_schema import ResultSchema
+from mobo_linac.campaign_options import normalize_scalar_weights
+from mobo_linac.utils import get_device
 
 
 def prepare_resume_state(
@@ -242,7 +243,6 @@ def restore_rng_state(state: CheckpointState) -> None:
 
 def resolve_resume_device(state: CheckpointState, requested_device) -> torch.device:
     """The saved device (explicit requests must match it), with a CUDA RNG topology check."""
-    from mobo_linac.utils import get_device
 
     def canonical(device, saved=False):
         value = torch.device(device)
@@ -308,7 +308,6 @@ def merge_with_checkpoint(state: CheckpointState, overrides: CampaignOverrides, 
     if overrides.acquisition is not None and decode_acquisition(overrides.acquisition) is not decode_acquisition(saved.acquisition_mode):
         problems.append("Incompatible resume acquisition mode.")
     if state.migrated_from != "1.0" and overrides.scalar_weights is not None:
-        from mobo_linac.campaign_options import normalize_scalar_weights
         weights = normalize_scalar_weights(list(overrides.scalar_weights), len(saved.scalar_weights))
         if not torch.allclose(weights, torch.tensor(saved.scalar_weights, dtype=torch.double)):
             problems.append("Incompatible resume scalar weights.")

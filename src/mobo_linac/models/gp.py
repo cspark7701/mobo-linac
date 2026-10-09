@@ -22,6 +22,7 @@ from gpytorch.mlls import ExactMarginalLogLikelihood
 import linear_operator
 
 from mobo_linac.utils.logger import get_logger
+from mobo_linac.utils import get_device
 
 logger = get_logger(__name__)
 
@@ -134,7 +135,6 @@ def build_output_gp(
     """
     if train_X.shape[0] == 0:
         raise ValueError("Cannot build GP model with empty training set.")
-    from mobo_linac.utils import get_device
     target_device = get_device(device)
     train_X_dbl = train_X.to(dtype=torch.double, device=target_device)
     train_Y_dbl = train_Y.to(dtype=torch.double, device=target_device)
@@ -201,7 +201,6 @@ def build_gp_models(
     """
     if train_X.shape[0] == 0:
         raise ValueError("Cannot build GP model with empty training set.")
-    from mobo_linac.utils import get_device
     target_device = get_device(device)
     train_Y_dbl = train_Y.to(dtype=torch.double, device=target_device)
     if train_Y_dbl.ndim != 2 or train_Y_dbl.shape[1] < 1:

@@ -4,7 +4,7 @@ Provides process-safe parallel evaluation of ASTRA simulation batches,
 candidate evaluation base abstractions, and canonical mock evaluation infrastructure.
 """
 
-from mobo_linac.execution.requests import EvaluationRequest, requests_for
+from mobo_linac.requests import EvaluationRequest, requests_for
 from mobo_linac.execution.candidate_evaluator import (
     CandidateEvaluatorBase,
     EvaluationOutcome,

@@ -3,9 +3,7 @@ Result I/O, Serialization, DataFrame Conversions, and Checkpoint Management.
 """
 
 import json
-import os
-import random
-from dataclasses import asdict, dataclass, field, fields, is_dataclass
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple, Union
 import numpy as np
@@ -13,7 +11,6 @@ import pandas as pd
 import torch
 
 from mobo_linac.evaluation import EvaluationResult
-from mobo_linac.io.durable import atomic_torch_save, safe_torch_load
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, diagnostic_observations, finite_measurement, normalize_diagnostics
 
@@ -150,26 +147,6 @@ def get_constraint_tensors(
     """
     return get_training_observations(results, exclude_invalid, require_diagnostics=True, config=config).constraints
 
-
-
-def save_evaluation_results(
-    results: List[EvaluationResult],
-    run_dir: Union[str, Path],
-    *,
-    config: Any,
-    reporting_ref_point,
-    reference_policy: str = "explicit",
-) -> Dict[str, Path]:
-    """
-    Save candidate history, Pareto fronts and fixed-reference metrics for a record set,
-    tracked as a single cumulative iteration against an explicit reporting reference.
-    """
-    from mobo_linac.io.artifacts import RunArtifactWriter
-    from mobo_linac.metrics.hypervolume import HypervolumeTracker
-    tracker = HypervolumeTracker(reporting_ref_point, config)
-    _, y, feasible = get_train_tensors(results, config=config)
-    tracker.track_iteration(0, y, feasible)
-    return RunArtifactWriter(run_dir, config).write(results, tracker, reference_policy=reference_policy)
 
 
 def load_evaluation_results(

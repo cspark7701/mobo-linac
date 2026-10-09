@@ -7,7 +7,7 @@ from typing import Any, Dict, List, Union
 import torch
 from botorch.models import ModelListGP, SingleTaskGP
 
-from mobo_linac.io.durable import atomic_torch_save, safe_torch_load
+from mobo_linac.utils.durable import atomic_torch_save, safe_torch_load
 from mobo_linac.models.gp import FitOutcome, SurrogateSettings, build_output_gp, channel_record, output_models
 
 ARTIFACT_VERSION = 1

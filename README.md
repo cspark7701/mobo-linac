@@ -65,6 +65,23 @@ mobo-linac/
 └── results/                           # Optimization run output directories
 ```
 
+### Package layering
+
+Modules import only from their own or lower layers (enforced by `tests/test_package_layout.py`):
+
+| Layer | Packages / modules |
+| :--- | :--- |
+| 0 core | `config`, `result_schema`, `diagnostics`, `display`, `conventions`, `perturbations`, `requests`, `evaluation`, `objectives`, `constraints`, `status`, `campaign_options`, `utils` (incl. `utils.durable`) |
+| 1 storage | `io` (results, journal, checkpoints, run data, completion marker) |
+| 2 analysis | `models`, `acquisition`, `metrics` (incl. `metrics.exports` run-artifact writer) |
+| 3 backends & figures | `astra`, `execution`, `plotting` |
+| 4 workflows | `campaigns`, `robustness`, `verification` |
+| 5 interface | `cli` |
+
+Function-level package imports are limited to CLI subcommands (each loads its workflow on demand)
+and Matplotlib-backed plotting, which is imported only where figures are exported, so
+`import mobo_linac.campaigns` does not load Matplotlib.
+
 
 ---
 

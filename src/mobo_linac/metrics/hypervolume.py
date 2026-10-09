@@ -15,6 +15,8 @@ from mobo_linac.metrics.front import front_size, hypervolume
 
 from mobo_linac.config import MoboConfig
 from mobo_linac.objectives import transform_to_physical_space
+from mobo_linac.result_schema import ResultSchema
+from mobo_linac.utils.durable import atomic_csv
 
 
 def compute_reference_point(
@@ -45,7 +47,6 @@ def compute_reference_point(
         # The configured schema defines the empty-data reference; there is no implicit layout.
         if config is None:
             raise ValueError("An empty objective tensor requires a configuration or explicit reference point.")
-        from mobo_linac.result_schema import ResultSchema
         return torch.tensor(ResultSchema.from_config(config).empty_reference, dtype=torch.double)
 
     train_Y_double = train_Y.to(dtype=torch.double)
@@ -119,7 +120,6 @@ class HypervolumeTracker:
         else:
             self._reporting_ref_point = reporting_ref_point.to(dtype=torch.double)
 
-        from mobo_linac.result_schema import ResultSchema
         self.schema = ResultSchema.from_config(config)
         if self._reporting_ref_point.shape != (len(self.schema.signs),):
             raise ValueError("Reporting reference must match configured objectives.")
@@ -197,7 +197,6 @@ class HypervolumeTracker:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         df = self.to_dataframe()
-        from mobo_linac.io.durable import atomic_csv
         atomic_csv(path, df)
         return path
 

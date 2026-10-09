@@ -16,13 +16,16 @@ from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 import uuid
 import weakref
 
-from mobo_linac.execution.requests import EvaluationRequest
+from mobo_linac.requests import EvaluationRequest
 from mobo_linac.status import DEFAULT_RETRY_STATUSES, SimulationStatus, decode_status
+from mobo_linac.astra.runner import resolve_template_dir
+from mobo_linac.astra.runner import run_astra_eval as execute
+from mobo_linac.config import MoboConfig
+from mobo_linac.config import config_from_dict
 
 
 def run_astra_eval(**kwargs):
     """Lazy backend dispatch; also preserves the public worker injection seam."""
-    from mobo_linac.astra.runner import run_astra_eval as execute
     return execute(**kwargs)
 
 
@@ -68,7 +71,6 @@ def failure_result(task: WorkerTask, status: SimulationStatus, error: str, *, at
 
 def run_worker_task(task: WorkerTask) -> Dict[str, Any]:
     """Evaluate one candidate with category-aware retries (only infrastructure outcomes retry)."""
-    from mobo_linac.config import config_from_dict
     config = config_from_dict(task.config)  # the serialized configuration is converted once per task
     retry_statuses = task.retry_statuses()
     max_attempts = task.retries + 1
@@ -134,8 +136,6 @@ class ProcessPoolEvaluator:
         mp_context: Optional[str] = None,
         in_process: bool = False,
     ):
-        from mobo_linac.astra.runner import resolve_template_dir
-        from mobo_linac.config import MoboConfig
         if not isinstance(config, MoboConfig):
             raise TypeError("ProcessPoolEvaluator requires the campaign MoboConfig.")
         config.validate()

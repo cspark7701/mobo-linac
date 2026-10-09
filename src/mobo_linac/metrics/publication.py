@@ -2,16 +2,14 @@
 from pathlib import Path
 import numpy as np
 
-from mobo_linac.io.run_data import RunData, read_comparable_runs, read_run_data
+from mobo_linac.io.run_data import RunData, read_comparable_runs
 from mobo_linac.io.journal import same_evaluation
 from typing import List, Optional, Sequence
 
 from mobo_linac.display import objective_displays
-from mobo_linac.metrics.latex import (RawLatex, Table, _markdown_text, _write_table, escape_latex, format_measured,
-                                      format_scientific, objective_columns, verification_records, verification_table)
+from mobo_linac.metrics.latex import RawLatex, Table, _markdown_text, _write_table, format_measured, format_scientific, objective_columns, verification_records, verification_table
 from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
 from mobo_linac.metrics.selection import select_representatives
-from mobo_linac.result_schema import ResultSchema
 
 def compute_target_distance(values, targets) -> float:
     """Euclidean norm of objective values relative to their configured targets."""

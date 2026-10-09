@@ -3,7 +3,7 @@ Convergence and optimization progress figures.
 """
 
 from pathlib import Path
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, List, Mapping, Optional, Sequence, Union
 
 import matplotlib.pyplot as plt
 import numpy as np

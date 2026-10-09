@@ -83,7 +83,7 @@ def test_candidate_discovery_rejects_explicit_missing_inputs(publication_runs, t
 
 def test_empty_campaign_has_unknown_rates_and_extrema(tmp_path):
     from mobo_linac.config import load_config
-    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     config = load_config('configs/mobo_200MeV.yaml')
     config.save_json(tmp_path / 'config.json')
@@ -95,7 +95,7 @@ def test_empty_campaign_has_unknown_rates_and_extrema(tmp_path):
 
 
 def test_reader_checks_existing_completion_marker(publication_runs):
-    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.io.results import get_train_tensors
     from mobo_linac.metrics.hypervolume import HypervolumeTracker
     directory = publication_runs[0]
@@ -111,3 +111,13 @@ def test_reader_checks_existing_completion_marker(publication_runs):
         stream.write(' ')
     with pytest.raises(ValueError, match='completion marker conflicts'):
         read_run_data(directory)
+
+
+def test_implicit_candidate_selection_is_announced(tmp_path):
+    import json
+    for name in ("old", "new"):
+        (tmp_path / name).mkdir()
+        (tmp_path / name / "candidate_history.json").write_text(json.dumps([]))
+    with pytest.warns(UserWarning, match="most recent measured history"):
+        selected = discover_candidate_source(root=tmp_path)
+    assert selected.parent.name in ("old", "new")

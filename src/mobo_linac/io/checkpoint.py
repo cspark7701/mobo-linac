@@ -25,7 +25,7 @@ import numpy as np
 import torch
 
 from mobo_linac.evaluation import EvaluationResult
-from mobo_linac.io.durable import atomic_torch_save, safe_torch_load
+from mobo_linac.utils.durable import atomic_torch_save, safe_torch_load
 
 SCHEMA_VERSION = "3.0"
 SUPPORTED_VERSIONS = ("1.0", "2.0", SCHEMA_VERSION)

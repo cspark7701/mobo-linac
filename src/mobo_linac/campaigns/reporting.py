@@ -1,5 +1,6 @@
 """Final artifact publication, separated from proposal and backend execution."""
-from mobo_linac.io.durable import atomic_json
+from mobo_linac.utils.durable import atomic_json
+from mobo_linac.metrics.selection import select_representatives
 
 
 def finalize_campaign(writer, results, tracker, run_dir, config, proposal_history,
@@ -13,7 +14,6 @@ def finalize_campaign(writer, results, tracker, run_dir, config, proposal_histor
             for stem, plot in figures:
                 plot(results, tracker, config, figures_dir / f"{stem}.png")
     atomic_json(run_dir / "proposal_history.json", proposal_history)
-    from mobo_linac.metrics.selection import select_representatives
     try:
         select_representatives(results, config).write(run_dir / "representatives.json")
     except ValueError as error:  # no measured feasible point: record that explicitly

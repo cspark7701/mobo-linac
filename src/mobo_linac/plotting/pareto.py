@@ -7,7 +7,7 @@ non-dominated feasible front for every pair of configured objectives.
 
 from itertools import combinations
 from pathlib import Path
-from typing import Dict, List, Mapping, Optional, Sequence, Union
+from typing import List, Mapping, Optional, Sequence, Union
 
 import matplotlib.pyplot as plt
 import numpy as np

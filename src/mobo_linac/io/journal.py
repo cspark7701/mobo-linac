@@ -12,7 +12,7 @@ from typing import List, Optional, Union
 import warnings
 
 from mobo_linac.evaluation import EvaluationResult
-from mobo_linac.io.durable import append_line_durable, atomic_csv, ensure_trailing_newline, truncate_durable
+from mobo_linac.utils.durable import append_line_durable, atomic_csv, ensure_trailing_newline, truncate_durable
 from mobo_linac.io.results import results_to_dataframe
 
 

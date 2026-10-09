@@ -17,7 +17,9 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 from mobo_linac.astra.parser import AstraOutputParser, SimulationStatus
 from mobo_linac.astra.workdir import AstraWorkDirManager, file_sha256, format_eval_id
-from mobo_linac.io.durable import write_once_json
+from mobo_linac.utils.durable import write_once_json
+from mobo_linac.config import MoboConfig
+from mobo_linac.requests import validate_evaluation_settings
 
 
 def _configured_path(value: Optional[str], config) -> Optional[Path]:
@@ -107,7 +109,6 @@ def apply_parameters_to_astra(
         if applied_values is not None:
             applied_values[key] = value
 
-    from mobo_linac.config import MoboConfig
     if not isinstance(config, MoboConfig):
         raise TypeError("Parameter mapping requires the campaign MoboConfig.")
     design_vars = config.design_variables
@@ -191,7 +192,6 @@ class _Attempt:
 def prepare_attempt(parameters, run_id, eval_id, workdir_manager, config, *, attempt_id, retry_index,
                     namelist_overrides, source_settings, request_metadata) -> _Attempt:
     """Validate the request, resolve the executable, then reserve the attempt and record its start."""
-    from mobo_linac.execution.requests import validate_evaluation_settings
     validate_evaluation_settings(parameters, config, namelist_overrides, source_settings)
     command = resolve_executable(config)  # a missing executable fails before any reservation
     formatted = format_eval_id(eval_id)
@@ -334,7 +334,6 @@ def run_astra_eval(
     ``config.simulation`` (``template_dir`` overrides the directory); timeout and cleanup default
     to ``config.execution``. The returned record references the manifest instead of embedding it.
     """
-    from mobo_linac.config import MoboConfig
     if not isinstance(config, MoboConfig):
         raise TypeError("run_astra_eval requires the campaign MoboConfig.")
     config.validate()

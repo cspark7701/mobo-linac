@@ -14,6 +14,8 @@ from mobo_linac.diagnostics import (
     DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, invalid_diagnostic_channels, normalize_diagnostics,
 )
 from mobo_linac.status import SimulationStatus, classify_exception
+from mobo_linac.objectives import extract_physical_objectives
+from mobo_linac.result_schema import ResultSchema
 
 
 @dataclass
@@ -46,7 +48,6 @@ class AstraOutputParser:
 
     def __init__(self, *, config):
         """Exit-plane target and tolerance come only from the configured lattice settings."""
-        from mobo_linac.result_schema import ResultSchema
         self.schema = ResultSchema.from_config(config)
         self.config = config
         self.target_z_stop = float(config.tracking.z_stop_m)
@@ -191,7 +192,6 @@ class AstraOutputParser:
                 f"(expected >= {self.target_z_stop - self.z_loss_tolerance:.3f} m)"
             )
 
-        from mobo_linac.objectives import extract_physical_objectives
         try:
             objectives = extract_physical_objectives(raw_stats, self.schema)
             if status == SimulationStatus.SUCCESS and not all(math.isfinite(value) for value in objectives.values()):

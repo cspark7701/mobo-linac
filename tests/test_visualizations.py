@@ -172,7 +172,7 @@ def test_figure_scope_and_cleanup(sample_evaluation_results, tmp_path):
 def test_noncanonical_configuration_figures(tmp_path):
     from tests.test_configuration_boundaries import noncanonical_config
     from mobo_linac.execution.mock import MockEvaluator
-    from mobo_linac.execution.requests import requests_for
+    from mobo_linac.requests import requests_for
     from mobo_linac.evaluation import create_evaluation_result
     config = noncanonical_config()
     mock = MockEvaluator(tmp_path, config=config)
@@ -190,7 +190,7 @@ def test_noncanonical_configuration_figures(tmp_path):
 def test_campaign_finalization_leaves_no_open_figures(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
     from mobo_linac.execution.mock import MockEvaluator
-    from mobo_linac.execution.requests import requests_for
+    from mobo_linac.requests import requests_for
     plt.close("all")
     MoboCampaignRunner(config=CONFIG, output_dir=tmp_path / "run", num_initial_samples=3, num_batches=0,
                        device="cpu", export_plots=True, evaluator=MockEvaluator(tmp_path)).run()

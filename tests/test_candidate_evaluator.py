@@ -194,7 +194,7 @@ def test_override_failure_is_not_silently_applied(sample_candidate, recording_as
 
 def test_request_evaluator_receives_full_state_and_config(sample_candidate, tmp_path):
     from mobo_linac.config import load_config
-    from mobo_linac.execution.requests import EvaluationRequest
+    from mobo_linac.requests import EvaluationRequest
 
     config = load_config()
     evaluator = RobustnessEvaluator(config=config, base_output_dir=tmp_path)
@@ -228,7 +228,7 @@ def test_cli_and_script_honor_config_through_shared_workflow(sample_candidate, r
     import json
     from dataclasses import asdict
     from mobo_linac.cli.commands.audit import run_robustness
-    from mobo_linac.io.results import save_evaluation_results
+    from mobo_linac.metrics.exports import save_evaluation_results
     from scripts.run_robustness_analysis import run_robustness_analysis
 
     project, config = recording_astra_project

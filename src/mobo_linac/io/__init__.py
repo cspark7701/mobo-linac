@@ -11,10 +11,9 @@ from mobo_linac.io.results import (
     get_train_tensors,
     load_evaluation_results,
     results_to_dataframe,
-    save_evaluation_results,
 )
 from mobo_linac.io.checkpoint import CheckpointState, load_run_checkpoint, save_run_checkpoint
-from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+from mobo_linac.io.artifacts import validate_run_completion, write_completion_marker
 from mobo_linac.io.journal import (
     EvaluationJournal,
     JournalRecord,
@@ -24,14 +23,13 @@ from mobo_linac.io.journal import (
 )
 
 __all__ = [
-    "RunArtifactWriter",
+    "write_completion_marker",
     "validate_run_completion",
     "CheckpointState",
     "TrainingObservations",
     "get_training_observations",
     "get_constraint_tensors",
     "results_to_dataframe",
-    "save_evaluation_results",
     "load_evaluation_results",
     "save_run_checkpoint",
     "load_run_checkpoint",

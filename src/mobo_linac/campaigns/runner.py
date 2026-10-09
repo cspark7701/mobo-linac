@@ -42,8 +42,9 @@ from mobo_linac.config import CampaignSettings, MoboConfig, config_from_dict, lo
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.contracts import evaluate_requests
 from mobo_linac.execution.parallel import ProcessPoolEvaluator
-from mobo_linac.execution.requests import EvaluationRequest
-from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+from mobo_linac.requests import EvaluationRequest
+from mobo_linac.io.artifacts import validate_run_completion
+from mobo_linac.metrics.exports import RunArtifactWriter
 from mobo_linac.io.checkpoint import (
     CampaignSpec,
     CheckpointState,
@@ -54,18 +55,12 @@ from mobo_linac.io.checkpoint import (
     run_directory,
     save_run_checkpoint,
 )
-from mobo_linac.io.durable import atomic_json, atomic_write_text
+from mobo_linac.utils.durable import atomic_json, atomic_write_text
 from mobo_linac.io.journal import EvaluationJournal
 from mobo_linac.io.results import get_train_tensors, get_training_observations
 from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference_point
 from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
 from mobo_linac.models.artifacts import save_model_artifact
-from mobo_linac.plotting import (
-    plot_constraint_diagnostics,
-    plot_hypervolume_progress,
-    plot_objective_evolution,
-    plot_pareto_front,
-)
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.utils import get_device, get_logger
 
@@ -91,7 +86,16 @@ def campaign_numeric_scope(seed: int):
 
 
 def campaign_figures():
-    """Figure registrations exported at finalization: ``(file stem, plot(results, tracker, config, path))``."""
+    """Figure registrations exported at finalization: ``(file stem, plot(results, tracker, config, path))``.
+
+    Plotting (Matplotlib) is imported only here, so the campaign engine imports without it.
+    """
+    from mobo_linac.plotting import (
+        plot_constraint_diagnostics,
+        plot_hypervolume_progress,
+        plot_objective_evolution,
+        plot_pareto_front,
+    )
     return [
         ("hypervolume_progress", lambda results, tracker, config, path: plot_hypervolume_progress(tracker.to_dataframe(), path)),
         ("pareto_front", lambda results, tracker, config, path: plot_pareto_front(results, path, config=config)),

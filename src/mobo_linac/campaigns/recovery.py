@@ -1,6 +1,5 @@
 """Reconcile durable proposals, completed checkpoints, and streamed completions."""
 
-from pathlib import Path
 
 from mobo_linac.campaigns.state import prepare_resume_state
 from mobo_linac.io.journal import load_streaming_records, same_evaluation

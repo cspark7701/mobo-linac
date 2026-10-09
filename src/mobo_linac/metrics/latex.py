@@ -13,6 +13,8 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
 import pandas as pd
+from mobo_linac.display import objective_displays
+from mobo_linac.utils.durable import atomic_write_text
 
 # Archived verification/robustness/case files named the three 200 MeV objectives by alias.
 _LEGACY_ORDER = ["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
@@ -82,7 +84,6 @@ def objective_columns(config=None, names: Optional[Sequence[str]] = None,
                       units: Optional[Dict[str, str]] = None) -> List[ReportColumn]:
     """Configured display columns, or recorded names/units shown in physical units."""
     if config is not None:
-        from mobo_linac.display import objective_displays
         displays = {d.column: d for d in objective_displays(config)}
         # Configured labels are LaTeX; an unlabelled objective shows its escaped column name.
         latex_labels = {obj.explicit_name: obj.label or escape_latex(obj.explicit_name) for obj in config.objectives}
@@ -127,7 +128,6 @@ class Table:
 
 def _write_table(content, output_path):
     if output_path is not None:
-        from mobo_linac.io.durable import atomic_write_text
         atomic_write_text(output_path, content)
     return content
 

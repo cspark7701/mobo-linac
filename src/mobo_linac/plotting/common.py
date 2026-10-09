@@ -15,6 +15,8 @@ import numpy as np
 
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
 from mobo_linac.result_schema import ResultSchema
+from mobo_linac.display import objective_displays
+from mobo_linac.metrics.front import pareto_mask
 
 
 @dataclass(frozen=True)
@@ -51,7 +53,6 @@ class PlotSchema:
     def from_config(cls, config) -> "PlotSchema":
         if config is None or not hasattr(config, "constraints"):
             raise TypeError("Figures require the campaign MoboConfig (labels, scales and constraint limits).")
-        from mobo_linac.display import objective_displays
         schema = ResultSchema.from_config(config)
         design = tuple(AxisSpec(dv.name, _axis_label(dv.label or dv.name, dv.unit))
                        for dv in config.design_variables)
@@ -117,7 +118,6 @@ def best_so_far(values, sign: int):
 
 def nondominated_mask(frame, schema: PlotSchema) -> np.ndarray:
     """Non-dominated rows of finite objective values in the frame (direction aware)."""
-    from mobo_linac.metrics.front import pareto_mask
     values = frame[[spec.column for spec in schema.objectives]].to_numpy(dtype=float)
     finite = np.isfinite(values).all(axis=1)
     mask = np.zeros(len(frame), dtype=bool)

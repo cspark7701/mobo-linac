@@ -10,6 +10,9 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+from mobo_linac.metrics.reporting import validate_campaign_compatibility
+from mobo_linac.metrics.selection import valid_measured
+from mobo_linac.result_schema import ResultSchema
 
 
 def compute_bootstrap_ci(
@@ -48,8 +51,6 @@ def compute_bootstrap_ci(
 
 def feasible_objective_extrema(results, config) -> Dict[str, Optional[float]]:
     """Best feasible measured value per configured objective (direction aware); None if absent."""
-    from mobo_linac.metrics.selection import valid_measured
-    from mobo_linac.result_schema import ResultSchema
     schema = ResultSchema.from_config(config)
     _, values = valid_measured(results, schema, feasible=True)
     extrema = {}
@@ -80,7 +81,6 @@ def compute_aggregate_benchmark_metrics(
     Returns:
         Tuple of (aggregate_time_series_df, algorithm_summary_df).
     """
-    from mobo_linac.metrics.reporting import validate_campaign_compatibility
     convention = None
     for histories in seed_histories.values():
         for frame in histories.values():

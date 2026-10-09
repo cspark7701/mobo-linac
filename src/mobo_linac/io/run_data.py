@@ -1,5 +1,6 @@
 """Read recorded campaigns without inventing identities, feasibility, or conventions."""
 from dataclasses import dataclass
+import warnings
 import json
 from pathlib import Path
 
@@ -7,17 +8,21 @@ import numpy as np
 import pandas as pd
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
+from mobo_linac.io.artifacts import validate_run_completion
 from mobo_linac.config import load_config
 from mobo_linac.io.results import load_evaluation_results, results_to_dataframe
-from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
+from mobo_linac.conventions import reporting_metadata, validate_campaign_compatibility
 from mobo_linac.result_schema import ResultSchema
+from mobo_linac.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 HISTORY_NAMES = ("candidate_history.json", "candidate_history.csv", "evaluations.csv")
 PARETO_NAMES = ("pareto.csv", "pareto_all.csv", "pareto_feasible.csv")
 
 
 def discover_candidate_source(source=None, root="results"):
-    """Explicit paths fail clearly; omitted input selects the newest measured history."""
+    """Explicit paths fail clearly; omitted input selects the newest measured history (with a warning)."""
     if source is not None:
         path = Path(source)
         if not path.exists():
@@ -39,7 +44,13 @@ def discover_candidate_source(source=None, root="results"):
     directories = {p.parent for p in candidates}
     directory = max(directories, key=lambda directory: (
         max(p.stat().st_mtime_ns for p in candidates if p.parent == directory), str(directory)))
-    return next(directory / name for name in HISTORY_NAMES if (directory / name).is_file())
+    selected = next(directory / name for name in HISTORY_NAMES if (directory / name).is_file())
+    if source is None or len(directories) > 1:
+        # Never silent: an implicit choice in a shared results tree is announced.
+        message = f"No explicit candidate run given; using the most recent measured history: {selected}"
+        warnings.warn(message, UserWarning, stacklevel=2)
+        logger.warning(message)
+    return selected
 
 
 def load_candidates(source, config, root="results"):
@@ -114,7 +125,6 @@ def read_run_data(directory, config=None, legacy_reporting_metadata=None):
     """
     directory = Path(directory)
     if (directory / "run_complete.json").exists():
-        from mobo_linac.io.artifacts import validate_run_completion
         if not validate_run_completion(directory):
             raise ValueError("Run completion marker conflicts with recorded artifacts.")
     if config is None:

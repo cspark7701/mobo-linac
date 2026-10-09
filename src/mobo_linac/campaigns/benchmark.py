@@ -25,11 +25,13 @@ from mobo_linac.metrics.reporting import (
 )
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.io.artifacts import validate_run_completion
-from mobo_linac.io.durable import atomic_csv, atomic_json
+from mobo_linac.utils.durable import atomic_csv, atomic_json
 from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics, feasible_objective_extrema
 from mobo_linac.io.run_data import read_run_data
 
 from mobo_linac.utils.logger import get_logger
+from mobo_linac.campaigns.runner import MoboCampaignRunner
+from mobo_linac.config import load_config
 
 logger = get_logger(__name__)
 
@@ -120,7 +122,6 @@ class BenchmarkCampaignRunner:
     @classmethod
     def from_output_dir(cls, output_dir: Union[str, Path]) -> "BenchmarkCampaignRunner":
         """Analysis-only runner using the configuration recorded by the benchmark's runs."""
-        from mobo_linac.config import load_config
         configs = sorted(Path(output_dir).glob("per_seed/*/config.json"))
         if not configs:
             raise FileNotFoundError(f"No recorded benchmark run configuration under {output_dir}")
@@ -321,7 +322,6 @@ class BenchmarkCampaignRunner:
             logger.info(f"  - Total Planned Evaluations: {total_runs * effective_budget}")
             return pd.DataFrame(self.manifest_rows)
 
-        from mobo_linac.campaigns.runner import MoboCampaignRunner
 
         for s in self.seeds:
             for algo in self.algorithms:

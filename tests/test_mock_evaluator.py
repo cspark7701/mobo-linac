@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 
 from mobo_linac.execution.mock import MockEvaluator
-from mobo_linac.execution.requests import requests_for
+from mobo_linac.requests import requests_for
 
 
 def test_mock_batch_evaluator_callable(tmp_path):
@@ -62,7 +62,7 @@ def test_mock_batch_evaluator_failure_injection(tmp_path):
 def test_request_contract_streams_once_and_preserves_full_request(tmp_path):
     from mobo_linac.config import load_config
     from mobo_linac.execution.contracts import evaluate_requests
-    from mobo_linac.execution.requests import EvaluationRequest
+    from mobo_linac.requests import EvaluationRequest
     config = load_config('configs/publication_200MeV.yaml')
     requests = [EvaluationRequest('candidate_a', [0.2, 1, -1, 0, 0, 0],
                 {'charge:nrad': 8}, {'bunch_charge_scale': 1.1}, {'seed': 73})]
@@ -78,7 +78,7 @@ def test_request_contract_streams_once_and_preserves_full_request(tmp_path):
 def test_request_contract_reorders_completions_from_returning_backends():
     from mobo_linac.config import load_config
     from mobo_linac.execution.contracts import evaluate_requests
-    from mobo_linac.execution.requests import EvaluationRequest
+    from mobo_linac.requests import EvaluationRequest
     config = load_config('configs/publication_200MeV.yaml')
     requests = [EvaluationRequest(i, [0.2, 1, -1, 0, 0, 0]) for i in [1, 2]]
     class Legacy:
@@ -98,7 +98,7 @@ def test_request_contract_reorders_completions_from_returning_backends():
 def test_request_contract_rejects_corrupt_completions(fault):
     from mobo_linac.config import load_config
     from mobo_linac.execution.contracts import evaluate_requests
-    from mobo_linac.execution.requests import EvaluationRequest
+    from mobo_linac.requests import EvaluationRequest
     request = EvaluationRequest(1, [0.2, 1, -1, 0, 0, 0])
     class Backend:
         def evaluate(self, requests, run_id, on_complete=None):

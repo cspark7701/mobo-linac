@@ -3,7 +3,7 @@ Unit tests for Statistically Rigorous Benchmark Campaign Orchestration and Analy
 """
 
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.execution.requests import requests_for
+from mobo_linac.requests import requests_for
 import json
 from pathlib import Path
 import pytest
@@ -117,7 +117,7 @@ def test_benchmark_campaign_manifest_generation(tmp_path):
 def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acquisition, constrained):
     from mobo_linac.execution import MockEvaluator
     from mobo_linac.evaluation import create_evaluation_result
-    from mobo_linac.io.results import save_evaluation_results
+    from mobo_linac.metrics.exports import save_evaluation_results
     import mobo_linac.campaigns.runner as campaign_module
     import mobo_linac.campaigns.strategies as strategies_module
     import mobo_linac.campaigns.benchmark as benchmark_module
@@ -136,7 +136,7 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
             raw = MockEvaluator(tmp_path).evaluate(requests_for(candidates.tolist()))
             results = [create_evaluation_result(r, captured["config"]) for r in raw]
             # A complete test double publishes the same artifact contract as the real runner.
-            from mobo_linac.io.artifacts import RunArtifactWriter
+            from mobo_linac.metrics.exports import RunArtifactWriter
             from mobo_linac.metrics.hypervolume import HypervolumeTracker
             from mobo_linac.io.results import get_train_tensors
             config, run_dir = captured["config"], Path(captured["output_dir"])
@@ -150,7 +150,7 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
             writer.complete(len(results), None, ["config.json", "config.yaml"])
             return results, None, captured["output_dir"]
 
-    monkeypatch.setattr(campaign_module, "MoboCampaignRunner", RecordingRunner)
+    monkeypatch.setattr("mobo_linac.campaigns.benchmark.MoboCampaignRunner", RecordingRunner)
     monkeypatch.setattr(BenchmarkCampaignRunner, "analyze_completed_results", lambda self: None)
     runner = BenchmarkCampaignRunner(
         config=load_config("configs/publication_200MeV.yaml"), output_dir=tmp_path,
@@ -431,7 +431,7 @@ def test_missing_persisted_history_cannot_complete(tmp_path, monkeypatch):
             raw = MockEvaluator(tmp_path).evaluate(requests_for([[0.0] * 6] * 2))
             return [create_evaluation_result(r, self.config) for r in raw], None, None
 
-    monkeypatch.setattr(campaign_module, "MoboCampaignRunner", MissingArtifactRunner)
+    monkeypatch.setattr("mobo_linac.campaigns.benchmark.MoboCampaignRunner", MissingArtifactRunner)
     runner = BenchmarkCampaignRunner(
         config=load_config("configs/publication_200MeV.yaml"), output_dir=tmp_path,
         algorithms=["unconstrained_qlognehvi"], seeds=[42],
