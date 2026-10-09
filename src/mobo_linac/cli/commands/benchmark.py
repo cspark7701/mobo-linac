@@ -7,8 +7,12 @@ CLI command handlers for multi-algorithm benchmarking:
 import argparse
 from pathlib import Path
 
+from mobo_linac.utils.logger import get_logger
+from mobo_linac.cli.common import add_verbosity_args
 from mobo_linac.cli.common import MockEvaluator
 from mobo_linac.config import load_config
+
+logger = get_logger(__name__)
 
 
 def run_benchmark(args: argparse.Namespace) -> None:
@@ -42,7 +46,7 @@ def analyze_benchmark(args: argparse.Namespace) -> None:
     # Analysis reads the configuration recorded by the benchmark's own runs.
     runner = BenchmarkCampaignRunner.from_output_dir(args.output_dir)
     agg_df, summary_df = runner.analyze_completed_results()
-    print(f"Benchmark analysis complete. Aggregate metrics saved in {args.output_dir}")
+    logger.info(f"Benchmark analysis complete. Aggregate metrics saved in {args.output_dir}")
 
 
 def register_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
@@ -51,6 +55,7 @@ def register_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
     run_bm_parser = subparsers.add_parser(
         "run-benchmark", help="Run a paired multi-seed benchmark campaign"
     )
+    add_verbosity_args(run_bm_parser)
     run_bm_parser.add_argument(
         "--config", type=str, default=None, help="Path to config file"
     )
@@ -94,6 +99,7 @@ def register_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
     analyze_bm_parser = subparsers.add_parser(
         "analyze-benchmark", help="Aggregate and analyze completed benchmark campaign results"
     )
+    add_verbosity_args(analyze_bm_parser)
     analyze_bm_parser.add_argument(
         "--output-dir", type=str, default="results/publication_benchmark", help="Benchmark campaign directory"
     )

@@ -6,6 +6,9 @@ from pathlib import Path
 import pandas as pd
 
 from mobo_linac.utils.durable import atomic_csv
+from mobo_linac.utils.logger import get_logger
+
+logger = get_logger(__name__)
 from mobo_linac.metrics.latex import generate_robustness_summary_latex_table
 from mobo_linac.metrics.selection import select_representatives
 from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_MAPPING_REASON, configured_perturbation_spec
@@ -29,11 +32,11 @@ def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
     spec = spec or configured_perturbation_spec(config)
     spec.validate_for(config)
     if dry_run:
-        print("[DRY-RUN] Robustness Analysis Plan:")
-        print(f"  - Input Candidates: {len(results)}; selection requires observed feasibility")
-        print(f"  - Perturbations per Candidate: {num_perturbations}")
-        print(f"  - Lattice channels: {[c.channel for c in spec.lattice]}; seed policy: {spec.seed_policy}")
-        print(f"  - Source jitter unsupported: {SOURCE_MAPPING_REASON}")
+        logger.info("[DRY-RUN] Robustness Analysis Plan:")
+        logger.info(f"  - Input Candidates: {len(results)}; selection requires observed feasibility")
+        logger.info(f"  - Perturbations per Candidate: {num_perturbations}")
+        logger.info(f"  - Lattice channels: {[c.channel for c in spec.lattice]}; seed policy: {spec.seed_policy}")
+        logger.info(f"  - Source jitter unsupported: {SOURCE_MAPPING_REASON}")
         return output_dir
     if not results:
         raise ValueError("Robustness analysis requires measured candidate history; no candidates found")
@@ -58,5 +61,5 @@ def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
     generate_robustness_summary_latex_table(
         frame.rename(columns={"candidate_label": "role"}),
         output_path=output_dir / "robustness_table.tex", caption=caption, config=config)
-    print(f"Robustness results cover lattice jitter; source jitter is unsupported. Artifacts: {output_dir.resolve()}")
+    logger.info(f"Robustness results cover lattice jitter; source jitter is unsupported. Artifacts: {output_dir.resolve()}")
     return output_dir

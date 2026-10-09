@@ -62,7 +62,7 @@ from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference
 from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
 from mobo_linac.models.artifacts import save_model_artifact
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.utils import get_device, get_logger
+from mobo_linac.utils import get_device, get_logger, run_log
 
 logger = get_logger(__name__)
 
@@ -302,7 +302,8 @@ class MoboCampaignRunner:
                                          or (self.run_dir / "checkpoints" / "pending_batch.pt").exists()):
                 raise ValueError("Existing campaign journal/proposal requires resume, not a fresh run.")
             self.config.validate()
-            return CampaignLoop(self, resume_state).run()
+            with run_log(self.run_dir):  # the validated run directory receives the session log
+                return CampaignLoop(self, resume_state).run()
 
 
 class CampaignLoop:
@@ -364,7 +365,7 @@ class CampaignLoop:
                           runner.export_plots, self.elapsed(), campaign_figures())
         logger.info(f"=== Campaign Complete: {runner.run_id} ===")
         logger.info(f"Total Evaluations: {len(self.results)}")
-        logger.info(f"Output saved in: {self.run_dir.resolve()}\n")
+        logger.info(f"Output saved in: {self.run_dir.resolve()}")
         return self.results, self.tracker, self.run_dir
 
     def prepare_outputs(self) -> None:
@@ -395,10 +396,10 @@ class CampaignLoop:
                              else "observed_resume_session")
         mode = (f"Scalarized BO (weights={runner.scalar_weights.tolist()})" if runner.optimization_mode == "scalarized_bo"
                 else "Constrained MOBO (Feasibility-Aware)" if runner.constrained else "Unconstrained MOBO")
-        logger.info(f"\n=== Starting Optimization Campaign: {runner.run_id} ({mode}) ===")
+        logger.info(f"=== Starting Optimization Campaign: {runner.run_id} ({mode}) ===")
         logger.info(f"Initial samples: {runner.num_initial_samples}, Batches: {runner.num_batches}, "
                     f"Batch size: {runner.batch_size}, Workers: {runner.num_workers}, "
-                    f"Acquisition: {runner.acq_type}, Mode: {runner.optimization_mode}\n")
+                    f"Acquisition: {runner.acq_type}, Mode: {runner.optimization_mode}")
         if resume_state is None:
             if runner.export_env_info:
                 runner.export_environment_info(self.run_dir / "environment.txt")
@@ -419,8 +420,8 @@ class CampaignLoop:
         self.reporting_ref_point = torch.tensor(state.metrics.reporting_ref_point, dtype=torch.double)
         self.tracker = HypervolumeTracker(reporting_ref_point=self.reporting_ref_point, config=self.config)
         self.tracker.history = deepcopy(state.metrics.metric_history)
-        logger.info(f"\nResuming campaign '{self.runner.run_id}' from iteration {state.iteration + 1} "
-                    f"({len(self.results)} existing evaluations)...\n")
+        logger.info(f"Resuming campaign '{self.runner.run_id}' from iteration {state.iteration + 1} "
+                    f"({len(self.results)} existing evaluations)...")
         return state.iteration + 1
 
     def _restore_session(self, state: CheckpointState) -> None:
@@ -515,7 +516,7 @@ class CampaignLoop:
         label = "(Initial) " if iteration == 0 else ""
         logger.info(f"Iter {iteration:02d}/{self.runner.num_batches:02d} {label}| Evaluations: {len(self.results):02d} | "
                     f"Valid: {train_X.shape[0]:02d} | Feasible: {record['num_feasible_points']:02d} | "
-                    f"HV: {record['feasible_hypervolume']:.6e}\n")
+                    f"HV: {record['feasible_hypervolume']:.6e}")
         self.export()
 
     def export(self) -> None:

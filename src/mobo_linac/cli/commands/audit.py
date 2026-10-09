@@ -8,9 +8,13 @@ CLI command handlers for Pareto validation, candidate verification, and robustne
 import argparse
 from pathlib import Path
 
+from mobo_linac.utils.logger import get_logger
+from mobo_linac.cli.common import add_verbosity_args
 from mobo_linac.cli.common import MockEvaluator
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import create_evaluation_result
+
+logger = get_logger(__name__)
 
 
 def analyze_run(args: argparse.Namespace) -> None:
@@ -23,10 +27,10 @@ def analyze_run(args: argparse.Namespace) -> None:
     run_dir = Path(args.run_dir)
     run = read_run_data(run_dir)
     results = run.results
-    print(f"\n--- Analysis Summary for {run_dir.name} ---")
-    print(f"Total Evaluations: {len(results)}")
-    print(f"Valid Simulations: {sum(r.simulation_valid is True for r in results)} / {len(results)}")
-    print(f"Feasible Beams: {sum(r.physically_feasible is True for r in results)} / {len(results)}")
+    logger.info(f"--- Analysis Summary for {run_dir.name} ---")
+    logger.info(f"Total Evaluations: {len(results)}")
+    logger.info(f"Valid Simulations: {sum(r.simulation_valid is True for r in results)} / {len(results)}")
+    logger.info(f"Feasible Beams: {sum(r.physically_feasible is True for r in results)} / {len(results)}")
 
     output_dir = Path(args.output_dir) if args.output_dir else run_dir / "figures"
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -35,7 +39,7 @@ def analyze_run(args: argparse.Namespace) -> None:
         plot_pareto_front(results, output_dir / "pareto_front.png", config=run.config)
         plot_objective_evolution(results, output_dir / "objective_evolution.png", config=run.config)
         plot_constraint_diagnostics(results, run.config, output_dir / "constraint_diagnostics.png")
-    print(f"Figures exported to: {output_dir.resolve()}")
+    logger.info(f"Figures exported to: {output_dir.resolve()}")
 
 
 def run_robustness(args: argparse.Namespace) -> None:
@@ -87,13 +91,14 @@ def run_verification(args: argparse.Namespace) -> None:
         results, config=config, output_dir=output_dir, evaluator=evaluator,
         num_workers=getattr(args, "num_workers", None), timeout=getattr(args, "timeout", None),
         template_dir=getattr(args, "template_dir", None))
-    print(f"Verification produced {len(records)} audit records: {manifest}")
+    logger.info(f"Verification produced {len(records)} audit records: {manifest}")
 
 
 def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     """Registers audit, analysis, robustness, and verification subcommands."""
     # Subcommand: analyze
     analyze_parser = subparsers.add_parser("analyze", help="Analyze results from a completed optimization run")
+    add_verbosity_args(analyze_parser)
     analyze_parser.add_argument("--run-dir", type=str, required=True, help="Path to run directory")
     analyze_parser.add_argument("--output-dir", type=str, default=None, help="Output directory for figures")
     analyze_parser.set_defaults(handler=analyze_run)
@@ -102,6 +107,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     run_rob_parser = subparsers.add_parser(
         "run-robustness", help="Perform robustness and sensitivity analysis over Pareto candidates"
     )
+    add_verbosity_args(run_rob_parser)
     run_rob_parser.add_argument(
         "--config", type=str, default=None, help="Path to config file"
     )
@@ -135,6 +141,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     run_ver_parser = subparsers.add_parser(
         "run-verification", help="Rerun Pareto candidates independently for verification"
     )
+    add_verbosity_args(run_ver_parser)
     run_ver_parser.add_argument(
         "--config", type=str, default=None, help="Path to config file"
     )
@@ -162,6 +169,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     val_cfg_parser = subparsers.add_parser(
         "validate-config", help="Validate YAML/JSON configuration files and export schema/docs"
     )
+    add_verbosity_args(val_cfg_parser)
     val_cfg_parser.add_argument(
         "--config", type=str, default=None, help="Path to configuration file to validate"
     )
@@ -195,11 +203,11 @@ def validate_config(args: argparse.Namespace) -> None:
 
     if getattr(args, "export_schema", None):
         export_config_schema(args.export_schema)
-        print(f"✓ JSON Schema exported to: {args.export_schema}")
+        logger.info(f"✓ JSON Schema exported to: {args.export_schema}")
 
     if getattr(args, "export_docs", None):
         docs_str = generate_config_markdown_docs(cfg)
         from mobo_linac.utils.durable import atomic_write_text
         out_docs = atomic_write_text(args.export_docs, docs_str)
-        print(f"✓ Markdown documentation exported to: {out_docs}")
+        logger.info(f"✓ Markdown documentation exported to: {out_docs}")
 

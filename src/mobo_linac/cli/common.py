@@ -11,6 +11,7 @@ from mobo_linac.execution.mock import MockEvaluator
 __all__ = [
     "MockEvaluator",
     "add_common_run_args",
+    "add_verbosity_args",
 ]
 
 
@@ -95,20 +96,13 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
         action="store_true",
         help="Use fast mock evaluator for testing without ASTRA binary",
     )
-    subparser.add_argument(
-        "--quiet",
-        "--silent",
-        action="store_true",
-        help="Suppress non-critical console outputs",
-    )
-    subparser.add_argument(
-        "-v",
-        "--verbose",
-        action="store_true",
-        help="Enable verbose output logging",
-    )
-    subparser.add_argument(
-        "--debug",
-        action="store_true",
-        help="Enable detailed debug logging",
-    )
+    add_verbosity_args(subparser)
+
+
+def add_verbosity_args(subparser: argparse.ArgumentParser) -> None:
+    """Console verbosity shared by every subcommand (see ``utils.logger.configure_logging``)."""
+    subparser.add_argument("--quiet", "--silent", action="store_true",
+                           help="Show warnings and errors only")
+    subparser.add_argument("-v", "--verbose", action="store_true",
+                           help="Show INFO messages with timestamps")
+    subparser.add_argument("--debug", action="store_true", help="Show DEBUG messages")

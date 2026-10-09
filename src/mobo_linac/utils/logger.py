@@ -1,75 +1,53 @@
 """
-Structured Console Logging and Verbosity Management for mobo_linac.
+Standard-library logging for mobo_linac.
 
-Provides multi-level logging (DEBUG, INFO, SUCCESS, WARNING, ERROR),
-quiet mode suppression, ANSI formatting, and file mirroring.
+All package loggers live under the ``mobo_linac`` logger. ``configure_logging`` installs one
+console handler (errors to stderr, other records to stdout) and optionally a file handler;
+``run_log`` adds a per-run ``run.log`` with timestamps, levels and module names for the
+duration of a campaign.
 """
 
-from enum import IntEnum
+from contextlib import contextmanager
 import logging
 from pathlib import Path
 import sys
-from typing import Any, Dict, Optional, Union
+from typing import Iterator, Optional, Union
+
+PACKAGE = "mobo_linac"
+FILE_FORMAT = "%(asctime)s [%(levelname)s] [%(name)s] %(message)s"
 
 
-class LogLevel(IntEnum):
-    DEBUG = 10
-    INFO = 20
-    SUCCESS = 25
-    WARNING = 30
-    ERROR = 40
-    QUIET = 50
+class _ConsoleHandler(logging.StreamHandler):
+    """Errors go to stderr, everything else to stdout; streams are resolved at emit time."""
+
+    def __init__(self):
+        super().__init__(sys.stdout)
+
+    def emit(self, record: logging.LogRecord) -> None:
+        self.stream = sys.stderr if record.levelno >= logging.ERROR else sys.stdout
+        super().emit(record)
 
 
-_GLOBAL_LOG_LEVEL = LogLevel.INFO
-_GLOBAL_LOG_FILE: Optional[Path] = None
-_LOGGERS: Dict[str, "MoboLogger"] = {}
+class _ConsoleFormatter(logging.Formatter):
+    """Plain INFO lines; other levels carry a ``[LEVEL]`` prefix; ``timestamps`` for --verbose."""
+
+    def __init__(self, timestamps: bool = False):
+        super().__init__(datefmt="%Y-%m-%d %H:%M:%S")
+        self.timestamps = timestamps
+
+    def format(self, record: logging.LogRecord) -> str:
+        message = record.getMessage()
+        if record.levelno != logging.INFO:
+            message = f"[{record.levelname}] {message}"
+        if self.timestamps:
+            message = f"{self.formatTime(record, self.datefmt)} {message}"
+        return message
 
 
-class MoboLogger:
-    """Lightweight structured logger with level filtering and formatting."""
-
-    def __init__(self, name: str):
-        self.name = name
-
-    def _log(self, level: LogLevel, prefix: str, msg: str) -> None:
-        if level < _GLOBAL_LOG_LEVEL:
-            return
-
-        formatted = f"{prefix} {msg}" if prefix else msg
-        if level >= LogLevel.ERROR:
-            sys.stderr.write(f"{formatted}\n")
-            sys.stderr.flush()
-        else:
-            sys.stdout.write(f"{formatted}\n")
-            sys.stdout.flush()
-
-        if _GLOBAL_LOG_FILE is not None:
-            try:
-                with open(_GLOBAL_LOG_FILE, "a", encoding="utf-8") as f:
-                    f.write(f"[{level.name}] [{self.name}] {msg}\n")
-            except Exception:
-                pass
-
-    def debug(self, msg: str) -> None:
-        self._log(LogLevel.DEBUG, "[DEBUG]", msg)
-
-    def info(self, msg: str) -> None:
-        self._log(LogLevel.INFO, "", msg)
-
-    def success(self, msg: str) -> None:
-        self._log(LogLevel.SUCCESS, "✓", msg)
-
-    def warning(self, msg: str) -> None:
-        self._log(LogLevel.WARNING, "[WARNING]", msg)
-
-    def error(self, msg: str) -> None:
-        self._log(LogLevel.ERROR, "[ERROR]", msg)
-
-    def section(self, title: str) -> None:
-        if LogLevel.INFO >= _GLOBAL_LOG_LEVEL:
-            sep = "=" * 60
-            self.info(f"\n{sep}\n  {title}\n{sep}")
+def _package_logger() -> logging.Logger:
+    logger = logging.getLogger(PACKAGE)
+    logger.propagate = False  # the package owns its console/file handlers
+    return logger
 
 
 def configure_logging(
@@ -79,36 +57,56 @@ def configure_logging(
     verbose: bool = False,
     debug: bool = False,
 ) -> None:
-    """
-    Globally configures mobo_linac logging verbosity and file destination.
-    """
-    global _GLOBAL_LOG_LEVEL, _GLOBAL_LOG_FILE
+    """Set package verbosity and (re)install the console handler and optional log file.
 
+    ``quiet``: warnings and errors only; ``verbose``: INFO with timestamps; ``debug``: DEBUG.
+    """
+    logger = _package_logger()
     if quiet:
-        _GLOBAL_LOG_LEVEL = LogLevel.WARNING
+        resolved = logging.WARNING
     elif debug:
-        _GLOBAL_LOG_LEVEL = LogLevel.DEBUG
+        resolved = logging.DEBUG
     elif verbose:
-        _GLOBAL_LOG_LEVEL = LogLevel.DEBUG
+        resolved = logging.INFO
     elif isinstance(level, str):
-        lvl_upper = level.upper()
-        if lvl_upper in LogLevel.__members__:
-            _GLOBAL_LOG_LEVEL = LogLevel[lvl_upper]
-        else:
-            _GLOBAL_LOG_LEVEL = LogLevel.INFO
-    elif isinstance(level, int):
-        _GLOBAL_LOG_LEVEL = LogLevel(level)
-
-    if log_file is not None:
-        p = Path(log_file)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        _GLOBAL_LOG_FILE = p
+        resolved = logging.getLevelName(level.upper()) if isinstance(logging.getLevelName(level.upper()), int) else logging.INFO
     else:
-        _GLOBAL_LOG_FILE = None
+        resolved = int(level)
+    logger.setLevel(resolved)
+    for handler in list(logger.handlers):
+        if isinstance(handler, _ConsoleHandler) or getattr(handler, "_mobo_configured_file", False):
+            logger.removeHandler(handler)
+            handler.close()
+    console = _ConsoleHandler()
+    console.setFormatter(_ConsoleFormatter(timestamps=verbose or debug))
+    logger.addHandler(console)
+    if log_file is not None:
+        path = Path(log_file)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        file_handler = logging.FileHandler(path, encoding="utf-8")
+        file_handler.setFormatter(logging.Formatter(FILE_FORMAT))
+        file_handler._mobo_configured_file = True
+        logger.addHandler(file_handler)
 
 
-def get_logger(name: str = "mobo_linac") -> MoboLogger:
-    """Returns a cached MoboLogger instance."""
-    if name not in _LOGGERS:
-        _LOGGERS[name] = MoboLogger(name)
-    return _LOGGERS[name]
+def get_logger(name: str = PACKAGE) -> logging.Logger:
+    """A logger inside the ``mobo_linac`` hierarchy (configured with defaults on first use)."""
+    package = _package_logger()
+    if not any(isinstance(handler, _ConsoleHandler) for handler in package.handlers):
+        configure_logging()
+    return logging.getLogger(name if name == PACKAGE or name.startswith(PACKAGE + ".") else f"{PACKAGE}.{name}")
+
+
+@contextmanager
+def run_log(run_dir: Union[str, Path]) -> Iterator[Path]:
+    """Append every record the package emits to ``<run_dir>/run.log`` while active."""
+    path = Path(run_dir) / "run.log"  # the run directory must already exist
+    handler = logging.FileHandler(path, encoding="utf-8")
+    handler.setFormatter(logging.Formatter(FILE_FORMAT))
+    logger = _package_logger()
+    logger.addHandler(handler)
+    try:
+        yield path
+    finally:
+        logger.removeHandler(handler)
+        handler.close()

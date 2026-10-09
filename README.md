@@ -279,6 +279,15 @@ Legacy version 1 checkpoints require an explicit `--n-iterations` target and, fo
 
 ---
 
+### Logging
+
+All package modules log through standard `logging` under the `mobo_linac` logger. The CLI flags
+select the console level: `--quiet` (warnings and errors only), default INFO, `--verbose` (INFO
+with timestamps) and `--debug` (DEBUG). Every campaign directory receives a `run.log` with
+timestamps, levels and module names. Data-quality conditions that callers may assert (a
+truncated journal tail, best-effort legacy resume, implicit run selection) are additionally
+raised as Python warnings.
+
 ## Development Roadmap
 
 - [x] **Phase 1: Scalarized BO**

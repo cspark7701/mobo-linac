@@ -5,6 +5,7 @@ CLI command handler for resuming an optimization campaign from checkpoint.
 import argparse
 from pathlib import Path
 
+from mobo_linac.cli.common import add_verbosity_args
 from mobo_linac.cli.common import MockEvaluator
 
 
@@ -49,6 +50,7 @@ def resume_optimization(args: argparse.Namespace) -> None:
 def register_resume_command(subparsers: argparse._SubParsersAction) -> None:
     """Registers resume subcommands."""
     resume_parser = subparsers.add_parser("resume", help="Resume an existing optimization campaign")
+    add_verbosity_args(resume_parser)
     resume_parser.add_argument("--run-dir", type=str, required=True, help="Path to run directory")
     resume_parser.add_argument("--n-iterations", type=int, default=None, help="Total BO iterations (default: saved campaign plan)")
     resume_parser.add_argument(

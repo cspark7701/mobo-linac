@@ -343,3 +343,20 @@ def test_analyze_exports_the_figures_it_reports(tmp_path, capsys):
     main(["analyze", "--run-dir", str(run_dir), "--output-dir", str(figures)])
     assert "Figures exported" in capsys.readouterr().out
     assert {p.name for p in figures.glob("*.png")} >= {"hypervolume_progress.png", "pareto_front.png"}
+
+
+def test_quiet_flag_silences_robustness_and_verification(tmp_path, capsys):
+    from mobo_linac.utils import configure_logging
+    try:
+        main(["run-unconstrained", "--num-initial-samples", "3", "--n-iterations", "0", "--output-dir", str(tmp_path / "run"),
+              "--mock-evaluator", "--quiet"])
+        capsys.readouterr()
+        main(["run-robustness", "--input", str(tmp_path / "run"), "--num-perturbations", "1",
+              "--output-dir", str(tmp_path / "rob"), "--mock-evaluator", "--quiet"])
+        main(["run-verification", "--input", str(tmp_path / "run"), "--output-dir", str(tmp_path / "ver"),
+              "--mock-evaluator", "--quiet"])
+        assert capsys.readouterr().out == ""
+        assert (tmp_path / "rob" / "robustness_summary.csv").exists()
+        assert (tmp_path / "ver" / "verification_manifest.json").exists()
+    finally:
+        configure_logging(level="INFO")
