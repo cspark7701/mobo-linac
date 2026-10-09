@@ -95,7 +95,7 @@ class MockAstraSim:
 
 def test_parser_healthy_simulation():
     """Tests parsing a standard, successful ASTRA run."""
-    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1, config=TEST_CONFIG)
+    parser = AstraOutputParser(config=TEST_CONFIG)
     stats = {
         "norm_emit_x": [4.0e-6, 3.5e-6],
         "norm_emit_y": [4.1e-6, 3.6e-6],
@@ -118,13 +118,14 @@ def test_parser_healthy_simulation():
     assert res.objectives["norm_emit_x"] == 3.5e-6
     assert res.objectives["norm_emit_y"] == 3.6e-6
     assert res.objectives["sigma_energy"] == 0.85e6
-    assert res.diagnostics["z_final_m"] == 16.2
+    assert res.telemetry["z_final_m"] == 16.2
+    assert set(res.diagnostics) <= {channel.name for channel in DIAGNOSTIC_CHANNELS}
     assert res.transmission_fraction == 1.0
 
 
 def test_parser_premature_beam_loss():
     """Tests premature tracking termination detection (e.g., lost at collimator)."""
-    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1, config=TEST_CONFIG)
+    parser = AstraOutputParser(config=TEST_CONFIG)
     stats = {
         "norm_emit_x": [4.0e-6, 3.5e-6],
         "norm_emit_y": [4.1e-6, 3.6e-6],
@@ -144,7 +145,7 @@ def test_parser_premature_beam_loss():
 
 def test_parser_charge_zero():
     """Tests beam loss with zero transmission at exit."""
-    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1, config=TEST_CONFIG)
+    parser = AstraOutputParser(config=TEST_CONFIG)
     stats = {
         "norm_emit_x": [4.0e-6, 3.5e-6],
         "norm_emit_y": [4.1e-6, 3.6e-6],
@@ -164,19 +165,39 @@ def test_parser_charge_zero():
 
 def test_parser_timeout_and_exceptions():
     """Tests timeout error handling."""
-    parser = AstraOutputParser(target_z_stop=16.2, config=TEST_CONFIG)
-    res_timeout = parser.parse_astra_simulation(None, error_context="ASTRA process timed out after 30s")
+    parser = AstraOutputParser(config=TEST_CONFIG)
+    import subprocess
+    res_timeout = parser.parse_astra_simulation(None, error=subprocess.TimeoutExpired("astra", 30))
     assert res_timeout.status == SimulationStatus.TIMEOUT
     assert res_timeout.simulation_valid is False
 
-    res_num = parser.parse_astra_simulation(None, error_context="Floating point overflow / NaN encountered")
+    res_num = parser.parse_astra_simulation(None, error=FloatingPointError("overflow"))
     assert res_num.status == SimulationStatus.NUMERICAL_ERROR
     assert res_num.simulation_valid is False
 
 
+@pytest.mark.parametrize("message", ["information unavailable", "infeasible request", "config not found"])
+def test_exception_messages_never_choose_the_category(message):
+    """Classification uses exception types and run state, not message substrings."""
+    parser = AstraOutputParser(config=TEST_CONFIG)
+    assert parser.parse_astra_simulation(None, error=RuntimeError(message)).status == SimulationStatus.UNHANDLED_EXCEPTION
+
+
+def test_runtime_timeout_record_and_unfinished_run_are_classified():
+    class Sim:
+        def __init__(self, run_info):
+            self.output = {"run_info": run_info}
+    parser = AstraOutputParser(config=TEST_CONFIG)
+    timed_out = Sim({"start_time": 0.0, "why_error": "timeout"})
+    unfinished = Sim({"start_time": 0.0, "why_error": ""})
+    error = ValueError("Couldn't find finished simulation")
+    assert parser.parse_astra_simulation(timed_out, error=error).status == SimulationStatus.TIMEOUT
+    assert parser.parse_astra_simulation(unfinished, error=error).status == SimulationStatus.RUN_FAILED
+
+
 def test_parser_missing_and_corrupted_output(tmp_path):
     """Tests handling when output stats dictionary is missing or has NaNs."""
-    parser = AstraOutputParser(target_z_stop=16.2, config=TEST_CONFIG)
+    parser = AstraOutputParser(config=TEST_CONFIG)
     sim_empty = MockAstraSim(stats=None)
     res_empty = parser.parse_astra_simulation(sim_empty, eval_dir=tmp_path)
     assert res_empty.status == SimulationStatus.OUTPUT_MISSING

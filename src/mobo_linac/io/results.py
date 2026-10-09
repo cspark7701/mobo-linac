@@ -72,8 +72,10 @@ def results_to_dataframe(
 
         # Canonical diagnostic channels and particle-count telemetry; absent values stay NaN.
         diags = normalize_diagnostics(res.diagnostics)
-        for name in list(DIAGNOSTIC_NAMES) + TELEMETRY_COLUMNS:
+        for name in DIAGNOSTIC_NAMES:
             row.setdefault(name, diags.get(name, np.nan))
+        for name in TELEMETRY_COLUMNS:  # archived results stored counts with diagnostics
+            row.setdefault(name, res.telemetry.get(name, diags.get(name, np.nan)))
 
         rows.append(row)
 
@@ -251,7 +253,7 @@ def load_evaluation_results(
                 simulation_valid=sim_valid,
                 physically_feasible=phys_feas,
                 failure_category=str(
-                    row.get("failure_category", "NONE" if (sim_valid and phys_feas) else "UNHANDLED_EXCEPTION")
+                    row.get("failure_category", "SUCCESS" if (sim_valid and phys_feas) else "UNHANDLED_EXCEPTION")
                 ),
                 failure_reason=str(row.get("failure_reason", "")) if not pd.isna(row.get("failure_reason")) else None,
                 runtime_s=float(row.get("runtime_s", 0.0)),
@@ -259,6 +261,8 @@ def load_evaluation_results(
                 attempt_id=None if pd.isna(row.get("attempt_id")) else str(row["attempt_id"]),
                 manifest_path=None if pd.isna(row.get("manifest_path")) else str(row["manifest_path"]),
                 attempt_history=json.loads(row["attempt_history"]) if isinstance(row.get("attempt_history"), str) else [],
+                telemetry={name: float(row[name]) for name in TELEMETRY_COLUMNS
+                           if name in row and not pd.isna(row[name])},
             )
             results.append(res)
 

@@ -13,7 +13,7 @@ def test_mock_batch_evaluator_callable(tmp_path):
     evaluator = MockBatchEvaluator(run_dir=tmp_path)
     res = evaluator([0.2, 1.0, -1.0, 0.0, 0.0, 0.0], run_id="test_run", eval_id=1)
 
-    assert res["status"] == "success"
+    assert res["status"] == "SUCCESS"
     assert res["eval_id"] == "eval_000001"
     assert res["run_id"] == "test_run"
     assert "norm_emit_x" in res["objectives"]
@@ -60,8 +60,8 @@ def test_mock_batch_evaluator_failure_injection(tmp_path):
         eval_ids=[1, 2],
     )
 
-    assert results[0]["status"] == "success"
-    assert results[1]["status"] == "failed"
+    assert results[0]["status"] == "SUCCESS"
+    assert results[1]["status"] == "RUN_FAILED"
     assert results[1]["error"] is not None
 
 

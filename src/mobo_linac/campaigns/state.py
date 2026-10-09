@@ -29,10 +29,11 @@ def prepare_resume_state(
     for section in ("design_variables", "objectives", "constraints", "model"):
         if asdict(config_from_dict(state.config)).get(section) != current[section]:
             raise ValueError(f"Incompatible checkpoint configuration: {section} changed.")
+    saved_execution = asdict(config_from_dict(state.config))["execution"]
     for name in current["execution"]:
         if name == "max_workers":
             continue
-        if state.config.get("execution", {}).get(name) != current["execution"][name]:
+        if saved_execution.get(name) != current["execution"][name]:
             raise ValueError(f"Incompatible checkpoint configuration: execution.{name} changed.")
 
     if state.version == "1.0":

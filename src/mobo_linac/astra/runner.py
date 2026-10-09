@@ -250,11 +250,12 @@ def run_astra_eval(
     iso_start = datetime.fromtimestamp(t_start).isoformat()
 
     input_file = eval_dir / "astra.in"
-    status = "failed"
+    status = SimulationStatus.UNHANDLED_EXCEPTION
     error_msg: Optional[str] = None
-    stats: Optional[Dict[str, Any]] = None
     objectives: Optional[Dict[str, float]] = None
     diagnostics: Optional[Dict[str, float]] = None
+    telemetry: Dict[str, float] = {}
+    astra_sim = None
     applied_param_names: List[str] = [dv.name for dv in config.design_variables]
     astra_cmd: str = os.environ.get("ASTRA_BIN", "")
 
@@ -279,21 +280,7 @@ def run_astra_eval(
     try:
         workdir_manager.prepare_eval_dir(run_id, formatted_eval_id, template_in=template_in,
                                         use_symlinks=use_symlinks, attempt_id=attempt_id)
-        target_z = 16.2
-        z_tol = 0.1
-        if config is not None:
-            if hasattr(config, "execution"):
-                if hasattr(config.execution, "z_stop_m"):
-                    target_z = float(config.execution.z_stop_m)
-                if hasattr(config.execution, "z_loss_tolerance_m"):
-                    z_tol = float(config.execution.z_loss_tolerance_m)
-            elif isinstance(config, dict) and "execution" in config:
-                target_z = float(config["execution"].get("z_stop_m", target_z))
-                z_tol = float(config["execution"].get("z_loss_tolerance_m", z_tol))
-
-        from mobo_linac.config import config_from_dict
-        objective_config = config_from_dict(config) if isinstance(config, dict) else config
-        parser = AstraOutputParser(target_z_stop=target_z, z_loss_tolerance=z_tol, config=objective_config)
+        parser = AstraOutputParser(config=config)
         # Initialize Astra inside isolated eval_dir
         astra_sim = initialize_astra_backend()(
             input_file=str(input_file),
@@ -317,7 +304,7 @@ def run_astra_eval(
 
         applied_overrides = dict(namelist_overrides or {})
         applied_perturbations = applied_lattice_perturbations(
-            parameters, objective_config, applied_namelist_values,
+            parameters, config, applied_namelist_values,
             request_metadata.get("channel_deltas", {}))
         # Materialize effective inputs before launch, then preserve their exact bytes.
         if hasattr(astra_sim, "write_input"):
@@ -331,8 +318,13 @@ def run_astra_eval(
             command_path = Path(resolved)
         executable = {"command": astra_cmd, "path": str(command_path.resolve()),
                       "sha256": file_sha256(command_path) if command_path.is_file() else None}
-        # Execute simulation
-        astra_sim.run()
+        # Execute simulation. lume-astra's run() ignores the instance timeout, so the
+        # configured limit is passed explicitly when the runtime supports it.
+        run_with_timeout = getattr(astra_sim, "run_astra", None)
+        if callable(run_with_timeout):
+            run_with_timeout(timeout=timeout)
+        else:
+            astra_sim.run()
 
         parsed_result = parser.parse_astra_simulation(
             astra_sim=astra_sim,
@@ -340,26 +332,18 @@ def run_astra_eval(
         )
         objectives = parsed_result.objectives
         diagnostics = parsed_result.diagnostics
+        telemetry = parsed_result.telemetry
         error_msg = parsed_result.error_message
-
-        if parsed_result.status == SimulationStatus.SUCCESS:
-            status = "success"
-        elif parsed_result.status == SimulationStatus.TIMEOUT:
-            status = "timeout"
-        else:
-            status = "failed"
+        status = parsed_result.status
 
     except Exception as e:
-        error_msg = str(e)
         parsed_result = AstraOutputParser(config=config).parse_astra_simulation(
-            astra_sim=None,
+            astra_sim=astra_sim,
             eval_dir=eval_dir,
-            error_context=error_msg,
+            error=e,
         )
-        if parsed_result.status == SimulationStatus.TIMEOUT:
-            status = "timeout"
-        else:
-            status = "failed"
+        error_msg = parsed_result.error_message
+        status = parsed_result.status
 
     t_end = time.time()
     iso_end = datetime.fromtimestamp(t_end).isoformat()
@@ -379,7 +363,7 @@ def run_astra_eval(
                              and str(path.relative_to(eval_dir)) not in input_hashes}
     except Exception as exc:
         provenance_error = str(exc)
-        status = "failed"
+        status = SimulationStatus.PROVENANCE_ERROR
         error_msg = f"{error_msg or ''} Provenance capture failed: {exc}".strip()
 
     manifest = {
@@ -405,7 +389,7 @@ def run_astra_eval(
         "eval_id": formatted_eval_id,
         "parameters": [float(p) for p in parameters],
         "parameter_names": applied_param_names,
-        "status": status,
+        "status": status.value,
         "error": error_msg,
         "timestamps": {
             "start_time": iso_start,
@@ -416,6 +400,7 @@ def run_astra_eval(
         "eval_dir": str(eval_dir),
         "objectives": objectives,
         "diagnostics": diagnostics,
+        "telemetry": telemetry,
     }
 
     manifest_path = workdir_manager.save_manifest(provenance_dir, manifest)
@@ -424,16 +409,17 @@ def run_astra_eval(
         "run_id": run_id, "eval_id": formatted_eval_id,
         "parameters": [float(p) for p in parameters],
         "attempt_id": attempt_id,
-        "status": status,
+        "status": status.value,
         "objectives": objectives,
         "diagnostics": diagnostics,
+        "telemetry": telemetry,
         "eval_dir": str(eval_dir),
         "manifest_path": str(manifest_path),
         "manifest": manifest,
         "error": error_msg,
     }
 
-    if status == "success" and clean_on_success:
+    if status is SimulationStatus.SUCCESS and clean_on_success:
         workdir_manager.cleanup_eval_dir(eval_dir)
 
     return result

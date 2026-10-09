@@ -51,7 +51,7 @@ class MockBatchEvaluator:
         # Check explicit failure injection
         if eval_id_str in self.fail_eval_ids or (self.failure_rate > 0 and sum(cand_list) % 1.0 < self.failure_rate):
             return {
-                "status": "failed",
+                "status": "RUN_FAILED",
                 "eval_id": eval_id_str,
                 "run_id": run_id,
                 "parameters": cand_list,
@@ -72,7 +72,7 @@ class MockBatchEvaluator:
                       for index, name in enumerate(self.objective_names)}
 
         return {
-            "status": "success",
+            "status": "SUCCESS",
             "eval_id": eval_id_str,
             "run_id": run_id,
             "parameters": cand_list,

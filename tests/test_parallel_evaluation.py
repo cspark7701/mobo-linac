@@ -353,9 +353,10 @@ def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monke
         'template_dir': temp_project['template_dir'], 'config': config,
         'clean_on_success': cleanup,
     })
-    assert result['status'] == 'success', result['error']
+    assert result['status'] == 'SUCCESS', result['error']
     history = result['attempt_history']
-    assert [entry['status'] for entry in history] == ['failed', 'success']
+    assert [entry['status'] for entry in history] == ['UNHANDLED_EXCEPTION', 'SUCCESS']
+    assert [entry['retried'] for entry in history] == [True, False]
     assert len({entry['attempt_id'] for entry in history}) == 2
     assert directories[0] != directories[1]
     manifests = [read_evaluation_manifest(entry['manifest_path']) for entry in history]
@@ -407,6 +408,43 @@ def test_worker_crash_retains_serializable_request_and_order(tmp_path, monkeypat
                                  {'charge:nrad': i + 1}, metadata={'index': i}) for i in range(2)]
     out = BatchEvaluator(base_results_dir=tmp_path, max_workers=2, config=TEST_CONFIG).evaluate_requests(requests, run_id='crash')
     assert [row['eval_id'] for row in out] == [request.eval_id for request in requests]
-    assert all(row['status'] == 'failed' and 'Worker process crashed' in row['error'] for row in out)
+    assert all(row['status'] == 'WORKER_CRASH' and 'Worker process crashed' in row['error'] for row in out)
     assert [row['request'] for row in out] == [request.to_dict() for request in requests]
     assert [task['request'] for task in captured] == [request.to_dict() for request in requests]
+
+
+@pytest.mark.parametrize("final_z, expected_attempts, expected_status", [
+    (8.0, 1, "PREMATURE_LOSS"),      # deterministic physics outcome: never retried
+    (None, 3, "TIMEOUT"),            # infrastructure outcome: retried up to the budget
+])
+def test_retries_follow_simulation_status_policy(temp_project, monkeypatch, final_z, expected_attempts, expected_status):
+    import subprocess
+    from mobo_linac.config import load_config
+    attempts = []
+
+    class StubAstra:
+        command = "stub"
+        particles = []
+        def __init__(self, input_file, workdir, **kwargs):
+            self.output = {}
+            attempts.append(workdir)
+        def __setitem__(self, name, value):
+            pass
+        def run(self):
+            if final_z is None:
+                raise subprocess.TimeoutExpired("astra", 1)
+            self.output = {"stats": {key: [value] for key, value in {
+                "norm_emit_x": 1e-6, "norm_emit_y": 1e-6, "sigma_energy": 0.5e6,
+                "sigma_x": 0.5e-3, "sigma_y": 0.5e-3, "sigma_xp": 0.5e-3, "sigma_yp": 0.5e-3,
+                "sigma_z": 0.5e-3, "mean_kinetic_energy": 200e6, "transmission_fraction": 1.0,
+                "z": final_z}.items()}}
+
+    monkeypatch.setattr("mobo_linac.astra.runner.Astra", StubAstra)
+    result = _worker_eval_task({
+        "candidate_idx": 0, "parameters": [0.2, 1, -1, 0, 0, 0], "run_id": "policy", "eval_id": 1,
+        "retries": 2, "base_results_dir": temp_project["results_dir"],
+        "template_dir": temp_project["template_dir"], "config": load_config("configs/mobo_200MeV.yaml"),
+    })
+    assert result["status"] == expected_status
+    assert len(attempts) == expected_attempts
+    assert len(result["attempt_history"]) == expected_attempts

@@ -152,7 +152,7 @@ def test_complete_requests_reach_serial_and_process_backend(sample_candidate, re
     assert len(outcomes) == len(tasks)
     for task, outcome in zip(tasks, outcomes):
         raw = outcome.execution_details
-        assert raw['status'] == 'success', raw['error']
+        assert raw['status'] == 'SUCCESS', raw['error']
         manifest = json.loads(Path(raw['manifest_path']).read_text())
         assert manifest['source_settings'] == task.source_settings
         assert manifest['request_metadata'] == task.metadata
@@ -181,7 +181,7 @@ def test_override_failure_is_not_silently_applied(sample_candidate, recording_as
     tasks[0].namelist_overrides = {'charge:unsupported_test_key': 1}
     outcome = evaluator.evaluate_plan_parallel(tasks)[0]
     raw = outcome.execution_details
-    assert raw['status'] == 'failed'
+    assert raw['status'] == 'UNHANDLED_EXCEPTION'
     assert 'unsupported namelist override' in raw['error']
     manifest = json.loads(Path(raw['manifest_path']).read_text())
     assert manifest['applied_namelist_overrides'] == {}

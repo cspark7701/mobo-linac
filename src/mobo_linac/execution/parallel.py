@@ -14,6 +14,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from mobo_linac.execution.requests import EvaluationRequest
+from mobo_linac.status import DEFAULT_RETRY_STATUSES, SimulationStatus, decode_status
 
 def run_astra_eval(**kwargs):
     """Lazy backend dispatch; also preserves the public worker injection seam."""
@@ -45,6 +46,11 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
     clean_on_success = task_args.get("clean_on_success", False)
     use_symlinks = task_args.get("use_symlinks", False)
     config = task_args.get("config", None)
+    # Only infrastructure outcomes are retried; deterministic physics failures are final.
+    execution = getattr(config, "execution", None) or (config or {}).get("execution", {})
+    retry_statuses = set(getattr(execution, "retry_statuses", None) or
+                         (execution.get("retry_statuses") if isinstance(execution, dict) else None) or
+                         DEFAULT_RETRY_STATUSES)
 
     attempts = 0
     max_attempts = retries + 1
@@ -79,25 +85,33 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
             res["candidate_idx"] = candidate_idx
             res["retries_attempted"] = attempts - 1
             res.setdefault("attempt_id", attempt_id)
-            attempt_history.append({"attempt_id": res["attempt_id"], "manifest_path": res.get("manifest_path"), "status": res["status"]})
+            status = decode_status(res["status"])
+            attempt_history.append({"attempt_id": res["attempt_id"], "manifest_path": res.get("manifest_path"),
+                                    "status": status.value, "retried": False})
             res["attempt_history"] = list(attempt_history)
-            if res["status"] == "success":
+            if status is SimulationStatus.SUCCESS or status.value not in retry_statuses:
                 return res
+            attempt_history[-1]["retried"] = attempts < max_attempts
             last_res = res
         except Exception as e:
-            attempt_history.append({"attempt_id": attempt_id, "manifest_path": None, "status": "failed", "error": str(e)})
+            attempt_history.append({"attempt_id": attempt_id, "manifest_path": None,
+                                    "status": SimulationStatus.UNHANDLED_EXCEPTION.value,
+                                    "error": f"{type(e).__name__}: {e}",
+                                    "retried": attempts < max_attempts and SimulationStatus.UNHANDLED_EXCEPTION.value in retry_statuses})
+            if SimulationStatus.UNHANDLED_EXCEPTION.value not in retry_statuses:
+                attempts = max_attempts
             last_res = {
                 "attempt_id": attempt_id, "attempt_history": list(attempt_history),
                 "candidate_idx": candidate_idx,
                 "run_id": run_id,
                 "eval_id": eval_id,
                 "parameters": parameters,
-                "status": "failed",
+                "status": SimulationStatus.UNHANDLED_EXCEPTION.value,
                 "objectives": None,
                 "diagnostics": None,
                 "eval_dir": None,
                 "manifest_path": None,
-                "error": str(e),
+                "error": f"{type(e).__name__}: {e}",
                 "request": task_args.get("request", {}),
                 "retries_attempted": attempts - 1,
             }
@@ -110,7 +124,7 @@ def _worker_crash_result(task, error):
     return {
         "candidate_idx": task["candidate_idx"], "run_id": task["run_id"],
         "eval_id": task["eval_id"], "parameters": task["parameters"],
-        "request": task["request"], "status": "failed", "objectives": None,
+        "request": task["request"], "status": SimulationStatus.WORKER_CRASH.value, "objectives": None,
         "diagnostics": None, "eval_dir": None, "manifest_path": None,
         "error": f"Worker process crashed: {error}", "retries_attempted": 0,
     }

@@ -63,7 +63,9 @@ def test_numpy_real_measurements_are_valid_observations():
     raw["objectives"]["norm_emit_x"] = np.float32(1e-6)
     result = create_evaluation_result(raw, load_config())
     assert result.simulation_valid and result.physically_feasible
-    assert result.diagnostics["n_particles_final"] == 10000.0
+    # Particle counts are telemetry, kept apart from constraint channels.
+    assert result.telemetry["n_particles_final"] == 10000.0
+    assert "n_particles_final" not in result.diagnostics
 
 
 def test_filtered_constraint_rows_retain_design_objective_identity():
@@ -156,7 +158,9 @@ def test_transmission_partial():
     res_fail = create_evaluation_result(raw, config)
     assert res_fail.simulation_valid is True
     assert res_fail.physically_feasible is False
-    assert res_fail.failure_category == FailureCategory.INVALID_TRANSMISSION.value
+    # Below-threshold transmission is ordinary infeasibility, not an unphysical value.
+    assert res_fail.failure_category == FailureCategory.INFEASIBLE_BEAM.value
+    assert "transmission" in res_fail.failure_reason
 
 
 def test_transmission_missing():
@@ -186,10 +190,10 @@ def test_diagnostic_units():
     assert "sigma_yp_rad" in diags
     assert "sigma_z_m" in diags
     assert "mean_kinetic_energy_eV" in diags
-    assert "sigma_energy_eV" in diags
-    assert "n_particles_initial" in diags
-    assert "n_particles_final" in diags
     assert "transmission_fraction" in diags
+    # Objective copies and particle counts are not diagnostics.
+    assert "sigma_energy_eV" not in diags
+    assert {"n_particles_initial", "n_particles_final"} <= set(res.telemetry)
 
     df = results_to_dataframe([res], config=TEST_CONFIG)
     for col in [
@@ -252,7 +256,7 @@ def test_transmission_zero():
     res = create_evaluation_result(raw, config)
     assert res.simulation_valid is True
     assert res.physically_feasible is False
-    assert res.failure_category == FailureCategory.INVALID_TRANSMISSION.value
+    assert res.failure_category == FailureCategory.INFEASIBLE_BEAM.value
 
 
 def test_invalid_particle_counts():

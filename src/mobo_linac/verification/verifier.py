@@ -124,7 +124,7 @@ class ParetoVerifier(CandidateEvaluatorBase):
                 role = request.metadata['role']
                 if mock_rerun_data_map is not None:
                     data = mock_rerun_data_map[role]
-                    raw = {'status': 'success' if data.get('simulation_valid', True) else 'failed',
+                    raw = {'status': 'SUCCESS' if data.get('simulation_valid', True) else 'RUN_FAILED',
                            'objectives': data.get('objectives_physical'), 'diagnostics': data.get('diagnostics', {})}
                 else:
                     raw = mock_evaluator(request.parameters, run_id=f'verification_{role}', eval_id=role)

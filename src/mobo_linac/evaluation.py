@@ -6,30 +6,20 @@ simulation validity, physical beam feasibility, and objective values.
 """
 
 from dataclasses import asdict, dataclass, field
-from enum import Enum
 from numbers import Real
-from typing import Any, Dict, List, Optional, Sequence, Union
-import torch
+from typing import Any, Dict, List, Optional
 
 from mobo_linac.config import MoboConfig
 from mobo_linac.constraints import ConstraintEvaluator
-from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, finite_measurement, normalize_diagnostics
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, finite_measurement, normalize_diagnostics, valid_channel_measurement
 from mobo_linac.result_schema import ResultSchema
+from mobo_linac.status import FAILURE_CATEGORY_BY_STATUS, FailureCategory, SimulationStatus, decode_status
 
+__all__ = ["EvaluationResult", "FailureCategory", "SimulationStatus", "create_evaluation_result"]
 
-class FailureCategory(str, Enum):
-    """Categories of evaluation status."""
-
-    SUCCESS = "SUCCESS"
-    INFEASIBLE_BEAM = "INFEASIBLE_BEAM"
-    PREMATURE_BEAM_LOSS = "PREMATURE_BEAM_LOSS"
-    ASTRA_TIMEOUT = "ASTRA_TIMEOUT"
-    NONZERO_RETURN = "NONZERO_RETURN"
-    MISSING_OUTPUT = "MISSING_OUTPUT"
-    EMPTY_OUTPUT = "EMPTY_OUTPUT"
-    NAN_INF_DIAGNOSTICS = "NAN_INF_DIAGNOSTICS"
-    INVALID_TRANSMISSION = "INVALID_TRANSMISSION"
-    UNHANDLED_EXCEPTION = "UNHANDLED_EXCEPTION"
+# Archived results stored final-position telemetry under several diagnostic aliases.
+_LEGACY_Z_FINAL_KEYS = ("z_final_m", "z_final", "z_stop_m")
+TELEMETRY_NAMES = ("z_final_m", "n_particles_initial", "n_particles_final")
 
 
 @dataclass
@@ -54,6 +44,7 @@ class EvaluationResult:
     attempt_id: Optional[str] = None
     manifest_path: Optional[str] = None
     attempt_history: List[Dict[str, Any]] = field(default_factory=list)
+    telemetry: Dict[str, float] = field(default_factory=dict)
 
     def to_dict(self) -> Dict[str, Any]:
         """Convert result object to dictionary representation."""
@@ -65,21 +56,43 @@ class EvaluationResult:
         return cls(**data)
 
 
+def _split_telemetry(raw_diags: Dict[str, Any], raw_telemetry: Dict[str, Any]):
+    """Keep canonical channels as diagnostics; decode archived telemetry aliases."""
+    telemetry = {}
+    for name in ("n_particles_initial", "n_particles_final"):
+        value = raw_telemetry.get(name, raw_diags.get(name))
+        if value is not None:
+            telemetry[name] = value
+    for key in ("z_final_m",) + _LEGACY_Z_FINAL_KEYS:
+        value = raw_telemetry.get(key, raw_diags.get(key))
+        if value is not None:
+            telemetry["z_final_m"] = value
+            break
+    diagnostics = {name: raw_diags[name] for name in DIAGNOSTIC_NAMES if name in raw_diags}
+    return diagnostics, telemetry
+
+
+def _as_float(value):
+    return float(value) if isinstance(value, Real) and not isinstance(value, bool) else float("nan")
+
+
 def create_evaluation_result(
     raw_res: Dict[str, Any],
     config: MoboConfig,
     constraint_evaluator: Optional[ConstraintEvaluator] = None,
 ) -> EvaluationResult:
     """
-    Factory function to convert raw worker output into a structured EvaluationResult.
+    Classify one raw worker result into a structured EvaluationResult.
+
+    The simulator status decides simulation-level failures through the single
+    ``FAILURE_CATEGORY_BY_STATUS`` table. For successful simulations, measurement
+    validity uses the canonical diagnostic channel limits, and feasibility uses the
+    configured constraints.
 
     Args:
-        raw_res: Result dictionary returned by run_astra_eval or worker task.
+        raw_res: Result dictionary returned by run_astra_eval or a worker task.
         config: The campaign's MoboConfig; never loaded implicitly.
         constraint_evaluator: Optional ConstraintEvaluator instance.
-
-    Returns:
-        Populated EvaluationResult object.
     """
     if not isinstance(config, MoboConfig):
         raise TypeError("create_evaluation_result requires the campaign MoboConfig.")
@@ -96,108 +109,57 @@ def create_evaluation_result(
     timestamps = manifest.get("timestamps", {})
     runtime_s = float(timestamps.get("duration_sec", raw_res.get("execution_time_sec", 0.0)))
 
-    status = raw_res.get("status", manifest.get("status", "failed"))
+    status = decode_status(raw_res.get("status", manifest.get("status")))
     error_msg = raw_res.get("error", manifest.get("error"))
 
     raw_objs = raw_res.get("objectives", manifest.get("objectives"))
     raw_diags = raw_res.get("diagnostics", manifest.get("diagnostics"))
     raw_diags = normalize_diagnostics(raw_diags) if isinstance(raw_diags, dict) else {}
+    raw_telemetry = raw_res.get("telemetry", manifest.get("telemetry")) or {}
+    diagnostics, telemetry = _split_telemetry(raw_diags, raw_telemetry)
 
     schema = ResultSchema.from_config(config)
     objs_phys = schema.extract(raw_objs)
     objs_model = schema.transform(objs_phys).tolist() if objs_phys is not None else None
 
-    # Determine failure category and simulation validity
     simulation_valid = False
     physically_feasible = False
-    failure_category = FailureCategory.UNHANDLED_EXCEPTION.value
-    failure_reason = error_msg
 
-    if status == "timeout" or (error_msg and "timeout" in error_msg.lower()):
-        failure_category = FailureCategory.ASTRA_TIMEOUT.value
-        failure_reason = error_msg or "ASTRA execution timed out"
-    elif objs_phys is None or not raw_diags:
-        failure_category = FailureCategory.MISSING_OUTPUT.value
-        failure_reason = error_msg or "Simulation output or diagnostics missing"
+    if status is not SimulationStatus.SUCCESS:
+        category = FAILURE_CATEGORY_BY_STATUS[status]
+        reason = error_msg or f"Simulation status {status.value}"
+    elif objs_phys is None:
+        category, reason = FailureCategory.MISSING_OUTPUT, error_msg or "Configured objective observations missing"
+    elif not all(finite_measurement(value) for value in objs_phys) or any(
+            name in diagnostics and not finite_measurement(diagnostics[name]) for name in DIAGNOSTIC_NAMES):
+        category, reason = FailureCategory.NAN_INF_DIAGNOSTICS, "Objectives or diagnostics contain NaN, infinite, or non-numeric values"
     else:
-        # 1. Check for NaN or Inf in objectives and diagnostics first
-        all_vals = objs_phys + list(raw_diags.values())
-        has_nan_inf = any(not finite_measurement(value) for value in all_vals)
-
-        # 2. Check for premature beam loss / incomplete particle tracking
-        target_z = 16.2
-        z_tol = 0.1
-        if config is not None and hasattr(config, "execution"):
-            if hasattr(config.execution, "z_stop_m"):
-                target_z = float(config.execution.z_stop_m)
-            if hasattr(config.execution, "z_loss_tolerance_m"):
-                z_tol = float(config.execution.z_loss_tolerance_m)
-        elif "z_target_m" in raw_diags:
-            target_z = float(raw_diags["z_target_m"])
-
-        z_final = None
-        if "z_final_m" in raw_diags:
-            z_final = float(raw_diags["z_final_m"])
-        elif "z_final" in raw_diags:
-            z_final = float(raw_diags["z_final"])
-        elif "z_stop_m" in raw_diags:
-            z_final = float(raw_diags["z_stop_m"])
-        elif "stats" in raw_res and isinstance(raw_res["stats"], dict) and "z" in raw_res["stats"] and len(raw_res["stats"]["z"]) > 0:
-            z_final = float(raw_res["stats"]["z"][-1])
-
-        # 3. Require measured values for every canonical diagnostic channel.
-        transmission_val = raw_diags.get("transmission_fraction")
-        missing_channels = [name for name in DIAGNOSTIC_NAMES if name not in raw_diags]
-
-        if has_nan_inf:
-            failure_category = FailureCategory.NAN_INF_DIAGNOSTICS.value
-            failure_reason = "Diagnostics contain NaN, Infinite, or non-numeric values"
-        elif z_final is not None and z_final < (target_z - z_tol):
-            failure_category = FailureCategory.PREMATURE_BEAM_LOSS.value
-            failure_reason = f"Premature tracking termination at z = {z_final:.3f} m (expected exit plane >= {target_z - z_tol:.3f} m)"
-        elif missing_channels:
-            failure_category = FailureCategory.MISSING_OUTPUT.value
-            failure_reason = "Required diagnostic observations missing: " + ", ".join(missing_channels)
+        target_z = float(config.execution.z_stop_m) - float(config.execution.z_loss_tolerance_m)
+        z_final = telemetry.get("z_final_m")
+        if z_final is None and isinstance(raw_res.get("stats"), dict) and len(raw_res["stats"].get("z", [])) > 0:
+            z_final = raw_res["stats"]["z"][-1]
+        missing = [name for name in DIAGNOSTIC_NAMES if name not in diagnostics]
+        unphysical = [channel.name for channel in DIAGNOSTIC_CHANNELS
+                      if channel.name in diagnostics and not valid_channel_measurement(channel, diagnostics[channel.name])]
+        if z_final is not None and float(z_final) < target_z:
+            category = FailureCategory.PREMATURE_BEAM_LOSS
+            reason = f"Premature tracking termination at z = {float(z_final):.3f} m (expected exit plane >= {target_z:.3f} m)"
+        elif missing:
+            category, reason = FailureCategory.MISSING_OUTPUT, "Required diagnostic observations missing: " + ", ".join(missing)
+        elif "transmission_fraction" in unphysical:
+            category = FailureCategory.INVALID_TRANSMISSION
+            reason = f"Transmission fraction ({diagnostics['transmission_fraction']}) out of physical bounds [0.0, 1.0]"
+        elif unphysical:
+            category, reason = FailureCategory.NAN_INF_DIAGNOSTICS, "Unphysical diagnostic observations: " + ", ".join(unphysical)
         else:
-            transmission = float(transmission_val)
-            # Check for negative RMS quantities or unphysical transmission range
-            rms_vals = [raw_diags[channel.name] for channel in DIAGNOSTIC_CHANNELS
-                        if channel.physical_minimum == 0.0 and channel.name != "transmission_fraction"]
-            for name in ("sigma_energy_eV", "sigma_energy"):
-                if name in raw_diags:
-                    rms_vals.append(raw_diags[name])
-            has_negative_rms = any(float(v) < 0.0 for v in rms_vals)
-
-            if has_negative_rms:
-                failure_category = FailureCategory.NAN_INF_DIAGNOSTICS.value
-                failure_reason = "Diagnostics contain negative RMS beam parameters"
-            elif transmission < 0.0 or transmission > 1.0:
-                failure_category = FailureCategory.INVALID_TRANSMISSION.value
-                failure_reason = f"Transmission fraction ({transmission}) out of physical bounds [0.0, 1.0]"
+            simulation_valid = True
+            physically_feasible = constraint_evaluator.check_feasibility(diagnostics)
+            if physically_feasible:
+                category, reason = FailureCategory.SUCCESS, None
             else:
-                # Simulation is numerically valid
-                simulation_valid = True
-
-                if transmission < config.constraints.min_transmission:
-                    physically_feasible = False
-                    failure_category = FailureCategory.INVALID_TRANSMISSION.value
-                    failure_reason = f"Transmission ({transmission:.3f}) below minimum threshold ({config.constraints.min_transmission:.3f})"
-                else:
-                    # Evaluate full physical beam feasibility
-                    is_feasible = constraint_evaluator.check_feasibility(raw_diags)
-                    if is_feasible:
-                        physically_feasible = True
-                        failure_category = FailureCategory.SUCCESS.value
-                        failure_reason = None
-                    else:
-                        physically_feasible = False
-                        failure_category = FailureCategory.INFEASIBLE_BEAM.value
-                        failure_reason = "Beam diagnostics violated constraint thresholds"
-
-    diags_clean: Dict[str, float] = {}
-    if raw_diags and isinstance(raw_diags, dict):
-        diags_clean = {k: float(v) if isinstance(v, Real) and not isinstance(v, bool)
-                       else float("nan") for k, v in raw_diags.items()}
+                violated = sorted(name for name, amount in constraint_evaluator.compute_violations(diagnostics).items() if amount > 0)
+                category = FailureCategory.INFEASIBLE_BEAM
+                reason = "Beam diagnostics violated constraint thresholds: " + ", ".join(violated)
 
     return EvaluationResult(
         evaluation_id=eval_id,
@@ -205,14 +167,15 @@ def create_evaluation_result(
         x_physical=x_phys,
         objectives_physical=objs_phys,
         objectives_model=objs_model,
-        diagnostics=diags_clean,
+        diagnostics={key: _as_float(value) for key, value in diagnostics.items()},
         simulation_valid=simulation_valid,
         physically_feasible=physically_feasible,
-        failure_category=failure_category,
-        failure_reason=failure_reason,
+        failure_category=category.value,
+        failure_reason=reason,
         runtime_s=runtime_s,
         work_dir=work_dir,
         attempt_id=raw_res.get("attempt_id", manifest.get("attempt_id")),
         manifest_path=raw_res.get("manifest_path"),
         attempt_history=raw_res.get("attempt_history", []),
+        telemetry={key: _as_float(value) for key, value in telemetry.items()},
     )

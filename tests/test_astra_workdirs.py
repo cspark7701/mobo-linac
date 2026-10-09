@@ -255,7 +255,7 @@ def test_failed_preparation_still_records_attempt(temp_project):
     result = run_astra_eval([0.2, 1, -1, 0, 0, 0], 'missing_input', 1,
                             base_results_dir=temp_project['results_dir'],
                             template_dir=temp_project['template_dir'], config=TEST_CONFIG)
-    assert result['status'] == 'failed'
+    assert result['status'] == 'OUTPUT_MISSING'
     manifest = json.loads(Path(result['manifest_path']).read_text())
     assert 'Required static file' in manifest['error']
     assert manifest['attempt_id'] == result['attempt_id']
@@ -284,6 +284,6 @@ def test_provenance_failure_retains_workdir_and_final_failure_record(temp_projec
     monkeypatch.setattr(manager, 'snapshot_inputs', fail_snapshot)
     result = run_astra_eval([0.2, 1, -1, 0, 0, 0], 'audit_failure', 1,
                             workdir_manager=manager, clean_on_success=True, config=TEST_CONFIG)
-    assert result['status'] == 'failed'
+    assert result['status'] == 'PROVENANCE_ERROR'
     assert Path(result['eval_dir']).exists()
     assert json.loads(Path(result['manifest_path']).read_text())['provenance_error'] == 'snapshot storage unavailable'

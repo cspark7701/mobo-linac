@@ -4,6 +4,7 @@ from pathlib import Path
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.diagnostics import diagnostic_observations
 from mobo_linac.astra.workdir import file_sha256, read_evaluation_manifest
+from mobo_linac.status import is_success
 
 
 def audit_attempt(result, required=False, *, config):
@@ -56,7 +57,7 @@ def audit_attempt(result, required=False, *, config):
             record["issues"].append("Executable checksum mismatch")
         if manifest.get("parameters") != result.x_physical:
             record["issues"].append("Manifest parameters mismatch")
-        if manifest.get("status") != "success":
+        if not is_success(manifest.get("status")):
             record["issues"].append("Attempt manifest does not record success")
         record["audit_status"] = "FAILED" if record["issues"] else "VERIFIED"
     except (OSError, ValueError, TypeError, KeyError, AttributeError) as exc:

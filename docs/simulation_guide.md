@@ -72,12 +72,32 @@ Candidate CSV/JSON, journals, and checkpoints link the exact accepted `attempt_i
 Independent verification retains unique rerun records and report sessions under `verification_runs/verification_<uuid>/`. Returned report paths identify that archived session. Root `verification_summary.csv`, `verification_manifest.json`, and `verification_table.tex` remain compatibility views of the latest completed report, while earlier sessions remain intact.
 
 ### 2.2 Strict Evaluation Failure Semantics
-Numerical simulation validity (`simulation_valid`) is strictly separated from physical beam feasibility (`physically_feasible`):
-- **`MISSING_OUTPUT`**: ASTRA failed to write output particles $\implies$ Invalid simulation.
-- **`PREMATURE_BEAM_LOSS`**: Particle tracking terminated prematurely before exit screen ($z_{\text{final}} < Z_{\text{stop}} - \Delta z_{\text{tol}}$) due to core collimation or loss $\implies$ Invalid simulation.
-- **`NAN_INF_DIAGNOSTICS`**: Negative or non-finite RMS beam sizes/emittances $\implies$ Invalid simulation.
-- **`INVALID_TRANSMISSION`**: Transmission $< 0\%$ or $> 100\%$ $\implies$ Invalid simulation.
-- **`INFEASIBLE_BEAM`**: Valid simulation violating beam quality constraints $\implies$ Valid simulation, Infeasible beam.
+Numerical simulation validity (`simulation_valid`) is strictly separated from physical beam feasibility (`physically_feasible`).
+
+The simulator adapter reports a typed `SimulationStatus` (`mobo_linac.status`). Execution exceptions are classified by exception type and the runtime's recorded run information, never by message text. The status is stored unchanged in worker results and attempt manifests; archived lowercase `success`/`timeout`/`failed` values are still decoded. Each non-success status maps to one `FailureCategory`:
+
+| Simulation status | Failure category | Retried by default |
+| --- | --- | --- |
+| `TIMEOUT` | `ASTRA_TIMEOUT` | yes |
+| `WORKER_CRASH` | `WORKER_CRASH` | yes |
+| `PROVENANCE_ERROR` | `PROVENANCE_FAILURE` | yes |
+| `UNHANDLED_EXCEPTION` | `UNHANDLED_EXCEPTION` | yes |
+| `RUN_FAILED` (started, no finished simulation) | `NONZERO_RETURN` | no |
+| `PREMATURE_LOSS` | `PREMATURE_BEAM_LOSS` | no |
+| `CHARGE_ZERO` (complete loss) | `EMPTY_OUTPUT` | no |
+| `NUMERICAL_ERROR` | `NAN_INF_DIAGNOSTICS` | no |
+| `OUTPUT_MISSING` / `FILE_CORRUPTED` | `MISSING_OUTPUT` / `CORRUPTED_OUTPUT` | no |
+
+`execution.retry_statuses` selects which statuses start a fresh attempt (bounded by `execution.retries`); each attempt-history entry records whether it was retried. The configured `execution.timeout_sec` is passed to the ASTRA runtime for every attempt.
+
+For successful simulations, measured values are then classified:
+- **`MISSING_OUTPUT`**: a configured objective or a canonical diagnostic channel was not observed $\implies$ Invalid simulation.
+- **`PREMATURE_BEAM_LOSS`**: tracking terminated before the exit screen ($z_{\text{final}} < Z_{\text{stop}} - \Delta z_{\text{tol}}$, both from configuration) $\implies$ Invalid simulation.
+- **`NAN_INF_DIAGNOSTICS`**: non-finite objectives or canonical diagnostics, or values outside a channel's physical range (e.g. negative RMS size) $\implies$ Invalid simulation.
+- **`INVALID_TRANSMISSION`**: transmission $< 0\%$ or $> 100\%$ $\implies$ Invalid simulation.
+- **`INFEASIBLE_BEAM`**: valid simulation violating configured beam quality constraints, including transmission below `min_transmission`; the reason lists the violated channels $\implies$ Valid simulation, infeasible beam.
+
+`diagnostics` contains only the seven canonical constraint channels. Auxiliary observations (`z_final_m`, particle counts) are stored separately as `telemetry`.
 
 ---
 

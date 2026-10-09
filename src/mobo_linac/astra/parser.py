@@ -6,36 +6,29 @@ and beam loss telemetry from ASTRA simulation runs and output files.
 """
 
 from dataclasses import dataclass, field
-from enum import Enum
 import math
 from pathlib import Path
-import re
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Union
 
-from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, invalid_diagnostic_channels, normalize_diagnostics
-
-
-class SimulationStatus(str, Enum):
-    """Classification status for an ASTRA simulation execution."""
-
-    SUCCESS = "SUCCESS"
-    PREMATURE_LOSS = "PREMATURE_LOSS"
-    CHARGE_ZERO = "CHARGE_ZERO"
-    TIMEOUT = "TIMEOUT"
-    NUMERICAL_ERROR = "NUMERICAL_ERROR"
-    FILE_CORRUPTED = "FILE_CORRUPTED"
-    OUTPUT_MISSING = "OUTPUT_MISSING"
-    UNHANDLED_EXCEPTION = "UNHANDLED_EXCEPTION"
+from mobo_linac.diagnostics import (
+    DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, invalid_diagnostic_channels, normalize_diagnostics,
+)
+from mobo_linac.status import SimulationStatus, classify_exception
 
 
 @dataclass
 class ParsedAstraResult:
-    """Structured and typed container for parsed ASTRA outputs."""
+    """Structured and typed container for parsed ASTRA outputs.
+
+    ``diagnostics`` holds only canonical constraint channels; ``telemetry`` holds
+    auxiliary observations such as the final longitudinal position and particle counts.
+    """
 
     status: SimulationStatus
     simulation_valid: bool = False
     objectives: Optional[Dict[str, float]] = None
     diagnostics: Dict[str, float] = field(default_factory=dict)
+    telemetry: Dict[str, float] = field(default_factory=dict)
     raw_stats: Optional[Dict[str, Any]] = None
     z_final_m: Optional[float] = None
     transmission_fraction: Optional[float] = None
@@ -51,38 +44,31 @@ class AstraOutputParser:
     from ASTRA simulation objects and working directories.
     """
 
-    def __init__(self, target_z_stop: float = 16.2, z_loss_tolerance: float = 0.1, *, config):
+    def __init__(self, *, config):
+        """Exit-plane target and tolerance come only from the configured lattice settings."""
         from mobo_linac.result_schema import ResultSchema
         self.schema = ResultSchema.from_config(config)
         self.config = config
-        self.target_z_stop = float(target_z_stop)
-        self.z_loss_tolerance = float(z_loss_tolerance)
+        self.target_z_stop = float(config.execution.z_stop_m)
+        self.z_loss_tolerance = float(config.execution.z_loss_tolerance_m)
 
     def parse_astra_simulation(
         self,
         astra_sim: Any,
         eval_dir: Optional[Union[str, Path]] = None,
-        error_context: Optional[str] = None,
+        error: Optional[BaseException] = None,
     ) -> ParsedAstraResult:
         """
         Parses an executed Astra simulation instance or working directory.
-        """
-        # If execution threw an exception before completion
-        if error_context:
-            err_lower = error_context.lower()
-            if "timeout" in err_lower or "timed out" in err_lower or "time out" in err_lower:
-                status = SimulationStatus.TIMEOUT
-            elif "nan" in err_lower or "inf" in err_lower or "floating point" in err_lower or "overflow" in err_lower:
-                status = SimulationStatus.NUMERICAL_ERROR
-            elif "corrupt" in err_lower or "not found" in err_lower or "missing" in err_lower:
-                status = SimulationStatus.FILE_CORRUPTED
-            else:
-                status = SimulationStatus.UNHANDLED_EXCEPTION
 
+        ``error`` is the exception raised during execution; it is classified by type
+        and recorded run information, never by message text.
+        """
+        if error is not None:
             return ParsedAstraResult(
-                status=status,
+                status=classify_exception(error, astra_sim),
                 simulation_valid=False,
-                error_message=error_context,
+                error_message=f"{type(error).__name__}: {error}",
             )
 
         # Check if output dictionary and stats exist
@@ -216,23 +202,16 @@ class AstraOutputParser:
             status = SimulationStatus.OUTPUT_MISSING
             error_message = "Configured objective statistics missing"
 
-        # Archived diagnostics also carried copies of the historical objective statistics.
-        for legacy_name, stat_key in (("emit_x", "norm_emit_x"), ("emit_y", "norm_emit_y"),
-                                      ("sigma_energy", "sigma_energy"), ("sigma_energy_eV", "sigma_energy")):
-            if stat_key in objective_values:
-                diagnostics[legacy_name] = objective_values[stat_key]
-
-        if z_final is not None:
-            diagnostics["z_final_m"] = z_final
-            diagnostics["z_final"] = z_final
-            diagnostics["z_stop_m"] = z_final
-
         if transmission_frac is not None:
             diagnostics["transmission_fraction"] = transmission_frac
+        diagnostics = {name: diagnostics[name] for name in DIAGNOSTIC_NAMES if name in diagnostics}
+        telemetry: Dict[str, float] = {}
+        if z_final is not None:
+            telemetry["z_final_m"] = z_final
         if n_init is not None:
-            diagnostics["n_particles_initial"] = float(n_init)
+            telemetry["n_particles_initial"] = float(n_init)
         if n_final is not None:
-            diagnostics["n_particles_final"] = float(n_final)
+            telemetry["n_particles_final"] = float(n_final)
 
         invalid_channels = invalid_diagnostic_channels(diagnostics)
         if status == SimulationStatus.SUCCESS and invalid_channels:
@@ -245,6 +224,7 @@ class AstraOutputParser:
             simulation_valid=(status == SimulationStatus.SUCCESS),
             objectives=objectives,
             diagnostics=diagnostics,
+            telemetry=telemetry,
             raw_stats=raw_stats,
             z_final_m=z_final,
             transmission_fraction=transmission_frac,

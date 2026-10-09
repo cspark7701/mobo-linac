@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional, Union, get_args, get_origin, get_t
 import torch
 import yaml
 
+from mobo_linac.status import DEFAULT_RETRY_STATUSES, SimulationStatus
 from mobo_linac.benchmark_algorithms import (
     SUPPORTED_BENCHMARK_ALGORITHMS,
     get_benchmark_algorithm,
@@ -151,6 +152,8 @@ class ExecutionConfig:
     acqf_batch_limit: int = 5
     z_stop_m: float = 16.2
     z_loss_tolerance_m: float = 0.1
+    # Simulation statuses that start a fresh attempt (bounded by ``retries``).
+    retry_statuses: List[str] = field(default_factory=lambda: list(DEFAULT_RETRY_STATUSES))
 
     def validate(self) -> None:
         """Validate execution parameters."""
@@ -360,6 +363,8 @@ FIELD_RULES = {
         **{name: {"minimum": 1} for name in ("timeout_sec", "max_workers", "acqf_num_restarts", "acqf_raw_samples", "acqf_maxiter", "acqf_batch_limit")},
         "retries": {"minimum": 0}, "z_stop_m": {"exclusiveMinimum": 0},
         "z_loss_tolerance_m": {"minimum": 0},
+        "retry_statuses": {"uniqueItems": True, "items": {"type": "string", "enum": [
+            status.value for status in SimulationStatus if status is not SimulationStatus.SUCCESS]}},
     },
     "GpModelConfig": {
         "covar_type": {"enum": ["matern52", "rbf"]},
