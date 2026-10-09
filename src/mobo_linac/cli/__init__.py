@@ -75,29 +75,7 @@ def main(args: Optional[Sequence[str]] = None) -> None:
     debug = getattr(parsed_args, "debug", False)
     configure_logging(quiet=quiet, verbose=verbose, debug=debug)
 
-    if hasattr(parsed_args, "handler") and callable(parsed_args.handler):
-        parsed_args.handler(parsed_args)
-    else:
-        # Fallback manual dispatch if handler attribute is missing
-        dispatch_table = {
-            "run": run_unconstrained,
-            "run-unconstrained": run_unconstrained,
-            "run-constrained": run_constrained,
-            "run-scalarized": run_scalarized,
-            "run-scalarized-suite": run_scalarized_suite_cmd,
-            "run-validation": run_validation,
-            "resume": resume_optimization,
-            "analyze": analyze_run,
-            "run-benchmark": run_benchmark,
-            "analyze-benchmark": analyze_benchmark,
-            "run-robustness": run_robustness,
-            "run-verification": run_verification,
-        }
-        cmd = getattr(parsed_args, "command", None)
-        if cmd in dispatch_table:
-            dispatch_table[cmd](parsed_args)
-        else:
-            parser.print_help()
+    parsed_args.handler(parsed_args)
 
 
 if __name__ == "__main__":

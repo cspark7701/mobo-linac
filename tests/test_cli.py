@@ -298,3 +298,47 @@ def test_cli_rejects_invalid_reference_before_dry_run_output(tmp_path):
         main(['run-unconstrained', '--dry-run', '--output-dir', str(tmp_path / 'invalid'),
               '--reporting-ref-point', '-1', '-2'])
     assert not (tmp_path / 'invalid').exists()
+
+
+@pytest.mark.parametrize("script, command", [
+    ("run_constrained_mobo", "run-constrained"), ("run_unconstrained_mobo", "run-unconstrained"),
+    ("run_scalarized_bo", "run-scalarized"), ("run_scalarized_suite", "run-scalarized-suite")])
+def test_scripts_and_cli_resolve_identical_plans(script, command, monkeypatch):
+    import importlib
+    from mobo_linac.cli import build_parser
+    from mobo_linac.cli.commands.run import resolve_plan
+    module = importlib.import_module(f"scripts.{script}")
+    argv = ["--config", "configs/publication_200MeV.yaml", "--seed", "5"]
+    script_args = module.parse_args(argv)
+    cli_args = build_parser().parse_args([command, *argv])
+    assert vars(script_args) == vars(cli_args)
+    mode = "scalarized_bo" if "scalarized" in command else "unconstrained_mobo"
+    config, options = resolve_plan(cli_args, mode)
+    assert options["num_workers"] == config.execution.max_workers  # never a hidden CLI default
+    assert options["num_batches"] == config.campaign.num_batches and options["seed"] == 5
+
+
+def test_validation_runs_in_its_own_directory_without_repository_scripts(tmp_path):
+    import subprocess
+    import sys as system
+    code = (
+        "import sys; sys.path = [p for p in sys.path if p not in ('', '.')];"
+        "from mobo_linac.cli import main;"
+        f"main(['run-validation', '--config', 'configs/mobo_200MeV.yaml', '--output-dir', r'{tmp_path}',"
+        " '--n-iterations', '0', '--num-initial-samples', '2', '--mock-evaluator', '--device', 'cpu'])"
+    )
+    env = dict(__import__("os").environ, PYTHONPATH="src")
+    subprocess.run([system.executable, "-c", code], check=True, env=env, cwd=Path(__file__).resolve().parents[1])
+    runs = sorted(tmp_path.glob("validation_*"))
+    assert len(runs) == 1 and (runs[0] / "run_complete.json").exists()
+    assert not (tmp_path / "candidate_history.csv").exists()
+
+
+def test_analyze_exports_the_figures_it_reports(tmp_path, capsys):
+    run_dir = tmp_path / "run"
+    main(["run-unconstrained", "--config", "configs/mobo_200MeV.yaml", "--n-iterations", "0",
+          "--num-initial-samples", "3", "--output-dir", str(run_dir), "--mock-evaluator", "--device", "cpu"])
+    figures = tmp_path / "figures"
+    main(["analyze", "--run-dir", str(run_dir), "--output-dir", str(figures)])
+    assert "Figures exported" in capsys.readouterr().out
+    assert {p.name for p in figures.glob("*.png")} >= {"hypervolume_progress.png", "pareto_front.png"}

@@ -1,96 +1,21 @@
 #!/usr/bin/env python3
+"""Phase 1 scalarized BO (single case, or --suite option2 / --case all); equivalent to ``mobo-linac run-scalarized``.
+
+Options and defaults are the CLI's: omitted values come from the configuration's
+``campaign`` section (workers from ``execution.max_workers``).
 """
-Phase 1: Scalarized Bayesian Optimization (BO) for 200 MeV Electron Injector Linac.
 
-Production execution script for scalarized Bayesian Optimization using single-objective
-GP surrogates (SingleTaskGP / qLogNEI) across specified objective weight combinations.
-"""
+import sys
 
-import argparse
-from mobo_linac.cli import run_scalarized
+from mobo_linac.cli import build_parser, main
+
+COMMAND = "run-scalarized"
 
 
-def parse_args():
-    parser = argparse.ArgumentParser(
-        description="Run Phase 1 Scalarized BO for 200 MeV Linac Injector"
-    )
-    parser.add_argument(
-        "--config",
-        type=str,
-        default="configs/mobo_200MeV.yaml",
-        help="Path to YAML config file",
-    )
-    parser.add_argument(
-        "--n-iterations",
-        type=int,
-        default=300,
-        help="Total BO iterations",
-    )
-    parser.add_argument(
-        "-q",
-        "--batch-size",
-        type=int,
-        default=8,
-        help="Batch size for q-scalarized BO",
-    )
-    parser.add_argument(
-        "--num-initial-samples",
-        type=int,
-        default=16,
-        help="Number of initial Sobol samples",
-    )
-    parser.add_argument(
-        "--num-workers",
-        type=int,
-        default=4,
-        help="Number of parallel workers for ASTRA",
-    )
-    parser.add_argument(
-        "--weights",
-        nargs=3,
-        type=float,
-        default=[1.0, 1.0, 1.0],
-        help="Weights for 3 objectives (emittance_x, emittance_y, energy_spread)",
-    )
-    parser.add_argument(
-        "--suite",
-        type=str,
-        default=None,
-        choices=["option2", "custom"],
-        help="Predefined multi-case suite to run (e.g. 'option2')",
-    )
-    parser.add_argument(
-        "--case",
-        type=str,
-        default=None,
-        help="Configured scalarized case id ('all' runs every configured case)",
-    )
-    parser.add_argument(
-        "--resume",
-        action="store_true",
-        help="Resume optimization from latest checkpoint",
-    )
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="Random seed for reproducibility",
-    )
-    parser.add_argument(
-        "--output-dir",
-        type=str,
-        default=None,
-        help="Custom output directory for run artifacts",
-    )
-    parser.add_argument(
-        "--device",
-        type=str,
-        default="auto",
-        help="Target PyTorch compute device ('auto', 'cuda', 'cpu')",
-    )
-    return parser.parse_args()
+def parse_args(argv=None):
+    """Parse script arguments exactly as the CLI subcommand does."""
+    return build_parser().parse_args([COMMAND, *(sys.argv[1:] if argv is None else argv)])
 
 
 if __name__ == "__main__":
-    args = parse_args()
-    run_scalarized(args)
+    main([COMMAND, *sys.argv[1:]])

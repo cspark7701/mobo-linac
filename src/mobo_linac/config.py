@@ -253,6 +253,23 @@ class BenchmarkConfig:
 
 
 @dataclass
+class CampaignSettings:
+    """Default campaign plan used by every entry point when an option is not given.
+
+    Worker count comes from ``execution.max_workers``.
+    """
+
+    num_initial_samples: int = 16
+    num_batches: int = 20
+    batch_size: int = 8
+    seed: int = 42
+    acquisition: str = "qLogNEHVI"
+
+    def validate(self) -> None:
+        _validate_fields(self)
+
+
+@dataclass
 class ScalarizedCaseConfig:
     """One weighted-sum scalarization case of the Phase 1 suite."""
 
@@ -279,6 +296,7 @@ class MoboConfig:
     sensitivity_profiles: Dict[str, ConstraintsConfig] = field(default_factory=dict)
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
     model: GpModelConfig = field(default_factory=GpModelConfig)
+    campaign: CampaignSettings = field(default_factory=CampaignSettings)
     # Named scalarization cases (weights in configured objective order); the suite seed of a
     # case is the base seed plus its stable seed_offset, independent of the cases selected.
     scalarized_cases: Dict[str, ScalarizedCaseConfig] = field(default_factory=dict)
@@ -317,6 +335,7 @@ class MoboConfig:
 
         self.execution.validate()
         self.model.validate()
+        self.campaign.validate()
         if self.model.objective_noise_variances is not None and len(self.model.objective_noise_variances) != len(self.objectives):
             raise ValueError("objective_noise_variances must match the configured objective count.")
         offsets = set()
@@ -411,6 +430,11 @@ FIELD_RULES = {
         **{name: {"minimum": 1} for name in ("total_eval_budget", "n_sobol_init", "batch_size")},
         "reporting_ref_point": {"minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}},
         "constraint_profile": {"minLength": 1}, "output_dir": {"minLength": 1},
+    },
+    "CampaignSettings": {
+        **{name: {"minimum": 1} for name in ("num_initial_samples", "batch_size")},
+        "num_batches": {"minimum": 0}, "seed": {"minimum": 0, "maximum": 2**32 - 1},
+        "acquisition": {"enum": ["qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"]},
     },
     "ScalarizedCaseConfig": {
         "label": {"minLength": 1}, "seed_offset": {"minimum": 0},
@@ -647,6 +671,7 @@ def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") ->
         for pname, pdata in data["sensitivity_profiles"].items():
             sens_profiles[pname] = ConstraintsConfig(**pdata)
 
+    campaign = CampaignSettings(**(data.get("campaign") or {}))
     cases = {case_id: ScalarizedCaseConfig(**case) for case_id, case in (data.get("scalarized_cases") or {}).items()}
     execution = ExecutionConfig(**data.get("execution", {}))
     model_cfg = GpModelConfig(**data.get("model", {}))
@@ -662,6 +687,7 @@ def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") ->
         execution=execution,
         model=model_cfg,
         scalarized_cases=cases,
+        campaign=campaign,
     )
     config.validate()
     return config
@@ -681,6 +707,16 @@ def normalize_scalar_weights(weights, objective_count):
         raise ValueError("Scalar weights must match objectives and be finite, nonnegative, with positive sum.")
     scaled = values / values.max()
     return scaled / scaled.sum()
+
+
+def resolve_campaign_options(config: "MoboConfig", **requested):
+    """Fill omitted (None) campaign options from the configuration, the single default source."""
+    defaults = asdict(config.campaign)
+    resolved = {name: requested.get(name) if requested.get(name) is not None else value
+                for name, value in defaults.items()}
+    workers = requested.get("num_workers")
+    resolved["num_workers"] = workers if workers is not None else config.execution.max_workers
+    return resolved
 
 
 def validate_campaign_options(*, num_initial_samples, num_batches, batch_size, num_workers=None,

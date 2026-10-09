@@ -77,7 +77,7 @@ def register_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
         help="BO batch size per iteration",
     )
     run_bm_parser.add_argument(
-        "--num-workers", type=int, default=4, help="Number of parallel worker processes"
+        "--num-workers", type=int, default=None, help="Parallel worker processes (default: config execution.max_workers)"
     )
     run_bm_parser.add_argument(
         "--device", type=str, default="auto", help="Target PyTorch compute device ('auto', 'cuda', 'cuda:0', 'cpu')"

@@ -28,8 +28,8 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
     subparser.add_argument(
         "--n-iterations",
         type=int,
-        default=300,
-        help="Total BO iterations",
+        default=None,
+        help="BO iterations after the initial design (default: config campaign.num_batches)",
     )
     subparser.add_argument(
         "-b",
@@ -38,28 +38,28 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
         "--batch_size",
         dest="batch_size",
         type=int,
-        default=8,
-        help="Batch size for q-MOBO candidate proposals",
+        default=None,
+        help="Batch size for q-MOBO candidate proposals (default: config campaign.batch_size)",
     )
     subparser.add_argument(
         "--num-initial-samples",
         type=int,
-        default=16,
-        help="Initial random Sobol samples",
+        default=None,
+        help="Initial Sobol samples (default: config campaign.num_initial_samples)",
     )
     subparser.add_argument(
         "--num-workers",
         type=int,
-        default=4,
-        help="Number of parallel worker processes",
+        default=None,
+        help="Parallel worker processes (default: config execution.max_workers)",
     )
     subparser.add_argument(
         "-a",
         "--acquisition",
         type=str,
         choices=["qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"],
-        default="qLogNEHVI",
-        help="Acquisition function ('qLogNEHVI', 'qLogEHVI', 'qEHVI', 'qNEHVI')",
+        default=None,
+        help="MOBO acquisition (default: config campaign.acquisition; scalarized BO uses qLogNEI)",
     )
     subparser.add_argument(
         "--device",
@@ -70,8 +70,8 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
     subparser.add_argument(
         "--seed",
         type=int,
-        default=42,
-        help="Random seed",
+        default=None,
+        help="Random seed (default: config campaign.seed)",
     )
     subparser.add_argument(
         "--output-dir",

@@ -123,6 +123,14 @@ execution:
   acqf_maxiter: 200
   acqf_batch_limit: 5
 
+# Default campaign plan for every entry point; command-line options override it.
+campaign:
+  num_initial_samples: 16
+  num_batches: 20
+  batch_size: 8
+  seed: 42
+  acquisition: "qLogNEHVI"
+
 # Phase 1 weighted-sum cases (weights in objective order: emit_x, emit_y, sigma_E).
 # seed_offset keeps each case's seed stable regardless of which cases are run.
 scalarized_cases:

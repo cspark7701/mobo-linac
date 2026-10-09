@@ -7,7 +7,6 @@ CLI command handlers for Pareto validation, candidate verification, and robustne
 
 import argparse
 from pathlib import Path
-import pandas as pd
 
 from mobo_linac.cli.common import CliMockEvaluator
 from mobo_linac.config import load_config
@@ -15,22 +14,27 @@ from mobo_linac.evaluation import create_evaluation_result
 
 
 def analyze_run(args: argparse.Namespace) -> None:
-    """Analyzes results from a completed optimization run."""
-    run_dir = Path(args.run_dir)
-    history_csv = run_dir / "candidate_history.csv"
-    if not history_csv.exists():
-        history_csv = run_dir / "evaluations.csv"
-    if not history_csv.exists():
-        raise FileNotFoundError(f"Candidate history / evaluations CSV not found in: {run_dir}")
+    """Summarize a recorded run and export its standard figures."""
+    from mobo_linac.io.run_data import read_run_data
+    from mobo_linac.plotting import (plot_constraint_diagnostics, plot_hypervolume_progress,
+                                     plot_objective_evolution, plot_pareto_front)
+    from mobo_linac.plotting.common import figure_scope
 
-    df = pd.read_csv(history_csv)
+    run_dir = Path(args.run_dir)
+    run = read_run_data(run_dir)
+    results = run.results
     print(f"\n--- Analysis Summary for {run_dir.name} ---")
-    print(f"Total Evaluations: {len(df)}")
-    print(f"Valid Simulations: {df['simulation_valid'].sum()} / {len(df)}")
-    print(f"Feasible Beams: {df['physically_feasible'].sum()} / {len(df)}")
+    print(f"Total Evaluations: {len(results)}")
+    print(f"Valid Simulations: {sum(r.simulation_valid is True for r in results)} / {len(results)}")
+    print(f"Feasible Beams: {sum(r.physically_feasible is True for r in results)} / {len(results)}")
 
     output_dir = Path(args.output_dir) if args.output_dir else run_dir / "figures"
     output_dir.mkdir(parents=True, exist_ok=True)
+    with figure_scope():
+        plot_hypervolume_progress(run.hypervolume, output_dir / "hypervolume_progress.png")
+        plot_pareto_front(results, output_dir / "pareto_front.png", config=run.config)
+        plot_objective_evolution(results, output_dir / "objective_evolution.png", config=run.config)
+        plot_constraint_diagnostics(results, output_dir / "constraint_diagnostics.png")
     print(f"Figures exported to: {output_dir.resolve()}")
 
 
@@ -51,7 +55,7 @@ def run_robustness(args: argparse.Namespace) -> None:
     run_robustness_workflow(
         results, config, output_dir,
         num_perturbations=getattr(args, "num_perturbations", 20),
-        num_workers=getattr(args, "num_workers", 4), seed=getattr(args, "seed", 42),
+        num_workers=getattr(args, "num_workers", None) or config.execution.max_workers, seed=getattr(args, "seed", 42),
         dry_run=getattr(args, "dry_run", False), batch_evaluator=mock,
     )
 
@@ -115,7 +119,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
         "--num-perturbations", type=int, default=20, help="Number of perturbations per candidate"
     )
     run_rob_parser.add_argument(
-        "--num-workers", type=int, default=4, help="Number of parallel worker processes"
+        "--num-workers", type=int, default=None, help="Parallel worker processes (default: config execution.max_workers)"
     )
     run_rob_parser.add_argument(
         "--seed", type=int, default=42, help="Random seed"

@@ -206,7 +206,7 @@ export GENERATOR_BIN="/path/to/custom/bin/generator"
 
 ## Usage Examples & CLI Commands
 
-The framework provides a unified console entry point `mobo-linac` (or `python -m mobo_linac.cli`):
+The framework provides a unified console entry point `mobo-linac` (or `python -m mobo_linac.cli`). Omitted campaign options (initial samples, iterations, batch size, seed, acquisition) come from the configuration's `campaign` section and the worker count from `execution.max_workers`; the scripts under `scripts/` are thin wrappers with identical options and defaults. `run-validation` writes to `<output-dir>/validation_<timestamp>/`, and `analyze` exports the standard figures of a recorded run.
 
 ### 1. Run Phase 2 Unconstrained MOBO
 ```bash

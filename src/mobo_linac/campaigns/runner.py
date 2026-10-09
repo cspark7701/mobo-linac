@@ -24,7 +24,7 @@ from mobo_linac.acquisition.mobo import (
     build_acquisition_function,
     generate_next_candidates,
 )
-from mobo_linac.config import MoboConfig, config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
+from mobo_linac.config import CampaignSettings, MoboConfig, config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
 from mobo_linac.campaigns.state import prepare_resume_state, restore_rng_state
 from mobo_linac.campaigns.recovery import load_resume_candidate, reconcile_resume
 from mobo_linac.evaluation import EvaluationResult
@@ -106,11 +106,6 @@ class MoboCampaignRunner:
         self._requested_device = device
         self._requested_num_workers = num_workers
         self._config_explicit = config is not None
-        num_initial_samples = 16 if num_initial_samples is None else num_initial_samples
-        num_batches = 6 if num_batches is None else num_batches
-        batch_size = 4 if batch_size is None else batch_size
-        seed = 42 if seed is None else seed
-        acq_type = "qLogNEHVI" if acq_type is None else acq_type
         optimization_mode = optimization_mode or "unconstrained_mobo"
         self.device = get_device(device)
 
@@ -120,6 +115,14 @@ class MoboCampaignRunner:
         else:
             self.config = config
             self.config_path = getattr(config, "resolved_path", None)
+        # Omitted options use the configuration's campaign defaults (resume restores saved values).
+        defaults = self.config.campaign if self.config is not None else CampaignSettings()
+        num_initial_samples = defaults.num_initial_samples if num_initial_samples is None else num_initial_samples
+        num_batches = defaults.num_batches if num_batches is None else num_batches
+        batch_size = defaults.batch_size if batch_size is None else batch_size
+        seed = defaults.seed if seed is None else seed
+        if acq_type is None:
+            acq_type = "qLogNEI" if optimization_mode == "scalarized_bo" else defaults.acquisition
         if self.config is not None:
             self.config.validate()
         validate_campaign_options(num_initial_samples=num_initial_samples, num_batches=num_batches,
@@ -192,7 +195,7 @@ class MoboCampaignRunner:
         if num_workers is not None:
             self.num_workers = num_workers
         else:
-            self.num_workers = self.config.execution.max_workers if self.config is not None else 4
+            self.num_workers = self.config.execution.max_workers if self.config is not None else None
 
         torch.manual_seed(self.seed)
         np.random.seed(self.seed)
