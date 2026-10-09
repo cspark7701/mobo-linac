@@ -7,7 +7,7 @@ import tempfile
 import numpy as np
 import pandas as pd
 import torch
-from botorch.utils.multi_objective.pareto import is_non_dominated
+from mobo_linac.metrics.front import pareto_mask
 from mobo_linac.diagnostics import DIAGNOSTIC_NAMES
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.io.results import get_training_observations, results_to_dataframe
@@ -46,8 +46,12 @@ class RunArtifactWriter:
     def invalidate_completion(self):
         (self.run_dir / "run_complete.json").unlink(missing_ok=True)
 
-    def write(self, results, tracker=None, hypervolumes=None, elapsed_wall_times=None,
+    def write(self, results, tracker, elapsed_wall_times=None,
               elapsed_wall_time_s=None, reference_policy="initial_design", timing_scope=None, extra_columns=None):
+        """Write every run artifact; the fixed-reference tracker is required so that
+        hypervolume.csv always has the explicit reporting schema."""
+        if tracker is None:
+            raise TypeError("RunArtifactWriter.write requires the fixed-reference HypervolumeTracker.")
         self.invalidate_completion()
         self.required = []
         def csv(name, frame):
@@ -75,7 +79,7 @@ class RunArtifactWriter:
         csv("failures.csv", frame[(frame.simulation_valid != True) | (frame.physically_feasible != True)])
         def pareto(rows):
             xs, ys = x[rows], y[rows]
-            mask = is_non_dominated(ys) if len(ys) else torch.zeros(0, dtype=torch.bool)
+            mask = pareto_mask(ys)
             data = np.hstack([xs[mask].numpy(), self.schema.transform(ys[mask]).numpy()])
             frame = pd.DataFrame(data, columns=self.schema.design_columns + self.schema.physical_columns)
             kept = [identities[index] for index, keep in zip(rows.nonzero().flatten().tolist(), mask.tolist()) if keep]
@@ -87,19 +91,16 @@ class RunArtifactWriter:
         csv("pareto.csv", all_points)
         csv("pareto_all.csv", all_points)
         csv("pareto_feasible.csv", pareto(feasible))
-        if tracker is not None:
-            csv("hypervolume.csv", tracker.to_dataframe())
-            meta = reporting_metadata(self.config, tracker.reporting_ref_point.tolist(), reference_policy)
-            meta["timing_scope"] = timing_scope or ("active_sessions" if elapsed_wall_time_s is not None else "unknown")
-            atomic_json(self.run_dir / "reporting_metadata.json", meta)
-            self.required.append("reporting_metadata.json")
-            metrics = compute_campaign_metrics_history(results, self.schema.scales,
-                        meta["reporting_ref_point_normalized"], elapsed_wall_times)
-            if len(metrics) and elapsed_wall_time_s is not None:
-                metrics.loc[metrics.index[-1], "total_wallclock_s"] = elapsed_wall_time_s
-            csv("metrics_history.csv", metrics)
-        else:
-            csv("hypervolume.csv", pd.DataFrame({"hypervolume": hypervolumes if hypervolumes is not None else []}))
+        csv("hypervolume.csv", tracker.to_dataframe())
+        meta = reporting_metadata(self.config, tracker.reporting_ref_point.tolist(), reference_policy)
+        meta["timing_scope"] = timing_scope or ("active_sessions" if elapsed_wall_time_s is not None else "unknown")
+        atomic_json(self.run_dir / "reporting_metadata.json", meta)
+        self.required.append("reporting_metadata.json")
+        metrics = compute_campaign_metrics_history(results, self.schema.scales,
+                    meta["reporting_ref_point_normalized"], elapsed_wall_times)
+        if len(metrics) and elapsed_wall_time_s is not None:
+            metrics.loc[metrics.index[-1], "total_wallclock_s"] = elapsed_wall_time_s
+        csv("metrics_history.csv", metrics)
         return {"json": history, "csv": self.run_dir / "candidate_history.csv"}
 
     def complete(self, evaluation_count, elapsed_wall_time_s, extra_required=()):

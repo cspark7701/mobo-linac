@@ -2,6 +2,7 @@
 Unit tests for CandidateEvaluatorBase, RobustnessEvaluator, and ParetoVerifier.
 """
 
+from mobo_linac.result_schema import ResultSchema
 from pathlib import Path
 import numpy as np
 import pytest
@@ -232,7 +233,7 @@ def test_cli_and_script_honor_config_through_shared_workflow(sample_candidate, r
     config_file = tmp_path / 'custom_config.yaml'
     config_file.write_text(yaml.safe_dump(asdict(config)))
     history = tmp_path / 'nominal_history'
-    save_evaluation_results([sample_candidate], history, config=config)
+    save_evaluation_results([sample_candidate], history, config=config, reporting_ref_point=ResultSchema.from_config(config).empty_reference)
     # Use the complete candidate-history schema, including observed feasibility.
     input_file = history / 'candidate_history.csv'
     outputs = [tmp_path / 'cli', tmp_path / 'script']

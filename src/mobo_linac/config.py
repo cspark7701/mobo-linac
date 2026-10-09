@@ -152,6 +152,12 @@ class ExecutionConfig:
     acqf_batch_limit: int = 5
     z_stop_m: float = 16.2
     z_loss_tolerance_m: float = 0.1
+    # Reference policy: the reporting reference is fixed once from the initial design with
+    # this fractional range offset (unless supplied explicitly); the acquisition reference
+    # is recomputed each iteration from the selected observations with its own offset.
+    reporting_reference_offset: float = 0.10
+    acquisition_reference_offset: float = 0.05
+    acquisition_reference_basis: str = "all_valid"
     # Simulation statuses that start a fresh attempt (bounded by ``retries``).
     retry_statuses: List[str] = field(default_factory=lambda: list(DEFAULT_RETRY_STATUSES))
 
@@ -363,6 +369,8 @@ FIELD_RULES = {
         **{name: {"minimum": 1} for name in ("timeout_sec", "max_workers", "acqf_num_restarts", "acqf_raw_samples", "acqf_maxiter", "acqf_batch_limit")},
         "retries": {"minimum": 0}, "z_stop_m": {"exclusiveMinimum": 0},
         "z_loss_tolerance_m": {"minimum": 0},
+        "reporting_reference_offset": {"minimum": 0}, "acquisition_reference_offset": {"minimum": 0},
+        "acquisition_reference_basis": {"enum": ["all_valid", "feasible"]},
         "retry_statuses": {"uniqueItems": True, "items": {"type": "string", "enum": [
             status.value for status in SimulationStatus if status is not SimulationStatus.SUCCESS]}},
     },

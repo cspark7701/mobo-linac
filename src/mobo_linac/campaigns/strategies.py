@@ -110,7 +110,12 @@ def propose_multiobjective(context, training, bounds, schema, iteration, proposa
 
     persist_model(pipeline, iteration, training, pipeline=True)
 
-    acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05, config=context.config)
+    exec_cfg = context.config.execution
+    basis_Y = train_Y
+    if exec_cfg.acquisition_reference_basis == "feasible" and bool(train_feas_mask.any()):
+        basis_Y = train_Y[train_feas_mask]
+    acq_ref_point = compute_reference_point(basis_Y, offset_ratio=exec_cfg.acquisition_reference_offset,
+                                            config=context.config)
 
     acq_func = build_acquisition_function(
         model=gp_model,
@@ -123,7 +128,6 @@ def propose_multiobjective(context, training, bounds, schema, iteration, proposa
         objective=objective_slice,
     )
 
-    exec_cfg = context.config.execution
     proposal_result = generate_next_candidates(
         acq_func=acq_func,
         bounds=bounds,
@@ -137,6 +141,11 @@ def propose_multiobjective(context, training, bounds, schema, iteration, proposa
     )
     next_cand_tensor, _ = proposal_result
     proposal_metadata = getattr(proposal_result, "metadata", None)
+    if proposal_metadata is not None:
+        proposal_metadata = dict(proposal_metadata, acquisition_reference={
+            "point_model": acq_ref_point.detach().cpu().tolist(),
+            "offset": exec_cfg.acquisition_reference_offset,
+            "basis": exec_cfg.acquisition_reference_basis})
     next_cand_list = next_cand_tensor.detach().cpu().tolist()
 
     return next_cand_list, proposal_metadata

@@ -2,6 +2,7 @@
 Unit and Integration Tests for Process-Safe Parallel ASTRA Evaluation (Task 03).
 """
 
+from mobo_linac.result_schema import ResultSchema
 import os
 import json
 from pathlib import Path
@@ -377,7 +378,7 @@ def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monke
     record_dir = temp_project['base_dir'] / 'records'
     append_streaming_evaluation(record_dir, accepted, batch_idx=0, config=TEST_CONFIG)
     assert load_streaming_evaluations(record_dir)[0].to_dict() == accepted.to_dict()
-    save_evaluation_results([accepted], record_dir, config=config)
+    save_evaluation_results([accepted], record_dir, config=config, reporting_ref_point=ResultSchema.from_config(config).empty_reference)
     for name in ['candidate_history.json', 'candidate_history.csv']:
         loaded = load_evaluation_results(record_dir / name, config)[0]
         assert loaded.attempt_id == accepted.attempt_id

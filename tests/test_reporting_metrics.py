@@ -180,3 +180,48 @@ def test_integer_objectives_retain_floating_normalization():
     result = normalize_objectives_physical(values, SCALES)
     assert result.dtype == torch.double
     torch.testing.assert_close(result, torch.tensor([[1e6, 2e6, 3e-6]], dtype=torch.double))
+
+
+def _random_history(count, seed=3):
+    rng = np.random.default_rng(seed)
+    records = []
+    for index in range(count):
+        physical = [float(rng.uniform(0.5e-6, 3e-6)), float(rng.uniform(0.5e-6, 3e-6)), float(rng.uniform(0.1e6, 2e6))]
+        valid = bool(rng.random() > 0.1)
+        records.append(EvaluationResult(
+            evaluation_id=f"eval_{index:06d}", run_id="r", x_physical=[0.0] * 6,
+            objectives_physical=physical if valid else None,
+            objectives_model=[-v for v in physical] if valid else None,
+            simulation_valid=valid, physically_feasible=valid and bool(rng.random() > 0.4)))
+    return records
+
+
+def test_incremental_metrics_history_matches_full_recomputation():
+    records = _random_history(60)
+    frame = compute_campaign_metrics_history(records, SCALES, REFERENCE)
+    for count in (1, 10, 35, 60):
+        prefix = records[:count]
+        valid = torch.tensor([r.objectives_model for r in prefix if r.simulation_valid], dtype=torch.double).reshape(-1, 3)
+        feasible = torch.tensor([r.objectives_model for r in prefix if r.simulation_valid and r.physically_feasible],
+                                dtype=torch.double).reshape(-1, 3)
+        row = frame.iloc[count - 1]
+        assert row.fixed_ref_all_valid_hv == pytest.approx(compute_normalized_hypervolume(valid, REFERENCE, SCALES), rel=1e-12)
+        assert row.fixed_ref_feasible_hv == pytest.approx(compute_normalized_hypervolume(feasible, REFERENCE, SCALES), rel=1e-12)
+
+
+def test_metrics_history_scales_linearly_for_large_campaigns():
+    import time
+    records = _random_history(2000)
+    started = time.perf_counter()
+    frame = compute_campaign_metrics_history(records, SCALES, REFERENCE)
+    assert len(frame) == 2000
+    assert time.perf_counter() - started < 60.0
+
+
+def test_single_front_implementation_is_shared():
+    from mobo_linac.metrics import front, hypervolume as hv_module
+    values = torch.tensor([[-1.0, -2.0], [-2.0, -1.0], [-2.5, -2.5]], dtype=torch.double)
+    reference = torch.tensor([-3.0, -3.0], dtype=torch.double)
+    assert hv_module.compute_hypervolume(values, reference) == front.hypervolume(values, reference) == pytest.approx(3.0)
+    assert front.front_size(values, reference) == 2
+    assert normalize_objectives_model is normalize_objectives_physical

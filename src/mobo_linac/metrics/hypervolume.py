@@ -11,8 +11,7 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import numpy as np
 import pandas as pd
 import torch
-from botorch.utils.multi_objective.hypervolume import Hypervolume
-from botorch.utils.multi_objective.pareto import is_non_dominated
+from mobo_linac.metrics.front import front_size, hypervolume
 
 from mobo_linac.config import MoboConfig
 from mobo_linac.objectives import transform_to_physical_space
@@ -65,39 +64,10 @@ def compute_hypervolume(
     train_Y: torch.Tensor,
     ref_point: Union[Sequence[float], torch.Tensor],
 ) -> float:
-    """
-    Computes exact non-dominated hypervolume w.r.t a specified model-space reference point.
-
-    Args:
-        train_Y: (N, D) PyTorch double tensor of model-space objectives.
-        ref_point: Reference point tensor or sequence in model space.
-
-    Returns:
-        Non-negative float hypervolume value.
-    """
-    if not isinstance(ref_point, torch.Tensor):
-        ref_tensor = torch.tensor(ref_point, dtype=torch.double)
-    else:
-        ref_tensor = ref_point.to(dtype=torch.double)
-
-    if train_Y is None or train_Y.shape[0] == 0:
+    """Exact hypervolume of model-space objectives w.r.t. a model-space reference point."""
+    if train_Y is None:
         return 0.0
-
-    Y_double = train_Y.to(dtype=torch.double)
-
-    # Filter candidates that strictly dominate the reference point in model space (Y > ref_point)
-    strictly_better = (Y_double > ref_tensor).all(dim=-1)
-    Y_valid = Y_double[strictly_better]
-
-    if Y_valid.shape[0] == 0:
-        return 0.0
-
-    pareto_mask = is_non_dominated(Y_valid)
-    pareto_Y = Y_valid[pareto_mask]
-
-    hv_calc = Hypervolume(ref_point=ref_tensor)
-    volume = hv_calc.compute(pareto_Y)
-    return max(0.0, float(volume))
+    return hypervolume(train_Y, ref_point)
 
 
 def validate_reference_point_compatibility(
@@ -183,23 +153,13 @@ class HypervolumeTracker:
         num_valid = train_Y.shape[0] if train_Y is not None else 0
         num_feasible = int(train_feas_mask.sum().item()) if train_feas_mask is not None else 0
 
-        # Compute all-point hypervolume (valid simulations)
         all_hv = compute_hypervolume(train_Y, self._reporting_ref_point)
-
-        # Compute feasible-only hypervolume
-        pareto_size = 0
         if train_Y is not None and train_feas_mask is not None and num_feasible > 0:
             feasible_Y = train_Y[train_feas_mask]
-            feas_hv = compute_hypervolume(feasible_Y, self._reporting_ref_point)
-
-            # Compute Pareto front size on feasible set
-            strictly_better = (feasible_Y > self._reporting_ref_point).all(dim=-1)
-            feas_valid = feasible_Y[strictly_better]
-            if feas_valid.shape[0] > 0:
-                pareto_mask = is_non_dominated(feas_valid)
-                pareto_size = int(pareto_mask.sum().item())
+            feas_hv = hypervolume(feasible_Y, self._reporting_ref_point)
+            pareto_size = front_size(feasible_Y, self._reporting_ref_point)
         else:
-            feas_hv = 0.0
+            feas_hv, pareto_size = 0.0, 0
 
         if acq_ref_point is not None:
             if isinstance(acq_ref_point, torch.Tensor):
@@ -224,9 +184,13 @@ class HypervolumeTracker:
         self.history.append(record)
         return record
 
+    # Reference points live in reporting_metadata.json; the CSV holds measurements only.
+    CSV_COLUMNS = ["iteration", "all_point_hypervolume", "feasible_hypervolume",
+                   "num_valid_points", "num_feasible_points", "pareto_size"]
+
     def to_dataframe(self) -> pd.DataFrame:
         """Returns hypervolume tracking history as a Pandas DataFrame."""
-        return pd.DataFrame(self.history, columns=["iteration", "reporting_ref_point_model", "reporting_ref_point_physical", "acquisition_ref_point_model", "all_point_hypervolume", "feasible_hypervolume", "num_valid_points", "num_feasible_points", "pareto_size"])
+        return pd.DataFrame(self.history, columns=self.CSV_COLUMNS)
 
     def save_csv(self, output_path: Union[str, Path]) -> Path:
         """Saves hypervolume history to CSV file."""

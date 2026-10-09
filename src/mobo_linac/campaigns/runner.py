@@ -527,7 +527,9 @@ class MoboCampaignRunner:
 
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
 
-            reporting_ref_point = compute_reference_point(train_Y, offset_ratio=0.10, default_ref_point=self._requested_reporting_ref, config=self.config)
+            reporting_ref_point = compute_reference_point(
+                train_Y, offset_ratio=self.config.execution.reporting_reference_offset,
+                default_ref_point=self._requested_reporting_ref, config=self.config)
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
 
             hv_init = tracker.track_iteration(0, train_Y, train_feas_mask)

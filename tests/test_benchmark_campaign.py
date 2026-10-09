@@ -2,6 +2,8 @@
 Unit tests for Statistically Rigorous Benchmark Campaign Orchestration and Analysis (Task 06).
 """
 
+from mobo_linac.result_schema import ResultSchema
+import json
 import pytest
 import numpy as np
 import pandas as pd
@@ -130,7 +132,8 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
             )
             raw = MockBatchEvaluator(tmp_path).evaluate_batch(candidates.tolist())
             results = [create_evaluation_result(r, captured["config"]) for r in raw]
-            save_evaluation_results(results, captured["output_dir"], config=captured["config"])
+            save_evaluation_results(results, captured["output_dir"], config=captured["config"],
+                                    reporting_ref_point=captured["reporting_ref_point"])
             return results, None, captured["output_dir"]
 
     monkeypatch.setattr(campaign_module, "MoboCampaignRunner", RecordingRunner)
@@ -156,8 +159,9 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
     assert captured["total_eval_budget"] == 5
     assert captured["num_initial_samples"] == 2
     assert captured["num_batches"] == 2
-    assert metrics_kwargs["scales"] == [1e-6, 1e-6, 1e6]
-    assert metrics_kwargs["reporting_ref_point_norm"] == [-1.5, -1.5, -1.5]
+    metadata = json.loads((runner.get_run_dir(algorithm, 42) / "reporting_metadata.json").read_text())
+    assert metadata["objective_scales"] == [1e-6, 1e-6, 1e6]
+    assert metadata["reporting_ref_point_normalized"] == [-1.5, -1.5, -1.5]
     assert manifest.iloc[0]["status"] == "completed"
     assert manifest.iloc[0]["requested_budget"] == manifest.iloc[0]["effective_budget"] == 5
     assert manifest.iloc[0]["final_batch_size"] == 1

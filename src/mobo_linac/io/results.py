@@ -171,15 +171,21 @@ def get_constraint_tensors(
 def save_evaluation_results(
     results: List[EvaluationResult],
     run_dir: Union[str, Path],
-    hypervolumes: Optional[List[float]] = None,
     *,
     config: Any,
+    reporting_ref_point,
+    reference_policy: str = "explicit",
 ) -> Dict[str, Path]:
     """
-    Saves candidate history JSON, CSV, Pareto front, and hypervolume history into run directory.
+    Save candidate history, Pareto fronts and fixed-reference metrics for a record set,
+    tracked as a single cumulative iteration against an explicit reporting reference.
     """
     from mobo_linac.io.artifacts import RunArtifactWriter
-    return RunArtifactWriter(run_dir, config).write(results, hypervolumes=hypervolumes)
+    from mobo_linac.metrics.hypervolume import HypervolumeTracker
+    tracker = HypervolumeTracker(reporting_ref_point, config)
+    _, y, feasible = get_train_tensors(results, config=config)
+    tracker.track_iteration(0, y, feasible)
+    return RunArtifactWriter(run_dir, config).write(results, tracker, reference_policy=reference_policy)
 
 
 def load_evaluation_results(

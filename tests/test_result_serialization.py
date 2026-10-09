@@ -2,6 +2,7 @@
 Unit tests for Result Serialization, DataFrame Conversions, and Checkpoint Management (Task 05).
 """
 
+from mobo_linac.result_schema import ResultSchema
 from pathlib import Path
 import pytest
 import numpy as np
@@ -162,7 +163,7 @@ def test_results_to_dataframe(sample_results):
 
 def test_save_and_load_evaluation_results(sample_results, tmp_path):
     """Test saving and restoring evaluation results to/from JSON and CSV."""
-    paths = save_evaluation_results(sample_results, tmp_path, config=TEST_CONFIG)
+    paths = save_evaluation_results(sample_results, tmp_path, config=TEST_CONFIG, reporting_ref_point=ResultSchema.from_config(TEST_CONFIG).empty_reference)
     assert paths["json"].exists()
     assert paths["csv"].exists()
 
@@ -306,7 +307,7 @@ def test_dynamic_config_column_binding(tmp_path):
     assert df.loc[0, "var_a"] == 1.1
     assert df.loc[0, "var_d"] == 4.4
 
-    paths = save_evaluation_results(custom_res, tmp_path / "custom_run", config=custom_cfg)
+    paths = save_evaluation_results(custom_res, tmp_path / "custom_run", config=custom_cfg, reporting_ref_point=ResultSchema.from_config(custom_cfg).empty_reference)
     loaded_csv = load_evaluation_results(paths["csv"], config=custom_cfg)
 
     assert len(loaded_csv) == 1
@@ -323,7 +324,7 @@ def test_configured_empty_shapes_headers_and_csv_unknown_status(tmp_path):
     config.objectives = [config.objectives[2], config.objectives[0]]
     x, y, feasible = get_train_tensors([], config=config)
     assert x.shape == (0, 2) and y.shape == (0, 2) and feasible.shape == (0,)
-    paths = save_evaluation_results([], tmp_path, config=config)
+    paths = save_evaluation_results([], tmp_path, config=config, reporting_ref_point=ResultSchema.from_config(config).empty_reference)
     assert load_evaluation_results(paths["json"], config) == []
     assert load_evaluation_results(paths["csv"], config) == []
     assert list(pd.read_csv(tmp_path / "train_X.csv").columns) == [v.name for v in config.design_variables]
@@ -382,12 +383,14 @@ def test_artifact_writer_keeps_pareto_semantics_and_clears_stale_rows(tmp_path, 
 
 def test_export_failure_cannot_leave_completion_marker(tmp_path, sample_results, monkeypatch):
     from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.hypervolume import HypervolumeTracker
     writer = RunArtifactWriter(tmp_path, TEST_CONFIG)
-    writer.write(sample_results)
+    tracker = HypervolumeTracker([-1e-4, -1e-4, -1e7], TEST_CONFIG)
+    writer.write(sample_results, tracker)
     writer.complete(2, 1.0)
     def fail_csv(*args, **kwargs):
         raise OSError("Injected CSV failure")
     monkeypatch.setattr(pd.DataFrame, "to_csv", fail_csv)
     with pytest.raises(OSError, match="Injected"):
-        writer.write(sample_results)
+        writer.write(sample_results, tracker)
     assert not (tmp_path / "run_complete.json").exists()
