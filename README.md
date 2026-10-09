@@ -380,3 +380,47 @@ fixed input particle distribution, as described in the robustness execution cont
 mobo-linac validate-config --config configs/mobo_200MeV.yaml \
   --export-schema /tmp/mobo_schema.json --export-docs /tmp/mobo_config.md
 ```
+
+### Device selection and proposal recovery
+
+`get_device()` and new campaigns share one CPU/CUDA policy. `None`, `auto`, and an
+empty string select the current CUDA device when available, otherwise CPU. `cpu`
+selects CPU; `cuda` selects the current CUDA index; `cuda:0` selects index zero.
+String and `torch.device` inputs behave alike. Explicit CUDA requests fall back to
+CPU with a logger warning when CUDA is unavailable. On available CUDA hardware,
+an out-of-range index fails. Other device types are unsupported. Resume retains
+the checkpoint device and CUDA RNG topology: `auto` uses that saved placement,
+and an explicit different or unavailable device fails before artifact writes.
+Legacy unindexed CUDA checkpoints retain the existing index-zero interpretation.
+
+Objective transforms and reporting normalization preserve floating tensor dtype
+and device, including reference points and sign/scale constants. Integer tensors
+and sequence inputs use double precision. Campaign GP fitting and acquisition
+optimization continue to use double precision on the resolved campaign device.
+
+`generate_next_candidates()` returns a `ProposalResult`; existing
+`candidates, acq_values = result` unpacking and two-value indexing still work.
+`result.metadata` records the selected method, output/optimizer devices, each
+attempt's effective restart/sample/options budget and outcome, failure reasons,
+and Sobol positions. Candidate shape, finite values, and bounds are checked after
+optimizer success; invalid output enters the same retry path as an exception.
+The tiers are primary optimization, a reduced-budget retry, an isolated CPU copy,
+then Sobol exploration. CPU fallback never moves the supplied acquisition or GP.
+If a custom acquisition or BoTorch cache cannot be copied, that failure is recorded
+and the Sobol tier remains available. `retry_on_failure=False` raises the primary
+failure. Sobol acquisition values are zero placeholders for exploration proposals.
+
+Campaigns use their seeded Sobol stream and persist its position together with
+pending candidates and `proposal_history` in checkpoints. `proposal_history.json`
+is an atomic, derived export with one entry per proposed batch, including the
+initial design and low-data exploration. Recovery reuses pending metadata without
+adding a duplicate entry. Older checkpoints may lack metadata; their history is
+left unknown rather than inferred. Standalone calls without an owned stream use
+`fallback_seed=0` by default, or a supplied seed, so repeated fallback calls are
+reproducible independently of global random draws. Supply an owned engine to
+continue a stream across calls.
+
+Campaign/suite progress, device warnings, and GP/acquisition fallback messages use
+the shared logger. `configure_logging(quiet=True)` suppresses progress and debug
+messages while retaining warnings/errors; debug mode reports successful proposal
+tiers. CLI verbosity flags configure the same logger.

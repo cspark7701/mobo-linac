@@ -154,3 +154,27 @@ def test_worker_runtime_does_not_supply_unknown_wall_time():
     assert pd.isna(frame.total_wallclock_s.iloc[0])
     assert frame.total_simulation_runtime_s.iloc[0] == 8.0
     assert compute_campaign_metrics_history([]).shape == (0, 9)
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_normalization_and_hypervolume_use_input_placement(device, dtype):
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+    values = torch.tensor([[1e-6, 2e-6, 3e5]], device=device, dtype=dtype)
+    for normalize in (normalize_objectives_physical, normalize_objectives_model):
+        normalized = normalize(values)
+        assert normalized.device == values.device
+        assert normalized.dtype == values.dtype
+        torch.testing.assert_close(normalized, values.new_tensor([[1.0, 2.0, 0.3]]))
+    model = torch.zeros((1, 3), device=device, dtype=dtype)
+    # CPU reference tensors must follow GPU observations, too.
+    reference = torch.tensor([-2., -2., -2.], dtype=torch.double)
+    assert compute_normalized_hypervolume(model, reference, scales=[1., 1., 1.]) == pytest.approx(8.)
+
+
+def test_integer_objectives_retain_floating_normalization():
+    values = torch.tensor([[1, 2, 3]], dtype=torch.int64)
+    result = normalize_objectives_physical(values)
+    assert result.dtype == torch.double
+    torch.testing.assert_close(result, torch.tensor([[1e6, 2e6, 3e-6]], dtype=torch.double))

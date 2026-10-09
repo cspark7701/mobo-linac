@@ -158,6 +158,17 @@ def prepare_resume_state(
         raise ValueError("Checkpoint evaluation count exceeds its total budget.")
     if bootstrap and (state.results or state.metric_history or state.reporting_ref_point is not None):
         raise ValueError("Invalid initial pending-proposal base state.")
+    if state.proposal_history is not None:
+        if not isinstance(state.proposal_history, list):
+            raise ValueError("Invalid checkpoint proposal history.")
+        indices = [item.get("batch_idx") for item in state.proposal_history if isinstance(item, dict)]
+        maximum = state.iteration + (1 if state.pending_proposal is not None else 0)
+        if (len(indices) != len(state.proposal_history) or any(type(index) is not int or not 0 <= index <= maximum for index in indices)
+                or indices != sorted(set(indices)) or any(not isinstance(item.get("metadata"), dict) for item in state.proposal_history)):
+            raise ValueError("Invalid checkpoint proposal history.")
+        if state.pending_proposal is not None and "metadata" in state.pending_proposal:
+            if not state.proposal_history or state.proposal_history[-1] != {"batch_idx": state.pending_proposal["batch_idx"], "metadata": state.pending_proposal["metadata"]}:
+                raise ValueError("Pending proposal metadata disagrees with checkpoint history.")
     if state.pending_proposal is not None:
         validate_pending_proposal(state, config)
     validate_rng_state(state)

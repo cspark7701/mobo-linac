@@ -30,6 +30,10 @@ from mobo_linac.result_schema import ResultSchema
 from mobo_linac.io.artifacts import atomic_json, RunArtifactWriter, validate_run_completion
 from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics
 
+from mobo_linac.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 
 def generate_seed_paired_sobol_samples(
     n_samples: int,
@@ -298,13 +302,13 @@ class BenchmarkCampaignRunner:
         effective_budget = self.total_eval_budget
 
         if dry_run:
-            print(f"[DRY-RUN] Benchmark Campaign Plan:")
-            print(f"  - Output Directory: {self.output_dir.resolve()}")
-            print(f"  - Algorithms ({len(self.algorithms)}): {self.algorithms}")
-            print(f"  - Seeds ({len(self.seeds)}): {self.seeds}")
-            print(f"  - Total Runs: {total_runs}")
-            print(f"  - Per-run Budget: {effective_budget} evals ({self.n_sobol_init} Sobol + {self.n_batches} batches, final q={self.final_batch_size})")
-            print(f"  - Total Planned Evaluations: {total_runs * effective_budget}")
+            logger.info(f"[DRY-RUN] Benchmark Campaign Plan:")
+            logger.info(f"  - Output Directory: {self.output_dir.resolve()}")
+            logger.info(f"  - Algorithms ({len(self.algorithms)}): {self.algorithms}")
+            logger.info(f"  - Seeds ({len(self.seeds)}): {self.seeds}")
+            logger.info(f"  - Total Runs: {total_runs}")
+            logger.info(f"  - Per-run Budget: {effective_budget} evals ({self.n_sobol_init} Sobol + {self.n_batches} batches, final q={self.final_batch_size})")
+            logger.info(f"  - Total Planned Evaluations: {total_runs * effective_budget}")
             return pd.DataFrame(self.manifest_rows)
 
         from mobo_linac.campaigns.runner import MoboCampaignRunner
@@ -314,7 +318,7 @@ class BenchmarkCampaignRunner:
                 run_dir = self.get_run_dir(algo, s)
                 status = self._run_status(algo, s)
                 if status == "completed":
-                    print(f"Skipping already completed benchmark run: {algo} seed {s}")
+                    logger.info(f"Skipping already completed benchmark run: {algo} seed {s}")
                     continue
                 if status != "pending":
                     raise RuntimeError(
@@ -322,7 +326,7 @@ class BenchmarkCampaignRunner:
                         "select a new output directory. Automatic recovery requires the complete resume-state refactor."
                     )
 
-                print(f"\nExecuting Benchmark Run: algorithm='{algo}', seed={s}...")
+                logger.info(f"\nExecuting Benchmark Run: algorithm='{algo}', seed={s}...")
                 spec = get_benchmark_algorithm(algo)
                 self._save_run_state(algo, s, "running", 0)
                 runner = MoboCampaignRunner(

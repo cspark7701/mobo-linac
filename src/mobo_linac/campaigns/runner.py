@@ -52,10 +52,13 @@ from mobo_linac.metrics.hypervolume import (
     compute_reference_point,
 )
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion, atomic_json
 from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
 import time
 from mobo_linac.models.pipeline import SurrogatePipeline
+from mobo_linac.utils import get_device, get_logger
+
+logger = get_logger(__name__)
 
 from mobo_linac.plotting.visualizations import (
     plot_constraint_diagnostics,
@@ -112,12 +115,7 @@ class MoboCampaignRunner:
         seed = 42 if seed is None else seed
         acq_type = "qLogNEHVI" if acq_type is None else acq_type
         optimization_mode = optimization_mode or "unconstrained_mobo"
-        if device is None or (isinstance(device, str) and device.lower() in ("auto", "")):
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        elif isinstance(device, str):
-            self.device = torch.device(device if (device != "cuda" or torch.cuda.is_available()) else "cpu")
-        else:
-            self.device = device
+        self.device = get_device(device)
 
         if isinstance(config, (str, Path)) or (config is None and not (resume or resume_from)):
             self.config = load_config(config)
@@ -269,15 +267,21 @@ class MoboCampaignRunner:
         if self.num_batches < minimum_iteration:
             raise ValueError("Resume iteration target is earlier than the completed checkpoint.")
         requested_device = self._requested_device
-        if requested_device is None or str(requested_device).lower() in ("auto", ""):
-            self.device = torch.device(state.device)
-        else:
-            self.device = torch.device(requested_device)
-        def canonical_device(device):
+        def canonical_device(device, saved=False):
             value = torch.device(device)
-            return (value.type, value.index or 0) if value.type == "cuda" else (value.type, value.index)
-        if canonical_device(self.device) != canonical_device(state.device):
+            if value.type == "cuda":
+                index = value.index
+                if index is None:
+                    index = 0 if saved or not torch.cuda.is_available() else torch.cuda.current_device()
+                return (value.type, index)
+            return (value.type, None)
+        saved_type, saved_index = canonical_device(state.device, saved=True)
+        saved_device = torch.device(saved_type, saved_index)
+        automatic = requested_device is None or str(requested_device).strip().lower() in ("auto", "")
+        requested = saved_device if automatic else str(requested_device).strip().lower()
+        if canonical_device(requested) != (saved_type, saved_index):
             raise ValueError("Resume device differs from checkpoint; deterministic CPU/GPU migration is unsupported.")
+        self.device = get_device(requested, allow_cpu_fallback=False)
         if self.device.type == "cuda":
             if not torch.cuda.is_available() or len(state.cuda_rng_states or []) != torch.cuda.device_count():
                 raise ValueError("Checkpoint CUDA RNG topology is unavailable or incompatible.")
@@ -356,8 +360,8 @@ class MoboCampaignRunner:
         else:
             mode_str = "Unconstrained MOBO"
 
-        print(f"\n=== Starting Optimization Campaign: {self.run_id} ({mode_str}) ===")
-        print(
+        logger.info(f"\n=== Starting Optimization Campaign: {self.run_id} ({mode_str}) ===")
+        logger.info(
             f"Initial samples: {self.num_initial_samples}, "
             f"Batches: {self.num_batches}, Batch size: {self.batch_size}, "
             f"Workers: {self.num_workers}, Acquisition: {self.acq_type}, "
@@ -388,9 +392,12 @@ class MoboCampaignRunner:
 
         sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=self.seed)
 
+        proposal_history = deepcopy(resume_state.proposal_history or []) if resume_state is not None else []
+
         def _evaluate_with_streaming(
             cand_list: List[List[float]],
             batch_idx: int,
+            proposal_metadata=None,
         ) -> List[EvaluationResult]:
             active = resume_state.pending_proposal if resume_state is not None else None
             if active is not None and active["batch_idx"] == batch_idx:
@@ -400,8 +407,11 @@ class MoboCampaignRunner:
                 completions = dict(self._recovered_completions)
             else:
                 ids = [f"eval_{len(results) + i + 1:06d}" for i in range(len(cand_list))]
+                metadata = deepcopy(proposal_metadata) if proposal_metadata is not None else {
+                    "method": "external", "device": str(self.device), "attempts": [], "fallback_reason": None}
                 proposal = {"version": "1.0", "batch_idx": batch_idx,
-                            "candidates": cand_list, "evaluation_ids": ids}
+                            "candidates": cand_list, "evaluation_ids": ids, "metadata": metadata}
+                proposal_history.append({"batch_idx": batch_idx, "metadata": metadata})
                 _persist_checkpoint(batch_idx - 1, pending=proposal)
                 completions = {}
             identities = proposal["evaluation_ids"]
@@ -501,6 +511,7 @@ class MoboCampaignRunner:
                 batch_size=self.batch_size,
                 constrained=self.constrained,
                 campaign_state={
+                    "proposal_history": deepcopy(proposal_history),
                     "model_artifact": model_artifact,
                     "run_id": self.run_id,
                     "optimization_mode": self.optimization_mode,
@@ -531,6 +542,8 @@ class MoboCampaignRunner:
                 finally:
                     os.close(directory_fd)
 
+            atomic_json(self.run_dir / "proposal_history.json", proposal_history)
+
         if resume_state is not None:
             repair_journal_tail(self.run_dir)
             if (self.run_dir / "evaluations_stream.jsonl").exists():
@@ -550,15 +563,18 @@ class MoboCampaignRunner:
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
             tracker.history = deepcopy(resume_state.metric_history)
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
-            print(f"\nResuming campaign '{self.run_id}' from iteration {start_iteration} ({len(results)} existing evaluations)...\n")
+            logger.info(f"\nResuming campaign '{self.run_id}' from iteration {start_iteration} ({len(results)} existing evaluations)...\n")
         else:
-            print(f"--- Step 0: Initial Design (Sobol Sampling: {self.num_initial_samples} samples) ---")
+            logger.info(f"--- Step 0: Initial Design (Sobol Sampling: {self.num_initial_samples} samples) ---")
             if resume_state is None:
+                initial_sobol_start = sobol_engine.num_generated
                 sobol_samples = sobol_engine.draw(self.num_initial_samples).to(dtype=torch.double)
                 lower_b, upper_b = bounds[0], bounds[1]
                 initial_candidates = (lower_b + (upper_b - lower_b) * sobol_samples).tolist()
 
-            results = _evaluate_with_streaming(initial_candidates, batch_idx=0)
+            initial_metadata = {"method": "initial_sobol", "device": "cpu", "attempts": [], "fallback_reason": None,
+                                "sobol": {"seed": self.seed, "start": initial_sobol_start, "end": sobol_engine.num_generated}} if resume_state is None else None
+            results = _evaluate_with_streaming(initial_candidates, batch_idx=0, proposal_metadata=initial_metadata)
             evaluation_batches = [0] * len(results)
 
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
@@ -567,7 +583,7 @@ class MoboCampaignRunner:
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
 
             hv_init = tracker.track_iteration(0, train_Y, train_feas_mask)
-            print(
+            logger.info(
                 f"Iter 00/{self.num_batches:02d} (Initial) | "
                 f"Evaluations: {len(results):02d} | "
                 f"Valid: {train_X.shape[0]:02d} | "
@@ -587,16 +603,21 @@ class MoboCampaignRunner:
                 proposal_batch_size = min(proposal_batch_size, self.total_eval_budget - len(results))
                 if proposal_batch_size <= 0:
                     break
-            print(f"--- Iteration {iteration:02d}/{self.num_batches:02d} ---")
+            logger.info(f"--- Iteration {iteration:02d}/{self.num_batches:02d} ---")
             training = get_training_observations(results, exclude_invalid=True, require_diagnostics=self.constrained, config=self.config)
             train_X, train_Y, train_feas_mask = training.train_X, training.train_Y, training.feasible
 
+            proposal_metadata = None
             if (resume_state is not None and resume_state.pending_proposal is not None
                     and resume_state.pending_proposal["batch_idx"] == iteration):
                 next_cand_list = deepcopy(resume_state.pending_proposal["candidates"])
             elif train_X.shape[0] < 2:
+                sobol_start = sobol_engine.num_generated
                 new_sobol = sobol_engine.draw(proposal_batch_size).to(dtype=torch.double)
                 next_cand_list = (lower_b + (upper_b - lower_b) * new_sobol).tolist()
+                proposal_metadata = {"method": "low_data_sobol", "device": "cpu", "attempts": [],
+                                     "fallback_reason": "fewer than two observed training rows",
+                                     "sobol": {"seed": self.seed, "start": sobol_start, "end": sobol_engine.num_generated}}
             elif self.optimization_mode == "scalarized_bo":
                 # Scalarized single-objective GP surrogate with qLogNEI
                 weights_dev = self.scalar_weights.to(dtype=torch.double, device=self.device)
@@ -633,7 +654,7 @@ class MoboCampaignRunner:
                 )
                 exec_cfg = self.config.execution
                 b_limit = 1 if self.device.type == "cuda" else getattr(exec_cfg, "acqf_batch_limit", 5)
-                candidates, _ = generate_next_candidates(
+                proposal_result = generate_next_candidates(
                     acq_func=acq_func,
                     bounds=bounds_dev,
                     batch_size=proposal_batch_size,
@@ -644,6 +665,8 @@ class MoboCampaignRunner:
                     device=self.device,
                     sobol_engine=sobol_engine,
                 )
+                candidates, _ = proposal_result
+                proposal_metadata = getattr(proposal_result, "metadata", None)
                 next_cand_list = candidates.detach().cpu().tolist()
             else:
                 pipeline = SurrogatePipeline(
@@ -690,7 +713,7 @@ class MoboCampaignRunner:
                 )
 
                 exec_cfg = self.config.execution
-                next_cand_tensor, _ = generate_next_candidates(
+                proposal_result = generate_next_candidates(
                     acq_func=acq_func,
                     bounds=bounds,
                     batch_size=proposal_batch_size,
@@ -701,17 +724,19 @@ class MoboCampaignRunner:
                     device=self.device,
                     sobol_engine=sobol_engine,
                 )
+                next_cand_tensor, _ = proposal_result
+                proposal_metadata = getattr(proposal_result, "metadata", None)
                 next_cand_list = next_cand_tensor.detach().cpu().tolist()
 
 
-            batch_results = _evaluate_with_streaming(next_cand_list, batch_idx=iteration)
+            batch_results = _evaluate_with_streaming(next_cand_list, batch_idx=iteration, proposal_metadata=proposal_metadata)
             results.extend(batch_results)
             evaluation_batches.extend([iteration] * len(batch_results))
 
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
             hv_record = tracker.track_iteration(iteration, train_Y, train_feas_mask)
 
-            print(
+            logger.info(
                 f"Iter {iteration:02d}/{self.num_batches:02d} | "
                 f"Evaluations: {len(results):02d} | "
                 f"Valid: {train_X.shape[0]:02d} | "
@@ -736,12 +761,13 @@ class MoboCampaignRunner:
             plot_objective_evolution(results, figures_dir / "objective_evolution.png", config=self.config)
             plot_constraint_diagnostics(results, figures_dir / "constraint_diagnostics.png")
 
-        required = ["config.json", "config.yaml", "checkpoints/checkpoint.pt"]
+        atomic_json(self.run_dir / "proposal_history.json", proposal_history)
+        required = ["config.json", "config.yaml", "checkpoints/checkpoint.pt", "proposal_history.json"]
         if self.export_plots:
             required += [f"figures/{name}.png" for name in ("hypervolume_progress", "pareto_front", "objective_evolution", "constraint_diagnostics")]
         writer.complete(len(results), elapsed(), required)
-        print(f"=== Campaign Complete: {self.run_id} ===")
-        print(f"Total Evaluations: {len(results)}")
-        print(f"Output saved in: {self.run_dir.resolve()}\n")
+        logger.info(f"=== Campaign Complete: {self.run_id} ===")
+        logger.info(f"Total Evaluations: {len(results)}")
+        logger.info(f"Output saved in: {self.run_dir.resolve()}\n")
 
         return results, tracker, self.run_dir

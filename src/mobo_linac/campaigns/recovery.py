@@ -65,6 +65,18 @@ def reconcile_resume(state, completed, pending, config, directory, legacy_weight
             ):
                 raise ValueError("Pending proposal base metrics disagree with checkpoint.")
 
+    if completed is not None and pending is not None and completed.proposal_history is not None and pending.proposal_history is not None:
+        base_history = [entry for entry in pending.proposal_history if entry["batch_idx"] <= pending.iteration]
+        completed_prefix = [entry for entry in completed.proposal_history if entry["batch_idx"] <= pending.iteration]
+        if base_history != completed_prefix:
+            raise ValueError("Pending proposal history disagrees with completed checkpoint.")
+        if state.pending_proposal is None:
+            batch = pending.pending_proposal["batch_idx"]
+            pending_entry = [entry for entry in pending.proposal_history if entry["batch_idx"] == batch]
+            completed_entry = [entry for entry in completed.proposal_history if entry["batch_idx"] == batch]
+            if pending_entry != completed_entry:
+                raise ValueError("Stale pending proposal metadata disagrees with completed checkpoint.")
+
     records = load_streaming_records(directory)
     known = {}
     positions = {}

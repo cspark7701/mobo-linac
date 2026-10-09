@@ -336,6 +336,7 @@ class CheckpointState:
     pending_proposal: Optional[Dict[str, Any]] = None
     elapsed_wall_time_s: Optional[float] = None
     evaluation_elapsed_s: Optional[List[Optional[float]]] = None
+    proposal_history: Optional[List[Dict[str, Any]]] = None
     model_artifact: Optional[Dict[str, Any]] = None
     migration_notes: List[str] = field(default_factory=list)
     version: str = "2.0"
@@ -384,7 +385,7 @@ class CheckpointState:
         if version not in ("1.0", "2.0"):
             raise ValueError(f"Unsupported checkpoint version: {version}")
         extra_names = (
-            "model_artifact", "run_id", "optimization_mode", "scalar_weights", "num_initial_samples",
+            "proposal_history", "model_artifact", "run_id", "optimization_mode", "scalar_weights", "num_initial_samples",
             "initial_design", "sobol_state", "evaluation_batches", "metric_history",
             "reporting_scales", "planned_num_batches", "num_workers", "total_eval_budget", "device",
             "cuda_rng_states", "python_rng_state", "pending_proposal", "elapsed_wall_time_s", "evaluation_elapsed_s",

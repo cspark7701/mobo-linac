@@ -74,3 +74,37 @@ def test_logger_section_formatting(capsys):
     captured = capsys.readouterr()
     assert "Optimization Campaign Started" in captured.out
     assert "====" in captured.out
+
+
+def test_device_and_proposal_logging_obey_quiet_mode(monkeypatch, capsys):
+    import torch
+    import mobo_linac.acquisition.mobo as acquisition
+    from mobo_linac.utils import get_device
+    monkeypatch.setattr(torch.cuda, "is_available", lambda: False)
+    monkeypatch.setattr(acquisition, "optimize_acqf", lambda **kwargs: (
+        kwargs["bounds"].mean(0).repeat(kwargs["q"], 1), torch.zeros(1)))
+    try:
+        configure_logging(quiet=True)
+        get_device("cuda:0")
+        acquisition.generate_next_candidates(torch.nn.Linear(1, 1), torch.tensor([[0.], [1.]]))
+        output = capsys.readouterr()
+        assert "CUDA is unavailable" in output.out
+        assert "succeeded" not in output.out
+        configure_logging(debug=True)
+        acquisition.generate_next_candidates(torch.nn.Linear(1, 1), torch.tensor([[0.], [1.]]))
+        assert "[DEBUG] Acquisition proposal succeeded" in capsys.readouterr().out
+    finally:
+        configure_logging(level="INFO")
+
+
+def test_campaign_progress_obeys_quiet_mode(tmp_path, capsys):
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.execution import MockBatchEvaluator
+    try:
+        configure_logging(quiet=True)
+        MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=2, num_batches=0,
+                           evaluator=MockBatchEvaluator(tmp_path), device="cpu",
+                           export_plots=False, export_env_info=False).run()
+        assert "Starting Optimization Campaign" not in capsys.readouterr().out
+    finally:
+        configure_logging(level="INFO")

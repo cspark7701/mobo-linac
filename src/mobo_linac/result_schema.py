@@ -73,7 +73,9 @@ class ResultSchema:
         return None
 
     def transform(self, values):
-        tensor = torch.as_tensor(values, dtype=torch.double)
+        tensor = values if isinstance(values, torch.Tensor) else torch.as_tensor(values, dtype=torch.double)
+        if not tensor.is_floating_point():
+            tensor = tensor.to(dtype=torch.double)
         if tensor.ndim == 0 or tensor.shape[-1] != len(self.signs):
             raise ValueError("Objective width does not match result schema.")
         return tensor * tensor.new_tensor(self.signs)

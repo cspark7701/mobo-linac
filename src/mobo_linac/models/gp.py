@@ -19,9 +19,10 @@ from gpytorch.likelihoods import FixedNoiseGaussianLikelihood
 from gpytorch.kernels import MaternKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
 import linear_operator
-import logging
 
-logger = logging.getLogger(__name__)
+from mobo_linac.utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def build_scalarized_gp_model(
@@ -289,7 +290,7 @@ def _fit_single_mll_resilient(mll: ExactMarginalLogLikelihood) -> FitOutcome:
             return FitOutcome(name, tuple(errors), optimizer_status)
         except Exception as error:
             errors.append(f"{name}: {type(error).__name__}: {error}")
-            logger.warning("GP fitting failed: %s", errors[-1])
+            logger.warning(f"GP fitting failed: {errors[-1]}")
     restore()
     mll.eval()
     _verify_prediction(mll.model)

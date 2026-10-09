@@ -85,3 +85,16 @@ def test_schema_rejects_ambiguous_aliases_and_bad_scales():
     config.objectives[0].reporting_scale = float("nan")
     with pytest.raises(ValueError, match="reporting_scale"):
         config.validate()
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+@pytest.mark.parametrize("dtype", [torch.float32, torch.float64])
+def test_transforms_preserve_tensor_placement_and_dtype(device, dtype):
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+    values = torch.tensor([[1e-6, 2e-6, 3e5]], device=device, dtype=dtype)
+    model = transform_to_model_space(values)
+    restored = transform_to_physical_space(model)
+    assert model.device == restored.device == values.device
+    assert model.dtype == restored.dtype == dtype
+    torch.testing.assert_close(restored, values)

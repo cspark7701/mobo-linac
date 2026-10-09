@@ -29,6 +29,10 @@ from mobo_linac.io.results import load_evaluation_results, get_train_tensors
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
 from mobo_linac.metrics.reporting import validate_campaign_compatibility
 
+from mobo_linac.utils.logger import get_logger
+
+logger = get_logger(__name__)
+
 # Canonical Option 2 Weight Cases
 OPTION_2_CASES: OrderedDict[str, Dict[str, Any]] = OrderedDict([
     (
@@ -370,14 +374,14 @@ def run_scalarized_suite(
         if not target_cases:
             target_cases = list(OPTION_2_CASES.keys())
 
-    print("======================================================================")
-    print("  Phase 1 Option 2: Multi-Case Scalarized BO Suite")
-    print("======================================================================")
-    print(f"  Target Cases: {target_cases}")
-    print(f"  Iterations per Case: {n_iterations} (Batch size q={batch_size})")
-    print(f"  Initial Samples: {num_initial_samples}")
-    print(f"  Base Output Directory: {base_out}")
-    print("======================================================================\n")
+    logger.info("======================================================================")
+    logger.info("  Phase 1 Option 2: Multi-Case Scalarized BO Suite")
+    logger.info("======================================================================")
+    logger.info(f"  Target Cases: {target_cases}")
+    logger.info(f"  Iterations per Case: {n_iterations} (Batch size q={batch_size})")
+    logger.info(f"  Initial Samples: {num_initial_samples}")
+    logger.info(f"  Base Output Directory: {base_out}")
+    logger.info("======================================================================\n")
 
     shared_reference = None
     for idx, case_key in enumerate(target_cases):
@@ -385,9 +389,9 @@ def run_scalarized_suite(
         case_dir = base_out / case_key
         case_seed = seed + idx * 100
 
-        print(f"\n[{idx + 1}/{len(target_cases)}] Executing Case '{case_key}': {case_info['name']}")
-        print(f"  - Weights [wx, wy, wE]: {case_info['weights']}")
-        print(f"  - Output Dir: {case_dir}")
+        logger.info(f"\n[{idx + 1}/{len(target_cases)}] Executing Case '{case_key}': {case_info['name']}")
+        logger.info(f"  - Weights [wx, wy, wE]: {case_info['weights']}")
+        logger.info(f"  - Output Dir: {case_dir}")
 
         runner = MoboCampaignRunner(
             config=config,
@@ -411,9 +415,9 @@ def run_scalarized_suite(
             shared_reference = tracker.reporting_ref_point.tolist()
 
     # Aggregate all completed cases into root base_out
-    print("\n[Aggregating Option 2 Results across all cases...]")
+    logger.info("\n[Aggregating Option 2 Results across all cases...]")
     agg_meta = aggregate_scalarized_cases(base_out)
-    print(f"  ✓ Aggregated {agg_meta['num_cases']} cases -> Total {agg_meta['total_evaluations']} evaluations")
+    logger.info(f"  ✓ Aggregated {agg_meta['num_cases']} cases -> Total {agg_meta['total_evaluations']} evaluations")
 
     # Export local LaTeX table within base_out run directory
     local_tab = base_out / "phase1_cases_table.tex"
@@ -422,6 +426,6 @@ def run_scalarized_suite(
     if export_paper_table_dir is not None:
         paper_tab = Path(export_paper_table_dir) / "phase1_cases_table.tex"
         export_phase1_cases_latex_table(base_out / "cases_summary.csv", paper_tab)
-        print(f"  ✓ Exported LaTeX summary table to {paper_tab}")
+        logger.info(f"  ✓ Exported LaTeX summary table to {paper_tab}")
 
     return agg_meta

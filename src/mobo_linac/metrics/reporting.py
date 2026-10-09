@@ -46,12 +46,12 @@ def normalize_objectives_physical(
     if scales is None:
         scales = [1.0e-6, 1.0e-6, 1.0e6]
 
-    scale_tensor = torch.tensor(scales, dtype=torch.double)
     if not isinstance(physical_objs, torch.Tensor):
         obj_tensor = torch.tensor(physical_objs, dtype=torch.double)
     else:
-        obj_tensor = physical_objs.to(dtype=torch.double)
+        obj_tensor = physical_objs if physical_objs.is_floating_point() else physical_objs.to(dtype=torch.double)
 
+    scale_tensor = torch.as_tensor(scales, dtype=obj_tensor.dtype, device=obj_tensor.device)
     return obj_tensor / scale_tensor
 
 
@@ -72,12 +72,12 @@ def normalize_objectives_model(
     if scales is None:
         scales = [1.0e-6, 1.0e-6, 1.0e6]
 
-    scale_tensor = torch.tensor(scales, dtype=torch.double)
     if not isinstance(model_objs, torch.Tensor):
         obj_tensor = torch.tensor(model_objs, dtype=torch.double)
     else:
-        obj_tensor = model_objs.to(dtype=torch.double)
+        obj_tensor = model_objs if model_objs.is_floating_point() else model_objs.to(dtype=torch.double)
 
+    scale_tensor = torch.as_tensor(scales, dtype=obj_tensor.dtype, device=obj_tensor.device)
     return obj_tensor / scale_tensor
 
 
@@ -101,11 +101,7 @@ def compute_normalized_hypervolume(
         return 0.0
 
     train_Y_norm = normalize_objectives_model(train_Y_model, scales)
-    ref_tensor = (
-        ref_point_model_norm.to(dtype=torch.double)
-        if isinstance(ref_point_model_norm, torch.Tensor)
-        else torch.tensor(ref_point_model_norm, dtype=torch.double)
-    )
+    ref_tensor = torch.as_tensor(ref_point_model_norm, dtype=train_Y_norm.dtype, device=train_Y_norm.device)
 
     # Filter candidates dominating reference point (Y_norm > ref_norm)
     strictly_better = (train_Y_norm > ref_tensor).all(dim=-1)

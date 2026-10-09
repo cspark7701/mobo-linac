@@ -276,6 +276,13 @@ def test_real_acquisition_fallback_restores_sobol_position(tmp_path, monkeypatch
     assert [r.x_physical for r in full] == [r.x_physical for r in resumed]
     assert full_tracker.history == tracker.history
     assert load_run_checkpoint(split_dir).sobol_state["num_generated"] == 9
+    history = load_run_checkpoint(split_dir).proposal_history
+    assert history == load_run_checkpoint(full_dir).proposal_history
+    assert [entry["metadata"]["method"] for entry in history] == ["initial_sobol", "sobol", "sobol", "sobol"]
+    assert history[1]["metadata"]["sobol"]["start"] == 3
+    assert history[-1]["metadata"]["sobol"]["end"] == 9
+    import json
+    assert json.loads((split_dir / "proposal_history.json").read_text()) == history
 
 
 def test_low_data_sobol_resume_with_invalid_initial_evaluations(tmp_path):
@@ -713,6 +720,8 @@ def test_inflight_fallback_recovery_restores_post_proposal_rng(tmp_path, monkeyp
                            evaluator=InterruptingStreamEvaluator(split_dir, 1)).run()
     pending = load_run_checkpoint(split_dir / "checkpoints" / "pending_batch.pt")
     assert pending.sobol_state["num_generated"] == 5
+    assert pending.pending_proposal["metadata"] == pending.proposal_history[-1]["metadata"]
+    assert pending.proposal_history[-1]["metadata"]["method"] == "sobol"
     # Disturb all parent RNGs before recovery.
     torch.rand(100)
     np.random.random(100)
@@ -724,6 +733,7 @@ def test_inflight_fallback_recovery_restores_post_proposal_rng(tmp_path, monkeyp
     assert [r.x_physical for r in resumed] == [r.x_physical for r in full]
     assert tracker.history == full_tracker.history
     assert load_run_checkpoint(split_dir).sobol_state == load_run_checkpoint(full_dir).sobol_state
+    assert load_run_checkpoint(split_dir).proposal_history == load_run_checkpoint(full_dir).proposal_history
 
 
 @pytest.mark.parametrize("corruption", ["interior_json", "unknown_identity", "candidate", "batch", "pending_ids", "pending_metrics"])
@@ -882,3 +892,34 @@ def test_requested_plot_failure_prevents_final_completion(tmp_path, monkeypatch)
         runner.run()
     assert (tmp_path / "checkpoints/checkpoint.pt").exists()
     assert not (tmp_path / "run_complete.json").exists()
+
+
+def test_completed_legacy_metadata_resume_exports_empty_history(tmp_path):
+    import json
+    MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=2, num_batches=0,
+                       evaluator=MockBatchEvaluator(tmp_path), device="cpu",
+                       export_plots=False, export_env_info=False).run()
+    path = tmp_path / "checkpoints" / "checkpoint.pt"
+    payload = load_run_checkpoint(path).to_dict()
+    payload.pop("proposal_history")
+    torch.save(payload, path)
+    (tmp_path / "proposal_history.json").unlink()
+    MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
+                       device="cpu", export_plots=False, export_env_info=False).run()
+    assert json.loads((tmp_path / "proposal_history.json").read_text()) == []
+
+
+def test_pending_proposal_history_conflict_fails_before_writes(tmp_path):
+    with pytest.raises(RuntimeError, match="parent interruption"):
+        MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=3, num_batches=2, batch_size=2,
+                           evaluator=InterruptingStreamEvaluator(tmp_path, 1), device="cpu",
+                           export_plots=False, export_env_info=False).run()
+    path = tmp_path / "checkpoints" / "pending_batch.pt"
+    payload = load_run_checkpoint(path).to_dict()
+    payload["proposal_history"][0]["metadata"]["method"] = "corrupted"
+    torch.save(payload, path)
+    before = {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
+    with pytest.raises(ValueError, match="proposal history"):
+        MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
+                           device="cpu", export_plots=False, export_env_info=False).run()
+    assert before == {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}

@@ -359,3 +359,168 @@ def test_campaign_checkpoint_links_reloadable_model(tmp_path, monkeypatch, mode)
     query = torch.tensor([results[-1].x_physical], dtype=torch.double)
     mean = restored.posterior(query).mean if mode == "scalarized_bo" else restored.predict_objectives(query)[0]
     assert torch.isfinite(mean).all()
+
+
+@pytest.mark.parametrize("success_tier", [0, 1, 2, None])
+def test_forced_proposal_tiers_validate_metadata_and_preserve_module(monkeypatch, success_tier):
+    import mobo_linac.acquisition.mobo as acquisition
+    class Module(torch.nn.Module):
+        def __init__(self):
+            super().__init__()
+            self.parameter = torch.nn.Parameter(torch.tensor([2.], dtype=torch.double))
+            self.register_buffer("cached", torch.tensor([3.], dtype=torch.double))
+    module = Module()
+    calls = []
+    def optimize(**kwargs):
+        index = len(calls)
+        calls.append(kwargs)
+        if index == 2:
+            assert kwargs["acq_function"] is not module
+            with torch.no_grad():
+                kwargs["acq_function"].parameter.add_(100)
+                kwargs["acq_function"].cached.add_(100)
+        else:
+            assert kwargs["acq_function"] is module
+        if index != success_tier:
+            raise RuntimeError(f"forced failure {index}")
+        return kwargs["bounds"].mean(dim=0).repeat(kwargs["q"], 1), torch.tensor([0.2])
+    monkeypatch.setattr(acquisition, "optimize_acqf", optimize)
+    bounds = torch.tensor([[-2., 0.], [2., 1.]], dtype=torch.double)
+    stream = torch.quasirandom.SobolEngine(2, scramble=True, seed=17)
+    stream.draw(3)
+    result = acquisition.generate_next_candidates(module, bounds, batch_size=2, num_restarts=8, raw_samples=128,
+                                                  options={"maxiter": 50}, sobol_engine=stream, device="cpu")
+    candidates, values = result
+    assert result[0] is candidates and len(result) == 2
+    assert candidates.shape == (2, 2)
+    assert torch.isfinite(candidates).all() and torch.isfinite(values).all()
+    assert ((candidates >= bounds[0]) & (candidates <= bounds[1])).all()
+    expected = ["primary", "retry", "cpu", "sobol"][success_tier if success_tier is not None else 3]
+    assert result.metadata["method"] == expected
+    assert len(result.metadata["attempts"]) == (success_tier + 1 if success_tier is not None else 3)
+    assert result.metadata["attempts"][0]["options"]["maxiter"] == 50
+    assert result.metadata["attempts"][0]["num_restarts"] == 8
+    if success_tier != 0:
+        assert result.metadata["attempts"][1]["num_restarts"] == 4
+        assert result.metadata["attempts"][1]["raw_samples"] == 32
+        assert "forced failure" in result.metadata["fallback_reason"]
+    assert result.metadata["sobol"]["end"] == (5 if success_tier is None else 3)
+    torch.testing.assert_close(module.parameter, torch.tensor([2.], dtype=torch.double))
+    torch.testing.assert_close(module.cached, torch.tensor([3.], dtype=torch.double))
+    assert module.parameter.device.type == module.cached.device.type == "cpu"
+
+
+@pytest.mark.parametrize("invalid", ["shape", "nan", "bounds", "value"])
+def test_invalid_optimizer_success_is_retried(monkeypatch, invalid):
+    import mobo_linac.acquisition.mobo as acquisition
+    bounds = torch.tensor([[0.], [1.]], dtype=torch.double)
+    calls = []
+    def optimize(**kwargs):
+        calls.append(kwargs)
+        candidates, values = torch.full((2, 1), .5, dtype=torch.double), torch.tensor([.2])
+        if len(calls) == 1:
+            if invalid == "shape":
+                candidates = candidates[:1]
+            elif invalid == "nan":
+                candidates[0, 0] = float("nan")
+            elif invalid == "bounds":
+                candidates[0, 0] = 2
+            else:
+                values[0] = float("nan")
+        return candidates, values
+    monkeypatch.setattr(acquisition, "optimize_acqf", optimize)
+    result = acquisition.generate_next_candidates(torch.nn.Linear(1, 1).double(), bounds, batch_size=2)
+    assert result.metadata["method"] == "retry"
+    assert result.metadata["attempts"][0]["status"] == "failed"
+    assert result.metadata["attempts"][1]["status"] == "success"
+
+
+def test_standalone_fallback_is_seeded_and_can_disable_retry(monkeypatch):
+    import mobo_linac.acquisition.mobo as acquisition
+    def fail(**kwargs):
+        raise RuntimeError("forced failure")
+    monkeypatch.setattr(acquisition, "optimize_acqf", fail)
+    bounds = torch.tensor([[0.], [1.]], dtype=torch.double)
+    module = torch.nn.Linear(1, 1).double()
+    first = acquisition.generate_next_candidates(module, bounds, fallback_seed=123)
+    torch.rand(100)
+    second = acquisition.generate_next_candidates(module, bounds, fallback_seed=123)
+    torch.testing.assert_close(first.candidates, second.candidates)
+    assert first.metadata == second.metadata
+    assert first.metadata["sobol"] == {"seed": 123, "start": 0, "end": 8}
+    with pytest.raises(RuntimeError, match="forced failure"):
+        acquisition.generate_next_candidates(module, bounds, retry_on_failure=False)
+
+
+@pytest.mark.skipif(not torch.cuda.is_available(), reason="CUDA unavailable")
+@pytest.mark.parametrize("cpu_succeeds", [False, True])
+def test_cuda_fallback_preserves_real_gp_placement(monkeypatch, cpu_succeeds):
+    import mobo_linac.acquisition.mobo as acquisition
+    X = torch.tensor([[.1], [.4], [.8]], dtype=torch.double)
+    model = build_gp_models(X, X.sin(), torch.tensor([[0.], [1.]]), device="cuda:0")
+    module = torch.nn.Module()
+    module.model = model
+    module.register_buffer("cached", torch.ones(1, device="cuda:0", dtype=torch.double))
+    calls = []
+    def optimize(**kwargs):
+        calls.append(kwargs)
+        if len(calls) < 3 or not cpu_succeeds:
+            raise RuntimeError("forced failure")
+        assert kwargs["acq_function"] is not module
+        assert next(kwargs["acq_function"].parameters()).device.type == "cpu"
+        return kwargs["bounds"].mean(dim=0).repeat(kwargs["q"], 1), torch.zeros(1)
+    monkeypatch.setattr(acquisition, "optimize_acqf", optimize)
+    stream = torch.quasirandom.SobolEngine(1, scramble=True, seed=9)
+    result = acquisition.generate_next_candidates(module, torch.tensor([[0.], [1.]]), device="cuda:0", sobol_engine=stream)
+    assert result.metadata["method"] == ("cpu" if cpu_succeeds else "sobol")
+    assert result.candidates.device == torch.device("cuda:0")
+    assert all(parameter.device == torch.device("cuda:0") for parameter in module.parameters())
+    assert all(buffer.device == torch.device("cuda:0") for buffer in module.buffers())
+    assert model.models[0].train_inputs[0].device == torch.device("cuda:0")
+    assert model.models[0].likelihood.noise.device == torch.device("cuda:0")
+
+
+def test_real_acquisition_cpu_copy_keeps_original_state(monkeypatch):
+    import mobo_linac.acquisition.mobo as acquisition
+    X = torch.tensor([[.1], [.4], [.8]], dtype=torch.double)
+    Y = torch.cat((X.sin(), X.cos()), dim=1)
+    bounds = torch.tensor([[0.], [1.]], dtype=torch.double)
+    model = build_gp_models(X, Y, bounds, device="cpu")
+    module = build_acquisition_function(model, X, Y, torch.tensor([-2., -2.]), acq_type="qLogEHVI")
+    original = {name: tensor.clone() for name, tensor in module.state_dict().items()}
+    calls = []
+    def optimize(**kwargs):
+        calls.append(kwargs)
+        if len(calls) < 3:
+            raise RuntimeError("forced failure")
+        assert kwargs["acq_function"] is not module
+        return kwargs["bounds"].mean(0).repeat(kwargs["q"], 1), torch.zeros(1)
+    monkeypatch.setattr(acquisition, "optimize_acqf", optimize)
+    result = acquisition.generate_next_candidates(module, bounds)
+    # BoTorch caches may be non-leaf tensors that cannot be deep-copied.
+    assert result.metadata["method"] in ("cpu", "sobol")
+    if result.metadata["method"] == "sobol":
+        assert result.metadata["attempts"][-1]["status"] == "failed"
+        assert "deepcopy" in result.metadata["attempts"][-1]["error"].lower() or "deepcop" in result.metadata["attempts"][-1]["error"].lower()
+    for name, tensor in module.state_dict().items():
+        torch.testing.assert_close(tensor, original[name])
+
+
+def test_uncopyable_cpu_fallback_preserves_supplied_module(monkeypatch):
+    import mobo_linac.acquisition.mobo as acquisition
+    module = torch.nn.Linear(1, 1).double()
+    module.cached = module.weight * 2  # Non-leaf tensors deliberately reject deepcopy.
+    before = module.weight.detach().clone()
+    calls = []
+    def fail(**kwargs):
+        calls.append(kwargs)
+        raise RuntimeError("forced failure")
+    monkeypatch.setattr(acquisition, "optimize_acqf", fail)
+    result = acquisition.generate_next_candidates(module, torch.tensor([[0.], [1.]]))
+    assert len(calls) == 2
+    assert result.metadata["method"] == "sobol"
+    assert result.metadata["attempts"][-1]["tier"] == "cpu"
+    assert result.metadata["attempts"][-1]["status"] == "failed"
+    assert "deepcop" in result.metadata["fallback_reason"].lower()
+    torch.testing.assert_close(module.weight, before)
+    assert module.weight.device.type == module.cached.device.type == "cpu"
