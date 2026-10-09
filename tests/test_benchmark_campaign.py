@@ -4,6 +4,7 @@ Unit tests for Statistically Rigorous Benchmark Campaign Orchestration and Analy
 
 from mobo_linac.result_schema import ResultSchema
 import json
+from pathlib import Path
 import pytest
 import numpy as np
 import pandas as pd
@@ -132,20 +133,23 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
             )
             raw = MockBatchEvaluator(tmp_path).evaluate_batch(candidates.tolist())
             results = [create_evaluation_result(r, captured["config"]) for r in raw]
-            save_evaluation_results(results, captured["output_dir"], config=captured["config"],
-                                    reporting_ref_point=captured["reporting_ref_point"])
+            # A complete test double publishes the same artifact contract as the real runner.
+            from mobo_linac.io.artifacts import RunArtifactWriter
+            from mobo_linac.metrics.hypervolume import HypervolumeTracker
+            from mobo_linac.io.results import get_train_tensors
+            config, run_dir = captured["config"], Path(captured["output_dir"])
+            tracker = HypervolumeTracker(captured["reporting_ref_point"], config)
+            _, y, feasible = get_train_tensors(results, config=config)
+            tracker.track_iteration(0, y, feasible)
+            writer = RunArtifactWriter(run_dir, config)
+            writer.write(results, tracker, reference_policy="explicit")
+            config.save_json(run_dir / "config.json")
+            config.save_yaml(run_dir / "config.yaml")
+            writer.complete(len(results), None, ["config.json", "config.yaml"])
             return results, None, captured["output_dir"]
 
     monkeypatch.setattr(campaign_module, "MoboCampaignRunner", RecordingRunner)
     monkeypatch.setattr(BenchmarkCampaignRunner, "analyze_completed_results", lambda self: None)
-    actual_metrics = benchmark_module.compute_campaign_metrics_history
-    metrics_kwargs = {}
-
-    def record_metrics(**kwargs):
-        metrics_kwargs.update(kwargs)
-        return actual_metrics(**kwargs)
-
-    monkeypatch.setattr(benchmark_module, "compute_campaign_metrics_history", record_metrics)
     runner = BenchmarkCampaignRunner(
         config=load_config("configs/publication_200MeV.yaml"), output_dir=tmp_path,
         algorithms=[algorithm], seeds=[42], n_sobol_init=2, total_eval_budget=5,
@@ -432,3 +436,58 @@ def test_missing_persisted_history_cannot_complete(tmp_path, monkeypatch):
 def test_aggregate_metrics_require_reporting_evidence():
     with pytest.raises(ValueError, match="explicit convention"):
         compute_aggregate_benchmark_metrics({"algorithm": {42: pd.DataFrame()}})
+
+
+def _history(steps, convention, extrema=None):
+    frame = pd.DataFrame({
+        "cumulative_astra_evaluations": steps, "fixed_ref_all_valid_hv": [1.0] * len(steps),
+        "fixed_ref_feasible_hv": [0.5] * len(steps), "feasible_fraction": [0.5] * len(steps),
+        "first_feasible_eval_index": [np.nan] + [2] * (len(steps) - 1), "pareto_set_size": [1] * len(steps),
+        "invalid_run_count": [0] * len(steps), "total_wallclock_s": [1.0] * len(steps),
+        "total_simulation_runtime_s": [1.0] * len(steps)})
+    frame.attrs["reporting_metadata"] = convention
+    if extrema is not None:
+        frame.attrs["objective_extrema"] = extrema
+    return frame
+
+
+def test_aggregation_rejects_unequal_histories_and_reports_feasible_extrema():
+    from mobo_linac.metrics.reporting import reporting_metadata
+    convention = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1.5e-6, -1.5e-6, -1.5e6])
+    with pytest.raises(ValueError, match="unequal evaluation steps"):
+        compute_aggregate_benchmark_metrics({"a": {1: _history([1, 2, 3], convention), 2: _history([1, 2], convention)}})
+    extrema = [{"norm_emit_x_m_rad": 2e-6, "norm_emit_y_m_rad": 1e-6, "sigma_energy_eV": 3e5},
+               {"norm_emit_x_m_rad": 1e-6, "norm_emit_y_m_rad": None, "sigma_energy_eV": 4e5}]
+    _, summary = compute_aggregate_benchmark_metrics(
+        {"a": {seed: _history([1, 2, 3], convention, value) for seed, value in enumerate(extrema)}}, n_bootstraps=20)
+    row = summary.iloc[0]
+    assert row["min_norm_emit_x_m_rad"] == 1e-6 and row["min_norm_emit_y_m_rad"] == 1e-6
+    assert row["min_sigma_energy_eV"] == 3e5
+    assert row["median_evals_to_first_feasible"] == 2.0
+
+
+def test_vectorized_bootstrap_matches_reference_loop():
+    data = np.random.default_rng(0).random((6, 5))
+    medians, lower, upper = compute_bootstrap_ci(data, n_bootstraps=300, seed=9)
+    rng = np.random.default_rng(9)
+    boot = np.array([np.median(data[rng.choice(6, size=6, replace=True)], axis=0) for _ in range(300)])
+    np.testing.assert_array_equal(lower, np.percentile(boot, 2.5, axis=0))
+    np.testing.assert_array_equal(upper, np.percentile(boot, 97.5, axis=0))
+
+
+def test_benchmark_summary_reads_extrema_from_candidate_history(tmp_path, monkeypatch):
+    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    original_run = MoboCampaignRunner.run
+
+    def no_plots(self):
+        self.export_plots = False
+        return original_run(self)
+
+    monkeypatch.setattr(MoboCampaignRunner, "run", no_plots)
+    config = load_config("configs/publication_200MeV.yaml")
+    runner = BenchmarkCampaignRunner(config=config, output_dir=tmp_path, algorithms=["scalarized_bo"], seeds=[7],
+                                     n_sobol_init=2, total_eval_budget=3, batch_size=4, device="cpu")
+    runner.execute_benchmark_campaigns(mock_evaluator=MockBatchEvaluator(tmp_path, config=config))
+    _, summary = BenchmarkCampaignRunner.from_output_dir(tmp_path).analyze_completed_results()
+    assert np.isfinite(summary.iloc[0][["min_norm_emit_x_m_rad", "min_norm_emit_y_m_rad", "min_sigma_energy_eV"]].astype(float)).all()

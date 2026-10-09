@@ -39,8 +39,8 @@ def analyze_benchmark(args: argparse.Namespace) -> None:
     """Aggregates and analyzes completed benchmark campaigns."""
     from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
 
-    config = load_config()
-    runner = BenchmarkCampaignRunner(config=config, output_dir=args.output_dir)
+    # Analysis reads the configuration recorded by the benchmark's own runs.
+    runner = BenchmarkCampaignRunner.from_output_dir(args.output_dir)
     agg_df, summary_df = runner.analyze_completed_results()
     print(f"Benchmark analysis complete. Aggregate metrics saved in {args.output_dir}")
 

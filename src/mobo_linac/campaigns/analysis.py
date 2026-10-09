@@ -6,8 +6,7 @@ empirical attainment probabilities, evaluations to first feasible point, final f
 fractions, Pareto cardinality, and runtime metrics across seeds and algorithms.
 """
 
-from pathlib import Path
-from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
@@ -20,7 +19,7 @@ def compute_bootstrap_ci(
     seed: int = 42,
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray]:
     """
-    Computes median and 95% bootstrap confidence intervals across random seeds.
+    Median and percentile bootstrap confidence intervals of the median across seeds.
 
     Args:
         data_matrix: (N_seeds, T_steps) 2D array of metric histories.
@@ -33,41 +32,50 @@ def compute_bootstrap_ci(
     """
     if data_matrix.ndim != 2:
         raise ValueError(f"data_matrix must be 2D (N_seeds, T_steps), got shape {data_matrix.shape}")
-
-    n_seeds, n_steps = data_matrix.shape
-    rng = np.random.default_rng(seed)
-
+    n_seeds, _ = data_matrix.shape
     medians = np.median(data_matrix, axis=0)
-
     if n_seeds == 1:
         return medians, medians.copy(), medians.copy()
-
-    boot_medians = np.zeros((n_bootstraps, n_steps), dtype=np.float64)
-    for b in range(n_bootstraps):
-        boot_idx = rng.choice(n_seeds, size=n_seeds, replace=True)
-        boot_sample = data_matrix[boot_idx, :]
-        boot_medians[b, :] = np.median(boot_sample, axis=0)
-
+    rng = np.random.default_rng(seed)
+    # Resample seed indices for every bootstrap at once (same draw sequence as one-by-one choice).
+    indices = np.stack([rng.choice(n_seeds, size=n_seeds, replace=True) for _ in range(n_bootstraps)])
+    boot_medians = np.median(data_matrix[indices, :], axis=1)
     alpha = 1.0 - confidence_level
     ci_lower = np.percentile(boot_medians, 100.0 * (alpha / 2.0), axis=0)
     ci_upper = np.percentile(boot_medians, 100.0 * (1.0 - alpha / 2.0), axis=0)
-
     return medians, ci_lower, ci_upper
+
+
+def feasible_objective_extrema(results, config) -> Dict[str, Optional[float]]:
+    """Best feasible measured value per configured objective (direction aware); None if absent."""
+    from mobo_linac.metrics.selection import valid_measured
+    from mobo_linac.result_schema import ResultSchema
+    schema = ResultSchema.from_config(config)
+    _, values = valid_measured(results, schema, feasible=True)
+    extrema = {}
+    for index, (name, sign) in enumerate(zip(schema.physical_columns, schema.signs)):
+        column = values[:, index]
+        extrema[name] = None if not len(column) else float(column.min() if sign == -1 else column.max())
+    return extrema
+
+
+def _extremum_column(name: str, sign: int) -> str:
+    return f"{'min' if sign == -1 else 'max'}_{name}"
 
 
 def compute_aggregate_benchmark_metrics(
     seed_histories: Dict[str, Dict[int, pd.DataFrame]],
     confidence_level: float = 0.95,
     n_bootstraps: int = 1000,
+    bootstrap_seed: int = 42,
 ) -> Tuple[pd.DataFrame, pd.DataFrame]:
     """
-    Aggregates per-seed metrics histories across algorithms into aggregate metrics
-    and summary tables.
+    Aggregate per-seed metric histories across algorithms.
 
-    Args:
-        seed_histories: Dict mapping algorithm_name -> {seed_int: history_df}.
-        confidence_level: Bootstrap confidence level.
-        n_bootstraps: Number of bootstrap resamples.
+    Every history must carry ``attrs["reporting_metadata"]`` with a matching convention.
+    Histories are aligned on ``cumulative_astra_evaluations``; unequal budgets raise.
+    Optional ``attrs["objective_extrema"]`` (best feasible value per objective) feeds the
+    direction-aware objective extrema columns, which stay NaN when no history supplies them.
 
     Returns:
         Tuple of (aggregate_time_series_df, algorithm_summary_df).
@@ -81,63 +89,29 @@ def compute_aggregate_benchmark_metrics(
             if convention is not None:
                 validate_campaign_compatibility(convention, meta)
             convention = meta
+    objectives = list(zip(convention["objective_names"], convention["objective_signs"])) if convention else []
     series_rows = []
     summary_rows = []
 
     for algo_name, seed_dict in seed_histories.items():
         if not seed_dict:
             continue
+        seeds = sorted(seed_dict)
+        eval_steps = seed_dict[seeds[0]]["cumulative_astra_evaluations"].to_numpy()
+        for seed in seeds:
+            steps = seed_dict[seed]["cumulative_astra_evaluations"].to_numpy()
+            if steps.shape != eval_steps.shape or not np.array_equal(steps, eval_steps):
+                raise ValueError(f"Benchmark histories for '{algo_name}' have unequal evaluation steps (seed {seed}).")
+        frames = [seed_dict[seed] for seed in seeds]
+        feas_hv_mat = np.stack([frame["fixed_ref_feasible_hv"].to_numpy(dtype=float) for frame in frames])
+        feas_frac_mat = np.stack([frame["feasible_fraction"].to_numpy(dtype=float) for frame in frames])
+        med_hv, low_hv, high_hv = compute_bootstrap_ci(feas_hv_mat, confidence_level, n_bootstraps, bootstrap_seed)
+        med_ff, low_ff, high_ff = compute_bootstrap_ci(feas_frac_mat, confidence_level, n_bootstraps, bootstrap_seed)
 
-        seeds = sorted(list(seed_dict.keys()))
-        sample_df = next(iter(seed_dict.values()))
-        eval_steps = sample_df["cumulative_astra_evaluations"].values
-        n_steps = len(eval_steps)
-        n_seeds = len(seeds)
-
-        # Extract matrices for HV, feasible fraction, invalid counts
-        all_hv_mat = np.zeros((n_seeds, n_steps))
-        feas_hv_mat = np.zeros((n_seeds, n_steps))
-        feas_frac_mat = np.zeros((n_seeds, n_steps))
-
-        first_feas_indices = []
-        final_pareto_sizes = []
-        final_feas_fractions = []
-        invalid_counts = []
-        total_wallclocks = []
-        total_sim_runtimes = []
-
-        for idx, s in enumerate(seeds):
-            df = seed_dict[s]
-            # Align evaluation steps
-            all_hv_mat[idx, :] = df["fixed_ref_all_valid_hv"].values[:n_steps]
-            feas_hv_mat[idx, :] = df["fixed_ref_feasible_hv"].values[:n_steps]
-            feas_frac_mat[idx, :] = df["feasible_fraction"].values[:n_steps]
-
-            # Summary stats per seed
-            ff_idx = df["first_feasible_eval_index"].iloc[0] if "first_feasible_eval_index" in df else np.nan
-            if pd.isna(ff_idx):
-                ff_val = df["first_feasible_eval_index"].dropna()
-                ff_idx = ff_val.iloc[0] if len(ff_val) > 0 else np.nan
-            first_feas_indices.append(ff_idx)
-
-            final_pareto_sizes.append(df["pareto_set_size"].iloc[-1])
-            final_feas_fractions.append(df["feasible_fraction"].iloc[-1])
-            invalid_counts.append(df["invalid_run_count"].iloc[-1])
-            total_wallclocks.append(df["total_wallclock_s"].iloc[-1])
-            total_sim_runtimes.append(df["total_simulation_runtime_s"].iloc[-1])
-
-        # Compute bootstrap CIs for feasible HV
-        med_hv, low_hv, high_hv = compute_bootstrap_ci(
-            feas_hv_mat, confidence_level=confidence_level, n_bootstraps=n_bootstraps
-        )
-        med_ff, low_ff, high_ff = compute_bootstrap_ci(
-            feas_frac_mat, confidence_level=confidence_level, n_bootstraps=n_bootstraps
-        )
-
-        for step_i in range(n_steps):
+        for step_i, step in enumerate(eval_steps):
             series_rows.append({
                 "algorithm": algo_name,
-                "cumulative_astra_evaluations": eval_steps[step_i],
+                "cumulative_astra_evaluations": step,
                 "median_feasible_hv": med_hv[step_i],
                 "ci_lower_feasible_hv": low_hv[step_i],
                 "ci_upper_feasible_hv": high_hv[step_i],
@@ -146,48 +120,30 @@ def compute_aggregate_benchmark_metrics(
                 "ci_upper_feasible_fraction": high_ff[step_i],
             })
 
-        valid_ff_indices = [idx for idx in first_feas_indices if not pd.isna(idx)]
-        med_first_feas = float(np.median(valid_ff_indices)) if valid_ff_indices else np.nan
-
-        # Objective extrema and failure rate from last step across seeds
-        final_invalid_total = float(np.sum(invalid_counts))
-        total_evals_all = float(n_seeds * eval_steps[-1])
-        failure_rate = final_invalid_total / total_evals_all if total_evals_all > 0 else 0.0
-
-        # Objective extrema: min of objective columns where available
-        def _extract_obj_extremum(col_name: str) -> Optional[float]:
-            vals = []
-            for df in seed_dict.values():
-                if col_name in df.columns:
-                    col_min = df[col_name].min()
-                    if not pd.isna(col_min):
-                        vals.append(float(col_min))
-            return float(np.min(vals)) if vals else None
-
-        min_emit_x = _extract_obj_extremum("best_norm_emit_x")
-        min_emit_y = _extract_obj_extremum("best_norm_emit_y")
-        min_sigma_e = _extract_obj_extremum("best_sigma_energy")
-
-        summary_rows.append({
+        # first_feasible_eval_index is cumulative, so the final row holds the run's value.
+        first_feasible = [frame["first_feasible_eval_index"].iloc[-1] for frame in frames]
+        first_feasible = [value for value in first_feasible if not pd.isna(value)]
+        invalid_counts = [frame["invalid_run_count"].iloc[-1] for frame in frames]
+        total_evaluations = float(sum(frame["cumulative_astra_evaluations"].iloc[-1] for frame in frames))
+        row = {
             "algorithm": algo_name,
-            "num_seeds": n_seeds,
+            "num_seeds": len(seeds),
             "final_median_feasible_hv": float(med_hv[-1]),
             "final_ci_lower_hv": float(low_hv[-1]),
             "final_ci_upper_hv": float(high_hv[-1]),
-            "median_evals_to_first_feasible": med_first_feas,
-            "mean_final_feasible_fraction": float(np.mean(final_feas_fractions)),
-            "mean_final_pareto_size": float(np.mean(final_pareto_sizes)),
+            "median_evals_to_first_feasible": float(np.median(first_feasible)) if first_feasible else np.nan,
+            "mean_final_feasible_fraction": float(np.mean([frame["feasible_fraction"].iloc[-1] for frame in frames])),
+            "mean_final_pareto_size": float(np.mean([frame["pareto_set_size"].iloc[-1] for frame in frames])),
             "mean_invalid_run_count": float(np.mean(invalid_counts)),
-            "failure_rate": failure_rate,
-            "min_norm_emit_x": min_emit_x,
-            "min_norm_emit_y": min_emit_y,
-            "min_sigma_energy": min_sigma_e,
-            "mean_total_wallclock_s": float(np.mean(total_wallclocks)),
-            "mean_total_sim_runtime_s": float(np.mean(total_sim_runtimes)),
-        })
+            "failure_rate": float(np.sum(invalid_counts)) / total_evaluations if total_evaluations else np.nan,
+            "mean_total_wallclock_s": float(np.mean([frame["total_wallclock_s"].iloc[-1] for frame in frames])),
+            "mean_total_sim_runtime_s": float(np.mean([frame["total_simulation_runtime_s"].iloc[-1] for frame in frames])),
+            "bootstrap_seed": bootstrap_seed,
+        }
+        for name, sign in objectives:
+            values = [frame.attrs.get("objective_extrema", {}).get(name) for frame in frames]
+            values = [value for value in values if value is not None]
+            row[_extremum_column(name, sign)] = (min(values) if sign == -1 else max(values)) if values else np.nan
+        summary_rows.append(row)
 
-    aggregate_series_df = pd.DataFrame(series_rows)
-    algorithm_summary_df = pd.DataFrame(summary_rows)
-
-    return aggregate_series_df, algorithm_summary_df
-
+    return pd.DataFrame(series_rows), pd.DataFrame(summary_rows)

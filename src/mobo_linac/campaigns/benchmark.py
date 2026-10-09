@@ -9,9 +9,7 @@ publication-ready aggregate metrics and plots.
 from dataclasses import asdict, replace
 import hashlib
 import json
-import os
 from pathlib import Path
-import tempfile
 from typing import Any, Dict, List, Optional, Tuple, Union
 import pandas as pd
 import torch
@@ -23,12 +21,12 @@ from mobo_linac.benchmark_algorithms import (
 )
 from mobo_linac.config import BenchmarkConfig, MoboConfig
 from mobo_linac.metrics.reporting import (
-    compute_campaign_metrics_history,
     reporting_metadata, validate_campaign_compatibility,
 )
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.io.artifacts import atomic_json, RunArtifactWriter, validate_run_completion
-from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics
+from mobo_linac.io.artifacts import atomic_json, validate_run_completion
+from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics, feasible_objective_extrema
+from mobo_linac.io.run_data import read_run_data
 
 from mobo_linac.utils.logger import get_logger
 
@@ -119,6 +117,22 @@ class BenchmarkCampaignRunner:
         """Normalized physical reporting reference for the configured objectives."""
         return self.benchmark_config.resolved_reporting_ref_point(len(self.config.objectives))
 
+    @classmethod
+    def from_output_dir(cls, output_dir: Union[str, Path]) -> "BenchmarkCampaignRunner":
+        """Analysis-only runner using the configuration recorded by the benchmark's runs."""
+        from mobo_linac.config import load_config
+        configs = sorted(Path(output_dir).glob("per_seed/*/config.json"))
+        if not configs:
+            raise FileNotFoundError(f"No recorded benchmark run configuration under {output_dir}")
+        return cls(load_config(configs[0]), output_dir=output_dir)
+
+    @property
+    def model_reporting_ref_point(self) -> List[float]:
+        """Signed, scaled model-space equivalent of the normalized benchmark reference."""
+        schema = ResultSchema.from_config(self.config)
+        return [value * sign * scale for value, sign, scale
+                in zip(self.reporting_ref_point_norm, schema.signs, schema.scales)]
+
     @property
     def n_batches(self) -> int:
         remaining = self.total_eval_budget - self.n_sobol_init
@@ -193,17 +207,7 @@ class BenchmarkCampaignRunner:
             "reporting_scales": list(ResultSchema.from_config(self.config).scales),
             "reporting_ref_point_physical_norm": self.reporting_ref_point_norm,
         }
-        temporary_path = None
-        try:
-            with tempfile.NamedTemporaryFile(mode="w", dir=run_dir, delete=False) as stream:
-                temporary_path = Path(stream.name)
-                json.dump(data, stream, indent=2)
-                stream.flush()
-                os.fsync(stream.fileno())
-            os.replace(temporary_path, run_dir / "benchmark_state.json")
-        finally:
-            if temporary_path is not None and temporary_path.exists():
-                temporary_path.unlink()
+        atomic_json(run_dir / "benchmark_state.json", data)
 
     def get_run_dir(self, algorithm: str, seed: int) -> Path:
         """Returns isolated run directory for algorithm and seed."""
@@ -270,6 +274,8 @@ class BenchmarkCampaignRunner:
             reporting_metadata = metadata
             frame = pd.read_csv(run_path / "metrics_history.csv")
             frame.attrs["reporting_metadata"] = metadata
+            run = read_run_data(run_path)
+            frame.attrs["objective_extrema"] = feasible_objective_extrema(run.results, run.config)
             seed_histories.setdefault(algo, {})[seed] = frame
 
         agg_df, summary_df = compute_aggregate_benchmark_metrics(seed_histories)
@@ -346,34 +352,19 @@ class BenchmarkCampaignRunner:
                     num_workers=self.num_workers,
                     total_eval_budget=self.total_eval_budget,
                     evaluator=mock_evaluator,
-                    reporting_ref_point=[value * sign * scale for value, sign, scale in zip(self.reporting_ref_point_norm, ResultSchema.from_config(self.config).signs, ResultSchema.from_config(self.config).scales)],
+                    reporting_ref_point=self.model_reporting_ref_point,
                     device=self.device,
                 )
                 results, _, _ = runner.run()
 
                 if len(results) != self.total_eval_budget:
                     raise RuntimeError(f"Benchmark returned {len(results)} evaluations; expected {self.total_eval_budget}.")
-                metric_path = run_dir / "metrics_history.csv"
-                # Real campaigns already wrote metrics using this explicit reference.
-                # Alternate/test runners may return records without derived artifacts.
-                if not metric_path.exists():
-                    schema = ResultSchema.from_config(self.config)
-                    norm_ref = [value * sign for value, sign in zip(self.reporting_ref_point_norm, schema.signs)]
-                    metrics_df = compute_campaign_metrics_history(results=results, scales=list(schema.scales), reporting_ref_point_norm=norm_ref)
-                    metrics_df.to_csv(metric_path, index=False)
-                    atomic_json(run_dir / "reporting_metadata.json", reporting_metadata(self.config, [value * scale for value, scale in zip(norm_ref, schema.scales)], "explicit"))
-                else:
-                    meta = json.loads((run_dir / "reporting_metadata.json").read_text())
-                    schema = ResultSchema.from_config(self.config)
-                    expected = reporting_metadata(self.config, [value * sign * scale for value, sign, scale in zip(self.reporting_ref_point_norm, schema.signs, schema.scales)], "explicit")
-                    validate_campaign_compatibility(meta, expected)
-                if not (run_dir / "run_complete.json").exists() and (run_dir / "candidate_history.csv").exists():
-                    # Record-returning backend adapters must also publish a concrete artifact marker.
-                    self.config.save_json(run_dir / "config.json")
-                    self.config.save_yaml(run_dir / "config.yaml")
-                    adapter_writer = RunArtifactWriter(run_dir, self.config)
-                    adapter_writer.required = [name for name in ("candidate_history.json", "candidate_history.csv", "evaluations.csv", "train_X.csv", "train_Y.csv", "pareto.csv", "pareto_all.csv", "pareto_feasible.csv", "constraints.csv", "failures.csv", "objectives_physical.csv", "objectives_model.csv", "metrics_history.csv", "hypervolume.csv", "reporting_metadata.json", "config.json", "config.yaml")]
-                    adapter_writer.complete(len(results), None)
+                # The campaign runner publishes the complete artifact contract; nothing is
+                # reconstructed here, so a run without it can never be marked complete.
+                metadata_path = run_dir / "reporting_metadata.json"
+                if metadata_path.exists():
+                    expected = reporting_metadata(self.config, self.model_reporting_ref_point, "explicit")
+                    validate_campaign_compatibility(json.loads(metadata_path.read_text()), expected)
                 self._save_run_state(algo, s, "completed", len(results))
                 if self._run_status(algo, s) != "completed":
                     self._save_run_state(algo, s, "incomplete", len(results))

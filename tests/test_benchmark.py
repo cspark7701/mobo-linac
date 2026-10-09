@@ -171,9 +171,9 @@ def test_aggregate_metrics_includes_failure_rate_and_objective_extrema():
             frame.attrs["reporting_metadata"] = convention
     agg_df, summary_df = compute_aggregate_benchmark_metrics(seed_histories, n_bootstraps=50)
     assert "failure_rate" in summary_df.columns
-    assert "min_norm_emit_x" in summary_df.columns
-    assert "min_norm_emit_y" in summary_df.columns
-    assert "min_sigma_energy" in summary_df.columns
+    assert "min_norm_emit_x_m_rad" in summary_df.columns
+    assert "min_norm_emit_y_m_rad" in summary_df.columns
+    assert "min_sigma_energy_eV" in summary_df.columns
 
 
 # ── Publication Plots ──────────────────────────────────────────────────────────
