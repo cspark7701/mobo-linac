@@ -118,6 +118,7 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
     from mobo_linac.evaluation import create_evaluation_result
     from mobo_linac.io.results import save_evaluation_results
     import mobo_linac.campaigns.runner as campaign_module
+    import mobo_linac.campaigns.strategies as strategies_module
     import mobo_linac.campaigns.benchmark as benchmark_module
 
     captured = {}
@@ -312,6 +313,7 @@ def test_reporting_settings_in_state_and_metrics(tmp_path, monkeypatch):
 def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch, algorithm):
     from mobo_linac.execution import MockBatchEvaluator
     import mobo_linac.campaigns.runner as campaign_module
+    import mobo_linac.campaigns.strategies as strategies_module
 
     class StubPipeline:
         objective_model = None
@@ -335,13 +337,13 @@ def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch,
         bounds = kwargs["bounds"]
         return bounds.mean(dim=0).repeat(size, 1), torch.zeros(size)
 
-    monkeypatch.setattr(campaign_module, "SurrogatePipeline", StubPipeline)
-    monkeypatch.setattr(campaign_module, "build_scalarized_gp_model", lambda **kwargs: None)
-    monkeypatch.setattr(campaign_module, "fit_gp_models", lambda model: model)
+    monkeypatch.setattr(strategies_module, "SurrogatePipeline", StubPipeline)
+    monkeypatch.setattr(strategies_module, "build_scalarized_gp_model", lambda **kwargs: None)
+    monkeypatch.setattr(strategies_module, "fit_gp_models", lambda model: model)
     monkeypatch.setattr(campaign_module, "save_model_artifact", lambda model, path, **kwargs: StubPipeline().save_artifact(path))
-    monkeypatch.setattr(campaign_module, "qLogNoisyExpectedImprovement", lambda **kwargs: None)
-    monkeypatch.setattr(campaign_module, "build_acquisition_function", lambda **kwargs: None)
-    monkeypatch.setattr(campaign_module, "generate_next_candidates", propose)
+    monkeypatch.setattr(strategies_module, "qLogNoisyExpectedImprovement", lambda **kwargs: None)
+    monkeypatch.setattr(strategies_module, "build_acquisition_function", lambda **kwargs: None)
+    monkeypatch.setattr(strategies_module, "generate_next_candidates", propose)
     original_init = campaign_module.MoboCampaignRunner.__init__
 
     def no_plot_init(self, **kwargs):
@@ -413,6 +415,7 @@ def test_missing_persisted_history_cannot_complete(tmp_path, monkeypatch):
     from mobo_linac.execution import MockBatchEvaluator
     from mobo_linac.evaluation import create_evaluation_result
     import mobo_linac.campaigns.runner as campaign_module
+    import mobo_linac.campaigns.strategies as strategies_module
 
     class MissingArtifactRunner:
         def __init__(self, **kwargs):

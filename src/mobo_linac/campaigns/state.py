@@ -1,10 +1,10 @@
 """Validation and random-state restoration for campaign checkpoints and proposals."""
 
 from copy import deepcopy
-from dataclasses import asdict
+from dataclasses import asdict, dataclass, replace
 import math
 import random
-from typing import Optional, Sequence
+from typing import Optional, Sequence, Tuple
 import warnings
 
 import numpy as np
@@ -12,7 +12,8 @@ import torch
 
 from mobo_linac.campaign_options import OPTIMIZATION_MODES, Acquisition, decode_acquisition
 from mobo_linac.config import MoboConfig, config_from_dict
-from mobo_linac.io.checkpoint import CheckpointState
+from mobo_linac.astra.workdir import format_eval_id
+from mobo_linac.io.checkpoint import CampaignSpec, CheckpointState
 from mobo_linac.io.results import get_train_tensors
 from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference_point
 from mobo_linac.result_schema import ResultSchema
@@ -226,7 +227,7 @@ def validate_pending_proposal(state: CheckpointState, config: MoboConfig) -> Non
     if (candidates < bounds[0]).any() or (candidates > bounds[1]).any():
         raise ValueError("Pending candidates exceed configured bounds.")
     ids = pending.get("evaluation_ids")
-    expected_ids = [f"eval_{len(state.results) + i + 1:06d}" for i in range(expected)]
+    expected_ids = [format_eval_id(len(state.results) + i + 1) for i in range(expected)]
     if ids != expected_ids:
         raise ValueError("Pending candidate identities do not follow evaluation history.")
     if batch == 0 and pending["candidates"] != state.progress.initial_design:
@@ -270,3 +271,72 @@ def resolve_resume_device(state: CheckpointState, requested_device) -> torch.dev
         except RuntimeError as error:
             raise ValueError(f"Invalid checkpoint CUDA RNG state: {error}") from error
     return device
+
+
+@dataclass(frozen=True)
+class CampaignOverrides:
+    """Options a caller requested explicitly (``None``: not requested); resume checks them against the checkpoint."""
+
+    num_initial_samples: Optional[int] = None
+    num_batches: Optional[int] = None
+    batch_size: Optional[int] = None
+    seed: Optional[int] = None
+    optimization_mode: Optional[str] = None
+    acquisition: Optional[str] = None
+    scalar_weights: Optional[Tuple[float, ...]] = None
+    total_eval_budget: Optional[int] = None
+    num_workers: Optional[int] = None
+    constrained: bool = False
+
+
+def merge_with_checkpoint(state: CheckpointState, overrides: CampaignOverrides, config: MoboConfig) -> CampaignSpec:
+    """The resumed campaign plan: saved values, with the overrides a resume may change.
+
+    Raises ValueError listing every incompatibility between the overrides and the checkpoint.
+    The returned ``planned_num_batches`` is the iteration target of the resumed session.
+    """
+    saved = state.campaign
+    problems = []
+    for requested, stored, label in ((overrides.num_initial_samples, saved.num_initial_samples, "initial sample count"),
+                                     (overrides.seed, saved.seed, "seed"),
+                                     (overrides.optimization_mode, saved.optimization_mode, "optimization mode"),
+                                     (overrides.total_eval_budget, saved.total_eval_budget, "total evaluation budget")):
+        if requested is not None and requested != stored:
+            problems.append(f"Incompatible resume {label}.")
+    if overrides.constrained and not saved.constrained:
+        problems.append("Incompatible resume constrained flag.")
+    if overrides.acquisition is not None and decode_acquisition(overrides.acquisition) is not decode_acquisition(saved.acquisition_mode):
+        problems.append("Incompatible resume acquisition mode.")
+    if state.migrated_from != "1.0" and overrides.scalar_weights is not None:
+        from mobo_linac.campaign_options import normalize_scalar_weights
+        weights = normalize_scalar_weights(list(overrides.scalar_weights), len(saved.scalar_weights))
+        if not torch.allclose(weights, torch.tensor(saved.scalar_weights, dtype=torch.double)):
+            problems.append("Incompatible resume scalar weights.")
+    if problems:
+        raise ValueError(" ".join(problems))
+
+    batch_size = saved.batch_size if overrides.batch_size is None else overrides.batch_size
+    if type(batch_size) is not int or batch_size < 1:
+        raise ValueError("Resume batch size must be a positive integer.")
+    workers = overrides.num_workers if overrides.num_workers is not None else (saved.num_workers or config.execution.max_workers)
+    if type(workers) is not int or workers < 1:
+        raise ValueError("Resume worker count must be a positive integer.")
+    if overrides.num_batches is None and saved.planned_num_batches is None:
+        raise ValueError("Legacy checkpoint omitted the planned iteration count; specify num_batches/--n-iterations.")
+    target = saved.planned_num_batches if overrides.num_batches is None else overrides.num_batches
+    pending = state.proposals.pending_proposal
+    if saved.total_eval_budget is not None:
+        remaining = saved.total_eval_budget - len(state.results)
+        if pending is not None:
+            remaining -= len(pending["candidates"])
+        required = state.iteration + (1 if pending is not None else 0) + (remaining + batch_size - 1) // batch_size
+        if overrides.num_batches is None:
+            target = required
+        elif target != required:
+            raise ValueError("Resume iteration count must consume the saved total budget with the selected batch size.")
+    if type(target) is not int:
+        raise ValueError("Resume iteration target must be an integer.")
+    if target < (pending["batch_idx"] if pending else state.iteration):
+        raise ValueError("Resume iteration target is earlier than the completed checkpoint.")
+    return replace(saved, acquisition_mode=decode_acquisition(saved.acquisition_mode).value,
+                   batch_size=batch_size, num_workers=workers, planned_num_batches=target)

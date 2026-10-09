@@ -343,8 +343,9 @@ def test_campaign_checkpoint_links_reloadable_model(tmp_path, monkeypatch, mode)
     from mobo_linac.models.pipeline import SurrogatePipeline
     from mobo_linac.models.artifacts import load_model_artifact
     import mobo_linac.campaigns.runner as campaign
+    import mobo_linac.campaigns.strategies as strategies_module
 
-    monkeypatch.setattr(campaign, "generate_next_candidates", lambda **kwargs:
+    monkeypatch.setattr(strategies_module, "generate_next_candidates", lambda **kwargs:
                         (kwargs["bounds"].mean(dim=0).repeat(kwargs["batch_size"], 1), None))
     runner = campaign.MoboCampaignRunner(
         config=load_config("configs/mobo_200MeV.yaml"), output_dir=tmp_path,

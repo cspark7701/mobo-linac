@@ -102,3 +102,63 @@ assert os.environ.get('ASTRA_BIN') == before.get('ASTRA_BIN')
 '''
     res = subprocess.run([sys.executable, '-c', code, str(tmp_path)], capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
+
+
+def test_campaign_runner_construction_leaves_global_state_untouched(tmp_path):
+    import random
+    import numpy as np
+    import torch
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.config import load_config
+    torch.set_default_dtype(torch.float32)
+    try:
+        before = (torch.get_rng_state().clone(), np.random.get_state()[1].copy(), random.getstate())
+        MoboCampaignRunner(config=load_config("configs/mobo_200MeV.yaml"), output_dir=tmp_path / "run",
+                           num_initial_samples=2, num_batches=0, seed=123, device="cpu")
+        after = (torch.get_rng_state(), np.random.get_state()[1], random.getstate())
+        assert torch.equal(before[0], after[0]) and (before[1] == after[1]).all() and before[2] == after[2]
+        assert torch.get_default_dtype() == torch.float32
+    finally:
+        torch.set_default_dtype(torch.double)
+
+
+def test_campaign_run_restores_default_dtype(tmp_path):
+    import torch
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.config import load_config
+    from mobo_linac.execution import MockBatchEvaluator
+    torch.set_default_dtype(torch.float32)
+    try:
+        MoboCampaignRunner(config=load_config("configs/mobo_200MeV.yaml"), output_dir=tmp_path / "run",
+                           num_initial_samples=2, num_batches=0, device="cpu", export_plots=False,
+                           export_env_info=False, evaluator=MockBatchEvaluator(tmp_path)).run()
+        assert torch.get_default_dtype() == torch.float32
+    finally:
+        torch.set_default_dtype(torch.double)
+
+
+def test_campaign_loop_has_no_closures_over_mutable_state_and_short_steps():
+    import ast
+    from pathlib import Path
+    source = Path(__file__).resolve().parents[1] / "src" / "mobo_linac" / "campaigns" / "runner.py"
+    tree = ast.parse(source.read_text())
+    assert not any(isinstance(node, ast.Nonlocal) for node in ast.walk(tree))
+    long = {node.name: node.end_lineno - node.lineno + 1 for node in ast.walk(tree)
+            if isinstance(node, ast.FunctionDef) and node.end_lineno - node.lineno + 1 > 60}
+    assert long == {}
+
+
+def test_astra_template_directory_is_independent_of_working_directory(tmp_path, monkeypatch):
+    from mobo_linac.astra.runner import resolve_template_dir
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.config import load_config
+    config = load_config("configs/mobo_200MeV.yaml")
+    expected = resolve_template_dir(config)
+    assert expected.is_absolute() and (expected / "astra.in").is_file()
+    monkeypatch.chdir(tmp_path)
+    assert resolve_template_dir(config) == expected
+    runner = MoboCampaignRunner(config=config, output_dir=tmp_path / "run", num_initial_samples=2,
+                                num_batches=0, device="cpu")
+    assert runner.build_evaluator().template_dir == expected
+    config.execution.template_dir = "configs/.."
+    assert resolve_template_dir(config) == expected

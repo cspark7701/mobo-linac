@@ -18,6 +18,17 @@ _PROJECT_ROOT = Path(__file__).resolve().parents[3]
 _LOCAL_BIN_DIR = _PROJECT_ROOT / "bin"
 
 
+def resolve_template_dir(config) -> Path:
+    """Absolute ASTRA template directory from ``execution.template_dir`` (default: project root).
+
+    Relative settings resolve against the project root, so generated inputs never depend on
+    the process working directory.
+    """
+    configured = getattr(config.execution, "template_dir", None)
+    path = _PROJECT_ROOT if configured is None else Path(configured).expanduser()
+    return (path if path.is_absolute() else _PROJECT_ROOT / path).resolve()
+
+
 def resolve_executable_path(
     env_var: str,
     binary_name: str,

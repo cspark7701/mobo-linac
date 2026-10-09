@@ -150,6 +150,9 @@ class ExecutionConfig:
     acquisition_reference_basis: str = "all_valid"
     # Simulation statuses that start a fresh attempt (bounded by ``retries``).
     retry_statuses: List[str] = field(default_factory=lambda: list(DEFAULT_RETRY_STATUSES))
+    # Directory holding the ASTRA template input and field maps; relative paths are resolved
+    # against the project root, and None means the project root (never the working directory).
+    template_dir: Optional[str] = None
 
     def validate(self) -> None:
         _validate_fields(self)
@@ -387,6 +390,7 @@ FIELD_RULES = {
         "retries": {"minimum": 0},
         "reporting_reference_offset": {"minimum": 0}, "acquisition_reference_offset": {"minimum": 0},
         "acquisition_reference_basis": {"enum": ["all_valid", "feasible"]},
+        "template_dir": {"minLength": 1},
         "retry_statuses": {"uniqueItems": True, "items": {"type": "string", "enum": [
             status.value for status in SimulationStatus if status is not SimulationStatus.SUCCESS]}},
     },

@@ -1,151 +1,149 @@
-"""Proposal strategies independent of simulator initialization and run storage."""
+"""Proposal strategies independent of simulator initialization and run storage.
+
+A strategy turns the identity-ordered training observations of a campaign into the next
+batch of candidates (physical units) plus the proposal metadata recorded with it.
+"""
+
 from dataclasses import dataclass
-from mobo_linac.config import MoboConfig
+from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple
+
 import torch
+from botorch.acquisition.logei import qLogNoisyExpectedImprovement
 from botorch.models import ModelListGP
-from mobo_linac.acquisition.mobo import SliceObjective
+
+from mobo_linac.acquisition.mobo import SliceObjective, build_acquisition_function, generate_next_candidates
+from mobo_linac.config import ExecutionConfig, MoboConfig
 from mobo_linac.constraints import get_botorch_constraint_functions
 from mobo_linac.metrics.hypervolume import compute_reference_point
+from mobo_linac.models.gp import build_scalarized_gp_model, fit_gp_models
+from mobo_linac.models.pipeline import SurrogatePipeline
+from mobo_linac.result_schema import ResultSchema
+
+Proposal = Tuple[List[List[float]], Optional[Dict[str, Any]]]
+# persist_model(model, iteration, training, pipeline=...) records the fitted surrogate.
+PersistModel = Callable[..., None]
+
+
+class ProposalStrategy(Protocol):
+    def propose(self, training, iteration: int, batch_size: int, sobol_engine) -> Proposal:
+        ...
+
+
+@dataclass(frozen=True)
+class AcquisitionSettings:
+    """Multi-start acquisition optimizer budget (from ``execution``)."""
+
+    num_restarts: int
+    raw_samples: int
+    maxiter: int
+    batch_limit: int
+
+    @classmethod
+    def from_execution(cls, execution: ExecutionConfig, batch_limit: Optional[int] = None) -> "AcquisitionSettings":
+        return cls(execution.acqf_num_restarts, execution.acqf_raw_samples, execution.acqf_maxiter,
+                   execution.acqf_batch_limit if batch_limit is None else batch_limit)
+
+
+def _optimize(acq_func, bounds, batch_size, settings: AcquisitionSettings, device, sobol_engine):
+    result = generate_next_candidates(acq_func=acq_func, bounds=bounds, batch_size=batch_size,
+                                      num_restarts=settings.num_restarts, raw_samples=settings.raw_samples,
+                                      maxiter=settings.maxiter, batch_limit=settings.batch_limit,
+                                      device=device, sobol_engine=sobol_engine)
+    candidates, _ = result
+    return candidates.detach().cpu().tolist(), getattr(result, "metadata", None)
 
 
 @dataclass
-class ProposalContext:
+class ScalarizedProposal:
+    """Weighted sum of scale-normalized objectives, one GP and qLogNEI."""
+
     config: MoboConfig
     device: torch.device
     scalar_weights: torch.Tensor
+    bounds: torch.Tensor
+    persist_model: PersistModel
+
+    def propose(self, training, iteration, batch_size, sobol_engine) -> Proposal:
+        device = self.device
+        train_X = training.train_X.to(dtype=torch.double, device=device)
+        scales = torch.tensor(ResultSchema.from_config(self.config).scales, dtype=torch.double, device=device)
+        # Configured scales make objective weights dimensionless.
+        scalar_Y = ((training.train_Y.to(dtype=torch.double, device=device) / scales)
+                    * self.scalar_weights.to(dtype=torch.double, device=device)).sum(dim=-1, keepdim=True)
+        bounds = self.bounds.to(device=device, dtype=torch.double)
+        model = self.config.model
+        gp = build_scalarized_gp_model(
+            train_X=train_X, train_Y=scalar_Y, bounds=bounds, covar_type=model.covar_type,
+            noise_mode=model.noise_mode, fixed_noise_val=model.fixed_noise_variance,
+            relative_noise_ratio=model.relative_noise_ratio, min_noise_variance=model.min_noise_variance,
+            device=device,
+        )
+        fit_gp_models(gp)
+        self.persist_model(gp, iteration, training)
+        if device.type == "cuda" and torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        acq_func = qLogNoisyExpectedImprovement(model=gp, X_baseline=train_X, prune_baseline=True)
+        settings = AcquisitionSettings.from_execution(self.config.execution,
+                                                      batch_limit=1 if device.type == "cuda" else None)
+        return _optimize(acq_func, bounds, batch_size, settings, device, sobol_engine)
+
+
+@dataclass
+class MultiObjectiveProposal:
+    """Independent objective GPs (and constraint GPs when constrained) with an EHVI-family acquisition."""
+
+    config: MoboConfig
+    device: torch.device
     constrained: bool
     acq_type: str
+    bounds: torch.Tensor
+    persist_model: PersistModel
+
+    def _surrogate(self, training):
+        model = self.config.model
+        pipeline = SurrogatePipeline(
+            bounds=self.bounds, covar_type=model.covar_type, noise_mode=model.noise_mode,
+            fixed_noise_val=model.fixed_noise_variance, relative_noise_ratio=model.relative_noise_ratio,
+            min_noise_variance=model.min_noise_variance, objective_noise_variances=model.objective_noise_variances,
+            constraints_config=self.config.constraints, device=self.device,
+        )
+        if not self.constrained:
+            pipeline.fit(training.train_X, training.train_Y)
+            return pipeline, pipeline.objective_model, None, None
+        pipeline.fit(training.train_X, training.train_Y, training.constraints)
+        if pipeline.constraint_model is None:
+            return pipeline, pipeline.objective_model, None, None
+        count = training.train_Y.shape[-1]
+        model = ModelListGP(*pipeline.objective_model.models, *pipeline.constraint_model.models).to(
+            device=self.device, dtype=torch.double)
+        return (pipeline, model, get_botorch_constraint_functions(self.config, num_objectives=count),
+                SliceObjective(num_objectives=count))
+
+    def propose(self, training, iteration, batch_size, sobol_engine) -> Proposal:
+        pipeline, gp_model, constraints, objective = self._surrogate(training)
+        self.persist_model(pipeline, iteration, training, pipeline=True)
+        execution = self.config.execution
+        basis_Y = training.train_Y
+        if execution.acquisition_reference_basis == "feasible" and bool(training.feasible.any()):
+            basis_Y = training.train_Y[training.feasible]
+        reference = compute_reference_point(basis_Y, offset_ratio=execution.acquisition_reference_offset,
+                                            config=self.config)
+        acq_func = build_acquisition_function(
+            model=gp_model, train_X=training.train_X, train_Y=training.train_Y, ref_point=reference,
+            train_feas_mask=training.feasible, acq_type=self.acq_type, constraints=constraints, objective=objective,
+        )
+        candidates, metadata = _optimize(acq_func, self.bounds, batch_size,
+                                         AcquisitionSettings.from_execution(execution), self.device, sobol_engine)
+        if metadata is not None:
+            metadata = dict(metadata, acquisition_reference={
+                "point_model": reference.detach().cpu().tolist(),
+                "offset": execution.acquisition_reference_offset,
+                "basis": execution.acquisition_reference_basis})
+        return candidates, metadata
 
 
-def propose_scalarized(context, training, bounds, schema, iteration, proposal_batch_size, sobol_engine, persist_model, dependencies):
-    train_X, train_Y, train_feas_mask = training.train_X, training.train_Y, training.feasible
-    build_scalarized_gp_model = dependencies["build_scalarized_gp_model"]
-    fit_gp_models = dependencies["fit_gp_models"]
-    qLogNoisyExpectedImprovement = dependencies["qLogNoisyExpectedImprovement"]
-    generate_next_candidates = dependencies["generate_next_candidates"]
-    # Scalarized single-objective GP surrogate with qLogNEI
-    weights_dev = context.scalar_weights.to(dtype=torch.double, device=context.device)
-    train_X_dev = train_X.to(dtype=torch.double, device=context.device)
-    train_Y_dev = train_Y.to(dtype=torch.double, device=context.device)
-    # Configured scales make objective weights dimensionless.
-    scales_dev = torch.tensor(schema.scales, dtype=torch.double, device=context.device)
-    train_Y_scaled = train_Y_dev / scales_dev
-    scalar_Y = (train_Y_scaled * weights_dev).sum(dim=-1, keepdim=True)
-
-    bounds_dev = bounds.to(device=context.device, dtype=torch.double)
-    gp = build_scalarized_gp_model(
-        train_X=train_X_dev,
-        train_Y=scalar_Y,
-        bounds=bounds_dev,
-        covar_type=context.config.model.covar_type,
-        noise_mode=context.config.model.noise_mode,
-        fixed_noise_val=context.config.model.fixed_noise_variance,
-        relative_noise_ratio=context.config.model.relative_noise_ratio,
-        min_noise_variance=context.config.model.min_noise_variance,
-        device=context.device,
-    )
-    fit_gp_models(gp)
-    persist_model(gp, iteration, training)
-
-    if context.device.type == "cuda" and torch.cuda.is_available():
-        torch.cuda.empty_cache()
-
-    acq_func = qLogNoisyExpectedImprovement(
-        model=gp,
-        X_baseline=train_X_dev,
-        prune_baseline=True,
-    )
-    exec_cfg = context.config.execution
-    b_limit = 1 if context.device.type == "cuda" else getattr(exec_cfg, "acqf_batch_limit", 5)
-    proposal_result = generate_next_candidates(
-        acq_func=acq_func,
-        bounds=bounds_dev,
-        batch_size=proposal_batch_size,
-        num_restarts=getattr(exec_cfg, "acqf_num_restarts", 10),
-        raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
-        maxiter=getattr(exec_cfg, "acqf_maxiter", 200),
-        batch_limit=b_limit,
-        device=context.device,
-        sobol_engine=sobol_engine,
-    )
-    candidates, _ = proposal_result
-    proposal_metadata = getattr(proposal_result, "metadata", None)
-    next_cand_list = candidates.detach().cpu().tolist()
-
-    return next_cand_list, proposal_metadata
-
-
-def propose_multiobjective(context, training, bounds, schema, iteration, proposal_batch_size, sobol_engine, persist_model, dependencies):
-    train_X, train_Y, train_feas_mask = training.train_X, training.train_Y, training.feasible
-    SurrogatePipeline = dependencies["SurrogatePipeline"]
-    build_acquisition_function = dependencies["build_acquisition_function"]
-    generate_next_candidates = dependencies["generate_next_candidates"]
-    pipeline = SurrogatePipeline(
-        bounds=bounds,
-        covar_type=context.config.model.covar_type,
-        noise_mode=context.config.model.noise_mode,
-        fixed_noise_val=context.config.model.fixed_noise_variance,
-        relative_noise_ratio=context.config.model.relative_noise_ratio,
-        min_noise_variance=context.config.model.min_noise_variance,
-        objective_noise_variances=context.config.model.objective_noise_variances,
-        constraints_config=context.config.constraints,
-        device=context.device,
-    )
-
-    if context.constrained:
-        pipeline.fit(train_X, train_Y, training.constraints)
-        if pipeline.constraint_model is not None:
-            gp_model = ModelListGP(*pipeline.objective_model.models, *pipeline.constraint_model.models).to(device=context.device, dtype=torch.double)
-            botorch_constraints = get_botorch_constraint_functions(context.config, num_objectives=train_Y.shape[-1])
-            objective_slice = SliceObjective(num_objectives=train_Y.shape[-1])
-        else:
-            gp_model = pipeline.objective_model
-            botorch_constraints = None
-            objective_slice = None
-    else:
-        pipeline.fit(train_X, train_Y)
-        gp_model = pipeline.objective_model
-        botorch_constraints = None
-        objective_slice = None
-
-    persist_model(pipeline, iteration, training, pipeline=True)
-
-    exec_cfg = context.config.execution
-    basis_Y = train_Y
-    if exec_cfg.acquisition_reference_basis == "feasible" and bool(train_feas_mask.any()):
-        basis_Y = train_Y[train_feas_mask]
-    acq_ref_point = compute_reference_point(basis_Y, offset_ratio=exec_cfg.acquisition_reference_offset,
-                                            config=context.config)
-
-    acq_func = build_acquisition_function(
-        model=gp_model,
-        train_X=train_X,
-        train_Y=train_Y,
-        ref_point=acq_ref_point,
-        train_feas_mask=train_feas_mask,
-        acq_type=context.acq_type,
-        constraints=botorch_constraints,
-        objective=objective_slice,
-    )
-
-    proposal_result = generate_next_candidates(
-        acq_func=acq_func,
-        bounds=bounds,
-        batch_size=proposal_batch_size,
-        num_restarts=getattr(exec_cfg, "acqf_num_restarts", 10),
-        raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
-        maxiter=getattr(exec_cfg, "acqf_maxiter", 200),
-        batch_limit=getattr(exec_cfg, "acqf_batch_limit", 5),
-        device=context.device,
-        sobol_engine=sobol_engine,
-    )
-    next_cand_tensor, _ = proposal_result
-    proposal_metadata = getattr(proposal_result, "metadata", None)
-    if proposal_metadata is not None:
-        proposal_metadata = dict(proposal_metadata, acquisition_reference={
-            "point_model": acq_ref_point.detach().cpu().tolist(),
-            "offset": exec_cfg.acquisition_reference_offset,
-            "basis": exec_cfg.acquisition_reference_basis})
-    next_cand_list = next_cand_tensor.detach().cpu().tolist()
-
-    return next_cand_list, proposal_metadata
+def make_strategy(optimization_mode: str, *, config: MoboConfig, device: torch.device, scalar_weights: torch.Tensor,
+                  constrained: bool, acq_type: str, bounds: torch.Tensor, persist_model: PersistModel) -> ProposalStrategy:
+    if optimization_mode == "scalarized_bo":
+        return ScalarizedProposal(config, device, scalar_weights, bounds, persist_model)
+    return MultiObjectiveProposal(config, device, constrained, acq_type, bounds, persist_model)

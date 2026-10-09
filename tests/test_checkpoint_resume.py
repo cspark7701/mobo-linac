@@ -31,6 +31,7 @@ def fast_resume_proposals(monkeypatch):
     """Exercise real checkpoint/proposal flow without repeated expensive GP fitting."""
     import random
     import mobo_linac.campaigns.runner as runner_module
+    import mobo_linac.campaigns.strategies as strategies_module
     import mobo_linac.acquisition.mobo as acquisition_module
 
     class StubPipeline:
@@ -51,15 +52,15 @@ def fast_resume_proposals(monkeypatch):
     class StubAcquisition(torch.nn.Module):
         pass
 
-    monkeypatch.setattr(runner_module, "SurrogatePipeline", StubPipeline)
-    monkeypatch.setattr(runner_module, "build_scalarized_gp_model", lambda **kwargs: torch.nn.Linear(1, 1))
-    monkeypatch.setattr(runner_module, "fit_gp_models", lambda model: model)
+    monkeypatch.setattr(strategies_module, "SurrogatePipeline", StubPipeline)
+    monkeypatch.setattr(strategies_module, "build_scalarized_gp_model", lambda **kwargs: torch.nn.Linear(1, 1))
+    monkeypatch.setattr(strategies_module, "fit_gp_models", lambda model: model)
     def save_stub(model, path, **kwargs):
         path.parent.mkdir(parents=True, exist_ok=True)
         torch.save({"test_stub": True}, path)
     monkeypatch.setattr(runner_module, "save_model_artifact", save_stub)
-    monkeypatch.setattr(runner_module, "build_acquisition_function", lambda **kwargs: StubAcquisition())
-    monkeypatch.setattr(runner_module, "qLogNoisyExpectedImprovement", lambda **kwargs: StubAcquisition())
+    monkeypatch.setattr(strategies_module, "build_acquisition_function", lambda **kwargs: StubAcquisition())
+    monkeypatch.setattr(strategies_module, "qLogNoisyExpectedImprovement", lambda **kwargs: StubAcquisition())
 
     def optimize(**kwargs):
         bounds = kwargs["bounds"]
@@ -633,6 +634,7 @@ def test_repeated_initial_batch_interruptions_preserve_completed_work(tmp_path):
 @pytest.mark.parametrize("interrupted_iteration", [0, 1])
 def test_checkpoint_commit_interruption_does_not_repeat_completed_batch(tmp_path, monkeypatch, after_commit, interrupted_iteration):
     import mobo_linac.campaigns.runner as runner_module
+    import mobo_linac.campaigns.strategies as strategies_module
 
     original_save = runner_module.save_run_checkpoint
 
@@ -664,6 +666,7 @@ def test_checkpoint_commit_interruption_does_not_repeat_completed_batch(tmp_path
 @pytest.mark.parametrize("swallow_callback_error", [False, True])
 def test_campaign_callback_persistence_failure_is_observable(tmp_path, monkeypatch, swallow_callback_error):
     import mobo_linac.campaigns.runner as runner_module
+    import mobo_linac.campaigns.strategies as strategies_module
 
     def fail_append(*args, **kwargs):
         raise OSError("Injected journal disk failure")
@@ -874,6 +877,7 @@ def test_parallel_batch_elapsed_time_is_distinct_from_sum_of_worker_runtimes(tmp
     import json
     import pandas as pd
     import mobo_linac.campaigns.runner as runner_module
+    import mobo_linac.campaigns.strategies as strategies_module
     clock = [0.0]
     monkeypatch.setattr(runner_module.time, "perf_counter", lambda: clock[0])
     class ParallelTimingEvaluator(MockBatchEvaluator):
@@ -896,6 +900,7 @@ def test_parallel_batch_elapsed_time_is_distinct_from_sum_of_worker_runtimes(tmp
 
 def test_requested_plot_failure_prevents_final_completion(tmp_path, monkeypatch):
     import mobo_linac.campaigns.runner as runner_module
+    import mobo_linac.campaigns.strategies as strategies_module
     def fail_plot(*args, **kwargs):
         raise OSError("Injected figure failure")
     monkeypatch.setattr(runner_module, "plot_hypervolume_progress", fail_plot)
