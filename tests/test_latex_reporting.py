@@ -8,9 +8,9 @@ import pandas as pd
 
 from mobo_linac.metrics.latex import (
     generate_verification_latex_table,
-    generate_results_summary_latex_table,
     generate_robustness_summary_latex_table,
 )
+from mobo_linac.config import load_config
 
 
 @pytest.fixture
@@ -76,45 +76,6 @@ def test_generate_verification_latex_table(sample_verification_records, tmp_path
     assert r"knee\_point" in tex_from_df
 
 
-def test_generate_results_summary_latex_table(tmp_path):
-    """Test generating Phase 2 vs Phase 3 campaign summary table."""
-    p2 = {
-        "total_evaluations": 136,
-        "valid_evaluations": 130,
-        "feasible_evaluations": 75,
-        "feasibility_pct": 55.1,
-        "all_hv": 1.85e-9,
-        "feas_hv": 1.20e-9,
-        "pareto_size": 18,
-        "min_emit_x_um": 0.82,
-        "min_emit_y_um": 0.84,
-        "min_sigma_e_mev": 0.045,
-    }
-    p3 = {
-        "total_evaluations": 136,
-        "valid_evaluations": 136,
-        "feasible_evaluations": 110,
-        "feasibility_pct": 80.9,
-        "all_hv": 1.95e-9,
-        "feas_hv": 1.75e-9,
-        "pareto_size": 24,
-        "min_emit_x_um": 0.80,
-        "min_emit_y_um": 0.81,
-        "min_sigma_e_mev": 0.042,
-    }
-
-    tex_path = tmp_path / "results_table.tex"
-    tex_content = generate_results_summary_latex_table(p2, p3, output_path=tex_path)
-
-    assert r"\begin{table}" in tex_content
-    assert r"\label{tab:results_summary}" in tex_content
-    assert "Phase 2 (Unconstrained)" in tex_content
-    assert "Phase 3 (Constrained)" in tex_content
-    assert "55.1\\%" in tex_content
-    assert "80.9\\%" in tex_content
-    assert tex_path.exists()
-
-
 def test_generate_robustness_summary_latex_table(sample_robustness_records, tmp_path):
     """Test generating robustness summary LaTeX table."""
     tex_path = tmp_path / "robustness_table.tex"
@@ -172,9 +133,10 @@ def test_small_energy_spread_uses_explicit_si_units():
     records = [{'role': 'small', 'stored_emit_x_m_rad': .1, 'rerun_emit_x_m_rad': .1,
                 'stored_sigma_energy_eV': 10., 'rerun_sigma_energy_eV': 10.,
                 'max_diff_pct': 0., 'verification_status': 'VERIFIED'}]
-    content = generate_verification_latex_table(records)
-    assert '100000.0000' in content
+    content = generate_verification_latex_table(records, config=load_config("configs/mobo_200MeV.yaml"))
+    assert '100000.0000' in content  # 0.1 m*rad shown in the configured μm*rad display unit
     assert '10.0000' not in content
+    assert generate_verification_latex_table(records).count(' 0.1 ') == 2  # without configuration: SI values
 
 
 def test_unusual_names_compile_as_latex(tmp_path):
@@ -193,3 +155,27 @@ def test_unusual_names_compile_as_latex(tmp_path):
                             cwd=tmp_path, capture_output=True, text=True)
     assert result.returncode == 0, result.stdout[-4000:]
     assert (tmp_path / 'table.pdf').exists()
+
+
+def test_verification_table_includes_every_configured_objective():
+    config = load_config("configs/mobo_200MeV.yaml")
+    records = [{'role': 'knee_point', 'stored_objectives': {'norm_emit_x_m_rad': 1e-6, 'norm_emit_y_m_rad': 2e-6,
+                'sigma_energy_eV': 5e5}, 'rerun_objectives': {'norm_emit_x_m_rad': 1e-6, 'norm_emit_y_m_rad': 2e-6,
+                'sigma_energy_eV': 5e5}, 'objective_order': ['norm_emit_x_m_rad', 'norm_emit_y_m_rad', 'sigma_energy_eV'],
+                'objective_units': {'norm_emit_x_m_rad': 'm*rad', 'norm_emit_y_m_rad': 'm*rad', 'sigma_energy_eV': 'eV'},
+                'max_diff_pct': 0.0, 'verification_status': 'VERIFIED'}]
+    content = generate_verification_latex_table(records, config=config)
+    assert r'Stored $\varepsilon_{n,y}$ [$\mu$m$\cdot$rad]' in content
+    assert '2.0000' in content and '0.5000' in content
+    archived = [{'role': 'old', 'stored_emit_x_m_rad': 1e-6, 'rerun_emit_x_m_rad': 1e-6, 'stored_emit_y_m_rad': 2e-6,
+                 'rerun_emit_y_m_rad': 2e-6, 'stored_sigma_energy_eV': 5e5, 'rerun_sigma_energy_eV': 5e5,
+                 'max_diff_percent': 0.0, 'status': 'VERIFIED'}]
+    assert generate_verification_latex_table(archived, config=config).count('2.0000') == 2  # ε_y no longer dropped
+
+
+def test_reporting_modules_hold_no_objective_names_or_phase_counts():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "src" / "mobo_linac" / "metrics"
+    text = (root / "publication.py").read_text()
+    for literal in ("norm_emit", "sigma_energy", "emit_x", "Phase 2", "Phase 3", "3.9236"):
+        assert literal not in text, literal

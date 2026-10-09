@@ -716,4 +716,4 @@ def test_custom_objective_figures_keep_recorded_units_and_close_figures(tmp_path
     assert plt.get_fignums() == before
     assert (tmp_path / 'pareto.png').exists() and (tmp_path / 'verification.png').exists()
     content = generate_campaign_summary_latex_table(directories)
-    assert r'power\_W (W)' in content and '3.0000' in content
+    assert r'Best power\_W [W]' in content and '3.0000' in content

@@ -76,6 +76,8 @@ class ObjectiveConfig:
     # Display metadata: figures show value / reporting scale in display_unit.
     label: Optional[str] = field(default=None, metadata=DISPLAY)
     display_unit: Optional[str] = field(default=None, metadata=DISPLAY)
+    # Design goal in physical units for reports (knee target distance); not an optimization setting.
+    target: Optional[float] = field(default=None, metadata=DISPLAY)
 
     def validate(self) -> None:
         _validate_fields(self)
@@ -416,7 +418,7 @@ FIELD_RULES = {
         "name": {"pattern": _IDENTIFIER}, "explicit_name": {"pattern": _IDENTIFIER},
         "aliases": {"items": {"type": "string", "pattern": _IDENTIFIER}, "uniqueItems": True},
         "physical_direction": {"enum": ["minimize", "maximize"]}, "model_sign": {"enum": [-1, 1]},
-        "reporting_scale": {"exclusiveMinimum": 0},
+        "reporting_scale": {"exclusiveMinimum": 0}, "target": {"exclusiveMinimum": 0},
     },
     "ConstraintsConfig": {attribute: rule for channel in DIAGNOSTIC_CHANNELS
                           for attribute, _, rule in channel.bound_fields()},

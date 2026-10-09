@@ -11,14 +11,10 @@ root_dir = Path(__file__).resolve().parents[1]
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-from scripts.run_comparison_and_verification import (
-    compute_target_distance,
-    generate_comparison_report,
-    verify_pareto_candidates,
-    TARGET_EMIT_X_M_RAD,
-    TARGET_EMIT_Y_M_RAD,
-    TARGET_SIGMA_E_EV,
-)
+from scripts.run_comparison_and_verification import compute_target_distance, verify_pareto_candidates
+from mobo_linac.io.run_data import RunData
+from mobo_linac.metrics.publication import generate_comparison_report
+from mobo_linac.metrics.reporting import reporting_metadata
 
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
@@ -27,14 +23,11 @@ import torch
 
 
 def test_compute_target_distance():
-    """Verify engineering target distance calculation."""
-    dist_at_target = compute_target_distance(
-        TARGET_EMIT_X_M_RAD,
-        TARGET_EMIT_Y_M_RAD,
-        TARGET_SIGMA_E_EV,
-    )
-    assert dist_at_target == pytest.approx(np.sqrt(3.0), rel=1e-5)
-    assert compute_target_distance(0.0, 0.0, 0.0) == 0.0
+    """Target distance uses the configured objective targets."""
+    targets = [objective.target for objective in load_config("configs/mobo_200MeV.yaml").objectives]
+    assert compute_target_distance(targets, targets) == pytest.approx(np.sqrt(3.0), rel=1e-5)
+    assert compute_target_distance([0.0, 0.0, 0.0], targets) == 0.0
+    assert np.isnan(compute_target_distance([1.0, 1.0, 1.0], [1.0, None, 1.0]))
 
 
 def test_verify_pareto_candidates_mock(tmp_path, monkeypatch):
@@ -128,19 +121,12 @@ def test_generate_comparison_report(tmp_path):
     ]
 
     report_path = tmp_path / "docs" / "results" / "mobo_validation_report.md"
-
-    generate_comparison_report(
-        run_dir_p2=tmp_path / "run_p2",
-        results_p2=mock_results,
-        tracker_p2=tracker_p2,
-        wall_sec_p2=12.34,
-        run_dir_p3=tmp_path / "run_p3",
-        results_p3=mock_results,
-        tracker_p3=tracker_p3,
-        wall_sec_p3=15.67,
-        verification_records=verification_records,
-        report_path=report_path,
-    )
+    runs = [RunData(tmp_path / name, config, mock_results, reporting_metadata(config, ref_point.tolist()),
+                    tracker.to_dataframe()) for name, tracker in (("run_p2", tracker_p2), ("run_p3", tracker_p3))]
+    generate_comparison_report(runs, ["Phase 2 (Unconstrained MOBO)", "Phase 3 (Constrained MOBO)"],
+                               verification_records, report_path,
+                               title="Multi-Objective Bayesian Optimization Validation & Comparison Report",
+                               wall_times=[12.34, 15.67])
 
     assert report_path.exists()
     content = report_path.read_text(encoding="utf-8")
@@ -151,28 +137,14 @@ def test_generate_comparison_report(tmp_path):
 
 
 def test_comparison_report_is_data_driven_with_failed_evaluations(publication_runs, tmp_path):
-    from mobo_linac.io.run_data import read_run_data
-    from mobo_linac.io.results import get_train_tensors
-    from mobo_linac.metrics.publication import generate_comparison_report as package_report
+    from mobo_linac.metrics.publication import read_comparison_runs
     p1, p2, p3, _ = publication_runs
-    runs = [read_run_data(path) for path in (p2, p3)]
-    trackers = []
-    for run in runs:
-        tracker = HypervolumeTracker(run.metadata['reporting_ref_point'], run.config)
-        _, y, feasible = get_train_tensors(run.results, config=run.config)
-        tracker.track_iteration(0, y, feasible)
-        trackers.append(tracker)
+    runs = read_comparison_runs([p2, p3])
     records = [{'role': 'failed|case', 'stored_emit_x_m_rad': 1e-6, 'rerun_emit_x_m_rad': None,
                 'stored_sigma_energy_eV': .5e6, 'rerun_sigma_energy_eV': None,
                 'max_diff_pct': None, 'status': 'RERUN_FAILED'}]
-    arguments = dict(run_dir_p2=p2, results_p2=runs[0].results, tracker_p2=trackers[0], wall_sec_p2=1.,
-                     run_dir_p3=p3, results_p3=runs[1].results, tracker_p3=trackers[1], wall_sec_p3=2.,
-                     verification_records=records)
-    adapter_path, package_path = tmp_path / 'adapter.md', tmp_path / 'package.md'
-    generate_comparison_report(**arguments, report_path=adapter_path)
-    package_report(**arguments, report_path=package_path)
-    content = adapter_path.read_text()
-    assert content == package_path.read_text()
+    path = generate_comparison_report(runs, ["Phase 2", "Phase 3"], records, tmp_path / 'report.md')
+    content = path.read_text()
     assert '| Numerical Valid Simulations | 2 | 2 |' in content
     assert '| Physically Feasible Beams | 1 | 1 |' in content
     assert '33.333333' in content
@@ -180,11 +152,25 @@ def test_comparison_report_is_data_driven_with_failed_evaluations(publication_ru
     assert 'All candidates achieved' not in content and 'zero numerical discrepancy' not in content
 
 
+def test_comparison_report_links_only_existing_figures(publication_runs, tmp_path):
+    from mobo_linac.metrics.publication import read_comparison_runs
+    p1, p2, p3, _ = publication_runs
+    runs = read_comparison_runs([p1, p2, p3])
+    names = ["Phase 1", "Phase 2", "Phase 3"]
+    content = generate_comparison_report(runs, names, [], tmp_path / 'report.md').read_text()
+    assert 'figures/' not in content and '| Phase 1 | Phase 2 | Phase 3 |' in content
+    (tmp_path / 'figures').mkdir()
+    (tmp_path / 'figures' / 'pareto_front_comparison.png').write_bytes(b'png')
+    content = generate_comparison_report(runs, names, [], tmp_path / 'report.md').read_text()
+    assert 'figures/pareto_front_comparison.png' in content
+    assert 'hypervolume_comparison.png' not in content and 'verification_rerun_comparison.png' not in content
+
+
 def test_comparison_report_rejects_mismatched_references(tmp_path):
     config = load_config('configs/mobo_200MeV.yaml')
-    first = HypervolumeTracker([-3e-6, -3e-6, -2e6], config)
-    second = HypervolumeTracker([-4e-6, -3e-6, -2e6], config)
+    runs = [RunData(tmp_path / name, config, [], reporting_metadata(config, ref), None)
+            for name, ref in (("first", [-3e-6, -3e-6, -2e6]), ("second", [-4e-6, -3e-6, -2e6]))]
     path = tmp_path / 'new' / 'report.md'
     with pytest.raises(ValueError, match='Incompatible reporting'):
-        generate_comparison_report(tmp_path / 'first', [], first, 0., tmp_path / 'second', [], second, 0., [], path)
+        generate_comparison_report(runs, ["first", "second"], [], path)
     assert not path.parent.exists()

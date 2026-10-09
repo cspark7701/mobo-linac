@@ -120,12 +120,12 @@ def aggregate_scalarized_cases(
             "num_valid": stats["n_valid"],
             "num_feasible": stats["n_feas"],
             "feasible_fraction_pct": round(stats["feas_pct"], 2),
-            "min_norm_emit_x_um": round(stats["min_ex_um"], 4),
-            "min_norm_emit_y_um": round(stats["min_ey_um"], 4),
-            "min_sigma_energy_MeV": round(stats["min_se_mev"], 4),
-            "min_norm_emit_x_feas_um": None if np.isnan(stats["min_ex_feas_um"]) else round(stats["min_ex_feas_um"], 4),
-            "min_norm_emit_y_feas_um": None if np.isnan(stats["min_ey_feas_um"]) else round(stats["min_ey_feas_um"], 4),
-            "min_sigma_energy_feas_MeV": None if np.isnan(stats["min_se_feas_mev"]) else round(stats["min_se_feas_mev"], 4),
+            # Objective extrema in physical (SI) units: all-valid Pareto and feasible observations.
+            "objective_order": json.dumps([obj.explicit_name for obj in run.config.objectives]),
+            "objective_units": json.dumps({obj.explicit_name: obj.unit for obj in run.config.objectives}),
+            **{f"min_{name}": value for name, value in stats["all_valid_extrema"].items()},
+            **{f"min_feasible_{name}": None if np.isnan(value) else value
+               for name, value in stats["feasible_extrema"].items()},
             "final_feasible_hv": round(stats["final_hv"], 6),
         })
 
@@ -155,10 +155,10 @@ def aggregate_scalarized_cases(
     }
 
 
-def export_phase1_cases_latex_table(cases_summary_path, output_path):
-    """Compatibility adapter for the shared case-table renderer."""
+def export_phase1_cases_latex_table(cases_summary_path, output_path, config=None):
+    """Case table with configured objective labels/units when ``config`` is given."""
     from mobo_linac.metrics.latex import generate_phase1_cases_latex_table
-    return generate_phase1_cases_latex_table(cases_summary_path, output_path)
+    return generate_phase1_cases_latex_table(cases_summary_path, output_path, config=config)
 
 
 def run_scalarized_suite(

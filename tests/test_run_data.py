@@ -18,7 +18,7 @@ def test_history_reconstructs_distinct_pareto_sets(publication_runs):
     assert summary['feasible_evaluations'] == 1
     assert summary['feasibility_pct'] == pytest.approx(100 / 3)
     assert summary['feasibility_valid_pct'] == 50
-    assert summary['min_emit_x_um'] == 1
+    assert summary['objective_extrema']['norm_emit_x_m_rad'] == pytest.approx(1e-6)
     # Status-free derived CSVs are joined to the observed candidate identities.
     records = load_candidates(directory / 'pareto.csv', run.config)
     assert records[0].evaluation_id == 'eval_000002'

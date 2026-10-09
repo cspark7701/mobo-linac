@@ -4,24 +4,29 @@ import numpy as np
 
 from mobo_linac.io.run_data import RunData, read_comparable_runs, read_run_data
 from mobo_linac.io.journal import same_evaluation
-from mobo_linac.metrics.latex import escape_latex, format_measured, format_scientific, measured, verification_records, _write_table
+from typing import List, Optional, Sequence
+
+from mobo_linac.display import objective_displays
+from mobo_linac.metrics.latex import (RawLatex, Table, _markdown_text, _write_table, escape_latex, format_measured,
+                                      format_scientific, objective_columns, verification_records, verification_table)
 from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
 from mobo_linac.metrics.selection import select_representatives
 from mobo_linac.result_schema import ResultSchema
 
-TARGET_EMIT_X_M_RAD = 3.9236e-6
-TARGET_EMIT_Y_M_RAD = 3.9236e-6
-TARGET_SIGMA_E_EV = 1e6
-
-
-def compute_target_distance(emit_x, emit_y, sigma_e):
-    return float(np.linalg.norm(np.asarray([emit_x, emit_y, sigma_e]) /
-                               [TARGET_EMIT_X_M_RAD, TARGET_EMIT_Y_M_RAD, TARGET_SIGMA_E_EV]))
+def compute_target_distance(values, targets) -> float:
+    """Euclidean norm of objective values relative to their configured targets."""
+    values, targets = np.asarray(values, dtype=float), np.asarray(targets, dtype=float)
+    if values.shape != targets.shape or not np.isfinite(targets).all() or (targets <= 0).any():
+        return float("nan")
+    return float(np.linalg.norm(values / targets))
 
 
 def campaign_summary(run):
-    """Counts use all history; extrema use feasible measurements; Pareto sets stay distinct."""
-    schema = ResultSchema.from_config(run.config)
+    """Counts use all history; extrema use feasible measurements; Pareto sets stay distinct.
+
+    The knee target distance uses the configured objective ``target`` values (NaN when any
+    objective has no target).
+    """
     total = len(run.results)
     valid, feasible = run.valid_results(), run.valid_results(True)
     final = run.hypervolume.iloc[-1] if len(run.hypervolume) else {}
@@ -31,15 +36,11 @@ def campaign_summary(run):
         extrema[objective.explicit_name] = (min(values) if objective.physical_direction == "minimize" else max(values)) if values else float("nan")
     knee = None
     distance = float("nan")
-    canonical_units = dict(zip(schema.physical_columns, [obj.unit for obj in run.config.objectives]))
     if feasible:
         # The same knee definition used by robustness and verification.
         knee = select_representatives(feasible, run.config).roles["knee_point"]
-        if (canonical_units == {"norm_emit_x_m_rad": "m*rad", "norm_emit_y_m_rad": "m*rad", "sigma_energy_eV": "eV"}
-                and list(schema.physical_columns) == ["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
-                and all(sign == -1 for sign in schema.signs)):
-            distance = compute_target_distance(*knee.objectives_physical)
-    summary = {
+        distance = compute_target_distance(knee.objectives_physical, [d.target for d in objective_displays(run.config)])
+    return {
         "total_evaluations": total, "valid_evaluations": len(valid), "feasible_evaluations": len(feasible),
         "validity_pct": 100 * len(valid) / total if total else float("nan"),
         "feasibility_pct": 100 * len(feasible) / total if total else float("nan"),
@@ -49,11 +50,7 @@ def campaign_summary(run):
         "feas_hv": float(final.get("feasible_hypervolume", float("nan"))),
         "pareto_size": len(run.pareto()), "feasible_pareto_size": len(run.pareto(True)),
         "objective_extrema": extrema, "knee": knee, "target_distance": distance,
-        "min_emit_x_um": extrema.get("norm_emit_x_m_rad", float("nan")) * 1e6 if canonical_units.get("norm_emit_x_m_rad") == "m*rad" else float("nan"),
-        "min_emit_y_um": extrema.get("norm_emit_y_m_rad", float("nan")) * 1e6 if canonical_units.get("norm_emit_y_m_rad") == "m*rad" else float("nan"),
-        "min_sigma_e_mev": extrema.get("sigma_energy_eV", float("nan")) * 1e-6 if canonical_units.get("sigma_energy_eV") == "eV" else float("nan"),
     }
-    return summary
 
 
 def _summary_rows(runs):
@@ -63,18 +60,13 @@ def _summary_rows(runs):
                        ("Feasible Evaluations", "feasible_evaluations"), ("All-Valid Pareto Size", "pareto_size"),
                        ("Feasible Pareto Size", "feasible_pareto_size")):
         rows.append((label, [str(s[key]) for s in summaries]))
-    for label, key, precision in ((r"Simulation Validity (\%)", "validity_pct", 1),
-                                  (r"Feasibility Rate, All Evaluations (\%)", "feasibility_pct", 1),
+    for label, key, precision in (("Simulation Validity (%)", "validity_pct", 1),
+                                  ("Feasibility Rate, All Evaluations (%)", "feasibility_pct", 1),
                                   ("All-Point Hypervolume", "all_hv", 6), ("Feasible Hypervolume", "feas_hv", 6)):
         rows.append((label, [format_scientific(s[key]) if key.endswith("hv") else format_measured(s[key], precision) for s in summaries]))
-    canonical = {"norm_emit_x_m_rad": (r"Best $\varepsilon_{n,x}$ [$\mu$m$\cdot$rad]", 1e6),
-                 "norm_emit_y_m_rad": (r"Best $\varepsilon_{n,y}$ [$\mu$m$\cdot$rad]", 1e6),
-                 "sigma_energy_eV": (r"Best $\sigma_E$ [MeV]", 1e-6)}
-    for objective in runs[0].config.objectives:
-        known_unit = "eV" if objective.explicit_name == "sigma_energy_eV" else "m*rad"
-        label, factor = (canonical if objective.unit == known_unit else {}).get(objective.explicit_name, (
-            f"Best {escape_latex(objective.explicit_name)} ({escape_latex(objective.unit)})", 1))
-        rows.append((label, [format_measured(s["objective_extrema"][objective.explicit_name] * factor) for s in summaries]))
+    for column in objective_columns(runs[0].config):
+        rows.append((RawLatex("Best " + column.latex),
+                     [column.format(s["objective_extrema"][column.name]) for s in summaries]))
     return rows
 
 
@@ -84,56 +76,16 @@ def generate_campaign_summary_latex_table(directories, output_path=None, phase_n
     if len(names) != len(runs) or not runs:
         raise ValueError("Campaign names must match a nonempty run list.")
     # Record the actual convention instead of printing an unrelated historical reference.
-    reference = escape_latex(str(runs[0].metadata["reporting_ref_point"]))
-    units = escape_latex(", ".join(runs[0].metadata["objective_units"]))
-    lines = [r"\begin{table}[htbp]", r"\centering",
-             r"\caption{Campaign summary comparison. Extrema use feasible observations; feasibility rates use all evaluations. "
-             + f"Fixed model reporting reference: {reference}; objective units: {units}.}}",
-             r"\label{tab:campaign_summary}", r"\resizebox{\textwidth}{!}{%",
-             r"\begin{tabular}{l" + "c" * len(runs) + "}", r"\toprule",
-             "Metric & " + " & ".join(escape_latex(name) for name in names) + r" \\", r"\midrule"]
-    lines += [label + " & " + " & ".join(cells) + r" \\" for label, cells in _summary_rows(runs)]
-    lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
-    return _write_table("\n".join(lines) + "\n", output_path)
+    caption = ("Campaign summary comparison. Extrema use feasible observations; feasibility rates use all "
+               f"evaluations. Fixed model reporting reference: {runs[0].metadata['reporting_ref_point']}; "
+               f"objective units: {', '.join(runs[0].metadata['objective_units'])}.")
+    rows = _summary_rows(runs)
+    table = Table([RawLatex("Metric"), *names], ["Metric", *names],
+                  [[label, *cells] for label, cells in rows], caption, "tab:campaign_summary")
+    return _write_table(table.to_latex(), output_path)
 
 
-def _markdown_text(value):
-    return str(value).replace("|", r"\|").replace("\n", " ").replace("\r", " ")
-
-
-def _verification_markdown(records):
-    records = verification_records(records)
-    columns = records[0].get("objective_order", list(records[0].get("stored_objectives", {}))) if records else []
-    units = records[0].get("objective_units", {}) if records else {}
-    legacy = ["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
-    dynamic = bool(columns and (columns != legacy or (units and units != dict(zip(legacy, ["m*rad", "m*rad", "eV"])))))
-    if dynamic:
-        headers = ["Candidate Role"] + [f"{prefix} {_markdown_text(name)} [{_markdown_text(units.get(name, 'unknown'))}]"
-                   for name in columns for prefix in ("Stored", "Rerun")] + ["Max Relative Error [%]", "Status"]
-    else:
-        headers = ["Candidate Role", "Stored emittance x [um rad]", "Rerun emittance x [um rad]",
-                   "Stored spread [MeV]", "Rerun spread [MeV]", "Max Relative Error [%]", "Status"]
-    lines = ["## Independent Pareto Candidate Rerun Verification", "",
-             f"Recorded candidates: {len(records)}. Statuses are reported as recorded; missing measurements are shown as --.", "",
-             "| " + " | ".join(headers) + " |", "| " + " | ".join(":---" for _ in headers) + " |"]
-    for record in records:
-        cells = [_markdown_text(record.get("role", record.get("candidate_role", "candidate")))]
-        if dynamic:
-            for name in columns:
-                for group in ("stored_objectives", "rerun_objectives"):
-                    value = measured(record.get(group, {}).get(name))
-                    cells.append(f"{value:.6g}" if np.isfinite(value) else "--")
-        else:
-            for name, factor in (("stored_emit_x_m_rad", 1e6), ("rerun_emit_x_m_rad", 1e6),
-                                 ("stored_sigma_energy_eV", 1e-6), ("rerun_sigma_energy_eV", 1e-6)):
-                cells.append(format_measured(measured(record.get(name)) * factor))
-        cells += [format_measured(record.get("max_diff_pct", record.get("max_diff_percent")), 8),
-                  _markdown_text(record.get("verification_status", "COMPARISON_UNKNOWN"))]
-        lines.append("| " + " | ".join(cells) + " |")
-    return lines
-
-
-def _comparison_markdown(runs, names, title, records, wall_times=None):
+def _comparison_markdown(runs, names, title, records, wall_times, figures):
     for run in runs[1:]:
         validate_campaign_compatibility(runs[0].metadata, run.metadata)
     lines = [f"# {title}", "", "## Executive Summary", "",
@@ -152,63 +104,68 @@ def _comparison_markdown(runs, names, title, records, wall_times=None):
     for label, key in (("Simulation Validity [%]", "validity_pct"), ("Feasibility Rate [%]", "feasibility_pct"),
                        ("ASTRA Failure Rate [%]", "failure_pct"), ("All-Point Hypervolume", "all_hv"), ("Feasible Hypervolume", "feas_hv")):
         lines.append("| " + label + " | " + " | ".join(format_scientific(s[key]) if key.endswith("hv") else format_measured(s[key], 6) for s in summaries) + " |")
-    for objective in runs[0].config.objectives:
-        lines.append("| Best feasible " + _markdown_text(objective.explicit_name) + " [" + _markdown_text(objective.unit) + "] | "
-                     + " | ".join(f"{s['objective_extrema'][objective.explicit_name]:.6g}" if np.isfinite(s['objective_extrema'][objective.explicit_name]) else "--" for s in summaries) + " |")
+    for column in objective_columns(runs[0].config):
+        lines.append("| Best feasible " + _markdown_text(column.text) + " | "
+                     + " | ".join(column.format(s["objective_extrema"][column.name]) for s in summaries) + " |")
     lines.append("| Knee Point Solution | " + " | ".join(
         _markdown_text(str(s["knee"].objectives_physical)) if s["knee"] is not None else "--" for s in summaries) + " |")
     lines.append("| Target Distance (Knee) | " + " | ".join(format_measured(s["target_distance"]) for s in summaries) + " |")
     if wall_times:
         lines.append("| Wall-Clock Runtime [s] | " + " | ".join(format_measured(value, 2) for value in wall_times) + " |")
-    lines += ["", "## Comparison Plots", "", "![Hypervolume Comparison](figures/hypervolume_comparison.png)", "",
-              "![Pareto Front Comparison](figures/pareto_front_comparison.png)", "",
-              "![Pareto Verification Comparison](figures/verification_rerun_comparison.png)", ""]
-    lines += _verification_markdown(records)
+    if figures:
+        lines += ["", "## Comparison Plots", ""]
+        for caption, name in figures:
+            lines += [f"![{caption}](figures/{name})", ""]
+    records = verification_records(records)
+    lines += [""] + verification_table(records, runs[0].config).to_markdown(
+        "Independent Pareto Candidate Rerun Verification") if records else ["", "No verification records."]
     return "\n".join(lines) + "\n"
 
 
-def generate_comparison_report(run_dir_p2, results_p2, tracker_p2, wall_sec_p2,
-                               run_dir_p3, results_p3, tracker_p3, wall_sec_p3,
-                               verification_records, report_path):
-    runs = []
-    for directory, results, tracker in ((run_dir_p2, results_p2, tracker_p2), (run_dir_p3, results_p3, tracker_p3)):
-        config = tracker.config
-        meta = reporting_metadata(config, tracker.reporting_ref_point.tolist())
-        if (Path(directory) / "reporting_metadata.json").exists():
-            saved = read_run_data(directory, config)
-            validate_campaign_compatibility(meta, saved.metadata)
-            if len(results) != len(saved.results) or any(not same_evaluation(left, right) for left, right in zip(results, saved.results)):
-                raise ValueError("Supplied observations disagree with recorded history.")
-        runs.append(RunData(Path(directory), config, results, meta, tracker.to_dataframe()))
-    content = _comparison_markdown(runs, ["Phase 2 (Unconstrained MOBO)", "Phase 3 (Constrained MOBO)"],
-                                  "Multi-Objective Bayesian Optimization Validation & Comparison Report",
-                                  verification_records, [wall_sec_p2, wall_sec_p3])
-    return _write_table(content, report_path)
+COMPARISON_FIGURES = (("Hypervolume Comparison", "hypervolume_comparison.png"),
+                      ("Pareto Front Comparison", "pareto_front_comparison.png"),
+                      ("Pareto Verification Comparison", "verification_rerun_comparison.png"))
 
 
-def generate_three_phase_report(p1_dir, res_p1, p2_dir, res_p2, p3_dir, res_p3, verification_records, output_dir):
-    runs = read_comparable_runs([p1_dir, p2_dir, p3_dir])
-    for run, supplied in zip(runs, (res_p1, res_p2, res_p3)):
-        if len(run.results) != len(supplied) or any(not same_evaluation(left, right) for left, right in zip(run.results, supplied)):
+def generate_comparison_report(runs: Sequence[RunData], names: Sequence[str], verification, report_path,
+                               title: str = "Multi-Objective Bayesian Optimization Comparison Report",
+                               wall_times: Optional[Sequence[float]] = None) -> Path:
+    """Markdown comparison of any number of recorded campaigns plus the verification table.
+
+    Figures are linked only when ``figures/<name>`` exists next to the report.
+    """
+    runs = list(runs)
+    if not runs or len(names) != len(runs):
+        raise ValueError("Comparison names must match a nonempty run list.")
+    report_path = Path(report_path)
+    figures = [(title_, name) for title_, name in COMPARISON_FIGURES if (report_path.parent / "figures" / name).is_file()]
+    content = _comparison_markdown(runs, list(names), title, verification, wall_times, figures)
+    _write_table(content, report_path)
+    return report_path
+
+
+def read_comparison_runs(directories, results=None) -> List[RunData]:
+    """Recorded runs with matching conventions; supplied observations must equal the history."""
+    runs = read_comparable_runs(directories)
+    for run, supplied in zip(runs, results or []):
+        if supplied is not None and (len(run.results) != len(supplied)
+                                     or any(not same_evaluation(left, right) for left, right in zip(run.results, supplied))):
             raise ValueError("Supplied observations disagree with recorded history.")
-    content = _comparison_markdown(runs, ["Phase 1 (Scalarized BO)", "Phase 2 (Unconstrained MOBO)", "Phase 3 (Constrained MOBO)"],
-                                  "Multi-Phase Linac Bayesian Optimization Comparative Analysis & Verification Report", verification_records)
-    path = Path(output_dir) / "comparison_report.md"
-    _write_table(content, path)
-    return path
+    return runs
 
 
 def scalarized_case_statistics(run):
-    """Legacy case columns with explicit all-valid and feasible extrema, shared counts."""
+    """Counts plus all-valid (Pareto) and feasible minima of every configured objective (SI)."""
     stats = campaign_summary(run)
     frame = run.pareto()
-    values = {}
-    units = {obj.explicit_name: obj.unit for obj in run.config.objectives}
-    for field, factor in (("norm_emit_x_m_rad", 1e6), ("norm_emit_y_m_rad", 1e6), ("sigma_energy_eV", 1e-6)):
-        required_unit = "eV" if field == "sigma_energy_eV" else "m*rad"
-        values[field] = float(frame[field].min()) * factor if len(frame) and field in frame and units.get(field) == required_unit else float("nan")
-    return dict(n_eval=stats['total_evaluations'], n_valid=stats['valid_evaluations'],
-                n_feas=stats['feasible_evaluations'], feas_pct=stats['feasibility_pct'],
-                min_ex_um=values['norm_emit_x_m_rad'], min_ey_um=values['norm_emit_y_m_rad'], min_se_mev=values['sigma_energy_eV'],
-                min_ex_feas_um=stats['min_emit_x_um'], min_ey_feas_um=stats['min_emit_y_um'], min_se_feas_mev=stats['min_sigma_e_mev'],
-                final_hv=stats['feas_hv'])
+    all_valid = {}
+    for objective in run.config.objectives:
+        name = objective.explicit_name
+        column = frame[name] if len(frame) and name in frame else None
+        if column is None:
+            all_valid[name] = float("nan")
+        else:
+            all_valid[name] = float(column.min() if objective.physical_direction == "minimize" else column.max())
+    return dict(n_eval=stats["total_evaluations"], n_valid=stats["valid_evaluations"],
+                n_feas=stats["feasible_evaluations"], feas_pct=stats["feasibility_pct"],
+                all_valid_extrema=all_valid, feasible_extrema=stats["objective_extrema"], final_hv=stats["feas_hv"])

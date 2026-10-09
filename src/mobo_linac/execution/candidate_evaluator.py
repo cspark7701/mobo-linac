@@ -54,7 +54,6 @@ def compute_metric_deltas(
     """Compare configured physical objectives and measured transmission, without defaults.
 
     Undefined relative errors (including a zero nominal denominator) remain unknown.
-    Compatibility scalar fields remain NaN when their configured objective is absent.
     """
     schema = ResultSchema.from_config(config)
     nominal = schema.extract(nominal_result.objectives_physical) if nominal_result else None
@@ -87,11 +86,6 @@ def compute_metric_deltas(
         "diff_transmission_pct": transmission if transmission is not None else float("nan"),
         "max_diff_pct": max(values) if not issues else float("nan"),
     }
-    for name, column in [("diff_emit_x_pct", "norm_emit_x_m_rad"),
-                         ("diff_emit_y_pct", "norm_emit_y_m_rad"),
-                         ("diff_sigma_energy_pct", "sigma_energy_eV")]:
-        value = objective_deltas.get(column)
-        result[name] = value if value is not None else float("nan")
     return result
 
 

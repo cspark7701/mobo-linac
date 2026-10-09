@@ -45,8 +45,8 @@ from mobo_linac.metrics.publication import generate_campaign_summary_latex_table
 from mobo_linac.io.run_data import read_comparable_runs
 
 
-def export_verification_latex_table(verification_csv, output_path):
-    return generate_verification_latex_table(verification_csv, output_path=output_path)
+def export_verification_latex_table(verification_csv, output_path, config=None):
+    return generate_verification_latex_table(verification_csv, output_path=output_path, config=config)
 
 
 def export_results_summary_latex_table(phase2_dir, phase3_dir, output_path, phase1_dir=None):
@@ -234,7 +234,8 @@ def main() -> int:
     # --- Table 1: Verification LaTeX table ---
     if ver_csv.exists():
         print("[Table 1] Verification results LaTeX table...")
-        export_verification_latex_table(ver_csv, tab_dir / "verification_table.tex")
+        from mobo_linac.io.run_data import read_run_data
+        export_verification_latex_table(ver_csv, tab_dir / "verification_table.tex", config=read_run_data(p3).config)
     else:
         print(f"[Table 1] Skipped — verification CSV not found: {ver_csv}")
 
@@ -248,7 +249,8 @@ def main() -> int:
         if p1_cases_csv.exists():
             print("[Table 3] Phase 1 Option 2 cases LaTeX table...")
             from mobo_linac.campaigns.scalarized_suite import export_phase1_cases_latex_table
-            export_phase1_cases_latex_table(p1_cases_csv, tab_dir / "phase1_cases_table.tex")
+            from mobo_linac.io.run_data import read_run_data
+            export_phase1_cases_latex_table(p1_cases_csv, tab_dir / "phase1_cases_table.tex", config=read_run_data(p3).config)
             print(f"  ✓ Saved {tab_dir / 'phase1_cases_table.tex'}")
 
     # --- Consistency check ---

@@ -49,9 +49,9 @@ def sample_candidate():
 def test_compute_metric_deltas_identical(sample_candidate):
     """Verifies that identical nominal and rerun results yield 0% deltas."""
     deltas = compute_metric_deltas(sample_candidate, sample_candidate, TEST_CONFIG)
-    assert deltas["diff_emit_x_pct"] == 0.0
-    assert deltas["diff_emit_y_pct"] == 0.0
-    assert deltas["diff_sigma_energy_pct"] == 0.0
+    assert deltas["objective_deltas_pct"]["norm_emit_x_m_rad"] == 0.0
+    assert deltas["objective_deltas_pct"]["norm_emit_y_m_rad"] == 0.0
+    assert deltas["objective_deltas_pct"]["sigma_energy_eV"] == 0.0
     assert deltas["diff_transmission_pct"] == 0.0
     assert deltas["max_diff_pct"] == 0.0
 
@@ -68,9 +68,9 @@ def test_compute_metric_deltas_perturbed(sample_candidate):
         physically_feasible=True,
     )
     deltas = compute_metric_deltas(sample_candidate, perturbed, TEST_CONFIG)
-    assert pytest.approx(deltas["diff_emit_x_pct"], 1e-4) == 10.0
-    assert pytest.approx(deltas["diff_emit_y_pct"], 1e-4) == 0.0
-    assert pytest.approx(deltas["diff_sigma_energy_pct"], 1e-4) == 10.0
+    assert pytest.approx(deltas["objective_deltas_pct"]["norm_emit_x_m_rad"], 1e-4) == 10.0
+    assert pytest.approx(deltas["objective_deltas_pct"]["norm_emit_y_m_rad"], 1e-4) == 0.0
+    assert pytest.approx(deltas["objective_deltas_pct"]["sigma_energy_eV"], 1e-4) == 10.0
     assert pytest.approx(deltas["diff_transmission_pct"], 1e-4) == 5.0
     assert pytest.approx(deltas["max_diff_pct"], 1e-4) == 10.0
 

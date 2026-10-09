@@ -7,10 +7,7 @@ import torch
 from mobo_linac.config import load_config
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
 from mobo_linac.io.run_data import read_run_data, read_comparable_runs
-from mobo_linac.metrics.publication import (
-    compute_target_distance, TARGET_EMIT_X_M_RAD, TARGET_EMIT_Y_M_RAD, TARGET_SIGMA_E_EV,
-    generate_comparison_report, generate_three_phase_report,
-)
+from mobo_linac.metrics.publication import compute_target_distance, generate_comparison_report, read_comparison_runs
 from mobo_linac.plotting.publication import plot_pareto_front_comparison, plot_verification_comparison
 
 def run_campaign_variant(
@@ -66,6 +63,16 @@ def verify_pareto_candidates(results, config, output_dir, evaluator=None, num_wo
     records, _, _ = run_verification_pipeline(results, config=config,
         output_dir=Path(output_dir) / "verification", evaluator=evaluator, num_workers=num_workers)
     return [dict(record, status=record["verification_status"]) for record in records]
+
+
+PHASE_NAMES = ("Phase 1 (Scalarized BO)", "Phase 2 (Unconstrained MOBO)", "Phase 3 (Constrained MOBO)")
+
+
+def generate_three_phase_report(p1_dir, res_p1, p2_dir, res_p2, p3_dir, res_p3, verification_records, output_dir):
+    """Comparison report of the three production phases (recorded runs must match the supplied results)."""
+    runs = read_comparison_runs([p1_dir, p2_dir, p3_dir], [res_p1, res_p2, res_p3])
+    return generate_comparison_report(runs, PHASE_NAMES, verification_records, Path(output_dir) / "comparison_report.md",
+                                      title="Multi-Phase Linac Bayesian Optimization Comparative Analysis & Verification Report")
 
 
 def load_phase_results(phase_dir, config):

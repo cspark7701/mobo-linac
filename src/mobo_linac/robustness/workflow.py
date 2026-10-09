@@ -57,6 +57,6 @@ def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
         caption += " Synthetic mock evaluations."
     generate_robustness_summary_latex_table(
         frame.rename(columns={"candidate_label": "role"}),
-        output_path=output_dir / "robustness_table.tex", caption=caption)
+        output_path=output_dir / "robustness_table.tex", caption=caption, config=config)
     print(f"Robustness results cover lattice jitter; source jitter is unsupported. Artifacts: {output_dir.resolve()}")
     return output_dir

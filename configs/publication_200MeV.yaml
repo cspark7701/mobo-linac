@@ -67,6 +67,7 @@ objectives:
   - name: "norm_emit_x"
     label: "$\\varepsilon_{n,x}$"
     display_unit: "μm·rad"
+    target: 3.9236e-6  # design goal used for the knee target distance in reports
     explicit_name: "norm_emit_x_m_rad"
     unit: "m*rad"
     physical_direction: "minimize"
@@ -74,6 +75,7 @@ objectives:
   - name: "norm_emit_y"
     label: "$\\varepsilon_{n,y}$"
     display_unit: "μm·rad"
+    target: 3.9236e-6
     explicit_name: "norm_emit_y_m_rad"
     unit: "m*rad"
     physical_direction: "minimize"
@@ -81,6 +83,7 @@ objectives:
   - name: "sigma_energy"
     label: "$\\sigma_E$"
     display_unit: "MeV"
+    target: 1.0e6
     explicit_name: "sigma_energy_eV"
     unit: "eV"
     physical_direction: "minimize"

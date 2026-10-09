@@ -1,21 +1,28 @@
 """
-Centralized LaTeX Reporting Module for mobo_linac.
+Publication tables built from one table model with LaTeX and Markdown renderers.
 
-Provides standard publication-grade LaTeX table generators for:
-  - Pareto Candidate Verification (stored vs rerun consistency, checksums, error %)
-  - Campaign Performance Comparison (Unconstrained Phase 2 vs Constrained Phase 3)
-  - Robustness and Sensitivity Summary (Feasibility probability, robust scores)
+Objective columns come from the configuration (configured label, display unit and scale)
+or, without a configuration, from the objective names and units recorded with the data.
+Archived records using the earlier 200 MeV column aliases are decoded on read only.
 """
 
+from dataclasses import dataclass, field
 import json
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
+
 import numpy as np
 import pandas as pd
 
+# Archived verification/robustness/case files named the three 200 MeV objectives by alias.
+_LEGACY_ORDER = ["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
+_LEGACY_UNITS = {"norm_emit_x_m_rad": "m*rad", "norm_emit_y_m_rad": "m*rad", "sigma_energy_eV": "eV"}
+_LEGACY_VERIFICATION_ALIASES = {"norm_emit_x_m_rad": "emit_x_m_rad", "norm_emit_y_m_rad": "emit_y_m_rad",
+                                "sigma_energy_eV": "sigma_energy_eV"}
+
 
 class RawLatex(str):
-    """Explicit trusted markup for captions; dynamic data is always escaped."""
+    """Explicit trusted markup for captions and headers; dynamic data is always escaped."""
 
 
 def escape_latex(value):
@@ -25,6 +32,11 @@ def escape_latex(value):
                     "#": r"\#", "_": r"\_", "{": r"\{", "}": r"\}",
                     "~": r"\textasciitilde{}", "^": r"\textasciicircum{}"}
     return "".join(replacements.get(character, character) for character in str(value))
+
+
+def latex_unit(unit: str) -> str:
+    """Display unit as LaTeX text (Unicode micro sign and middle dot become math symbols)."""
+    return "".join({"μ": r"$\mu$", "µ": r"$\mu$", "·": r"$\cdot$"}.get(c, escape_latex(c)) for c in str(unit))
 
 
 def measured(value):
@@ -40,28 +52,109 @@ def format_measured(value, precision=4):
     return f"{value:.{precision}f}" if np.isfinite(value) else "--"
 
 
-
 def format_scientific(value):
     value = measured(value)
     return f"{value:.4e}" if np.isfinite(value) else "--"
 
+
+def _markdown_text(value):
+    return str(value).replace("|", r"\|").replace("\n", " ").replace("\r", " ")
+
+
+@dataclass(frozen=True)
+class ReportColumn:
+    """One objective column: LaTeX header text, plain header text and the display divisor."""
+
+    name: str
+    latex: str
+    text: str
+    scale: float = 1.0
+    precision: Optional[int] = None  # None: 6 significant digits (physical units)
+
+    def format(self, value) -> str:
+        value = measured(value) / self.scale
+        if not np.isfinite(value):
+            return "--"
+        return f"{value:.{self.precision}f}" if self.precision is not None else f"{value:.6g}"
+
+
+def objective_columns(config=None, names: Optional[Sequence[str]] = None,
+                      units: Optional[Dict[str, str]] = None) -> List[ReportColumn]:
+    """Configured display columns, or recorded names/units shown in physical units."""
+    if config is not None:
+        from mobo_linac.display import objective_displays
+        displays = {d.column: d for d in objective_displays(config)}
+        # Configured labels are LaTeX; an unlabelled objective shows its escaped column name.
+        latex_labels = {obj.explicit_name: obj.label or escape_latex(obj.explicit_name) for obj in config.objectives}
+        selected = list(names) if names is not None else list(displays)
+        missing = [name for name in selected if name not in displays]
+        if missing:
+            raise ValueError(f"Recorded objectives {missing} are not configured.")
+        return [ReportColumn(name, f"{latex_labels[name]} [{latex_unit(displays[name].unit)}]",
+                             f"{name} [{displays[name].unit}]", displays[name].scale, 4) for name in selected]
+    units = units or {}
+    return [ReportColumn(name, f"{escape_latex(name)} ({escape_latex(units.get(name, 'unknown'))})",
+                         f"{name} [{units.get(name, 'unknown')}]") for name in names or []]
+
+
+@dataclass
+class Table:
+    """Header cells (``RawLatex`` for markup) and preformatted plain-text rows."""
+
+    latex_headers: List[str]
+    text_headers: List[str]
+    rows: List[List[str]]
+    caption: str
+    label: str
+    notes: List[str] = field(default_factory=list)
+
+    def to_latex(self) -> str:
+        lines = [r"\begin{table}[htbp]", r"\centering", f"\\caption{{{escape_latex(self.caption)}}}",
+                 f"\\label{{{self.label}}}", r"\resizebox{\textwidth}{!}{%",
+                 r"\begin{tabular}{l" + "c" * (len(self.latex_headers) - 1) + "}", r"\toprule",
+                 " & ".join(escape_latex(cell) for cell in self.latex_headers) + r" \\", r"\midrule"]
+        lines += [" & ".join(escape_latex(cell) for cell in row) + r" \\" for row in self.rows]
+        lines += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
+        return "\n".join(lines) + "\n"
+
+    def to_markdown(self, title: Optional[str] = None) -> List[str]:
+        lines = ([f"## {title}", ""] if title else []) + [*self.notes, *([""] if self.notes else [])]
+        lines += ["| " + " | ".join(_markdown_text(h) for h in self.text_headers) + " |",
+                  "| " + " | ".join(":---" for _ in self.text_headers) + " |"]
+        lines += ["| " + " | ".join(_markdown_text(cell) for cell in row) + " |" for row in self.rows]
+        return lines
+
+
+def _write_table(content, output_path):
+    if output_path is not None:
+        from mobo_linac.io.durable import atomic_write_text
+        atomic_write_text(output_path, content)
+    return content
+
+
+def _records(data) -> List[Dict[str, Any]]:
+    if isinstance(data, (str, Path)):
+        return pd.read_csv(data).to_dict(orient="records")
+    if isinstance(data, pd.DataFrame):
+        return data.to_dict(orient="records")
+    return [dict(record) for record in data]
+
+
 def verification_records(records):
-    """Copy records and decode explicit nested CSV fields without changing source data."""
-    import json
-    if isinstance(records, (str, Path)):
-        records = pd.read_csv(records).to_dict(orient="records")
-    elif isinstance(records, pd.DataFrame):
-        records = records.to_dict(orient="records")
-    records = [dict(record) for record in records]
+    """Copy records, decode nested CSV fields and archived aliases; source data is unchanged."""
+    records = _records(records)
     for record in records:
         for key in ("stored_objectives", "rerun_objectives", "objective_units", "objective_order"):
             if isinstance(record.get(key), str):
                 record[key] = json.loads(record[key])
-        for group, prefix in (("stored_objectives", "stored"), ("rerun_objectives", "rerun")):
-            for name, alias in (("norm_emit_x_m_rad", "emit_x_m_rad"), ("norm_emit_y_m_rad", "emit_y_m_rad"),
-                                ("sigma_energy_eV", "sigma_energy_eV")):
-                if name in record.get(group, {}):
-                    record.setdefault(f"{prefix}_{alias}", record[group][name])
+        if "stored_objectives" not in record:  # archived alias-only records
+            for group, prefix in (("stored_objectives", "stored"), ("rerun_objectives", "rerun")):
+                record[group] = {name: record.get(f"{prefix}_{alias}") for name, alias in _LEGACY_VERIFICATION_ALIASES.items()
+                                 if f"{prefix}_{alias}" in record}
+            record.setdefault("objective_order", [n for n in _LEGACY_ORDER if n in record["stored_objectives"]])
+            record.setdefault("objective_units", {n: _LEGACY_UNITS[n] for n in record["objective_order"]})
+        record.setdefault("role", record.get("candidate_role", "candidate"))
+        record.setdefault("max_diff_pct", record.get("max_diff_percent"))
         record.setdefault("verification_status", record.get("status", "COMPARISON_UNKNOWN"))
     if records:
         columns = records[0].get("objective_order", list(records[0].get("stored_objectives", {})))
@@ -73,11 +166,29 @@ def verification_records(records):
     return records
 
 
-def _write_table(content, output_path):
-    if output_path is not None:
-        from mobo_linac.io.durable import atomic_write_text
-        atomic_write_text(output_path, content)
-    return content
+def verification_table(records, config=None,
+                       caption: str = "Independent Verification Results of Representative Pareto Candidates",
+                       label: str = "tab:pareto_verification") -> Table:
+    """Stored and rerun value of every recorded objective per verified role."""
+    records = verification_records(records)
+    names = records[0].get("objective_order", list(records[0].get("stored_objectives", {}))) if records else []
+    columns = objective_columns(config, names, records[0].get("objective_units", {}) if records else {})
+    latex = [RawLatex("Candidate Role")]
+    text = ["Candidate Role"]
+    for column in columns:
+        for prefix in ("Stored", "Rerun"):
+            latex.append(RawLatex(f"{prefix} {column.latex}"))
+            text.append(f"{prefix} {column.text}")
+    latex += [RawLatex(r"Max Error (\%)"), RawLatex("Status")]
+    text += ["Max Relative Error [%]", "Status"]
+    rows = []
+    for record in records:
+        row = [str(record.get("role"))]
+        for column in columns:
+            row += [column.format(record.get(group, {}).get(column.name)) for group in ("stored_objectives", "rerun_objectives")]
+        row += [format_measured(record.get("max_diff_pct")), str(record.get("verification_status"))]
+        rows.append(row)
+    return Table(latex, text, rows, caption, label)
 
 
 def generate_verification_latex_table(
@@ -85,137 +196,27 @@ def generate_verification_latex_table(
     output_path: Optional[Union[str, Path]] = None,
     caption: str = "Independent Verification Results of Representative Pareto Candidates",
     label: str = "tab:pareto_verification",
+    config=None,
 ) -> str:
-    """
-    Generates publication-ready LaTeX verification table comparing stored vs rerun metrics.
-
-    Args:
-        records: List of record dictionaries, DataFrame, or path to verification_summary.csv.
-        output_path: Optional path to write output .tex file.
-        caption: Table caption.
-        label: LaTeX label for cross-referencing.
-
-    Returns:
-        String containing complete LaTeX table block.
-    """
-    record_list = verification_records(records)
-    escape = escape_latex
-    columns = record_list[0].get("objective_order", list(record_list[0].get("stored_objectives", {}))) if record_list else []
-    legacy_columns = ["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
-    units = record_list[0].get("objective_units", {}) if record_list else {}
-    legacy_units = {"norm_emit_x_m_rad": "m*rad", "norm_emit_y_m_rad": "m*rad", "sigma_energy_eV": "eV"}
-    if columns and (columns != legacy_columns or (units and units != legacy_units)):
-        units = record_list[0].get("objective_units", {})
-        headers = ["Candidate Role"] + [f"{prefix} {escape(name)} ({escape(units.get(name, 'unknown'))})"
-                   for name in columns for prefix in ("Stored", "Rerun")] + [r"Max Error (\%)", "Status"]
-        tex = [r"\begin{table}[htbp]", r"\centering", f"\\caption{{{escape_latex(caption)}}}", f"\\label{{{label}}}",
-               r"\resizebox{\textwidth}{!}{%", r"\begin{tabular}{l" + "c" * (2 * len(columns) + 2) + "}",
-               r"\toprule", " & ".join(headers) + r" \\", r"\midrule"]
-        for record in record_list:
-            cells = [escape(record.get("role", "candidate"))]
-            for name in columns:
-                for group in ("stored_objectives", "rerun_objectives"):
-                    value = measured(record.get(group, {}).get(name))
-                    cells.append(f"{value:.6g}" if np.isfinite(value) else "--")
-            error = measured(record.get("max_diff_pct"))
-            cells.extend([f"{error:.4f}" if np.isfinite(error) else "--",
-                          escape(record.get("verification_status", "COMPARISON_UNKNOWN"))])
-            tex.append(" & ".join(cells) + r" \\")
-        tex.extend([r"\bottomrule", r"\end{tabular}}", r"\end{table}"])
-        content = "\n".join(tex) + "\n"
-        return _write_table(content, output_path)
-
-    tex = [
-        r"\begin{table}[htbp]",
-        r"\centering",
-        f"\\caption{{{escape_latex(caption)}}}",
-        f"\\label{{{label}}}",
-        r"\resizebox{\textwidth}{!}{%",
-        r"\begin{tabular}{lcccccc}",
-        r"\toprule",
-        r"Candidate Role & Stored $\varepsilon_{n,x}$ ($\mu$m) & Rerun $\varepsilon_{n,x}$ ($\mu$m) & Stored $\sigma_E$ (MeV) & Rerun $\sigma_E$ (MeV) & Max Error (\%) & Status \\",
-        r"\midrule",
-    ]
-
-    for rec in record_list:
-        role_raw = rec.get("role", rec.get("candidate_role", "candidate"))
-        role = escape_latex(role_raw)
-
-        # Stored / rerun emittance
-        s_ex = measured(rec.get("stored_emit_x_m_rad", rec.get("stored_norm_emit_x")))
-        r_ex = measured(rec.get("rerun_emit_x_m_rad", rec.get("rerun_norm_emit_x")))
-        s_ex *= 1e6
-        r_ex *= 1e6
-
-        # Stored / rerun energy spread
-        s_se = measured(rec.get("stored_sigma_energy_eV", rec.get("stored_sigma_e")))
-        r_se = measured(rec.get("rerun_sigma_energy_eV", rec.get("rerun_sigma_e")))
-        s_se *= 1e-6
-        r_se *= 1e-6
-
-        err = measured(rec.get("max_diff_pct", rec.get("max_diff_percent")))
-        status = escape(rec.get("verification_status", "COMPARISON_UNKNOWN"))
-
-        tex.append(f"{role} & {format_measured(s_ex)} & {format_measured(r_ex)} & {format_measured(s_se)} & {format_measured(r_se)} & {format_measured(err)} & {status} \\\\")
-
-    tex.extend([
-        r"\bottomrule",
-        r"\end{tabular}}",
-        r"\end{table}",
-    ])
-
-    content = "\n".join(tex) + "\n"
-
-    return _write_table(content, output_path)
+    """LaTeX verification table (configured labels/units when ``config`` is given)."""
+    return _write_table(verification_table(records, config, caption, label).to_latex(), output_path)
 
 
-def generate_results_summary_latex_table(
-    p2_metrics: Dict[str, Any],
-    p3_metrics: Dict[str, Any],
-    output_path: Optional[Union[str, Path]] = None,
-    caption: str = "Performance Comparison: Unconstrained (Phase 2) vs. Constrained (Phase 3) MOBO",
-    label: str = "tab:results_summary",
-) -> str:
-    """
-    Generates a campaign summary LaTeX table comparing Phase 2 vs Phase 3 performance metrics.
-
-    Args:
-        p2_metrics: Dictionary of Phase 2 campaign summary statistics.
-        p3_metrics: Dictionary of Phase 3 campaign summary statistics.
-        output_path: Optional path to write output .tex file.
-        caption: Table caption.
-        label: LaTeX label for cross-referencing.
-
-    Returns:
-        String containing complete LaTeX table block.
-    """
-    tex = [
-        r"\begin{table}[htbp]",
-        r"\centering",
-        f"\\caption{{{escape_latex(caption)}}}",
-        f"\\label{{{label}}}",
-        r"\begin{tabular}{lcc}",
-        r"\hline\hline",
-        r"Metric & Phase 2 (Unconstrained) & Phase 3 (Constrained) \\",
-        r"\hline",
-        f"Total Evaluations & {p2_metrics.get('total_evaluations', 'N/A')} & {p3_metrics.get('total_evaluations', 'N/A')} \\\\",
-        f"Valid Simulations & {p2_metrics.get('valid_evaluations', 'N/A')} & {p3_metrics.get('valid_evaluations', 'N/A')} \\\\",
-        f"Feasible Simulations & {p2_metrics.get('feasible_evaluations', 'N/A')} & {p3_metrics.get('feasible_evaluations', 'N/A')} \\\\",
-        f"Feasibility Rate (\\%) & {format_measured(p2_metrics.get('feasibility_pct'), 1)}\\% & {format_measured(p3_metrics.get('feasibility_pct'), 1)}\\% \\\\",
-        f"All-Point Hypervolume & {format_scientific(p2_metrics.get('all_hv'))} & {format_scientific(p3_metrics.get('all_hv'))} \\\\",
-        f"Feasible Hypervolume & {format_scientific(p2_metrics.get('feas_hv'))} & {format_scientific(p3_metrics.get('feas_hv'))} \\\\",
-        f"Pareto Set Size & {p2_metrics.get('pareto_size', 'N/A')} & {p3_metrics.get('pareto_size', 'N/A')} \\\\",
-        f"Best $\\varepsilon_{{n,x}}$ ($\\mu$m) & {format_measured(p2_metrics.get('min_emit_x_um'), 4)} & {format_measured(p3_metrics.get('min_emit_x_um'), 4)} \\\\",
-        f"Best $\\varepsilon_{{n,y}}$ ($\\mu$m) & {format_measured(p2_metrics.get('min_emit_y_um'), 4)} & {format_measured(p3_metrics.get('min_emit_y_um'), 4)} \\\\",
-        f"Best $\\sigma_E$ (MeV) & {format_measured(p2_metrics.get('min_sigma_e_mev'), 4)} & {format_measured(p3_metrics.get('min_sigma_e_mev'), 4)} \\\\",
-        r"\hline\hline",
-        r"\end{tabular}",
-        r"\end{table}",
-    ]
-
-    content = "\n".join(tex) + "\n"
-
-    return _write_table(content, output_path)
+def robustness_records(data) -> List[Dict[str, Any]]:
+    records = _records(data)
+    for record in records:
+        for key in ("objective_order", "objective_units"):
+            if isinstance(record.get(key), str):
+                record[key] = json.loads(record[key])
+        if "objective_order" not in record:  # archived summaries named nominal values by alias
+            for name, alias in (("norm_emit_x_m_rad", "emit_x"), ("sigma_energy_eV", "sigma_energy")):
+                record.setdefault(f"nominal_{name}", record.get(alias))
+            record["objective_order"] = [n for n in _LEGACY_ORDER if f"nominal_{n}" in record]
+            record["objective_units"] = {n: _LEGACY_UNITS[n] for n in record["objective_order"]}
+        record.setdefault("role", record.get("candidate_label", record.get("candidate_role", "candidate")))
+        record.setdefault("probability_of_feasibility", record.get("p_feas"))
+        record.setdefault("robust_score", record.get("score"))
+    return records
 
 
 def generate_robustness_summary_latex_table(
@@ -223,130 +224,61 @@ def generate_robustness_summary_latex_table(
     output_path: Optional[Union[str, Path]] = None,
     caption: str = "Machine Tolerance and Perturbation Robustness Summary",
     label: str = "tab:robustness_summary",
+    config=None,
 ) -> str:
-    """
-    Generates LaTeX table summarizing engineering tolerance and perturbation robustness.
+    """Nominal objectives, probability of feasibility and robust score per candidate role."""
+    records = robustness_records(robustness_data)
+    names = records[0]["objective_order"] if records else []
+    columns = objective_columns(config, names, records[0].get("objective_units", {}) if records else {})
+    latex = [RawLatex("Candidate Role"), *(RawLatex(f"Nominal {c.latex}") for c in columns),
+             RawLatex(r"Feasibility $P_{\mathrm{feas}}$"), RawLatex("Robust Score")]
+    text = ["Candidate Role", *(f"Nominal {c.text}" for c in columns), "Feasibility P_feas", "Robust Score"]
+    rows = [[str(record["role"]), *(c.format(record.get(f"nominal_{c.name}")) for c in columns),
+             format_measured(record.get("probability_of_feasibility"), 2), format_measured(record.get("robust_score"))]
+            for record in records]
+    return _write_table(Table(latex, text, rows, caption, label).to_latex(), output_path)
 
-    Args:
-        robustness_data: List of robustness summaries, DataFrame, or path to robustness_summary.csv.
-        output_path: Optional path to write output .tex file.
-        caption: Table caption.
-        label: LaTeX label.
 
-    Returns:
-        String containing complete LaTeX table block.
-    """
-    if isinstance(robustness_data, (str, Path)):
-        df = pd.read_csv(robustness_data)
-        record_list = df.to_dict(orient="records")
-    elif isinstance(robustness_data, pd.DataFrame):
-        record_list = robustness_data.to_dict(orient="records")
-    else:
-        record_list = robustness_data
-    import json
-    record_list = [{key: json.loads(value) if key in ("objective_order", "objective_units") and isinstance(value, str) else value
-                    for key, value in record.items()} for record in record_list]
-    if record_list and "objective_order" in record_list[0]:
-        # Configured objectives, recorded per summary, in physical units.
-        columns = record_list[0]["objective_order"]
-        units = record_list[0].get("objective_units", {})
-        headers = ["Candidate Role"] + [f"Nominal {escape_latex(name)} ({escape_latex(units.get(name, 'unknown'))})" for name in columns] \
-            + [r"Feasibility $P_{\mathrm{feas}}$", "Robust Score"]
-        tex = [r"\begin{table}[htbp]", r"\centering", f"\\caption{{{escape_latex(caption)}}}", f"\\label{{{label}}}",
-               r"\resizebox{\textwidth}{!}{%", r"\begin{tabular}{l" + "c" * (len(columns) + 2) + "}", r"\toprule",
-               " & ".join(headers) + r" \\", r"\midrule"]
-        for rec in record_list:
-            cells = [escape_latex(rec.get("role", rec.get("candidate_label", "candidate")))]
-            cells += [format_scientific(rec.get(f"nominal_{name}")) for name in columns]
-            cells += [format_measured(rec.get("probability_of_feasibility"), 2), format_measured(rec.get("robust_score"))]
-            tex.append(" & ".join(cells) + r" \\")
-        tex += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
-        return _write_table("\n".join(tex) + "\n", output_path)
-
-    tex = [
-        r"\begin{table}[htbp]",
-        r"\centering",
-        f"\\caption{{{escape_latex(caption)}}}",
-        f"\\label{{{label}}}",
-        r"\begin{tabular}{lcccc}",
-        r"\hline\hline",
-        r"Candidate Role & Nominal $\varepsilon_{n,x}$ ($\mu$m) & Nominal $\sigma_E$ (MeV) & Feasibility $P_{\mathrm{feas}}$ & Robust Score \\",
-        r"\hline",
-    ]
-
-    for rec in record_list:
-        role_raw = rec.get("role", rec.get("candidate_role", "candidate"))
-        role = escape_latex(role_raw)
-
-        # Named SI fields and documented legacy SI aliases; never guess from magnitudes.
-        nom_ex = measured(rec.get("nominal_emit_x_m_rad", rec.get("emit_x"))) * 1e6
-        nom_se = measured(rec.get("nominal_sigma_energy_eV", rec.get("sigma_energy"))) * 1e-6
-        p_feas = measured(rec.get("probability_of_feasibility", rec.get("p_feas")))
-        score = measured(rec.get("robust_score", rec.get("score")))
-        tex.append(f"{role} & {format_measured(nom_ex)} & {format_measured(nom_se)} & {format_measured(p_feas, 2)} & {format_measured(score)} " + r"\\")
-
-    tex.extend([
-        r"\hline\hline",
-        r"\end{tabular}",
-        r"\end{table}",
-    ])
-
-    content = "\n".join(tex) + "\n"
-
-    return _write_table(content, output_path)
+def case_summary_records(path) -> List[Dict[str, Any]]:
+    """Scalarized case rows with SI objective minima (archived μm/MeV columns are converted)."""
+    records = _records(path)
+    archived = {"norm_emit_x_m_rad": ("min_norm_emit_x_um", 1e-6), "norm_emit_y_m_rad": ("min_norm_emit_y_um", 1e-6),
+                "sigma_energy_eV": ("min_sigma_energy_MeV", 1e6)}
+    for record in records:
+        for key in ("weights", "objective_order", "objective_units"):
+            if isinstance(record.get(key), str):
+                record[key] = json.loads(record[key])
+        if "objective_order" not in record:
+            record["objective_order"] = [n for n, (column, _) in archived.items() if column in record]
+            record["objective_units"] = {n: _LEGACY_UNITS[n] for n in record["objective_order"]}
+            for name in record["objective_order"]:
+                column, factor = archived[name]
+                record[f"min_{name}"] = measured(record[column]) * factor
+        if "weights" not in record:
+            record["weights"] = [float(record[name]) for name in ("w_emit_x", "w_emit_y", "w_energy_spread")]
+    return records
 
 
 def generate_phase1_cases_latex_table(
     cases_summary_path: Union[str, Path],
     output_path: Union[str, Path],
+    config=None,
 ) -> str:
-    """
-    Exports publication-grade LaTeX table of Phase 1 Option 2 cases.
-    """
+    """Scalarized case summary: weights, evaluations, feasibility and all-valid objective minima."""
     summary_path = Path(cases_summary_path)
-    out_path = Path(output_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
     if not summary_path.exists():
         raise FileNotFoundError(summary_path)
-
-    df = pd.read_csv(summary_path)
-
-    lines = [
-        r"\begin{table}[htbp]",
-        r"\centering",
-        r"\caption{Phase 1 Scalarized BO multi-case campaign summary across representative operational linac archetypes (Option 2). Feasibility uses all evaluations; minima use all-valid observations. The shared fixed reporting reference point and objective units are recorded in reporting metadata.}",
-        r"\label{tab:phase1_cases}",
-        r"\resizebox{\textwidth}{!}{%",
-        r"\begin{tabular}{llcccccc}",
-        r"\toprule",
-        r"\textbf{Case} & \textbf{Operating Mode} & $\mathbf{w} = [w_x, w_y, w_E]$ & \textbf{Evals} & \textbf{Feas. (\%)} & \textbf{Min} $\varepsilon_{n,x}$ [$\mu$m] & \textbf{Min} $\varepsilon_{n,y}$ [$\mu$m] & \textbf{Min} $\sigma_E$ [MeV] \\",
-        r"\midrule",
-    ]
-
-    for _, row in df.iterrows():
-        case_id = str(row["case_id"])
-        case_id_tex = escape_latex(case_id)
-        name = escape_latex(row["name"])
-        if "weights" in row and isinstance(row["weights"], str):
-            weights = [float(w) for w in json.loads(row["weights"])]  # recorded per case
-        else:
-            weights = [float(row[name]) for name in ("w_emit_x", "w_emit_y", "w_energy_spread")]  # archived summaries
-        w_str = "$[" + ", ".join(f"{w:.2f}" for w in weights) + "]$"
-        n_eval = int(row["num_evaluations"])
-        feas_str = f"{int(row['num_feasible'])} ({float(row['feasible_fraction_pct']):.1f}\\%)"
-        min_ex = f"{float(row['min_norm_emit_x_um']):.4f}" if pd.notna(row['min_norm_emit_x_um']) else "-"
-        min_ey = f"{float(row['min_norm_emit_y_um']):.4f}" if pd.notna(row['min_norm_emit_y_um']) else "-"
-        min_se = f"{float(row['min_sigma_energy_MeV']):.4f}" if pd.notna(row['min_sigma_energy_MeV']) else "-"
-
-        lines.append(
-            f"\\texttt{{{case_id_tex}}} & {name} & {w_str} & {n_eval} & {feas_str} & {min_ex} & {min_ey} & {min_se} \\\\"
-        )
-
-    lines.extend([
-        r"\bottomrule",
-        r"\end{tabular}}",
-        r"\end{table}",
-    ])
-
-    return _write_table("\n".join(lines) + "\n", out_path)
+    records = case_summary_records(summary_path)
+    names = records[0]["objective_order"] if records else []
+    columns = objective_columns(config, names, records[0].get("objective_units", {}) if records else {})
+    latex = [RawLatex(r"\textbf{Case}"), RawLatex(r"\textbf{Operating Mode}"), RawLatex(r"$\mathbf{w}$"),
+             RawLatex(r"\textbf{Evals}"), RawLatex(r"\textbf{Feas. (\%)}"),
+             *(RawLatex(r"\textbf{Min} " + c.latex) for c in columns)]
+    text = ["Case", "Operating Mode", "w", "Evals", "Feas. (%)", *(f"Min {c.text}" for c in columns)]
+    rows = [[RawLatex(f"\\texttt{{{escape_latex(r['case_id'])}}}"), str(r["name"]), "[" + ", ".join(f"{float(w):.2f}" for w in r["weights"]) + "]",
+             str(int(r["num_evaluations"])), f"{int(r['num_feasible'])} ({float(r['feasible_fraction_pct']):.1f}%)",
+             *(c.format(r.get(f"min_{c.name}")) for c in columns)] for r in records]
+    caption = ("Phase 1 Scalarized BO multi-case campaign summary across representative operational linac "
+               "archetypes. Feasibility uses all evaluations; minima use all-valid observations. The shared "
+               "fixed reporting reference point and objective units are recorded in reporting metadata.")
+    return _write_table(Table(latex, text, rows, caption, "tab:phase1_cases").to_latex(), output_path)

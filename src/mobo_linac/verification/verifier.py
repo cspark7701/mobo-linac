@@ -97,7 +97,8 @@ class ParetoVerifier(CandidateEvaluatorBase):
                           {'config': asdict(self.config), 'timeout_sec': self.timeout, 'num_workers': self.num_workers,
                            'template_dir': str(self.template_dir) if self.template_dir is not None else self.config.simulation.template_dir,
                            'input_template': self.config.simulation.input_template,
-                           'tol_verified_relative': self.tol_verified, 'tol_conditional_relative': self.tol_conditional})
+                           'tol_verified_relative': self.tol_verified, 'tol_conditional_relative': self.tol_conditional},
+                          config=self.config)
         return records, manifest, table
 
     def build_record(self, outcome, session, mock):
@@ -147,10 +148,6 @@ class ParetoVerifier(CandidateEvaluatorBase):
                   'field_maps_sha256': {key: value for key, value in rerun_audit['input_hashes'].items() if key != 'astra.in'},
                   'executable_sha256': rerun_audit['executable_sha256'], **deltas}
         record.update(record['design_parameters'])
-        for suffix, name in [('emit_x_m_rad', 'norm_emit_x_m_rad'), ('emit_y_m_rad', 'norm_emit_y_m_rad'),
-                             ('sigma_energy_eV', 'sigma_energy_eV')]:
-            record['stored_' + suffix] = stored.get(name) if stored.get(name) is not None else float('nan')
-            record['rerun_' + suffix] = repeated.get(name) if repeated.get(name) is not None else float('nan')
         write_once_json(path, record)
         return record
 
@@ -176,7 +173,7 @@ def create_verification_session(out_path):
     return session
 
 
-def save_verification_reports(records, session_path, out_path, settings=None):
+def save_verification_reports(records, session_path, out_path, settings=None, config=None):
     rows = [{key: json.dumps(value, sort_keys=True) if isinstance(value, (dict, list)) else value
              for key, value in record.items()} for record in records]
     if (session_path / 'verification_summary.csv').exists():
@@ -185,15 +182,15 @@ def save_verification_reports(records, session_path, out_path, settings=None):
     manifest = write_once_json(session_path / 'verification_manifest.json', {
         'timestamp': pd.Timestamp.now().isoformat(), 'verification_run_id': session_path.name,
         'total_candidates_verified': len(records), 'settings': settings or {}, 'records': records})
-    table = export_verification_latex_table(records, session_path / 'verification_table.tex')
+    table = export_verification_latex_table(records, session_path / 'verification_table.tex', config=config)
     for name in ('verification_summary.csv', 'verification_manifest.json', 'verification_table.tex'):
         # Root files are atomic "latest report" views of the archived session.
         atomic_write_bytes(Path(out_path) / name, (session_path / name).read_bytes())
     return manifest, table
 
 
-def export_verification_latex_table(records, output_path='results/verification/verification_table.tex'):
+def export_verification_latex_table(records, output_path='results/verification/verification_table.tex', config=None):
     from mobo_linac.metrics.latex import generate_verification_latex_table
     path = Path(output_path)
-    generate_verification_latex_table(records, output_path=path)
+    generate_verification_latex_table(records, output_path=path, config=config)
     return path

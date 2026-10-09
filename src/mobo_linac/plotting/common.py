@@ -51,13 +51,12 @@ class PlotSchema:
     def from_config(cls, config) -> "PlotSchema":
         if config is None or not hasattr(config, "constraints"):
             raise TypeError("Figures require the campaign MoboConfig (labels, scales and constraint limits).")
+        from mobo_linac.display import objective_displays
         schema = ResultSchema.from_config(config)
         design = tuple(AxisSpec(dv.name, _axis_label(dv.label or dv.name, dv.unit))
                        for dv in config.design_variables)
-        objectives = []
-        for obj, scale, sign in zip(config.objectives, schema.scales, schema.signs):
-            unit = obj.display_unit or (obj.unit if scale == 1.0 else f"{scale:g} {obj.unit}")
-            objectives.append(AxisSpec(obj.explicit_name, _axis_label(obj.label or obj.explicit_name, unit), scale, sign))
+        objectives = [AxisSpec(d.column, _axis_label(d.label, d.unit), d.scale, d.sign)
+                      for d in objective_displays(config)]
         constraints = []
         for channel in DIAGNOSTIC_CHANNELS:
             lower, upper = channel.bounds(config.constraints)
