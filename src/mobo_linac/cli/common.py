@@ -2,7 +2,8 @@
 Shared argument mixins and mock evaluators for the mobo_linac CLI.
 """
 
-from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
+from mobo_linac.campaign_options import Acquisition
+import warnings
 import argparse
 from pathlib import Path
 
@@ -11,6 +12,7 @@ from mobo_linac.execution.mock import MockEvaluator
 __all__ = [
     "MockEvaluator",
     "add_common_run_args",
+    "add_input_arg",
     "add_verbosity_args",
 ]
 
@@ -55,9 +57,9 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
         "-a",
         "--acquisition",
         type=str,
-        choices=list(MULTIOBJECTIVE_ACQUISITIONS),
+        choices=[acquisition.value for acquisition in Acquisition],
         default=None,
-        help="MOBO acquisition (default: config campaign.acquisition; scalarized BO uses qLogNEI)",
+        help="Acquisition (default: config campaign.acquisition; scalarized BO requires qLogNEI)",
     )
     subparser.add_argument(
         "--device",
@@ -97,6 +99,24 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
         help="Use fast mock evaluator for testing without ASTRA binary",
     )
     add_verbosity_args(subparser)
+
+
+class _DeprecatedInputAlias(argparse.Action):
+    """Former spellings of ``--input``: store into ``input`` and warn."""
+
+    def __call__(self, parser, namespace, values, option_string=None):
+        message = f"{option_string} is deprecated; use --input."
+        warnings.warn(message, DeprecationWarning, stacklevel=2)
+        from mobo_linac.utils.logger import get_logger
+        get_logger(__name__).warning(message)
+        setattr(namespace, "input", values)
+
+
+def add_input_arg(subparser: argparse.ArgumentParser, help_text: str) -> None:
+    """One measured-candidate input option (``--history-path``/``--pareto-csv`` are deprecated aliases)."""
+    subparser.add_argument("--input", type=str, default=None, help=help_text)
+    for alias in ("--history-path", "--pareto-csv"):
+        subparser.add_argument(alias, type=str, action=_DeprecatedInputAlias, help=argparse.SUPPRESS)
 
 
 def add_verbosity_args(subparser: argparse.ArgumentParser) -> None:

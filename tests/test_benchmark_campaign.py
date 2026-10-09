@@ -150,7 +150,7 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
             writer.complete(len(results), None, ["config.json", "config.yaml"])
             return results, None, captured["output_dir"]
 
-    monkeypatch.setattr("mobo_linac.campaigns.benchmark.MoboCampaignRunner", RecordingRunner)
+    monkeypatch.setattr("mobo_linac.campaigns.runner.MoboCampaignRunner", RecordingRunner)
     monkeypatch.setattr(BenchmarkCampaignRunner, "analyze_completed_results", lambda self: None)
     runner = BenchmarkCampaignRunner(
         config=load_config("configs/publication_200MeV.yaml"), output_dir=tmp_path,
@@ -224,7 +224,7 @@ def test_mock_campaign_exact_budget_pairing_and_completion(tmp_path, monkeypatch
     original_init = MoboCampaignRunner.__init__
 
     def no_plot_init(self, **kwargs):
-        original_init(self, **kwargs, export_plots=False, export_env_info=False)
+        original_init(self, **{**kwargs, "export_plots": False, "export_env_info": False})
 
     monkeypatch.setattr(MoboCampaignRunner, "__init__", no_plot_init)
     runner = BenchmarkCampaignRunner(
@@ -353,7 +353,7 @@ def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch,
     original_init = campaign_module.MoboCampaignRunner.__init__
 
     def no_plot_init(self, **kwargs):
-        original_init(self, **kwargs, export_plots=False)
+        original_init(self, **{**kwargs, "export_plots": False})
 
     monkeypatch.setattr(campaign_module.MoboCampaignRunner, "__init__", no_plot_init)
     monkeypatch.setattr(BenchmarkCampaignRunner, "analyze_completed_results", lambda self: None)
@@ -431,7 +431,7 @@ def test_missing_persisted_history_cannot_complete(tmp_path, monkeypatch):
             raw = MockEvaluator(tmp_path).evaluate(requests_for([[0.0] * 6] * 2))
             return [create_evaluation_result(r, self.config) for r in raw], None, None
 
-    monkeypatch.setattr("mobo_linac.campaigns.benchmark.MoboCampaignRunner", MissingArtifactRunner)
+    monkeypatch.setattr("mobo_linac.campaigns.runner.MoboCampaignRunner", MissingArtifactRunner)
     runner = BenchmarkCampaignRunner(
         config=load_config("configs/publication_200MeV.yaml"), output_dir=tmp_path,
         algorithms=["unconstrained_qlognehvi"], seeds=[42],

@@ -161,7 +161,7 @@ execute_step comparison "$PYTHON_BIN" scripts/run_comparison_and_verification.py
   --config "$CONFIG" --phase1-dir "$P1_DIR" --phase2-dir "$P2_DIR" --phase3-dir "$P3_DIR" \
   --num-workers "$NUM_WORKERS" --output-dir "$ANALYSIS_DIR"
 execute_step robustness "$PYTHON_BIN" scripts/run_robustness_analysis.py \
-  --config "$CONFIG" --pareto-csv "$P3_DIR/pareto_feasible.csv" \
+  --config "$CONFIG" --input "$P3_DIR/pareto_feasible.csv" \
   --num-workers "$NUM_WORKERS" --num-perturbations "$NUM_PERTURBATIONS" --seed "$SEED" \
   --output-dir "$ANALYSIS_DIR/robustness"
 if ((DRY_RUN)); then

@@ -89,9 +89,9 @@ def test_generate_robustness_summary_latex_table(sample_robustness_records, tmp_
     assert tex_path.exists()
 
 
-def test_script_and_package_verification_exports_agree_with_failed_reruns(tmp_path):
+def test_csv_and_record_verification_exports_agree_with_failed_reruns(tmp_path):
     import copy
-    from scripts.generate_paper_figures import export_verification_latex_table
+    from mobo_linac.verification.verifier import export_verification_latex_table
     from mobo_linac.metrics.latex import escape_latex, RawLatex
     role = r'case_50% & #1 {a} $b$ ~ ^ \path'
     records = [{'role': role, 'stored_emit_x_m_rad': 1e-6, 'rerun_emit_x_m_rad': None,
@@ -101,8 +101,9 @@ def test_script_and_package_verification_exports_agree_with_failed_reruns(tmp_pa
     source = tmp_path / 'verification.csv'
     pd.DataFrame(records).to_csv(source, index=False)
     output = tmp_path / 'table.tex'
-    assert export_verification_latex_table(source, output) == generate_verification_latex_table(records)
+    export_verification_latex_table(source, output)  # from the recorded CSV
     content = output.read_text()
+    assert content == generate_verification_latex_table(records)
     assert escape_latex(role) in content
     assert r'RERUN\_FAILED' in content
     assert 'nan' not in content and '--' in content

@@ -1,14 +1,19 @@
 #!/usr/bin/env python3
-"""
-Benchmark Campaign Script.
+"""Paired multi-seed benchmark campaign; equivalent to ``mobo-linac run-benchmark``.
 
-Invokes canonical benchmark orchestration package APIs.
+Options and defaults are those of ``mobo-linac run-benchmark`` (see ``--help``).
 """
 
 import sys
-from mobo_linac.cli import main
+
+from mobo_linac.cli import main as cli_main
+
+COMMAND = "run-benchmark"
+
+
+def main(argv=None):
+    return cli_main([COMMAND, *(sys.argv[1:] if argv is None else argv)])
+
 
 if __name__ == "__main__":
-    if len(sys.argv) == 1:
-        sys.argv.append("run-benchmark")
-    main()
+    sys.exit(main())

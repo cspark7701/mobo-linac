@@ -279,6 +279,16 @@ Legacy version 1 checkpoints require an explicit `--n-iterations` target and, fo
 
 ---
 
+### Scripts and notebooks
+
+The `scripts/run_*.py`, `scripts/run_comparison_and_verification.py` and
+`scripts/generate_paper_figures.py` files are thin wrappers of the `mobo-linac` subcommands
+(`run-*`, `run-robustness`, `run-verification`, `compare`, `paper-figures`) with identical
+options. Candidate inputs use `--input` (`--history-path`/`--pareto-csv` are deprecated aliases).
+The notebooks in `notebooks/` read recorded run directories (set by environment variables such
+as `MOBO_PHASE2_DIR`) and call package functions; objective names, units, scales and weights
+come from the recorded configuration. `tests/test_notebooks.py` executes them against mock runs.
+
 ### Logging
 
 All package modules log through standard `logging` under the `mobo_linac` logger. The CLI flags

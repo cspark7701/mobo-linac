@@ -50,7 +50,7 @@ def test_pipeline_dispatches_shared_config_reference_and_audit_workers(launcher,
         assert command[i + 1:i + 4] == ['-0.0000015', '-0.0000015', '-1500000']
         assert command[command.index('--num-workers') + 1] == '2'
         assert command[command.index('--output-dir') + 1].startswith(str(root))
-    assert commands[-1][commands[-1].index('--pareto-csv') + 1].endswith('/pareto_feasible.csv')
+    assert commands[-1][commands[-1].index('--input') + 1].endswith('/pareto_feasible.csv')
     assert '--num-workers' in commands[-2]
     assert len(list((root / 'logs').glob('*.log'))) == 5
     assert env['ASTRA_BIN'].endswith('custom astra')

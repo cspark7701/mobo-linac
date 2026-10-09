@@ -11,7 +11,8 @@ root_dir = Path(__file__).resolve().parents[1]
 if str(root_dir) not in sys.path:
     sys.path.insert(0, str(root_dir))
 
-from scripts.run_comparison_and_verification import compute_target_distance, verify_pareto_candidates
+from mobo_linac.metrics.publication import compute_target_distance
+from mobo_linac.reporting.comparison import verify_pareto_candidates
 from mobo_linac.io.run_data import RunData
 from mobo_linac.metrics.publication import generate_comparison_report
 from mobo_linac.metrics.reporting import reporting_metadata

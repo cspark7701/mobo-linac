@@ -170,7 +170,7 @@ Both the shell script and the notebook utilize identical underlying Python modul
   
     # 2. Engineering Tolerance Robustness Analysis
     python3 scripts/run_robustness_analysis.py \
-        --pareto-csv results/full_production/phase3_constrained/pareto.csv \
+        --input results/full_production/phase3_constrained/pareto.csv \
         --output-dir results/full_production/analysis/robustness \
         --num-workers 16
   ──────

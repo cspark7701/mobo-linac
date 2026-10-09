@@ -171,7 +171,7 @@ LAYERS = {
     "perturbations": 0, "conventions": 0, "requests": 0,
     "io": 1, "models": 2, "acquisition": 2, "metrics": 2,
     "astra": 3, "execution": 3, "plotting": 3,
-    "campaigns": 4, "robustness": 4, "verification": 4, "cli": 5,
+    "campaigns": 4, "robustness": 4, "verification": 4, "reporting": 4, "cli": 5,
 }
 # Documented function-level imports: CLI subcommands load their workflow on demand, and
 # Matplotlib-backed plotting is imported only where figures are exported.

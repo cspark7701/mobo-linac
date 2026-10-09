@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-from mobo_linac.campaigns.runner import MoboCampaignRunner
-from mobo_linac.campaign_options import normalize_scalar_weights, validate_campaign_options
+from mobo_linac.campaigns.runner import campaign_runner
+from mobo_linac.campaign_options import Acquisition, normalize_scalar_weights, validate_campaign_options
 from mobo_linac.config import MoboConfig, config_from_dict, load_config
 from mobo_linac.io.artifacts import validate_run_completion
 from mobo_linac.metrics.exports import RunArtifactWriter
@@ -226,23 +226,11 @@ def run_scalarized_suite(
     for index, case_id in enumerate(target_cases):
         case = config.scalarized_cases[case_id]
         logger.info(f"[{index + 1}/{len(target_cases)}] Case '{case_id}' ({case.label}): weights {case.weights}, seed {seeds[case_id]}")
-        runner = MoboCampaignRunner(
-            config=config,
-            run_name=f"scalarized_{case_id}",
-            output_dir=base_out / case_id,
-            num_initial_samples=num_initial_samples,
-            num_batches=n_iterations,
-            batch_size=batch_size,
-            num_workers=num_workers,
-            seed=seeds[case_id],
-            optimization_mode="scalarized_bo",
-            scalar_weights=case.weights,
-            reporting_ref_point=shared_reference,
-            resume=resume,
-            export_plots=True,
-            evaluator=evaluator,
-            device=device,
-        )
+        options = {"num_initial_samples": num_initial_samples, "num_batches": n_iterations, "batch_size": batch_size,
+                   "num_workers": num_workers, "seed": seeds[case_id], "acquisition": Acquisition.qLogNEI.value}
+        runner = campaign_runner(config, options, optimization_mode="scalarized_bo", run_name=f"scalarized_{case_id}",
+                                 output_dir=base_out / case_id, scalar_weights=case.weights,
+                                 reporting_ref_point=shared_reference, resume=resume, evaluator=evaluator, device=device)
         _, tracker, _ = runner.run()
         if shared_reference is None:
             shared_reference = tracker.reporting_ref_point.tolist()

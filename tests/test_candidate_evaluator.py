@@ -229,7 +229,7 @@ def test_cli_and_script_honor_config_through_shared_workflow(sample_candidate, r
     from dataclasses import asdict
     from mobo_linac.cli.commands.audit import run_robustness
     from mobo_linac.metrics.exports import save_evaluation_results
-    from scripts.run_robustness_analysis import run_robustness_analysis
+    from scripts.run_robustness_analysis import main as robustness_script
 
     project, config = recording_astra_project
     import yaml
@@ -241,9 +241,11 @@ def test_cli_and_script_honor_config_through_shared_workflow(sample_candidate, r
     input_file = history / 'candidate_history.csv'
     outputs = [tmp_path / 'cli', tmp_path / 'script']
     common = {'config': str(config_file), 'num_workers': 1, 'num_perturbations': 2,
-              'seed': 17, 'pareto_csv': str(input_file), 'mock_evaluator': False, 'dry_run': False}
-    run_robustness(argparse.Namespace(**common, output_dir=str(outputs[0]), history_path=str(input_file)))
-    run_robustness_analysis(argparse.Namespace(**common, output_dir=str(outputs[1])))
+              'seed': 17, 'mock_evaluator': False, 'dry_run': False}
+    run_robustness(argparse.Namespace(**common, output_dir=str(outputs[0]), input=str(input_file)))
+    with pytest.warns(DeprecationWarning, match="--pareto-csv is deprecated"):  # the launcher's former spelling
+        robustness_script(["--config", str(config_file), "--num-workers", "1", "--num-perturbations", "2",
+                           "--seed", "17", "--pareto-csv", str(input_file), "--output-dir", str(outputs[1])])
     requests_by_entry = []
     for output in outputs:
         archives = list(output.glob('robustness_runs/*/robustness_requests.json'))

@@ -12,6 +12,8 @@ Provides console commands:
     mobo-linac analyze-benchmark --output-dir results/publication_benchmark
     mobo-linac run-robustness --input results/<run_id>
     mobo-linac run-verification --input results/<run_id>
+    mobo-linac compare --phase2-dir <run> --phase3-dir <run> --output-dir <analysis>
+    mobo-linac paper-figures --phase2-dir <run> --phase3-dir <run>
 """
 
 import argparse
@@ -30,6 +32,7 @@ from mobo_linac.cli.commands.benchmark import (
     register_benchmark_commands,
     run_benchmark,
 )
+from mobo_linac.cli.commands.reports import register_report_commands
 from mobo_linac.cli.commands.resume import (
     register_resume_command,
     resume_optimization,
@@ -59,12 +62,13 @@ def build_parser() -> argparse.ArgumentParser:
     register_resume_command(subparsers)
     register_benchmark_commands(subparsers)
     register_audit_commands(subparsers)
+    register_report_commands(subparsers)
 
     return parser
 
 
-def main(args: Optional[Sequence[str]] = None) -> None:
-    """Main CLI entry point."""
+def main(args: Optional[Sequence[str]] = None) -> Optional[int]:
+    """Main CLI entry point; returns the subcommand's exit code (``None`` means success)."""
     parser = build_parser()
     parsed_args = parser.parse_args(args)
 
@@ -75,7 +79,7 @@ def main(args: Optional[Sequence[str]] = None) -> None:
     debug = getattr(parsed_args, "debug", False)
     configure_logging(quiet=quiet, verbose=verbose, debug=debug)
 
-    parsed_args.handler(parsed_args)
+    return parsed_args.handler(parsed_args)
 
 
 if __name__ == "__main__":

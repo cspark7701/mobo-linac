@@ -80,7 +80,7 @@ def validate_campaign_options(*, num_initial_samples, num_batches, batch_size, n
     if optimization_mode not in OPTIMIZATION_MODES:
         raise ValueError(f"Unsupported optimization_mode: {optimization_mode}")
     acquisition = decode_acquisition(acq_type)
-    if optimization_mode == "scalarized_bo" and acquisition not in (Acquisition.qLogNEI, Acquisition.qLogNEHVI):
-        raise ValueError("scalarized_bo uses qLogNEI; other MOBO acquisitions are unsupported.")
+    if optimization_mode == "scalarized_bo" and acquisition is not Acquisition.qLogNEI:
+        raise ValueError("scalarized_bo uses qLogNEI; multi-objective acquisitions are unsupported.")
     if acquisition is Acquisition.qLogNEI and optimization_mode != "scalarized_bo":
         raise ValueError("qLogNEI requires scalarized_bo optimization mode.")

@@ -649,14 +649,16 @@ def test_new_run_artifacts_have_publication_headers_even_when_empty(tmp_path):
 
 
 def test_script_and_package_campaign_tables_agree(publication_runs, tmp_path):
-    from scripts.generate_paper_figures import export_results_summary_latex_table
+    from scripts.generate_paper_figures import main as paper_script
     from mobo_linac.metrics.publication import generate_campaign_summary_latex_table
-    p1, p2, p3, _ = publication_runs
-    path = tmp_path / 'tables' / 'results.tex'
-    script = export_results_summary_latex_table(p2, p3, path, phase1_dir=p1)
+    p1, p2, p3, verification = publication_runs
+    assert paper_script(["--phase1-dir", str(p1), "--phase2-dir", str(p2), "--phase3-dir", str(p3),
+                         "--verification-csv", str(verification), "--output-dir", str(tmp_path / "figures"),
+                         "--tables-dir", str(tmp_path / "tables")]) == 0
+    script = (tmp_path / "tables" / "results_table.tex").read_text()
     package = generate_campaign_summary_latex_table([p1, p2, p3], phase_names=[
         'Phase 1 (Scalarized)', 'Phase 2 (Unconstrained)', 'Phase 3 (Constrained)'])
-    assert script == package == path.read_text()
+    assert script == package
     assert 'Total ASTRA Evaluations & 3 & 3 & 3' in script
     assert 'Feasibility Rate, All Evaluations' in script
     assert '33.3' in script and '1.0000' in script
@@ -666,7 +668,7 @@ def test_script_and_package_campaign_tables_agree(publication_runs, tmp_path):
 def test_publication_plots_reject_conventions_before_creating_output(publication_runs, tmp_path):
     import json
     import matplotlib.pyplot as plt
-    from scripts.generate_paper_figures import plot_pareto_front_comparison
+    from mobo_linac.plotting.publication import plot_pareto_front_comparison
     p1, p2, p3, _ = publication_runs
     metadata = p3 / 'reporting_metadata.json'
     data = json.loads(metadata.read_text())

@@ -306,6 +306,26 @@ class MoboCampaignRunner:
                 return CampaignLoop(self, resume_state).run()
 
 
+def campaign_runner(config: MoboConfig, options: Dict[str, Any], *, optimization_mode: str = "unconstrained_mobo",
+                    run_name: str = "mobo", output_dir=None, base_results_dir: Union[str, Path] = "results",
+                    scalar_weights=None, constrained: bool = False, total_eval_budget: Optional[int] = None,
+                    evaluator=None, device="auto", reporting_ref_point=None, resume: bool = False,
+                    export_plots: bool = True) -> MoboCampaignRunner:
+    """The one constructor of fresh campaign runners from resolved options.
+
+    ``options`` holds ``num_initial_samples``, ``num_batches``, ``batch_size``, ``num_workers``,
+    ``seed`` and ``acquisition`` (see ``campaign_options.resolve_campaign_options``). The CLI
+    run modes, the scalarized suite, validation campaigns and benchmarks all use it.
+    """
+    return MoboCampaignRunner(
+        config=config, run_name=run_name, base_results_dir=base_results_dir, output_dir=output_dir,
+        num_initial_samples=options["num_initial_samples"], num_batches=options["num_batches"],
+        batch_size=options["batch_size"], num_workers=options["num_workers"], seed=options["seed"],
+        acq_type=options["acquisition"], optimization_mode=optimization_mode, constrained=constrained,
+        scalar_weights=scalar_weights, total_eval_budget=total_eval_budget, evaluator=evaluator, device=device,
+        reporting_ref_point=reporting_ref_point, resume=resume, export_plots=export_plots)
+
+
 class CampaignLoop:
     """One campaign session with explicit loop state (no closures over mutable locals)."""
 

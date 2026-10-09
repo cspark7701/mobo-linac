@@ -30,7 +30,7 @@ from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics, f
 from mobo_linac.io.run_data import read_run_data
 
 from mobo_linac.utils.logger import get_logger
-from mobo_linac.campaigns.runner import MoboCampaignRunner
+from mobo_linac.campaigns.runner import campaign_runner
 from mobo_linac.config import load_config
 
 logger = get_logger(__name__)
@@ -339,22 +339,13 @@ class BenchmarkCampaignRunner:
                 logger.info(f"\nExecuting Benchmark Run: algorithm='{algo}', seed={s}...")
                 spec = get_benchmark_algorithm(algo)
                 self._save_run_state(algo, s, "running", 0)
-                runner = MoboCampaignRunner(
-                    config=self.config,
-                    output_dir=run_dir,
-                    num_initial_samples=self.n_sobol_init,
-                    num_batches=self.n_batches,
-                    batch_size=self.batch_size,
-                    seed=s,
-                    acq_type=spec.acquisition,
-                    optimization_mode=spec.optimization_mode,
-                    constrained=spec.constrained,
-                    num_workers=self.num_workers,
-                    total_eval_budget=self.total_eval_budget,
-                    evaluator=mock_evaluator,
-                    reporting_ref_point=self.model_reporting_ref_point,
-                    device=self.device,
-                )
+                options = {"num_initial_samples": self.n_sobol_init, "num_batches": self.n_batches,
+                           "batch_size": self.batch_size, "num_workers": self.num_workers, "seed": s,
+                           "acquisition": spec.acquisition}
+                runner = campaign_runner(self.config, options, optimization_mode=spec.optimization_mode,
+                                         output_dir=run_dir, constrained=spec.constrained,
+                                         total_eval_budget=self.total_eval_budget, evaluator=mock_evaluator,
+                                         reporting_ref_point=self.model_reporting_ref_point, device=self.device)
                 results, _, _ = runner.run()
 
                 if len(results) != self.total_eval_budget:

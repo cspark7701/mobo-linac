@@ -9,7 +9,7 @@ import argparse
 from pathlib import Path
 
 from mobo_linac.utils.logger import get_logger
-from mobo_linac.cli.common import add_verbosity_args
+from mobo_linac.cli.common import add_input_arg, add_verbosity_args
 from mobo_linac.cli.common import MockEvaluator
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import create_evaluation_result
@@ -51,9 +51,7 @@ def run_robustness(args: argparse.Namespace) -> None:
 
     output_dir = Path(getattr(args, "output_dir", "results/robustness"))
 
-    input_path = getattr(args, "history_path", None) or getattr(args, "pareto_csv", None)
-
-    results = load_candidates(input_path, config=config)
+    results = load_candidates(args.input, config=config)
 
     mock = MockEvaluator(output_dir, config=config) if getattr(args, "mock_evaluator", False) else None
     run_robustness_workflow(
@@ -71,8 +69,7 @@ def run_verification(args: argparse.Namespace) -> None:
 
     config = load_config(getattr(args, "config", None))
     output_dir = Path(getattr(args, "output_dir", "results/verification"))
-    input_path = getattr(args, "history_path", None) or getattr(args, "pareto_csv", None) or getattr(args, "input", None)
-    results = load_candidates(input_path, config=config)
+    results = load_candidates(args.input, config=config)
     if getattr(args, "dry_run", False):
         print("[DRY-RUN] Pareto Verification Plan:")
         print(f"  - Input Candidates: {len(results)}")
@@ -111,12 +108,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     run_rob_parser.add_argument(
         "--config", type=str, default=None, help="Path to config file"
     )
-    run_rob_parser.add_argument(
-        "--input", "--history-path", dest="history_path", type=str, default=None, help="Path to Pareto candidates CSV/JSON"
-    )
-    run_rob_parser.add_argument(
-        "--pareto-csv", type=str, default=None, help="Path to pareto.csv file"
-    )
+    add_input_arg(run_rob_parser, "Run directory or candidate history/Pareto CSV/JSON (default: newest run, announced)")
     run_rob_parser.add_argument(
         "--output-dir", type=str, default="results/robustness", help="Output directory"
     )
@@ -124,7 +116,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
         "--num-perturbations", type=int, default=20, help="Number of perturbations per candidate"
     )
     run_rob_parser.add_argument(
-        "--num-workers", type=int, default=None, help="Parallel worker processes (default: config execution.max_workers)"
+        "--num-workers", "-w", type=int, default=None, help="Parallel worker processes (default: config execution.max_workers)"
     )
     run_rob_parser.add_argument(
         "--seed", type=int, default=42, help="Random seed"
@@ -145,12 +137,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     run_ver_parser.add_argument(
         "--config", type=str, default=None, help="Path to config file"
     )
-    run_ver_parser.add_argument(
-        "--input", "--history-path", dest="history_path", type=str, default=None, help="Path to Pareto candidates CSV/JSON"
-    )
-    run_ver_parser.add_argument(
-        "--pareto-csv", type=str, default=None, help="Path to pareto.csv file"
-    )
+    add_input_arg(run_ver_parser, "Run directory or candidate history/Pareto CSV/JSON (default: newest run, announced)")
     run_ver_parser.add_argument(
         "--output-dir", type=str, default="results/verification", help="Output directory"
     )

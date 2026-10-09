@@ -212,14 +212,14 @@ def test_verification_absent_input_requires_explicit_mock(tmp_path, monkeypatch)
     config = Path(__file__).resolve().parents[1] / 'configs/publication_200MeV.yaml'
     monkeypatch.chdir(tmp_path)
     args = argparse.Namespace(config=str(config), output_dir=str(tmp_path / 'verification'),
-                              history_path=None, dry_run=False, mock_evaluator=False)
+                              input=None, dry_run=False, mock_evaluator=False)
     with pytest.raises(ValueError, match='requires measured candidate history'):
         run_verification(args)
     assert not (tmp_path / 'verification').exists()
-    args.history_path = str(tmp_path / 'does_not_exist.json')
+    args.input = str(tmp_path / 'does_not_exist.json')
     with pytest.raises(FileNotFoundError, match='Candidate input not found'):
         run_verification(args)
-    args.history_path = None
+    args.input = None
     args.mock_evaluator = True
     run_verification(args)
     records = json.loads((tmp_path / 'verification' / 'verification_manifest.json').read_text())['records']
@@ -360,3 +360,21 @@ def test_quiet_flag_silences_robustness_and_verification(tmp_path, capsys):
         assert (tmp_path / "ver" / "verification_manifest.json").exists()
     finally:
         configure_logging(level="INFO")
+
+
+def test_script_wrappers_define_no_parsers_and_delegate_to_the_cli():
+    root = Path(__file__).resolve().parents[1] / "scripts"
+    wrappers = sorted(root.glob("run_*.py")) + [root / "generate_paper_figures.py"]
+    for path in wrappers:
+        text = path.read_text()
+        assert "argparse" not in text and "ArgumentParser" not in text, path.name
+        assert "cli_main([COMMAND" in text, path.name
+
+
+def test_single_runner_factory_constructs_every_fresh_campaign():
+    import re
+    src = Path(__file__).resolve().parents[1] / "src" / "mobo_linac"
+    constructions = {str(path.relative_to(src)) for path in src.rglob("*.py")
+                     if re.search(r"\bMoboCampaignRunner\(", path.read_text())}
+    # the factory itself and the resume command (which restores a checkpointed runner)
+    assert constructions == {"campaigns/runner.py", "cli/commands/resume.py"}

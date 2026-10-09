@@ -62,7 +62,7 @@ def _mock(args, directory, config):
 
 def run_campaign_command(args: argparse.Namespace, kind: str) -> None:
     """Shared handler for unconstrained, constrained and single-case scalarized campaigns."""
-    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.campaigns.runner import campaign_runner
 
     mode, title = MODES[kind]
     config, options = resolve_plan(args, mode)
@@ -76,12 +76,9 @@ def run_campaign_command(args: argparse.Namespace, kind: str) -> None:
         _print_plan(title, config, options, args.output_dir or f"results/{run_name}_<timestamp>",
                     [f"Case: {case or 'custom'}; weights: {weights}"] if kind == "scalarized" else ())
         return
-    MoboCampaignRunner(
-        config=config, run_name=run_name, output_dir=getattr(args, "output_dir", None),
-        num_initial_samples=options["num_initial_samples"], num_batches=options["num_batches"],
-        batch_size=options["batch_size"], num_workers=options["num_workers"], seed=options["seed"],
-        acq_type=options["acquisition"], optimization_mode=mode, scalar_weights=weights,
-        resume=getattr(args, "resume", False), export_plots=True,
+    campaign_runner(
+        config, options, optimization_mode=mode, run_name=run_name, output_dir=args.output_dir,
+        scalar_weights=weights, resume=getattr(args, "resume", False),
         evaluator=_mock(args, args.output_dir or "results", config),
         reporting_ref_point=getattr(args, "reporting_ref_point", None), device=getattr(args, "device", "auto"),
     ).run()

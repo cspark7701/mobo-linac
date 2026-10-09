@@ -334,7 +334,7 @@ def test_function_class_and_cli_equivalent(sample_pareto_results, recording_astr
     history.write_text(json.dumps([candidate.to_dict()]))
     cfg = tmp_path / 'config.yaml'
     cfg.write_text(yaml.safe_dump(asdict(config)))
-    run_verification(argparse.Namespace(config=str(cfg), history_path=str(history), output_dir=str(tmp_path / 'cli'),
+    run_verification(argparse.Namespace(config=str(cfg), input=str(history), output_dir=str(tmp_path / 'cli'),
                       num_workers=1, timeout=13, template_dir=str(project), dry_run=False, mock_evaluator=False))
     third = json.loads((tmp_path / 'cli' / 'verification_manifest.json').read_text())['records']
     for records in (first, second, third):
