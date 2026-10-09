@@ -17,6 +17,10 @@ class DiagnosticChannel:
     upper_violation: Optional[str] = None
     physical_minimum: Optional[float] = None
     physical_maximum: Optional[float] = None
+    # Display metadata for figures and tables: shown value = measured value / display_scale.
+    label: str = ""
+    display_unit: str = ""
+    display_scale: float = 1.0
 
     def bounds(self, config):
         return (getattr(config, self.lower_attribute) if self.lower_attribute else None,
@@ -24,13 +28,20 @@ class DiagnosticChannel:
 
 
 DIAGNOSTIC_CHANNELS = (
-    DiagnosticChannel("sigma_x_m", ("sigma_x",), "m", upper_attribute="max_sigma_x_m", upper_violation="sigma_x_m", physical_minimum=0.0),
-    DiagnosticChannel("sigma_y_m", ("sigma_y",), "m", upper_attribute="max_sigma_y_m", upper_violation="sigma_y_m", physical_minimum=0.0),
-    DiagnosticChannel("sigma_xp_rad", ("sigma_xp",), "rad", upper_attribute="max_sigma_xp_rad", upper_violation="sigma_xp_rad", physical_minimum=0.0),
-    DiagnosticChannel("sigma_yp_rad", ("sigma_yp",), "rad", upper_attribute="max_sigma_yp_rad", upper_violation="sigma_yp_rad", physical_minimum=0.0),
-    DiagnosticChannel("sigma_z_m", ("sigma_z",), "m", upper_attribute="max_sigma_z_m", upper_violation="sigma_z_m", physical_minimum=0.0),
-    DiagnosticChannel("mean_kinetic_energy_eV", ("mean_kinetic_energy",), "eV", "min_mean_kinetic_energy_eV", "max_mean_kinetic_energy_eV", "energy_lower_eV", "energy_upper_eV"),
-    DiagnosticChannel("transmission_fraction", ("transmission",), "1", lower_attribute="min_transmission", lower_violation="transmission", physical_minimum=0.0, physical_maximum=1.0),
+    DiagnosticChannel("sigma_x_m", ("sigma_x",), "m", upper_attribute="max_sigma_x_m", upper_violation="sigma_x_m", physical_minimum=0.0,
+                      label=r"$\sigma_x$", display_unit="mm", display_scale=1e-3),
+    DiagnosticChannel("sigma_y_m", ("sigma_y",), "m", upper_attribute="max_sigma_y_m", upper_violation="sigma_y_m", physical_minimum=0.0,
+                      label=r"$\sigma_y$", display_unit="mm", display_scale=1e-3),
+    DiagnosticChannel("sigma_xp_rad", ("sigma_xp",), "rad", upper_attribute="max_sigma_xp_rad", upper_violation="sigma_xp_rad", physical_minimum=0.0,
+                      label=r"$\sigma_{x'}$", display_unit="mrad", display_scale=1e-3),
+    DiagnosticChannel("sigma_yp_rad", ("sigma_yp",), "rad", upper_attribute="max_sigma_yp_rad", upper_violation="sigma_yp_rad", physical_minimum=0.0,
+                      label=r"$\sigma_{y'}$", display_unit="mrad", display_scale=1e-3),
+    DiagnosticChannel("sigma_z_m", ("sigma_z",), "m", upper_attribute="max_sigma_z_m", upper_violation="sigma_z_m", physical_minimum=0.0,
+                      label=r"$\sigma_z$", display_unit="mm", display_scale=1e-3),
+    DiagnosticChannel("mean_kinetic_energy_eV", ("mean_kinetic_energy",), "eV", "min_mean_kinetic_energy_eV", "max_mean_kinetic_energy_eV", "energy_lower_eV", "energy_upper_eV",
+                      label=r"$E_{kin}$", display_unit="MeV", display_scale=1e6),
+    DiagnosticChannel("transmission_fraction", ("transmission",), "1", lower_attribute="min_transmission", lower_violation="transmission", physical_minimum=0.0, physical_maximum=1.0,
+                      label="Transmission", display_unit="%", display_scale=1e-2),
 )
 DIAGNOSTIC_NAMES = tuple(channel.name for channel in DIAGNOSTIC_CHANNELS)
 

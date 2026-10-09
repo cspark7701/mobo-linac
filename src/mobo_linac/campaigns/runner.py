@@ -57,7 +57,7 @@ from mobo_linac.utils import get_device, get_logger
 
 logger = get_logger(__name__)
 
-from mobo_linac.plotting.visualizations import (
+from mobo_linac.plotting import (
     plot_constraint_diagnostics,
     plot_hypervolume_progress,
     plot_objective_evolution,

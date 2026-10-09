@@ -1,5 +1,6 @@
 """Publication figures using the explicit run contract; figures are closed after export."""
 from pathlib import Path
+from typing import Optional
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -33,7 +34,7 @@ def plot_hypervolume_comparison(
     phase2_dir: Path,
     phase3_dir: Path,
     output_path: Path,
-    phase1_dir: Path | None = None,
+    phase1_dir: Optional[Path] = None,
 ) -> dict:
     """
     Plots feasible hypervolume vs. cumulative ASTRA evaluations for Phase 1
@@ -110,7 +111,7 @@ def plot_pareto_front_comparison(
     phase2_dir: Path,
     phase3_dir: Path,
     output_path: Path,
-    phase1_dir: Path | None = None,
+    phase1_dir: Optional[Path] = None,
 ) -> None:
     """
     2D projections of the physical objective space comparing Phase 1, Phase 2,
@@ -122,12 +123,11 @@ def plot_pareto_front_comparison(
     directories = ([phase1_dir] if phase1_dir is not None else []) + [phase2_dir, phase3_dir]
     runs = read_comparable_runs(directories)
     objectives = runs[0].config.objectives
-    labels = {"norm_emit_x_m_rad": (r"$\varepsilon_{n,x}$ [$\mu$m·rad]", 1e6, "m*rad"),
-              "norm_emit_y_m_rad": (r"$\varepsilon_{n,y}$ [$\mu$m·rad]", 1e6, "m*rad"),
-              "sigma_energy_eV": (r"$\sigma_E$ [MeV]", 1e-6, "eV")}
+    from mobo_linac.plotting.common import PlotSchema
+    plot_schema = PlotSchema.from_config(runs[0].config)
     def label(objective):
-        known = labels.get(objective.explicit_name)
-        return known[:2] if known and known[2] == objective.unit else (f"{objective.explicit_name} [{objective.unit}]", 1)
+        spec = plot_schema.objective(objective.explicit_name)
+        return spec.label, 1.0 / spec.scale
     pairs = list(combinations(objectives, 2)) or [(None, objectives[0])]
     names = (["Phase 1"] if phase1_dir is not None else []) + ["Phase 2", "Phase 3"]
     colors = (["#7570b3"] if phase1_dir is not None else []) + ["#1f6fb5", "#d95f02"]
@@ -204,7 +204,7 @@ def plot_feasible_fraction(
     phase2_dir: Path,
     phase3_dir: Path,
     output_path: Path,
-    phase1_dir: Path | None = None,
+    phase1_dir: Optional[Path] = None,
 ) -> None:
     """
     Feasible beam fraction (num_feasible_points / num_valid_points) vs.

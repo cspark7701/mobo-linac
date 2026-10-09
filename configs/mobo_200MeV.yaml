@@ -3,6 +3,7 @@ description: "Centralized configuration for 200 MeV electron injector linac MOBO
 
 design_variables:
   - name: "solenoid_field_T"
+    label: "$B_\\mathrm{sol}$"
     astra_key: "solenoid:maxb(1)"
     unit: "T"
     nominal_value: 0.1947739
@@ -11,6 +12,7 @@ design_variables:
     upper_bound: 0.29216085
     is_coupled: false
   - name: "quad_1_gradient_T_m"
+    label: "$G_{q1}$"
     astra_key: "quadrupole:q_grad(1)"
     unit: "T/m"
     nominal_value: 1.28652859
@@ -19,6 +21,7 @@ design_variables:
     upper_bound: 1.929792885
     is_coupled: false
   - name: "quad_2_gradient_T_m"
+    label: "$G_{q2}$"
     astra_key: "quadrupole:q_grad(2)"
     unit: "T/m"
     nominal_value: -2.88668503
@@ -27,6 +30,7 @@ design_variables:
     upper_bound: -1.443342515
     is_coupled: false
   - name: "gun_phase_deg"
+    label: "$\\phi_\\mathrm{gun}$"
     astra_key: "cavity:phi(1)"
     unit: "deg"
     nominal_value: 35.62497684
@@ -35,6 +39,7 @@ design_variables:
     upper_bound: 39.187474524
     is_coupled: false
   - name: "acc1_acc2_phase_deg"
+    label: "$\\phi_\\mathrm{acc1/2}$"
     astra_key: "cavity:phi(2)"
     unit: "deg"
     nominal_value: -39.50903029
@@ -46,6 +51,7 @@ design_variables:
       - "cavity:phi(2)"
       - "cavity:phi(3)"
   - name: "acc3_acc4_phase_deg"
+    label: "$\\phi_\\mathrm{acc3/4}$"
     astra_key: "cavity:phi(4)"
     unit: "deg"
     nominal_value: 310.0534192
@@ -59,16 +65,22 @@ design_variables:
 
 objectives:
   - name: "norm_emit_x"
+    label: "$\\varepsilon_{n,x}$"
+    display_unit: "μm·rad"
     explicit_name: "norm_emit_x_m_rad"
     unit: "m*rad"
     physical_direction: "minimize"
     model_sign: -1
   - name: "norm_emit_y"
+    label: "$\\varepsilon_{n,y}$"
+    display_unit: "μm·rad"
     explicit_name: "norm_emit_y_m_rad"
     unit: "m*rad"
     physical_direction: "minimize"
     model_sign: -1
   - name: "sigma_energy"
+    label: "$\\sigma_E$"
+    display_unit: "MeV"
     explicit_name: "sigma_energy_eV"
     unit: "eV"
     physical_direction: "minimize"

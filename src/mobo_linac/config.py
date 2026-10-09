@@ -35,6 +35,7 @@ class DesignVariableConfig:
     upper_bound: float
     is_coupled: bool = False
     coupled_targets: Optional[List[str]] = None
+    label: Optional[str] = None  # display label (LaTeX allowed) for figures and tables
 
     def validate(self) -> None:
         """Validate bounds ordering, nominal value validity, and coupling rules."""
@@ -75,6 +76,9 @@ class ObjectiveConfig:
 
     aliases: List[str] = field(default_factory=list)
     reporting_scale: Optional[float] = None
+    # Display metadata: figures show value / reporting scale in display_unit.
+    label: Optional[str] = None
+    display_unit: Optional[str] = None
 
     def validate(self) -> None:
         """Validate objective names, aliases, direction and normalization scale."""

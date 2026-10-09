@@ -246,7 +246,7 @@ class BenchmarkCampaignRunner:
         Returns:
             Tuple of (aggregate_series_df, summary_df).
         """
-        from mobo_linac.plotting.visualizations import (
+        from mobo_linac.plotting import (
             plot_benchmark_comparison,
             plot_benchmark_feasibility_comparison,
         )

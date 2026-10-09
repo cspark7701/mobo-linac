@@ -34,7 +34,7 @@ def analyze_run(args: argparse.Namespace) -> None:
         plot_hypervolume_progress(run.hypervolume, output_dir / "hypervolume_progress.png")
         plot_pareto_front(results, output_dir / "pareto_front.png", config=run.config)
         plot_objective_evolution(results, output_dir / "objective_evolution.png", config=run.config)
-        plot_constraint_diagnostics(results, output_dir / "constraint_diagnostics.png")
+        plot_constraint_diagnostics(results, run.config, output_dir / "constraint_diagnostics.png")
     print(f"Figures exported to: {output_dir.resolve()}")
 
 

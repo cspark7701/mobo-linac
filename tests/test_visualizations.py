@@ -9,6 +9,7 @@ import pandas as pd
 import pytest
 import torch
 
+from mobo_linac.config import load_config
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.plotting import (
     plot_benchmark_comparison,
@@ -19,20 +20,18 @@ from mobo_linac.plotting import (
     plot_design_variable_heatmap,
     plot_feasibility_rate,
     plot_gp_surrogate_slice,
-    plot_hypervolume_comparison,
+    plot_hypervolume_histories,
     plot_hypervolume_progress,
     plot_objective_evolution,
     plot_parallel_coordinates,
     plot_pareto_front,
     plot_pareto_front_3d,
-    plot_pareto_front_comparison,
+    plot_pareto_front_overlay,
     plot_pareto_verification_comparison,
     plot_scalarized_objective_trace,
 )
-from mobo_linac.plotting.visualizations import (
-    plot_pareto_front as compat_plot_pareto_front,
-    plot_hypervolume_progress as compat_plot_hv_progress,
-)
+
+CONFIG = load_config("configs/mobo_200MeV.yaml")
 
 
 @pytest.fixture
@@ -69,124 +68,128 @@ def sample_evaluation_results():
 
 
 def test_pareto_plotting(sample_evaluation_results, tmp_path):
-    """Tests 2D and 3D Pareto front plotting."""
-    fig_2d = plot_pareto_front(sample_evaluation_results, output_path=tmp_path / "pareto_2d.png")
-    assert isinstance(fig_2d, plt.Figure)
+    """Projections draw the actual non-dominated feasible front."""
+    fig_2d = plot_pareto_front(sample_evaluation_results, output_path=tmp_path / "pareto_2d.png", config=CONFIG)
     assert (tmp_path / "pareto_2d.png").exists()
+    labels = {text.get_text() for ax in fig_2d.axes for text in ax.get_legend().get_texts()}
+    assert "Feasible Pareto front" in labels
+    shown = {label for ax in fig_2d.axes for label in (ax.get_xlabel(), ax.get_ylabel())}
+    assert shown >= {r"$\varepsilon_{n,x}$ [μm·rad]", r"$\sigma_E$ [MeV]"}
     plt.close(fig_2d)
-
-    fig_3d = plot_pareto_front_3d(sample_evaluation_results, output_path=tmp_path / "pareto_3d.png")
-    assert isinstance(fig_3d, plt.Figure)
+    fig_3d = plot_pareto_front_3d(sample_evaluation_results, output_path=tmp_path / "pareto_3d.png", config=CONFIG)
     assert (tmp_path / "pareto_3d.png").exists()
     plt.close(fig_3d)
 
 
 def test_convergence_plotting(sample_evaluation_results, tmp_path):
-    """Tests convergence and hypervolume plotting routines."""
-    history = [
-        {"iteration": i, "feasible_hypervolume": 10.0 + i * 0.5, "all_point_hypervolume": 12.0 + i * 0.4}
-        for i in range(10)
-    ]
+    history = [{"iteration": i, "feasible_hypervolume": 10.0 + i * 0.5, "all_point_hypervolume": 12.0 + i * 0.4}
+               for i in range(10)]
     fig_hv = plot_hypervolume_progress(history, output_path=tmp_path / "hv.png")
-    assert isinstance(fig_hv, plt.Figure)
     assert (tmp_path / "hv.png").exists()
     plt.close(fig_hv)
+    for function, kwargs in ((plot_objective_evolution, {}), (plot_best_so_far, {}),
+                             (plot_scalarized_objective_trace, {"weights": [1, 1, 1]})):
+        fig = function(sample_evaluation_results, output_path=tmp_path / f"{function.__name__}.png", config=CONFIG, **kwargs)
+        assert (tmp_path / f"{function.__name__}.png").exists()
+        plt.close(fig)
 
-    fig_evol = plot_objective_evolution(sample_evaluation_results, output_path=tmp_path / "evol.png")
-    assert isinstance(fig_evol, plt.Figure)
-    plt.close(fig_evol)
 
-    fig_best = plot_best_so_far(sample_evaluation_results, output_path=tmp_path / "best.png")
-    assert isinstance(fig_best, plt.Figure)
-    plt.close(fig_best)
-
-    fig_trace = plot_scalarized_objective_trace(sample_evaluation_results, output_path=tmp_path / "trace.png")
-    assert isinstance(fig_trace, plt.Figure)
-    plt.close(fig_trace)
+def test_hypervolume_histories_accept_trackers_and_frames(tmp_path):
+    from mobo_linac.metrics.hypervolume import HypervolumeTracker
+    tracker = HypervolumeTracker([-1e-5, -1e-5, -1e7], CONFIG)
+    tracker.track_iteration(0, torch.tensor([[-1e-6, -1e-6, -1e6]], dtype=torch.double), torch.tensor([True]))
+    frame = pd.DataFrame({"iteration": [0, 1], "feasible_hypervolume": [1.0, 2.0], "all_point_hypervolume": [1.5, 2.5]})
+    fig = plot_hypervolume_histories({"tracker": tracker, "frame": frame}, output_path=tmp_path / "hv_cmp.png")
+    assert (tmp_path / "hv_cmp.png").exists()
+    plt.close(fig)
 
 
 def test_diagnostics_plotting(sample_evaluation_results, tmp_path):
-    """Tests feasibility and constraint diagnostics plotting."""
-    fig_feas = plot_feasibility_rate(sample_evaluation_results, output_path=tmp_path / "feas.png")
-    assert isinstance(fig_feas, plt.Figure)
-    assert (tmp_path / "feas.png").exists()
-    plt.close(fig_feas)
+    for function, name in ((plot_feasibility_rate, "feas"), (plot_constraint_diagnostics, "diag"),
+                           (plot_constraint_violins, "viol")):
+        fig = function(sample_evaluation_results, CONFIG, output_path=tmp_path / f"{name}.png")
+        assert (tmp_path / f"{name}.png").exists()
+        plt.close(fig)
 
-    fig_diag = plot_constraint_diagnostics(sample_evaluation_results, output_path=tmp_path / "diag.png")
-    assert isinstance(fig_diag, plt.Figure)
-    plt.close(fig_diag)
 
-    fig_viol = plot_constraint_violins(sample_evaluation_results, output_path=tmp_path / "viol.png")
-    assert isinstance(fig_viol, plt.Figure)
-    plt.close(fig_viol)
+def test_constraint_figures_draw_the_active_profile_limits(sample_evaluation_results):
+    from copy import deepcopy
+    stringent = deepcopy(CONFIG)
+    stringent.constraints.max_sigma_x_m = 0.3e-3
+    stringent.constraints.min_transmission = 0.9999
+    fig = plot_constraint_diagnostics(sample_evaluation_results, stringent)
+    by_label = {ax.get_ylabel(): ax for ax in fig.axes if ax.get_visible()}
+    assert "Transmission [%]" in by_label  # transmission is now a plotted channel
+    def limits(ax):
+        return sorted(round(line.get_ydata()[0], 6) for line in ax.get_lines() if line.get_color() == "crimson")
+    assert limits(by_label[r"$\sigma_x$ [mm]"]) == [0.3]
+    assert limits(by_label["Transmission [%]"]) == [99.99]
+    assert limits(by_label[r"$E_{kin}$ [MeV]"]) == [195.0, 205.0]
+    plt.close(fig)
 
 
 def test_parameters_plotting(sample_evaluation_results, tmp_path):
-    """Tests design variable heatmaps and parallel coordinate plotting."""
-    fig_hm = plot_design_variable_heatmap(sample_evaluation_results, output_path=tmp_path / "heatmap.png")
-    assert isinstance(fig_hm, plt.Figure)
+    fig_hm = plot_design_variable_heatmap(sample_evaluation_results, CONFIG, output_path=tmp_path / "heatmap.png")
     assert (tmp_path / "heatmap.png").exists()
     plt.close(fig_hm)
-
-    fig_pc = plot_parallel_coordinates(sample_evaluation_results, output_path=tmp_path / "parallel.png")
-    assert isinstance(fig_pc, plt.Figure)
+    fig_pc = plot_parallel_coordinates(sample_evaluation_results, CONFIG, output_path=tmp_path / "parallel.png")
     assert (tmp_path / "parallel.png").exists()
     plt.close(fig_pc)
 
 
 def test_comparative_and_verification_plotting(sample_evaluation_results, tmp_path):
-    """Tests multi-phase comparison and verification bar plots."""
-    results_dict = {
-        "Phase 2 (Unconstrained)": sample_evaluation_results[:10],
-        "Phase 3 (Constrained)": sample_evaluation_results[10:],
-    }
-    fig_comp = plot_pareto_front_comparison(results_dict=results_dict, output_path=tmp_path / "comp.png")
-    assert isinstance(fig_comp, plt.Figure)
+    fig_comp = plot_pareto_front_overlay({"Phase 2": sample_evaluation_results[:10],
+                                          "Phase 3": sample_evaluation_results[10:]}, CONFIG,
+                                         output_path=tmp_path / "comp.png")
+    assert (tmp_path / "comp.png").exists()
     plt.close(fig_comp)
-
-    # Test positional backward-compatible call with lists
-    fig_comp_pos = plot_pareto_front_comparison(
-        sample_evaluation_results[:10],
-        sample_evaluation_results[10:],
-        output_path=tmp_path / "comp_pos.png",
-    )
-    assert isinstance(fig_comp_pos, plt.Figure)
-    assert (tmp_path / "comp_pos.png").exists()
-    plt.close(fig_comp_pos)
-
     records = [
-        {"role": "Min emit_x", "stored_emit_x_m_rad": 3.4e-6, "rerun_emit_x_m_rad": 3.41e-6},
-        {"role": "Min emit_y", "stored_emit_x_m_rad": 3.5e-6, "rerun_emit_x_m_rad": 3.52e-6},
+        {"role": "min_emit_x", "stored_objectives": {"norm_emit_x_m_rad": 3.4e-6}, "rerun_objectives": {"norm_emit_x_m_rad": 3.41e-6}},
+        {"role": "min_emit_y", "stored_objectives": {"norm_emit_x_m_rad": 3.5e-6}, "rerun_objectives": {}},
     ]
-    fig_verif = plot_pareto_verification_comparison(records, output_path=tmp_path / "verif.png")
-    assert isinstance(fig_verif, plt.Figure)
+    fig_verif = plot_pareto_verification_comparison(records, CONFIG, output_path=tmp_path / "verif.png")
     assert (tmp_path / "verif.png").exists()
+    heights = [patch.get_height() for patch in fig_verif.axes[0].patches]
+    assert np.isnan(heights).any() and 0.0 not in heights  # missing reruns are gaps, never zero
     plt.close(fig_verif)
 
 
-def test_visualizations_backward_compatibility(sample_evaluation_results, tmp_path):
-    """Tests that legacy imports from mobo_linac.plotting.visualizations continue working."""
-    fig1 = compat_plot_pareto_front(sample_evaluation_results)
-    assert isinstance(fig1, plt.Figure)
-    plt.close(fig1)
-
-    fig2 = compat_plot_hv_progress([{"iteration": 1, "feasible_hypervolume": 10.0}])
-    assert isinstance(fig2, plt.Figure)
-    plt.close(fig2)
+def test_figures_require_configuration(sample_evaluation_results):
+    with pytest.raises(TypeError, match="MoboConfig"):
+        plot_pareto_front(sample_evaluation_results)
 
 
 def test_figure_scope_and_cleanup(sample_evaluation_results, tmp_path):
-    """Verify figure_scope automatically cleans up open figures."""
     from mobo_linac.plotting import close_all_figures, figure_scope
-
     close_all_figures()
-    assert len(plt.get_fignums()) == 0
-
     with figure_scope(auto_close=True):
-        f1 = plot_pareto_front(sample_evaluation_results)
-        f2 = plot_objective_evolution(sample_evaluation_results)
+        plot_pareto_front(sample_evaluation_results, config=CONFIG)
+        plot_objective_evolution(sample_evaluation_results, config=CONFIG)
         assert len(plt.get_fignums()) >= 2
-
-    # After exit, figures created inside the scope must be closed
     assert len(plt.get_fignums()) == 0
 
+
+def test_noncanonical_configuration_figures(tmp_path):
+    from tests.test_configuration_boundaries import noncanonical_config
+    from mobo_linac.execution.mock import MockBatchEvaluator
+    from mobo_linac.evaluation import create_evaluation_result
+    config = noncanonical_config()
+    mock = MockBatchEvaluator(tmp_path, config=config)
+    results = [create_evaluation_result(raw, config)
+               for raw in mock.evaluate_batch([[v.nominal_value + 0.01 * i for v in config.design_variables] for i in range(6)])]
+    plt.close("all")
+    for function, args in ((plot_pareto_front, {}), (plot_objective_evolution, {}), (plot_best_so_far, {})):
+        function(results, config=config, **args)
+    for function in (plot_constraint_diagnostics, plot_design_variable_heatmap, plot_parallel_coordinates):
+        function(results, config)
+    assert len(plt.get_fignums()) == 6
+    plt.close("all")
+
+
+def test_campaign_finalization_leaves_no_open_figures(tmp_path):
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.execution.mock import MockBatchEvaluator
+    plt.close("all")
+    MoboCampaignRunner(config=CONFIG, output_dir=tmp_path / "run", num_initial_samples=3, num_batches=0,
+                       device="cpu", export_plots=True, evaluator=MockBatchEvaluator(tmp_path)).run()
+    assert plt.get_fignums() == []

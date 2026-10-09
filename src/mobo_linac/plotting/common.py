@@ -1,66 +1,88 @@
 """
-Shared configuration, labels, scales, and saving helpers for mobo_linac plotting.
+Shared plotting schema, figure lifecycle and saving helpers.
+
+Every figure takes its labels, display units and scales from the configuration through
+:class:`PlotSchema`; constraint limit lines come from the active constraint profile.
 """
 
 from contextlib import contextmanager
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Generator, Optional, Union
+from typing import Generator, List, Optional, Tuple, Union
 
 import matplotlib.pyplot as plt
+import numpy as np
 
-from mobo_linac.result_schema import legacy_200MeV_schema
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
+from mobo_linac.result_schema import ResultSchema
 
-# Figures below are still drawn for the archived 200 MeV layout; they bind columns
-# through this explicit compatibility schema rather than an implicit default.
-LEGACY_SCHEMA = legacy_200MeV_schema()
-LEGACY_DESIGN_COLUMNS = list(LEGACY_SCHEMA.design_columns)
 
-# Shared unit conversion constants
-EMIT_SCALE = 1e6      # m·rad -> mm·mrad (or um·rad)
-ENERGY_SCALE = 1e-6   # eV -> MeV
+@dataclass(frozen=True)
+class AxisSpec:
+    """One plotted quantity: column, axis label and divisor to display units."""
 
-# LaTeX-formatted design variable labels
-DESIGN_VAR_LABELS = [
-    r"$B_\mathrm{sol}$ [T]",
-    r"$G_{q1}$ [T/m]",
-    r"$G_{q2}$ [T/m]",
-    r"$\phi_\mathrm{gun}$ [°]",
-    r"$\phi_\mathrm{acc1/2}$ [°]",
-    r"$\phi_\mathrm{acc3/4}$ [°]",
-]
+    column: str
+    label: str
+    scale: float = 1.0
+    sign: int = -1  # -1: smaller is better (minimize); +1: larger is better
 
-# Short design variable labels
-DESIGN_VAR_SHORT_LABELS = [
-    r"$B_{sol}$",
-    r"$G_{q1}$",
-    r"$G_{q2}$",
-    r"$\phi_{gun}$",
-    r"$\phi_{12}$",
-    r"$\phi_{34}$",
-]
 
-# Objective labels
-OBJ_LABELS = [
-    r"$\varepsilon_{n,x}$ [mm·mrad]",
-    r"$\varepsilon_{n,y}$ [mm·mrad]",
-    r"$\sigma_E$ [MeV]",
-]
+@dataclass(frozen=True)
+class ConstraintSpec:
+    column: str
+    label: str
+    scale: float
+    lower: Optional[float]
+    upper: Optional[float]
+
+
+def _axis_label(label: str, unit: str) -> str:
+    return f"{label} [{unit}]" if unit else label
+
+
+@dataclass(frozen=True)
+class PlotSchema:
+    design: Tuple[AxisSpec, ...]
+    objectives: Tuple[AxisSpec, ...]
+    constraints: Tuple[ConstraintSpec, ...]
+    result_schema: ResultSchema
+
+    @classmethod
+    def from_config(cls, config) -> "PlotSchema":
+        if config is None or not hasattr(config, "constraints"):
+            raise TypeError("Figures require the campaign MoboConfig (labels, scales and constraint limits).")
+        schema = ResultSchema.from_config(config)
+        design = tuple(AxisSpec(dv.name, _axis_label(dv.label or dv.name, dv.unit))
+                       for dv in config.design_variables)
+        objectives = []
+        for obj, scale, sign in zip(config.objectives, schema.scales, schema.signs):
+            unit = obj.display_unit or (obj.unit if scale == 1.0 else f"{scale:g} {obj.unit}")
+            objectives.append(AxisSpec(obj.explicit_name, _axis_label(obj.label or obj.explicit_name, unit), scale, sign))
+        constraints = []
+        for channel in DIAGNOSTIC_CHANNELS:
+            lower, upper = channel.bounds(config.constraints)
+            constraints.append(ConstraintSpec(channel.name, _axis_label(channel.label or channel.name, channel.display_unit),
+                                              channel.display_scale, lower, upper))
+        return cls(design, tuple(objectives), tuple(constraints), schema)
+
+    def objective(self, column: str) -> AxisSpec:
+        return next(spec for spec in self.objectives if spec.column == column)
+
+
+def grid_shape(count: int, columns: int = 3) -> Tuple[int, int]:
+    columns = max(1, min(columns, count))
+    return int(np.ceil(count / columns)), columns
 
 
 @contextmanager
 def figure_scope(auto_close: bool = True) -> Generator[None, None, None]:
-    """
-    Context manager that automatically tracks and closes all Matplotlib figures
-    created within its scope upon exit, preventing memory accumulation.
-    """
+    """Close every Matplotlib figure created within the scope on exit."""
     initial_fignums = set(plt.get_fignums())
     try:
         yield
     finally:
         if auto_close:
-            current_fignums = set(plt.get_fignums())
-            new_fignums = current_fignums - initial_fignums
-            for fignum in new_fignums:
+            for fignum in set(plt.get_fignums()) - initial_fignums:
                 plt.close(fignum)
 
 
@@ -75,7 +97,7 @@ def save_fig(
     dpi: int = 300,
     close: bool = False,
 ) -> None:
-    """Saves figure to disk if output_path is provided, creating parent directories and optionally closing it."""
+    """Save a figure (creating parent directories) and optionally close it."""
     if output_path:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -84,9 +106,27 @@ def save_fig(
         plt.close(fig)
 
 
-# Alias for backward compatibility
-_save = save_fig
-_EMIT_SCALE = EMIT_SCALE
-_ENERGY_SCALE = ENERGY_SCALE
-_DESIGN_VAR_LABELS = DESIGN_VAR_LABELS
-_OBJ_LABELS = OBJ_LABELS
+def scaled(frame, column: str, scale: float):
+    """Column in display units; missing values stay NaN (drawn as gaps)."""
+    return frame[column].astype(float) / scale
+
+
+def best_so_far(values, sign: int):
+    """Running best in the objective's preferred direction."""
+    return values.cummin() if sign == -1 else values.cummax()
+
+
+def nondominated_mask(frame, schema: PlotSchema) -> np.ndarray:
+    """Non-dominated rows of finite objective values in the frame (direction aware)."""
+    from mobo_linac.metrics.front import pareto_mask
+    values = frame[[spec.column for spec in schema.objectives]].to_numpy(dtype=float)
+    finite = np.isfinite(values).all(axis=1)
+    mask = np.zeros(len(frame), dtype=bool)
+    if finite.any():
+        model = values[finite] * np.asarray([spec.sign for spec in schema.objectives], dtype=float)
+        mask[np.flatnonzero(finite)] = pareto_mask(model).numpy()
+    return mask
+
+
+__all__: List[str] = ["AxisSpec", "ConstraintSpec", "PlotSchema", "best_so_far", "close_all_figures",
+                      "figure_scope", "grid_shape", "nondominated_mask", "save_fig", "scaled"]
