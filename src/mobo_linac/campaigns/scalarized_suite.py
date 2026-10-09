@@ -271,6 +271,7 @@ def run_scalarized_suite(
     resume: bool = False,
     evaluator: Optional[Any] = None,
     export_paper_table_dir: Optional[Union[str, Path]] = None,
+    reporting_ref_point: Optional[Sequence[float]] = None,
 ) -> Dict[str, Any]:
     """
     Executes the Option 2 multi-weight Phase 1 Scalarized BO suite.
@@ -288,6 +289,7 @@ def run_scalarized_suite(
         resume: Whether to resume existing case runs from checkpoints.
         evaluator: Optional custom evaluator (e.g. CliMockEvaluator for testing).
         export_paper_table_dir: Optional directory to copy phase1_cases_table.tex to.
+        reporting_ref_point: Optional fixed model-space reference shared by all cases.
 
     Returns:
         Aggregation metadata dictionary.
@@ -301,6 +303,10 @@ def run_scalarized_suite(
         normalize_scalar_weights(OPTION_2_CASES[case]["weights"], len(config.objectives))
     if seed + (len(cases_to_run or OPTION_2_CASES) - 1) * 100 >= 2**32:
         raise ValueError("Suite case seeds must be less than 2**32.")
+    if reporting_ref_point is not None:
+        ref = torch.as_tensor(reporting_ref_point, dtype=torch.double)
+        if ref.shape != (len(config.objectives),) or not torch.isfinite(ref).all():
+            raise ValueError("Reporting reference must match finite configured objectives.")
     base_out = Path(output_dir)
     base_out.mkdir(parents=True, exist_ok=True)
 
@@ -320,7 +326,7 @@ def run_scalarized_suite(
     logger.info(f"  Base Output Directory: {base_out}")
     logger.info("======================================================================\n")
 
-    shared_reference = None
+    shared_reference = list(reporting_ref_point) if reporting_ref_point is not None else None
     for idx, case_key in enumerate(target_cases):
         case_info = OPTION_2_CASES[case_key]
         case_dir = base_out / case_key

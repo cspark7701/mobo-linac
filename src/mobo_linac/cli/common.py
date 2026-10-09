@@ -80,6 +80,10 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
         help="Custom output directory",
     )
     subparser.add_argument(
+        "--reporting-ref-point", nargs="+", type=float, default=None,
+        help="Fixed reporting reference in model-space units, in configured objective order",
+    )
+    subparser.add_argument(
         "--resume",
         action="store_true",
         help="Resume optimization from the latest checkpoint in output-dir if present",

@@ -43,13 +43,11 @@ def resolve_executable_path(
     bin_dir = local_bin_dir if local_bin_dir is not None else _LOCAL_BIN_DIR
     local_bin = (bin_dir / binary_name).resolve()
     if local_bin.is_file() and os.access(local_bin, os.X_OK):
-        os.environ[env_var] = str(local_bin)
         return str(local_bin)
 
     # 3. Check system PATH
     which_bin = shutil.which(binary_name)
     if which_bin:
-        os.environ[env_var] = which_bin
         return which_bin
 
     # 4. Known candidate paths
@@ -61,27 +59,36 @@ def resolve_executable_path(
     for cand in candidates:
         cand_p = Path(cand).expanduser().resolve()
         if cand_p.is_file() and os.access(cand_p, os.X_OK):
-            os.environ[env_var] = str(cand_p)
             return str(cand_p)
 
     # 5. Fallback to default local bin path
     fallback = str(local_bin)
-    os.environ[env_var] = fallback
     return fallback
 
 
-resolve_executable_path("ASTRA_BIN", "astra")
-resolve_executable_path("GENERATOR_BIN", "generator")
+# Public injection seam for recording simulators; importing this module is inert.
+Astra = None
 
-try:
-    import distgen
-    if not hasattr(distgen, "Generator"):
-        from distgen.generator import Generator
-        setattr(distgen, "Generator", Generator)
-except Exception:
-    pass
 
-from astra import Astra
+def initialize_astra_backend():
+    """Resolve executables and load the optional runtime only for a real attempt."""
+    global Astra
+    if Astra is not None:
+        return Astra
+    os.environ["ASTRA_BIN"] = resolve_executable_path("ASTRA_BIN", "astra")
+    os.environ["GENERATOR_BIN"] = resolve_executable_path("GENERATOR_BIN", "generator")
+    try:
+        import distgen
+        if not hasattr(distgen, "Generator"):
+            from distgen.generator import Generator
+            distgen.Generator = Generator
+    except ImportError:
+        pass
+    from astra import Astra as astra_class
+    Astra = astra_class
+    return Astra
+
+
 from mobo_linac.astra.parser import (
     AstraOutputParser,
     ParsedAstraResult,
@@ -321,7 +328,7 @@ def run_astra_eval(
         objective_config = config_from_dict(config) if isinstance(config, dict) else config
         parser = AstraOutputParser(target_z_stop=target_z, z_loss_tolerance=z_tol, config=objective_config)
         # Initialize Astra inside isolated eval_dir
-        astra_sim = Astra(
+        astra_sim = initialize_astra_backend()(
             input_file=str(input_file),
             workdir=str(eval_dir),
             use_temp_dir=False,

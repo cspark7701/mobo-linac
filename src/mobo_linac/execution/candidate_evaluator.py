@@ -15,6 +15,7 @@ from mobo_linac.config import MoboConfig, load_config, ExecutionConfig
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
 from mobo_linac.execution.requests import EvaluationRequest
+from mobo_linac.execution.contracts import evaluate_requests, evaluation_identity
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.diagnostics import finite_measurement, normalize_diagnostics
 
@@ -190,24 +191,21 @@ class CandidateEvaluatorBase(ABC):
             clean_on_success=self.config.execution.clean_on_success,
         )
 
-        raw_results = evaluator.evaluate_requests(
-            requests=[task.to_request() for task in tasks],
-            run_id=run_id,
-        )
+        by_id = {evaluation_identity(task.task_id): task for task in tasks}
+        completed_outcomes = {}
 
-        if len(raw_results) != len(tasks):
-            raise ValueError("Backend returned an incomplete candidate batch")
-        for task, raw_r in zip(tasks, raw_results):
-            eval_res = create_evaluation_result(raw_r, self.config)
-            deltas = self.compute_relative_metric_deltas(task.nominal_result, eval_res)
+        def complete(completion):
+            identity = completion.result.evaluation_id
+            task = by_id[identity]
             outcome = EvaluationOutcome(
-                task=task,
-                evaluated_result=eval_res,
-                metric_deltas=deltas,
-                execution_details=raw_r,
+                task=task, evaluated_result=completion.result,
+                metric_deltas=self.compute_relative_metric_deltas(task.nominal_result, completion.result),
+                execution_details=completion.details,
             )
-            outcomes.append(outcome)
+            completed_outcomes[identity] = outcome
             if on_task_complete is not None:
                 on_task_complete(outcome)
 
-        return outcomes
+        completions = evaluate_requests(evaluator, [task.to_request() for task in tasks],
+                                        run_id=run_id, config=self.config, on_complete=complete)
+        return [completed_outcomes[completion.result.evaluation_id] for completion in completions]

@@ -14,7 +14,12 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 from mobo_linac.execution.requests import EvaluationRequest
-from mobo_linac.astra.runner import run_astra_eval
+
+def run_astra_eval(**kwargs):
+    """Lazy backend dispatch; also preserves the public worker injection seam."""
+    from mobo_linac.astra.runner import run_astra_eval as execute
+    return execute(**kwargs)
+
 
 
 def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
@@ -70,6 +75,7 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
             res.setdefault("run_id", run_id)
             res.setdefault("eval_id", eval_id)
             res.setdefault("parameters", parameters)
+            res.setdefault("request", task_args.get("request", {}))
             res["candidate_idx"] = candidate_idx
             res["retries_attempted"] = attempts - 1
             res.setdefault("attempt_id", attempt_id)
@@ -92,10 +98,22 @@ def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
                 "eval_dir": None,
                 "manifest_path": None,
                 "error": str(e),
+                "request": task_args.get("request", {}),
                 "retries_attempted": attempts - 1,
             }
 
     return last_res
+
+
+def _worker_crash_result(task, error):
+    """Retain submitted identity and full request even when the pool is broken."""
+    return {
+        "candidate_idx": task["candidate_idx"], "run_id": task["run_id"],
+        "eval_id": task["eval_id"], "parameters": task["parameters"],
+        "request": task["request"], "status": "failed", "objectives": None,
+        "diagnostics": None, "eval_dir": None, "manifest_path": None,
+        "error": f"Worker process crashed: {error}", "retries_attempted": 0,
+    }
 
 
 def evaluate_candidates_parallel(
@@ -158,6 +176,9 @@ def evaluate_candidates_parallel(
             raise ValueError(f"eval_ids length ({len(eval_ids)}) must match candidates length ({n_candidates})")
         eval_ids_list = list(eval_ids)
 
+    from mobo_linac.execution.contracts import evaluation_identity
+    if len({evaluation_identity(eid) for eid in eval_ids_list}) != n_candidates:
+        raise ValueError("Duplicate evaluation request identity")
     if requests is None:
         requests = [EvaluationRequest(eid, list(cand))
                     for cand, eid in zip(candidates, eval_ids_list)]
@@ -217,10 +238,14 @@ def evaluate_candidates_parallel(
     executor = ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx)
 
     try:
-        future_to_idx = {
-            executor.submit(_worker_eval_task, task): idx
-            for idx, task in enumerate(tasks)
-        }
+        future_to_idx = {}
+        for idx, task in enumerate(tasks):
+            try:
+                future_to_idx[executor.submit(_worker_eval_task, task)] = idx
+            except Exception as error:
+                results[idx] = _worker_crash_result(task, error)
+                if on_evaluation_complete is not None:
+                    on_evaluation_complete(results[idx])
 
         for future in as_completed(future_to_idx):
             idx = future_to_idx[future]
@@ -229,19 +254,7 @@ def evaluate_candidates_parallel(
                 results[idx] = res
             except Exception as e:
                 # Catch worker process crash or unhandled exception
-                res = {
-                    "candidate_idx": idx,
-                    "run_id": run_id,
-                    "eval_id": eval_ids_list[idx],
-                    "parameters": tasks[idx]["parameters"],
-                    "status": "failed",
-                    "objectives": None,
-                    "diagnostics": None,
-                    "eval_dir": None,
-                    "manifest_path": None,
-                    "error": f"Worker process crashed: {str(e)}",
-                    "retries_attempted": 0,
-                }
+                res = _worker_crash_result(tasks[idx], e)
                 results[idx] = res
 
             if on_evaluation_complete is not None and results[idx] is not None:
@@ -256,6 +269,8 @@ class BatchEvaluator:
     """
     Reusable process-safe batch evaluator for optimization campaigns.
     """
+
+    supports_completion_callback = True
 
     def __init__(
         self,

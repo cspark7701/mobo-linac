@@ -276,3 +276,25 @@ def test_scalarized_cli_rejects_incompatible_acquisition(tmp_path):
     with pytest.raises(ValueError, match="scalarized_bo uses qLogNEI"):
         main(["run-scalarized", "--acquisition", "qLogEHVI", "--output-dir", str(output), "--dry-run"])
     assert not output.exists()
+
+
+@pytest.mark.parametrize('command', ['run-unconstrained', 'run-constrained', 'run-scalarized', 'run-scalarized-suite'])
+def test_shared_reporting_reference_reaches_campaign_and_suite(command, monkeypatch, tmp_path):
+    import mobo_linac.campaigns.runner as runner_module
+    import mobo_linac.campaigns.scalarized_suite as suite_module
+    received = []
+    class Runner:
+        def __init__(self, **kwargs): received.append(kwargs)
+        def run(self): return None
+    monkeypatch.setattr(runner_module, 'MoboCampaignRunner', Runner)
+    monkeypatch.setattr(suite_module, 'run_scalarized_suite', lambda **kwargs: received.append(kwargs))
+    main([command, '--config', 'configs/publication_200MeV.yaml', '--output-dir', str(tmp_path),
+          '--reporting-ref-point', '-0.0000015', '-0.0000015', '-1500000', '--n-iterations', '0'])
+    assert received[0]['reporting_ref_point'] == [-1.5e-6, -1.5e-6, -1.5e6]
+
+
+def test_cli_rejects_invalid_reference_before_dry_run_output(tmp_path):
+    with pytest.raises(ValueError, match='Reporting reference'):
+        main(['run-unconstrained', '--dry-run', '--output-dir', str(tmp_path / 'invalid'),
+              '--reporting-ref-point', '-1', '-2'])
+    assert not (tmp_path / 'invalid').exists()

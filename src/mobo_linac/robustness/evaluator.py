@@ -422,11 +422,11 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
         if batch_evaluator is not None:
             if custom_evaluator is not None or request_evaluator is not None:
                 raise ValueError("Choose one robustness backend")
-            raw_results = batch_evaluator.evaluate_requests([task.to_request() for task in tasks], run_id="candidate_eval")
-            if len(raw_results) != len(tasks):
-                raise ValueError("Backend returned an incomplete robustness batch")
-            outcomes = [EvaluationOutcome(task, create_evaluation_result(raw, self.config), execution_details=raw)
-                        for task, raw in zip(tasks, raw_results)]
+            from mobo_linac.execution.contracts import evaluate_requests
+            completions = evaluate_requests(batch_evaluator, [task.to_request() for task in tasks],
+                                            run_id="candidate_eval", config=self.config)
+            outcomes = [EvaluationOutcome(task, completion.result, execution_details=completion.details)
+                        for task, completion in zip(tasks, completions)]
         else:
             outcomes = self.evaluate_plan_parallel(tasks, custom_evaluator=custom_evaluator,
                                                   request_evaluator=request_evaluator)

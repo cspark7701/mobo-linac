@@ -56,3 +56,49 @@ def test_cli_help_execution():
     assert "run" in res.stdout
     assert "resume" in res.stdout
     assert "analyze" in res.stdout
+
+
+def test_mock_campaign_and_analysis_do_not_initialize_astra(tmp_path):
+    """Block external simulator imports and check environment after real mock work."""
+    code = r'''
+import importlib.abc
+import os
+import sys
+from pathlib import Path
+class BlockSimulator(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname.split('.')[0] in ('astra', 'distgen'):
+            raise AssertionError('Unexpected simulator initialization: ' + fullname)
+sys.meta_path.insert(0, BlockSimulator())
+before = dict(os.environ)
+from mobo_linac.campaigns.runner import MoboCampaignRunner
+from mobo_linac.execution.mock import MockBatchEvaluator
+from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase
+from mobo_linac.io.run_data import read_run_data
+from mobo_linac.metrics.publication import campaign_summary
+from mobo_linac.astra.runner import resolve_executable_path
+assert dict(os.environ) == before
+for mode, constrained in [('scalarized_bo', False), ('unconstrained_mobo', False), ('constrained_mobo', True)]:
+    root = Path(sys.argv[1]) / mode
+    results, tracker, run_dir = MoboCampaignRunner(config='configs/publication_200MeV.yaml',
+        output_dir=root, num_initial_samples=2, num_batches=0, seed=42,
+        optimization_mode=mode, constrained=constrained, evaluator=MockBatchEvaluator(root),
+        export_plots=False, export_env_info=False).run()
+    assert len(results) == 2
+    assert campaign_summary(read_run_data(run_dir))
+from mobo_linac.config import load_config
+from mobo_linac.robustness.workflow import run_robustness_workflow
+from mobo_linac.verification.verifier import run_verification_pipeline
+config = load_config('configs/publication_200MeV.yaml')
+run_robustness_workflow(results, config, Path(sys.argv[1]) / 'robustness',
+                       num_perturbations=1, batch_evaluator=MockBatchEvaluator(root))
+run_verification_pipeline(results, config=config, output_dir=Path(sys.argv[1]) / 'verification',
+                          mock_evaluator=MockBatchEvaluator(root))
+assert os.environ.get('ASTRA_BIN') == before.get('ASTRA_BIN')
+assert os.environ.get('GENERATOR_BIN') == before.get('GENERATOR_BIN')
+assert 'astra' not in sys.modules and 'distgen' not in sys.modules
+resolve_executable_path('ASTRA_BIN', 'astra')
+assert os.environ.get('ASTRA_BIN') == before.get('ASTRA_BIN')
+'''
+    res = subprocess.run([sys.executable, '-c', code, str(tmp_path)], capture_output=True, text=True)
+    assert res.returncode == 0, res.stderr

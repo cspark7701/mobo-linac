@@ -1,272 +1,170 @@
 #!/usr/bin/env bash
-# ==============================================================================
-# Full Production Simulation & Analysis Pipeline Script
-# ==============================================================================
-# This script executes the complete production-grade simulation and analysis
-# pipeline for the 200 MeV S-band electron injector linac MOBO optimization.
-#
-# Key Features:
-#   1. Parallel ASTRA Multi-Worker Execution.
-#   2. Screen Verbose On/Off Toggle (quiet mode for token-efficient AI prompts).
-#   3. Full production MOBO simulation execution (Phase 2 & Phase 3).
-#   4. Complete post-simulation analysis, hypervolume tracking, & Pareto rerun audit.
-#
-# Usage:
-#   ./scripts/run_full_production.sh                  # Run with full screen output
-#   ./scripts/run_full_production.sh --quiet          # Run silently (no screen flooding)
-#   ./scripts/run_full_production.sh --iterations 15  # Custom iteration budget
-#   ./scripts/run_full_production.sh --workers 8      # Custom worker count
-# ==============================================================================
-
+# Run all three optimization phases and audited analysis with shared conventions.
 set -euo pipefail
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+cd "$PROJECT_ROOT"
 
-# ------------------------------------------------------------------------------
-# Default Parameter Settings
-# ------------------------------------------------------------------------------
-VERBOSE=1
+PYTHON_BIN="${PYTHON_BIN:-python3}"
+CONFIG="configs/publication_200MeV.yaml"
+OUTPUT_BASE_DIR="results/full_production"
 N_ITERATIONS=20
 BATCH_SIZE=8
 NUM_INITIAL_SAMPLES=16
 NUM_WORKERS=4
+NUM_PERTURBATIONS=50
 SEED=42
-DEVICE="auto"
-OUTPUT_BASE_DIR="results/full_production"
-P1_CASE="all"
-RESUME_FLAG=""
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+DEVICE=auto
+P1_CASE=all
+QUIET=0
+RESUME=0
+DRY_RUN=0
+# Model-space reference: -(1.5 um rad, 1.5 um rad, 1.5 MeV).
+REFERENCE=(-0.0000015 -0.0000015 -1500000)
 
-# ------------------------------------------------------------------------------
-# Command Line Argument Parser
-# ------------------------------------------------------------------------------
-while [[ $# -gt 0 ]]; do
+usage() {
+  cat <<'EOF'
+Usage: scripts/run_full_production.sh [OPTIONS]
+  --config PATH          Shared configuration (default: publication_200MeV.yaml)
+  -o, --output-dir DIR    Fresh campaign root (default: results/full_production)
+  -i, --iterations N      Total BO iterations per run (default: 20)
+  -b, --batch-size Q      Candidates per BO batch (default: 8)
+  --initial-samples N    Initial Sobol samples (default: 16)
+  -w, --workers N         ASTRA and audit workers (default: 4)
+  --seed N               Base seed (default: 42)
+  -d, --device DEVICE     auto, cpu, cuda, or cuda:N (default: auto)
+  --p1-case CASE          all or one Option 2 case (default: all)
+  --reference RX RY RE    Reporting reference in model-space units/objective order
+  --perturbations N      Robustness samples per representative (default: 50)
+  -r, --resume            Continue existing runs using saved scientific settings
+  -q, --quiet             Keep step messages; write detailed output to log files
+  --dry-run              Print validated commands without creating outputs or running ASTRA
+  -h, --help              Show help
+Set PYTHON_BIN to the Python interpreter in the installed linac environment.
+Existing ASTRA_BIN/GENERATOR_BIN overrides are respected. Logs are retained in
+<root>/logs in both verbose and quiet modes. Resume preserves saved batch sizes,
+workers, configuration, seed, device topology and pending proposals; --iterations
+sets the total target. Other new-run options do not override checkpoint settings.
+EOF
+}
+fail() { printf 'Error: %s\n' "$*" >&2; exit 1; }
+need_value() { [[ $# -ge 2 && -n "$2" ]] || fail "Missing value for $1"; }
+while (($#)); do
   case "$1" in
-    -q|--quiet)
-      # Turn off verbose screen output to prevent token consumption in AI prompts
-      VERBOSE=0
-      shift
-      ;;
-    -i|--iterations)
-      # Set custom number of MOBO optimization iterations
-      N_ITERATIONS="$2"
-      shift 2
-      ;;
-    -b|-q|--batch-size)
-      # Set candidate proposal batch size q
-      BATCH_SIZE="$2"
-      shift 2
-      ;;
-    -w|--workers)
-      # Set custom number of parallel CPU worker processes
-      NUM_WORKERS="$2"
-      shift 2
-      ;;
-    -d|--device)
-      # Set target PyTorch compute device (auto, cuda, cpu)
-      DEVICE="$2"
-      shift 2
-      ;;
-    -o|--output-dir)
-      # Set custom base output directory
-      OUTPUT_BASE_DIR="$2"
-      shift 2
-      ;;
-    -r|--resume)
-      RESUME_FLAG="--resume"
-      shift
-      ;;
-    --p1-case)
-      P1_CASE="$2"
-      shift 2
-      ;;
-    -h|--help)
-      echo "Usage: ./scripts/run_full_production.sh [OPTIONS]"
-      echo "Options:"
-      echo "  -r, --resume         Resume existing runs from latest checkpoints"
-      echo "  -q, --quiet          Suppress screen output (token-efficient mode)"
-      echo "  -i, --iterations N   Number of BO iterations (default: 20)"
-      echo "  -b, --batch-size Q   Batch size q (default: 8)"
-      echo "  -w, --workers W      Number of parallel CPU worker cores (default: 4)"
-      echo "  -d, --device DEV     Target PyTorch device (auto, cuda, cpu; default: auto GPU selection)"
-      echo "  -o, --output-dir DIR Output directory (default: results/full_production)"
-      echo "  --p1-case CASE       Phase 1 Option 2 case to run (all, balanced, high_brightness, low_energy_spread, x_dominant, y_dominant; default: all)"
-      echo "  -h, --help           Show this help message"
-      exit 0
-      ;;
-    *)
-      echo "Unknown option: $1"
-      exit 1
-      ;;
+    -q|--quiet) QUIET=1; shift ;;
+    -r|--resume) RESUME=1; shift ;;
+    --dry-run) DRY_RUN=1; shift ;;
+    -h|--help) usage; exit 0 ;;
+    --reference) [[ $# -ge 4 ]] || fail 'Need three reference values'; REFERENCE=("$2" "$3" "$4"); shift 4 ;;
+    --config|-o|--output-dir|-i|--iterations|-b|--batch-size|--initial-samples|-w|--workers|--seed|-d|--device|--p1-case|--perturbations)
+      need_value "$@"
+      case "$1" in
+        --config) CONFIG="$2" ;;
+        -o|--output-dir) OUTPUT_BASE_DIR="$2" ;;
+        -i|--iterations) N_ITERATIONS="$2" ;;
+        -b|--batch-size) BATCH_SIZE="$2" ;;
+        --initial-samples) NUM_INITIAL_SAMPLES="$2" ;;
+        -w|--workers) NUM_WORKERS="$2" ;;
+        --seed) SEED="$2" ;;
+        -d|--device) DEVICE="$2" ;;
+        --p1-case) P1_CASE="$2" ;;
+        --perturbations) NUM_PERTURBATIONS="$2" ;;
+      esac
+      shift 2 ;;
+    *) fail "Unknown option: $1" ;;
   esac
 done
+[[ -n "$OUTPUT_BASE_DIR" ]] || fail 'Output directory must not be empty'
+for value in "$BATCH_SIZE" "$NUM_INITIAL_SAMPLES" "$NUM_WORKERS" "$NUM_PERTURBATIONS"; do
+  [[ "$value" =~ ^[1-9][0-9]*$ ]] || fail 'Batch size, initial samples, workers and perturbations must be positive integers'
+done
+[[ "$N_ITERATIONS" =~ ^(0|[1-9][0-9]*)$ && "$SEED" =~ ^(0|[1-9][0-9]*)$ ]] || fail 'Iterations and seed must be nonnegative integers'
+CASES=(balanced high_brightness low_energy_spread x_dominant y_dominant)
+if [[ "$P1_CASE" != all ]]; then
+  case "$P1_CASE" in balanced|high_brightness|low_energy_spread|x_dominant|y_dominant) CASES=("$P1_CASE") ;; *) fail "Unknown Phase 1 case: $P1_CASE" ;; esac
+fi
 
-# Navigate to project root
-cd "${PROJECT_ROOT}"
+P1_DIR="$OUTPUT_BASE_DIR/phase1_scalarized"
+P2_DIR="$OUTPUT_BASE_DIR/phase2_unconstrained"
+P3_DIR="$OUTPUT_BASE_DIR/phase3_constrained"
+ANALYSIS_DIR="$OUTPUT_BASE_DIR/analysis"
+LOG_DIR="$OUTPUT_BASE_DIR/logs"
+if ((RESUME)); then
+  CONFIG="$P3_DIR/config.yaml"
+fi
+# Validate scientific settings and reference before creating output directories.
+"$PYTHON_BIN" - "$CONFIG" "$N_ITERATIONS" "$BATCH_SIZE" "$NUM_INITIAL_SAMPLES" "$NUM_WORKERS" "$SEED" "${REFERENCE[@]}" <<'PY'
+import sys
+import torch
+from mobo_linac.config import load_config, validate_campaign_options
+config = load_config(sys.argv[1])
+iterations, batch, initial, workers, seed = map(int, sys.argv[2:7])
+validate_campaign_options(num_initial_samples=initial, num_batches=iterations,
+                          batch_size=batch, num_workers=workers, seed=seed)
+ref = torch.tensor([float(v) for v in sys.argv[7:]], dtype=torch.double)
+if len(config.objectives) != 3 or len(ref) != 3 or not torch.isfinite(ref).all():
+    raise ValueError('This three-phase Option 2 pipeline requires three objectives and a finite reference')
+PY
 
-# ------------------------------------------------------------------------------
-# ANSI Color Palette & Logging Helpers
-# ------------------------------------------------------------------------------
-CLR_RESET="\033[0m"
-CLR_BOLD="\033[1m"
-CLR_DIM="\033[2m"
-CLR_CYAN="\033[1;36m"
-CLR_BLUE="\033[1;34m"
-CLR_GREEN="\033[1;32m"
-CLR_YELLOW="\033[1;33m"
-CLR_MAGENTA="\033[1;35m"
-CLR_RED="\033[1;31m"
+CLI=("$PYTHON_BIN" -m mobo_linac.cli)
+COMMON=(--config "$CONFIG" --n-iterations "$N_ITERATIONS" --batch-size "$BATCH_SIZE"
+        --num-initial-samples "$NUM_INITIAL_SAMPLES" --num-workers "$NUM_WORKERS"
+        --device "$DEVICE" --seed "$SEED" --reporting-ref-point "${REFERENCE[@]}")
+if ((QUIET)); then COMMON+=(--quiet); fi
 
-# Helper function to print high-level step progress (always printed)
-log_step() {
-  echo -e "$1"
-}
-
-# Helper function to print detailed logs (printed when VERBOSE=1)
-log_info() {
-  if [ "${VERBOSE}" -eq 1 ]; then
-    echo -e "$1"
+if ((RESUME)); then
+  for run in "${CASES[@]/#/$P1_DIR/}" "$P2_DIR" "$P3_DIR"; do
+    [[ -f "$run/checkpoints/checkpoint.pt" || -f "$run/checkpoints/pending_batch.pt" ]] || fail "No checkpoint for $run"
+  done
+elif [[ -e "$OUTPUT_BASE_DIR" ]]; then
+  fail 'Output root already exists; select a fresh root or use --resume'
+fi
+if ((!DRY_RUN)); then
+  if ((!RESUME)); then
+    ASTRA_BIN="${ASTRA_BIN:-$PROJECT_ROOT/bin/astra}"
+    GENERATOR_BIN="${GENERATOR_BIN:-$PROJECT_ROOT/bin/generator}"
+    [[ -x "$ASTRA_BIN" && -x "$GENERATOR_BIN" ]] || fail 'ASTRA_BIN and GENERATOR_BIN must be executable files'
+    export ASTRA_BIN GENERATOR_BIN
   fi
-}
+  mkdir -p "$LOG_DIR"
+fi
 
-log_step "${CLR_CYAN}======================================================================${CLR_RESET}"
-log_step "${CLR_CYAN}${CLR_BOLD} Starting Full Production Linac MOBO Simulation & Analysis Pipeline${CLR_RESET}"
-log_step "${CLR_CYAN}======================================================================${CLR_RESET}"
-log_step "  ${CLR_BOLD}Project Root:${CLR_RESET}         ${PROJECT_ROOT}"
-log_step "  ${CLR_BOLD}Parallel CPU Workers:${CLR_RESET} ${NUM_WORKERS}"
-log_step "  ${CLR_BOLD}BO Iterations:${CLR_RESET}        ${N_ITERATIONS}"
-log_step "  ${CLR_BOLD}Batch Size (q):${CLR_RESET}       ${BATCH_SIZE}"
-log_step "  ${CLR_BOLD}Verbose Screen:${CLR_RESET}       $([ ${VERBOSE} -eq 1 ] && echo -e "${CLR_GREEN}ON (Full)${CLR_RESET}" || echo -e "${CLR_YELLOW}OFF (Quiet Mode - Step Progress Only)${CLR_RESET}")"
-log_step "  ${CLR_BOLD}Output Base Dir:${CLR_RESET}      ${OUTPUT_BASE_DIR}"
-log_step "${CLR_CYAN}======================================================================${CLR_RESET}"
-
-# Create output structure
-P1_DIR="${OUTPUT_BASE_DIR}/phase1_scalarized"
-P2_DIR="${OUTPUT_BASE_DIR}/phase2_unconstrained"
-P3_DIR="${OUTPUT_BASE_DIR}/phase3_constrained"
-ANALYSIS_DIR="${OUTPUT_BASE_DIR}/analysis"
-mkdir -p "${P1_DIR}" "${P2_DIR}" "${P3_DIR}" "${ANALYSIS_DIR}"
-
-# Helper function to execute a step with error handling
 execute_step() {
-  local step_title="$1"
-  local cmd="$2"
-  local log_file="$3"
-
-  log_step "${step_title}"
-  if [ "${VERBOSE}" -eq 1 ]; then
-    if ! eval "${cmd}"; then
-      echo -e "\n${CLR_RED}${CLR_BOLD}[ERROR] Step execution failed!${CLR_RESET}" >&2
-      exit 1
+  local name="$1"; shift
+  printf '\n%s\n' "$name"
+  if ((DRY_RUN)); then
+    printf '  '; printf '%q ' "$@"; printf '\n'
+  elif ((QUIET)); then
+    if ! "$@" >"$LOG_DIR/$name.log" 2>&1; then
+      tail -n 25 "$LOG_DIR/$name.log" >&2
+      fail "Step $name failed; see $LOG_DIR/$name.log"
     fi
   else
-    if ! eval "${cmd}" > "${log_file}" 2>&1; then
-      echo -e "\n${CLR_RED}${CLR_BOLD}[ERROR] Step execution failed!${CLR_RESET}" >&2
-      echo -e "${CLR_RED}Error Log Snippet (${log_file}):${CLR_RESET}" >&2
-      tail -n 25 "${log_file}" >&2
-      exit 1
-    fi
+    "$@" 2>&1 | tee "$LOG_DIR/$name.log"
   fi
 }
 
-# ------------------------------------------------------------------------------
-# Step 1: Environment & Binary Verification
-# ------------------------------------------------------------------------------
-log_step "\n\n${CLR_CYAN}${CLR_BOLD}▶ [Step 1/7]${CLR_RESET} ${CLR_BOLD}Verifying environment & executable permissions...${CLR_RESET}"
-chmod +x bin/* 2>/dev/null || true
-export ASTRA_BIN="${PROJECT_ROOT}/bin/astra"
-export GENERATOR_BIN="${PROJECT_ROOT}/bin/generator"
-export PATH="${PROJECT_ROOT}/bin:${PATH}"
-log_step "  ${CLR_GREEN}✓${CLR_RESET} Environment & binary permissions verified"
-
-# ------------------------------------------------------------------------------
-# Step 2: Execute Phase 1 Scalarized BO Production Simulation (Option 2 Suite)
-# ------------------------------------------------------------------------------
-RUN_P1_CMD="mobo-linac run-scalarized \
-    --config configs/mobo_200MeV.yaml \
-    --n-iterations ${N_ITERATIONS} \
-    --batch-size ${BATCH_SIZE} \
-    --num-initial-samples ${NUM_INITIAL_SAMPLES} \
-    --num-workers ${NUM_WORKERS} \
-    --device ${DEVICE} \
-    --seed ${SEED} \
-    --suite option2 \
-    --case ${P1_CASE} \
-    ${RESUME_FLAG} \
-    --output-dir ${P1_DIR}"
-
-execute_step "\n\n${CLR_CYAN}${CLR_BOLD}▶ [Step 2/7]${CLR_RESET} ${CLR_BOLD}Running Phase 1 Scalarized BO Simulation (Option 2: ${P1_CASE})...${CLR_RESET}" "${RUN_P1_CMD}" "${P1_DIR}/simulation.log"
-log_step "  ${CLR_GREEN}✓${CLR_RESET} Phase 1 Simulation complete -> Saved in ${P1_DIR}"
-
-# ------------------------------------------------------------------------------
-# Step 3: Execute Phase 2 Unconstrained MOBO Production Simulation
-# ------------------------------------------------------------------------------
-RUN_P2_CMD="mobo-linac run-unconstrained \
-    --config configs/mobo_200MeV.yaml \
-    --n-iterations ${N_ITERATIONS} \
-    --batch-size ${BATCH_SIZE} \
-    --num-initial-samples ${NUM_INITIAL_SAMPLES} \
-    --num-workers ${NUM_WORKERS} \
-    --device ${DEVICE} \
-    --seed ${SEED} \
-    ${RESUME_FLAG} \
-    --output-dir ${P2_DIR}"
-
-execute_step "\n\n${CLR_CYAN}${CLR_BOLD}▶ [Step 3/7]${CLR_RESET} ${CLR_BOLD}Running Phase 2 Unconstrained MOBO Simulation...${CLR_RESET}" "${RUN_P2_CMD}" "${P2_DIR}/simulation.log"
-log_step "  ${CLR_GREEN}✓${CLR_RESET} Phase 2 Simulation complete -> Saved in ${P2_DIR}"
-
-# ------------------------------------------------------------------------------
-# Step 4: Execute Phase 3 Constrained MOBO Production Simulation
-# ------------------------------------------------------------------------------
-RUN_P3_CMD="mobo-linac run-constrained \
-    --config configs/mobo_200MeV.yaml \
-    --n-iterations ${N_ITERATIONS} \
-    --batch-size ${BATCH_SIZE} \
-    --num-initial-samples ${NUM_INITIAL_SAMPLES} \
-    --num-workers ${NUM_WORKERS} \
-    --device ${DEVICE} \
-    --seed ${SEED} \
-    ${RESUME_FLAG} \
-    --output-dir ${P3_DIR}"
-
-execute_step "\n\n${CLR_CYAN}${CLR_BOLD}▶ [Step 4/7]${CLR_RESET} ${CLR_BOLD}Running Phase 3 Constraint-Aware MOBO Simulation...${CLR_RESET}" "${RUN_P3_CMD}" "${P3_DIR}/simulation.log"
-log_step "  ${CLR_GREEN}✓${CLR_RESET} Phase 3 Simulation complete -> Saved in ${P3_DIR}"
-
-# ------------------------------------------------------------------------------
-# Step 5: Execute 3-Phase Comparative Analysis & Pareto Verification
-# ------------------------------------------------------------------------------
-ANALYSIS_CMD="python3 scripts/run_comparison_and_verification.py \
-    --phase1-dir ${P1_DIR} \
-    --phase2-dir ${P2_DIR} \
-    --phase3-dir ${P3_DIR} \
-    --output-dir ${ANALYSIS_DIR}"
-
-execute_step "\n\n${CLR_CYAN}${CLR_BOLD}▶ [Step 5/7]${CLR_RESET} ${CLR_BOLD}Executing 3-Phase Comparative Analysis & Independent Rerun Audit...${CLR_RESET}" "${ANALYSIS_CMD}" "${ANALYSIS_DIR}/analysis.log"
-log_step "  ${CLR_GREEN}✓${CLR_RESET} 3-Phase Comparative analysis complete -> Saved in ${ANALYSIS_DIR}"
-
-# ------------------------------------------------------------------------------
-# Step 6: Engineering Tolerance Robustness Analysis
-# ------------------------------------------------------------------------------
-mkdir -p ${ANALYSIS_DIR}/robustness
-ROBUST_CMD="python3 scripts/run_robustness_analysis.py \
-    --pareto-csv ${P3_DIR}/pareto.csv \
-    --output-dir ${ANALYSIS_DIR}/robustness \
-    --num-workers ${NUM_WORKERS}"
-
-execute_step "\n\n${CLR_CYAN}${CLR_BOLD}▶ [Step 6/7]${CLR_RESET} ${CLR_BOLD}Running Engineering Tolerance Robustness Analysis...${CLR_RESET}" "${ROBUST_CMD}" "${ANALYSIS_DIR}/robustness.log"
-log_step "  ${CLR_GREEN}✓${CLR_RESET} Robustness analysis complete -> Saved in ${ANALYSIS_DIR}/robustness"
-
-# ------------------------------------------------------------------------------
-# Step 7: Final Summary & Verification Report Generation
-# ------------------------------------------------------------------------------
-log_step "\n\n${CLR_GREEN}${CLR_BOLD}▶ [Step 7/7] Pipeline Execution Finished Successfully!${CLR_RESET}"
-log_step "${CLR_GREEN}======================================================================${CLR_RESET}"
-log_step "${CLR_GREEN}${CLR_BOLD} Summary of Output Directories:${CLR_RESET}"
-log_step "   Phase 1 BO:    ${P1_DIR}"
-log_step "   Phase 2 MOBO:  ${P2_DIR}"
-log_step "   Phase 3 MOBO:  ${P3_DIR}"
-log_step "   Analysis:      ${ANALYSIS_DIR}"
-log_step "   Robustness:    ${ANALYSIS_DIR}/robustness"
-log_step "   Report:        ${ANALYSIS_DIR}/comparison_report.md"
-log_step "${CLR_GREEN}======================================================================${CLR_RESET}"
-
-
+if ((RESUME)); then
+  for case_name in "${CASES[@]}"; do
+    execute_step "phase1_$case_name" "${CLI[@]}" resume --run-dir "$P1_DIR/$case_name" --n-iterations "$N_ITERATIONS"
+  done
+  execute_step phase1_aggregate "$PYTHON_BIN" -c 'import sys; from mobo_linac.campaigns.scalarized_suite import aggregate_scalarized_cases, export_phase1_cases_latex_table; from pathlib import Path; root=Path(sys.argv[1]); aggregate_scalarized_cases(root); export_phase1_cases_latex_table(root/"cases_summary.csv",root/"phase1_cases_table.tex")' "$P1_DIR"
+  execute_step phase2 "${CLI[@]}" resume --run-dir "$P2_DIR" --n-iterations "$N_ITERATIONS"
+  execute_step phase3 "${CLI[@]}" resume --run-dir "$P3_DIR" --n-iterations "$N_ITERATIONS"
+else
+  execute_step phase1 "${CLI[@]}" run-scalarized --suite option2 --case "$P1_CASE" "${COMMON[@]}" --output-dir "$P1_DIR"
+  execute_step phase2 "${CLI[@]}" run-unconstrained "${COMMON[@]}" --output-dir "$P2_DIR"
+  execute_step phase3 "${CLI[@]}" run-constrained "${COMMON[@]}" --output-dir "$P3_DIR"
+fi
+execute_step comparison "$PYTHON_BIN" scripts/run_comparison_and_verification.py \
+  --config "$CONFIG" --phase1-dir "$P1_DIR" --phase2-dir "$P2_DIR" --phase3-dir "$P3_DIR" \
+  --num-workers "$NUM_WORKERS" --output-dir "$ANALYSIS_DIR"
+execute_step robustness "$PYTHON_BIN" scripts/run_robustness_analysis.py \
+  --config "$CONFIG" --pareto-csv "$P3_DIR/pareto_feasible.csv" \
+  --num-workers "$NUM_WORKERS" --num-perturbations "$NUM_PERTURBATIONS" --seed "$SEED" \
+  --output-dir "$ANALYSIS_DIR/robustness"
+if ((DRY_RUN)); then
+  printf '\nCommand preview complete.\n'
+else
+  printf '\nPipeline complete. Review verification statuses and applied robustness channels in %s.\n' "$ANALYSIS_DIR"
+fi

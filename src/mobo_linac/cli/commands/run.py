@@ -20,6 +20,11 @@ def _validated_config(args, optimization_mode="unconstrained_mobo"):
                               batch_size=getattr(args, "batch_size", 8),
                               num_workers=getattr(args, "num_workers", None), seed=getattr(args, "seed", 42),
                               acq_type=getattr(args, "acquisition", "qLogNEHVI"), optimization_mode=optimization_mode)
+    reference = getattr(args, "reporting_ref_point", None)
+    if reference is not None:
+        import math
+        if len(reference) != len(config.objectives) or not all(math.isfinite(value) for value in reference):
+            raise ValueError("Reporting reference must match finite configured objectives.")
     return config
 
 
@@ -58,6 +63,7 @@ def run_unconstrained(args: argparse.Namespace) -> None:
         resume=getattr(args, "resume", False),
         export_plots=True,
         evaluator=evaluator,
+        reporting_ref_point=getattr(args, "reporting_ref_point", None),
         device=getattr(args, "device", "auto"),
     )
     runner.run()
@@ -98,6 +104,7 @@ def run_constrained(args: argparse.Namespace) -> None:
         resume=getattr(args, "resume", False),
         export_plots=True,
         evaluator=evaluator,
+        reporting_ref_point=getattr(args, "reporting_ref_point", None),
         device=getattr(args, "device", "auto"),
     )
     runner.run()
@@ -152,6 +159,7 @@ def run_scalarized(args: argparse.Namespace) -> None:
         resume=getattr(args, "resume", False),
         export_plots=True,
         evaluator=evaluator,
+        reporting_ref_point=getattr(args, "reporting_ref_point", None),
         device=getattr(args, "device", "auto"),
     )
     runner.run()
@@ -201,6 +209,7 @@ def run_scalarized_suite_cmd(args: argparse.Namespace) -> None:
         cases_to_run=cases,
         resume=getattr(args, "resume", False),
         evaluator=evaluator,
+        reporting_ref_point=getattr(args, "reporting_ref_point", None),
     )
 
 

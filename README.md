@@ -472,3 +472,39 @@ and are not silently promoted to measured feasible candidates. The comparison sc
 uses the existing audited verification service. Report generation does not modify
 source campaigns or aggregate missing case files into archived directories; tests
 generate manuscript artifacts under temporary paths.
+
+### Production launcher and campaign planning
+
+The [strategic simulation campaign plan](docs/strategic_simulation_campaign_plan.md)
+defines pilot gates, paired seed/budget comparisons, candidate audits and resource
+accounting. `scripts/run_full_production.sh` runs the Option 2 suite, unconstrained
+and constrained MOBO, comparison/verification, then feasible-candidate robustness.
+It uses one explicit reporting reference and configuration across phases, respects
+custom executable overrides, retains step logs, and accepts `--dry-run` for a
+command preview without outputs. Set `PYTHON_BIN` to the installed environment's
+interpreter. `--resume` uses saved-state continuation; `--iterations` sets the total
+target. Analysis uses the saved Phase 3 configuration on continuation.
+
+```bash
+bash scripts/run_full_production.sh --dry-run --p1-case balanced \
+  --iterations 2 --initial-samples 8 --batch-size 4 \
+  --output-dir results/pilot_200MeV_seed42
+```
+
+New-run CLI commands accept `--reporting-ref-point` in model-space units and
+configured objective order. The nominal shared reference is
+`-0.0000015 -0.0000015 -1500000`; custom objective conventions require a matching
+reference. Option 2 cases share the supplied reference. Their aggregate has a
+larger evaluation budget than either MOBO phase; use paired benchmarks for an
+equal-budget algorithm comparison.
+
+Campaign imports and mock/report workflows do not initialize ASTRA, discover
+executables into environment variables, or patch distgen. Real attempts initialize
+the optional backend inside the isolated worker. `resolve_executable_path()` is a
+read-only discovery helper. Evaluators share serializable `EvaluationRequest`
+objects and typed `EvaluationCompletion` records through
+`mobo_linac.execution.contracts.evaluate_requests()`. Built-in backends advertise
+`supports_completion_callback = True`; legacy `evaluate_batch` implementations
+without that capability publish completions on return. The adapter validates
+candidate identity/parameters, rejects conflicting completions and returns request
+order. Complete overrides/source settings require a request-capable evaluator.

@@ -16,6 +16,8 @@ class MockBatchEvaluator:
     intermittent failure injection, and streaming completion callbacks.
     """
 
+    supports_completion_callback = True
+
     def __init__(
         self,
         run_dir: Optional[Union[str, Path]] = None,
@@ -125,11 +127,23 @@ class MockBatchEvaluator:
 
         return raw_results
 
-    def evaluate_requests(self, requests, run_id="mock_batch"):
-        """Retain full requests while explicitly identifying synthetic evaluations."""
+    def evaluate_requests(self, requests, run_id="mock_batch", on_evaluation_complete=None):
+        """Retain full requests before publishing synthetic completions."""
+        by_id = {f"eval_{r.eval_id:06d}" if isinstance(r.eval_id, int) else str(r.eval_id): r
+                 for r in requests}
+
+        def complete(result):
+            request = by_id[str(result["eval_id"])]
+            result["request"] = request.to_dict()
+            result["execution_kind"] = "mock"
+            if on_evaluation_complete is not None:
+                on_evaluation_complete(result)
+
         results = self.evaluate_batch([request.parameters for request in requests], run_id=run_id,
-                                      eval_ids=[request.eval_id for request in requests])
-        for request, result in zip(requests, results):
+                                      eval_ids=[request.eval_id for request in requests],
+                                      on_evaluation_complete=complete)
+        for result in results:
+            request = by_id[str(result["eval_id"])]
             result["request"] = request.to_dict()
             result["execution_kind"] = "mock"
         return results

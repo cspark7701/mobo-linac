@@ -60,11 +60,11 @@ def run_campaign_variant(
 
 
 
-def verify_pareto_candidates(results, config, output_dir, mock_evaluator=None):
+def verify_pareto_candidates(results, config, output_dir, mock_evaluator=None, num_workers=None):
     """Use the shared audited rerun service, including explicit mock statuses."""
     from mobo_linac.verification.verifier import run_verification_pipeline
     records, _, _ = run_verification_pipeline(results, config=config,
-        output_dir=Path(output_dir) / "verification", mock_evaluator=mock_evaluator)
+        output_dir=Path(output_dir) / "verification", mock_evaluator=mock_evaluator, num_workers=num_workers)
     return [dict(record, status=record["verification_status"]) for record in records]
 
 
@@ -81,6 +81,7 @@ def parse_args():
     parser.add_argument("--phase3-dir", type=str, default="results/full_production/phase3_constrained", help="Phase 3 results directory")
     parser.add_argument("--output-dir", type=str, default="results/full_production/analysis", help="Output analysis directory")
     parser.add_argument("--config", type=str, default="configs/mobo_200MeV.yaml", help="Path to config file")
+    parser.add_argument("--num-workers", type=int, default=None, help="Verification workers (default: configuration)")
     return parser.parse_args()
 
 
@@ -112,7 +113,7 @@ def main():
     plot_pareto_front_comparison(p2_dir, p3_dir, fig_dir / "pareto_front_comparison.png", phase1_dir=p1_dir)
 
     # 2. Pareto Candidate Verification on Phase 3
-    verification_records = verify_pareto_candidates(res_p3 if res_p3 else res_p2, config, output_dir)
+    verification_records = verify_pareto_candidates(res_p3 if res_p3 else res_p2, config, output_dir, num_workers=args.num_workers)
     plot_verification_comparison(output_dir / "verification" / "verification_summary.csv",
                                  fig_dir / "verification_rerun_comparison.png")
 

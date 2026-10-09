@@ -257,3 +257,28 @@ def test_cli_and_script_honor_config_through_shared_workflow(sample_candidate, r
         assert (output / 'robustness_summary.csv').exists()
         assert 'unsupported' in (output / 'robustness_table.tex').read_text()
     assert requests_by_entry[0] == requests_by_entry[1]
+
+
+def test_analysis_streams_typed_results_and_returns_request_order(tmp_path, monkeypatch):
+    from mobo_linac.config import load_config
+    from mobo_linac.execution.mock import MockBatchEvaluator
+    from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask
+    from mobo_linac.evaluation import create_evaluation_result
+    config = load_config('configs/publication_200MeV.yaml')
+    class Analysis(CandidateEvaluatorBase):
+        def generate_evaluation_plan(self, candidates): return []
+    class TypedBackend:
+        supports_completion_callback = True
+        def evaluate_requests(self, requests, run_id, on_evaluation_complete=None):
+            raw = MockBatchEvaluator(tmp_path).evaluate_requests(requests, run_id)
+            results = [create_evaluation_result(row, config) for row in reversed(raw)]
+            for result in results:
+                on_evaluation_complete(result)
+            return results
+    monkeypatch.setattr('mobo_linac.execution.candidate_evaluator.BatchEvaluator', lambda **kwargs: TypedBackend())
+    tasks = [EvaluationTask(name, name, [0.2, 1, -1, 0, 0, 0]) for name in ['first', 'second']]
+    done = []
+    out = Analysis(config=config, base_output_dir=tmp_path).evaluate_plan_parallel(tasks, on_task_complete=done.append)
+    assert [row.task.task_id for row in done] == ['second', 'first']
+    assert [row.task.task_id for row in out] == ['first', 'second']
+    assert all(row.evaluated_result.simulation_valid for row in out)

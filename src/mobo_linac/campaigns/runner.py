@@ -5,8 +5,6 @@ Consolidates optimization loop execution across CLI commands, scripts,
 and interactive notebooks.
 """
 
-from uuid import uuid4
-import hashlib
 from copy import deepcopy
 from datetime import datetime
 import os
@@ -21,25 +19,24 @@ import pandas as pd
 import torch
 
 from botorch.acquisition.logei import qLogNoisyExpectedImprovement
-from botorch.models import ModelListGP, SingleTaskGP
-from botorch.models.transforms.input import Normalize
-from botorch.models.transforms.outcome import Standardize
-from botorch.optim import optimize_acqf
 from mobo_linac import __version__
 from mobo_linac.acquisition.mobo import (
-    SliceObjective,
     build_acquisition_function,
     generate_next_candidates,
 )
 from mobo_linac.config import MoboConfig, config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
 from mobo_linac.campaigns.state import prepare_resume_state, restore_rng_state
 from mobo_linac.campaigns.recovery import load_resume_candidate, reconcile_resume
-from mobo_linac.io.journal import repair_journal_tail, write_streaming_csv, same_evaluation
-from mobo_linac.constraints import get_botorch_constraint_functions
-from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
+from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.parallel import BatchEvaluator
+from mobo_linac.execution.contracts import evaluate_requests
+from mobo_linac.execution.requests import EvaluationRequest
+from mobo_linac.campaigns.strategies import ProposalContext, propose_scalarized, propose_multiobjective
+from mobo_linac.campaigns.storage import persist_model, commit_checkpoint
+from mobo_linac.campaigns.reporting import finalize_campaign
 from mobo_linac.models.artifacts import save_model_artifact
 from mobo_linac.models.gp import build_scalarized_gp_model, fit_gp_models
+from mobo_linac.io.journal import repair_journal_tail, write_streaming_csv
 from mobo_linac.io.results import (
     CheckpointState,
     append_streaming_evaluation,
@@ -310,8 +307,8 @@ class MoboCampaignRunner:
             f"GPyTorch version: {gpytorch.__version__}",
             f"NumPy version: {np.__version__}",
             f"Pandas version: {pd.__version__}",
-            f"ASTRA_BIN: {os.environ.get('ASTRA_BIN', 'Not set')}",
-            f"GENERATOR_BIN: {os.environ.get('GENERATOR_BIN', 'Not set')}",
+            f"ASTRA_BIN: {os.environ.get('ASTRA_BIN', 'Not initialized; see attempt manifests')}",
+            f"GENERATOR_BIN: {os.environ.get('GENERATOR_BIN', 'Not initialized; see attempt manifests')}",
             f"Platform: {platform.platform()}",
             f"Timestamp: {datetime.now().isoformat()}",
         ]
@@ -418,56 +415,20 @@ class MoboCampaignRunner:
             missing_positions = [i for i, identity in enumerate(identities) if identity not in completions]
             missing_ids = [identities[i] for i in missing_positions]
             missing_candidates = [cand_list[i] for i in missing_positions]
-            callback_error = None
-
-            def _stream_callback(raw_res: Dict[str, Any]):
-                nonlocal callback_error
-                try:
-                    raw_res = dict(raw_res)
-                    manifest = raw_res.get("manifest") or {}
-                    identity = raw_res.get("eval_id", manifest.get("eval_id"))
-                    if identity is None:
-                        index = raw_res.get("candidate_idx")
-                        if type(index) is not int or index < 0 or index >= len(missing_ids):
-                            raise ValueError("Evaluator completion lacks a stable candidate identity.")
-                        identity = missing_ids[index]
-                    elif isinstance(identity, int) or str(identity).isdigit():
-                        identity = f"eval_{int(identity):06d}"
-                    if identity not in missing_ids:
-                        raise ValueError("Evaluator returned an unexpected candidate identity.")
-                    position = identities.index(identity)
-                    raw_res["eval_id"] = identity
-                    raw_res.setdefault("run_id", manifest.get("run_id", self.run_id))
-                    raw_res.setdefault("parameters", manifest.get("parameters", cand_list[position]))
-                    eval_res = create_evaluation_result(raw_res, self.config)
-                    if eval_res.run_id != self.run_id or eval_res.x_physical != cand_list[position]:
-                        raise ValueError("Evaluator completion disagrees with submitted candidate.")
-                    previous = completions.get(identity)
-                    if previous is not None:
-                        if not same_evaluation(previous, eval_res):
-                            raise ValueError("Evaluator returned conflicting candidate completions.")
-                        return
-                    append_streaming_evaluation(self.run_dir, eval_res, batch_idx=batch_idx,
-                                                candidate_idx=position, config=self.config)
-                    completions[identity] = eval_res
-                    elapsed_by_id[eval_res.evaluation_id] = elapsed()
-                except Exception as error:
-                    callback_error = error
-                    raise
+            def _stream_callback(completion):
+                eval_res = completion.result
+                identity = eval_res.evaluation_id
+                position = identities.index(identity)
+                append_streaming_evaluation(self.run_dir, eval_res, batch_idx=batch_idx,
+                                            candidate_idx=position, config=self.config)
+                completions[identity] = eval_res
+                elapsed_by_id[identity] = elapsed()
 
             if missing_ids:
-                import inspect
-                sig = inspect.signature(evaluator.evaluate_batch)
-                kwargs = dict(run_id=self.run_id, eval_ids=missing_ids)
-                if "on_evaluation_complete" in sig.parameters:
-                    kwargs["on_evaluation_complete"] = _stream_callback
-                raw_out = evaluator.evaluate_batch(missing_candidates, **kwargs)
-                if callback_error is not None:
-                    raise callback_error  # Also detect custom evaluators that swallow callback errors.
-                for index, raw in enumerate(raw_out):
-                    raw = dict(raw)
-                    raw.setdefault("candidate_idx", index)
-                    _stream_callback(raw)
+                evaluate_requests(evaluator,
+                    [EvaluationRequest(identity, candidate) for identity, candidate
+                     in zip(missing_ids, missing_candidates)], run_id=self.run_id,
+                    config=self.config, on_complete=_stream_callback)
             if set(completions) != set(identities):
                 raise ValueError("Evaluator did not return every submitted candidate completion.")
             return [completions[identity] for identity in identities]
@@ -484,22 +445,18 @@ class MoboCampaignRunner:
 
         def _persist_model(model, iteration, training, pipeline=False):
             nonlocal model_artifact
-            path = self.run_dir / "gp_checkpoint" / f"model_iter_{iteration:02d}_{uuid4().hex}.pt"
             metadata = {"run_id": self.run_id, "proposal_iteration": iteration,
                         "optimization_mode": self.optimization_mode,
                         "objective_schema": [vars(obj) for obj in self.config.objectives],
                         "scalar_weights": self.scalar_weights.tolist(), "reporting_scales": list(schema.scales)}
-            if pipeline:
-                model.save_artifact(path, training_ids=training.evaluation_ids, metadata=metadata)
-            else:
-                save_model_artifact(model, path, training_ids=training.evaluation_ids, metadata=metadata)
-            model_artifact = {"path": str(path.resolve()), "sha256": hashlib.sha256(path.read_bytes()).hexdigest(),
-                              "proposal_iteration": iteration}
+            model_artifact = persist_model(self.run_dir, model, iteration, training.evaluation_ids,
+                                           metadata, pipeline=pipeline, save_model=save_model_artifact)
 
 
         def _persist_checkpoint(iteration: int, pending=None):
             checkpoint_mode = "scalarized_qLogNEI" if self.optimization_mode == "scalarized_bo" else self.acq_type
-            save_run_checkpoint(
+            commit_checkpoint(self.run_dir, proposal_history, pending_path, pending,
+                save_checkpoint=save_run_checkpoint,
                 iteration=iteration,
                 results=results,
                 hypervolumes=[record["feasible_hypervolume"] for record in tracker.history] if tracker is not None else [],
@@ -534,15 +491,6 @@ class MoboCampaignRunner:
                 },
             )
 
-            if pending is None and pending_path.exists():
-                pending_path.unlink()
-                directory_fd = os.open(pending_path.parent, os.O_RDONLY)
-                try:
-                    os.fsync(directory_fd)
-                finally:
-                    os.close(directory_fd)
-
-            atomic_json(self.run_dir / "proposal_history.json", proposal_history)
 
         if resume_state is not None:
             repair_journal_tail(self.run_dir)
@@ -618,115 +566,19 @@ class MoboCampaignRunner:
                 proposal_metadata = {"method": "low_data_sobol", "device": "cpu", "attempts": [],
                                      "fallback_reason": "fewer than two observed training rows",
                                      "sobol": {"seed": self.seed, "start": sobol_start, "end": sobol_engine.num_generated}}
-            elif self.optimization_mode == "scalarized_bo":
-                # Scalarized single-objective GP surrogate with qLogNEI
-                weights_dev = self.scalar_weights.to(dtype=torch.double, device=self.device)
-                train_X_dev = train_X.to(dtype=torch.double, device=self.device)
-                train_Y_dev = train_Y.to(dtype=torch.double, device=self.device)
-                # Scale objectives to dimensionless O(1) space [1 um*rad, 1 um*rad, 1 MeV]
-                # so weights reflect true physical trade-off balance
-                scales_dev = torch.tensor(schema.scales, dtype=torch.double, device=self.device)
-                train_Y_scaled = train_Y_dev / scales_dev
-                scalar_Y = (train_Y_scaled * weights_dev).sum(dim=-1, keepdim=True)
-
-                bounds_dev = bounds.to(device=self.device, dtype=torch.double)
-                gp = build_scalarized_gp_model(
-                    train_X=train_X_dev,
-                    train_Y=scalar_Y,
-                    bounds=bounds_dev,
-                    covar_type=self.config.model.covar_type,
-                    noise_mode=self.config.model.noise_mode,
-                    fixed_noise_val=self.config.model.fixed_noise_variance,
-                    relative_noise_ratio=self.config.model.relative_noise_ratio,
-                    min_noise_variance=self.config.model.min_noise_variance,
-                    device=self.device,
-                )
-                fit_gp_models(gp)
-                _persist_model(gp, iteration, training)
-
-                if self.device.type == "cuda" and torch.cuda.is_available():
-                    torch.cuda.empty_cache()
-
-                acq_func = qLogNoisyExpectedImprovement(
-                    model=gp,
-                    X_baseline=train_X_dev,
-                    prune_baseline=True,
-                )
-                exec_cfg = self.config.execution
-                b_limit = 1 if self.device.type == "cuda" else getattr(exec_cfg, "acqf_batch_limit", 5)
-                proposal_result = generate_next_candidates(
-                    acq_func=acq_func,
-                    bounds=bounds_dev,
-                    batch_size=proposal_batch_size,
-                    num_restarts=getattr(exec_cfg, "acqf_num_restarts", 10),
-                    raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
-                    maxiter=getattr(exec_cfg, "acqf_maxiter", 200),
-                    batch_limit=b_limit,
-                    device=self.device,
-                    sobol_engine=sobol_engine,
-                )
-                candidates, _ = proposal_result
-                proposal_metadata = getattr(proposal_result, "metadata", None)
-                next_cand_list = candidates.detach().cpu().tolist()
             else:
-                pipeline = SurrogatePipeline(
-                    bounds=bounds,
-                    covar_type=self.config.model.covar_type,
-                    noise_mode=self.config.model.noise_mode,
-                    fixed_noise_val=self.config.model.fixed_noise_variance,
-                    relative_noise_ratio=self.config.model.relative_noise_ratio,
-                    min_noise_variance=self.config.model.min_noise_variance,
-                    objective_noise_variances=self.config.model.objective_noise_variances,
-                    constraints_config=self.config.constraints,
-                    device=self.device,
-                )
-
-                if self.constrained:
-                    pipeline.fit(train_X, train_Y, training.constraints)
-                    if pipeline.constraint_model is not None:
-                        gp_model = ModelListGP(*pipeline.objective_model.models, *pipeline.constraint_model.models).to(device=self.device, dtype=torch.double)
-                        botorch_constraints = get_botorch_constraint_functions(self.config, num_objectives=train_Y.shape[-1])
-                        objective_slice = SliceObjective(num_objectives=train_Y.shape[-1])
-                    else:
-                        gp_model = pipeline.objective_model
-                        botorch_constraints = None
-                        objective_slice = None
-                else:
-                    pipeline.fit(train_X, train_Y)
-                    gp_model = pipeline.objective_model
-                    botorch_constraints = None
-                    objective_slice = None
-
-                _persist_model(pipeline, iteration, training, pipeline=True)
-
-                acq_ref_point = compute_reference_point(train_Y, offset_ratio=0.05, config=self.config)
-
-                acq_func = build_acquisition_function(
-                    model=gp_model,
-                    train_X=train_X,
-                    train_Y=train_Y,
-                    ref_point=acq_ref_point,
-                    train_feas_mask=train_feas_mask,
-                    acq_type=self.acq_type,
-                    constraints=botorch_constraints,
-                    objective=objective_slice,
-                )
-
-                exec_cfg = self.config.execution
-                proposal_result = generate_next_candidates(
-                    acq_func=acq_func,
-                    bounds=bounds,
-                    batch_size=proposal_batch_size,
-                    num_restarts=getattr(exec_cfg, "acqf_num_restarts", 10),
-                    raw_samples=getattr(exec_cfg, "acqf_raw_samples", 1024),
-                    maxiter=getattr(exec_cfg, "acqf_maxiter", 200),
-                    batch_limit=getattr(exec_cfg, "acqf_batch_limit", 5),
-                    device=self.device,
-                    sobol_engine=sobol_engine,
-                )
-                next_cand_tensor, _ = proposal_result
-                proposal_metadata = getattr(proposal_result, "metadata", None)
-                next_cand_list = next_cand_tensor.detach().cpu().tolist()
+                context = ProposalContext(self.config, self.device, self.scalar_weights,
+                                          self.constrained, self.acq_type)
+                strategy = propose_scalarized if self.optimization_mode == "scalarized_bo" else propose_multiobjective
+                next_cand_list, proposal_metadata = strategy(
+                    context, training, bounds, schema, iteration, proposal_batch_size,
+                    sobol_engine, _persist_model,
+                    {"build_scalarized_gp_model": build_scalarized_gp_model,
+                     "fit_gp_models": fit_gp_models,
+                     "qLogNoisyExpectedImprovement": qLogNoisyExpectedImprovement,
+                     "generate_next_candidates": generate_next_candidates,
+                     "SurrogatePipeline": SurrogatePipeline,
+                     "build_acquisition_function": build_acquisition_function})
 
 
             batch_results = _evaluate_with_streaming(next_cand_list, batch_idx=iteration, proposal_metadata=proposal_metadata)
@@ -752,20 +604,10 @@ class MoboCampaignRunner:
         writer.write(results, tracker, elapsed_wall_times=[elapsed_by_id.get(r.evaluation_id) for r in results],
                      elapsed_wall_time_s=elapsed(), reference_policy=reference_policy, timing_scope=timing_scope)
 
-        # Export Plots
-        if self.export_plots:
-            figures_dir = self.run_dir / "figures"
-            figures_dir.mkdir(parents=True, exist_ok=True)
-            plot_hypervolume_progress(tracker.to_dataframe(), figures_dir / "hypervolume_progress.png")
-            plot_pareto_front(results, figures_dir / "pareto_front.png", config=self.config)
-            plot_objective_evolution(results, figures_dir / "objective_evolution.png", config=self.config)
-            plot_constraint_diagnostics(results, figures_dir / "constraint_diagnostics.png")
-
-        atomic_json(self.run_dir / "proposal_history.json", proposal_history)
-        required = ["config.json", "config.yaml", "checkpoints/checkpoint.pt", "proposal_history.json"]
-        if self.export_plots:
-            required += [f"figures/{name}.png" for name in ("hypervolume_progress", "pareto_front", "objective_evolution", "constraint_diagnostics")]
-        writer.complete(len(results), elapsed(), required)
+        finalize_campaign(writer, results, tracker, self.run_dir, self.config, proposal_history,
+                          self.export_plots, elapsed(),
+                          (plot_hypervolume_progress, plot_pareto_front,
+                           plot_objective_evolution, plot_constraint_diagnostics))
         logger.info(f"=== Campaign Complete: {self.run_id} ===")
         logger.info(f"Total Evaluations: {len(results)}")
         logger.info(f"Output saved in: {self.run_dir.resolve()}\n")

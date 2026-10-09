@@ -373,3 +373,30 @@ def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monke
         assert loaded.manifest_path == accepted.manifest_path
         assert loaded.attempt_history == history
     assert CheckpointState.from_dict({'iteration': 1, 'results_serialized': [accepted.to_dict()]}).results[0].attempt_id == accepted.attempt_id
+
+
+@pytest.mark.parametrize("submission_crash", [False, True])
+def test_worker_crash_retains_serializable_request_and_order(tmp_path, monkeypatch, submission_crash):
+    import pickle
+    from concurrent.futures import Future
+    from mobo_linac.execution.requests import EvaluationRequest
+    import mobo_linac.execution.parallel as parallel
+    captured = []
+    class Pool:
+        def __init__(self, **kwargs): pass
+        def submit(self, worker, task):
+            captured.append(pickle.loads(pickle.dumps(task)))
+            if submission_crash:
+                raise RuntimeError("broken pool during submission")
+            future = Future()
+            future.set_exception(RuntimeError('simulated process crash'))
+            return future
+        def shutdown(self, **kwargs): pass
+    monkeypatch.setattr(parallel, 'ProcessPoolExecutor', Pool)
+    requests = [EvaluationRequest(f'candidate_{i}', [0.2, 1, -1, 0, 0, 0],
+                                 {'charge:nrad': i + 1}, metadata={'index': i}) for i in range(2)]
+    out = BatchEvaluator(base_results_dir=tmp_path, max_workers=2).evaluate_requests(requests, run_id='crash')
+    assert [row['eval_id'] for row in out] == [request.eval_id for request in requests]
+    assert all(row['status'] == 'failed' and 'Worker process crashed' in row['error'] for row in out)
+    assert [row['request'] for row in out] == [request.to_dict() for request in requests]
+    assert [task['request'] for task in captured] == [request.to_dict() for request in requests]
