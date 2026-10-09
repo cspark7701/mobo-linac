@@ -125,7 +125,7 @@ def test_repeatability_utility():
 
     from mobo_linac.config import load_config
     config = load_config("configs/mobo_200MeV.yaml")
-    var_dict = compute_measured_noise_variance(results, config, min_variance=1.0e-10)
+    var_dict = compute_measured_noise_variance(results, config, min_relative_std=1.0e-6)
     assert "norm_emit_x_m_rad" in var_dict
     assert var_dict["norm_emit_x_m_rad"] > 0
 
@@ -224,8 +224,9 @@ def test_tune_gp_hyperparameters(dummy_data):
     assert tuning_summary.best_candidate is not None
     assert len(tuning_summary.candidates) == 4
     assert not tuning_summary.comparison_table.empty
-    assert "Overall R^2" in tuning_summary.comparison_table.columns
-    assert tuning_summary.best_candidate.overall_r2 >= -1.0
+    assert "LOO Log Predictive Density" in tuning_summary.comparison_table.columns
+    assert tuning_summary.best_candidate.status == "SUCCESS"
+    assert np.isfinite(tuning_summary.best_candidate.mean_loo_log_predictive_density)
 
 
 def test_build_scalarized_gp_model(dummy_data):
@@ -335,3 +336,45 @@ def test_unusable_prior_is_not_advertised_as_fitted(dummy_data, monkeypatch):
     with pytest.raises(RuntimeError, match="nonfinite parameters"):
         fit_gp_models(model)
     assert not hasattr(model, "fit_outcomes")
+
+
+def test_exact_loo_matches_explicit_leave_one_out_conditioning():
+    """Closed-form LOO equals conditioning the same fitted GP on the other observations."""
+    from mobo_linac.models.diagnostics import loo_predictions
+    torch.manual_seed(0)
+    train_X = torch.rand(9, 2, dtype=torch.double)
+    train_Y = torch.sin(4 * train_X[:, :1]) + train_X[:, 1:] ** 2
+    bounds = torch.tensor([[0.0, 0.0], [1.0, 1.0]], dtype=torch.double)
+    gp = fit_gp_models(build_gp_models(train_X, train_Y, bounds, device="cpu")).models[0]
+    loo = loo_predictions(gp)
+    inputs, targets = gp.train_inputs[0], gp.train_targets
+    with torch.no_grad():
+        K = gp.covar_module(inputs).to_dense() + torch.diag_embed(gp.likelihood.noise.reshape(-1).expand(9))
+        mean = gp.mean_module(inputs)
+    for i in range(9):
+        keep = [j for j in range(9) if j != i]
+        k = K[i, keep]
+        solve = torch.linalg.solve(K[keep][:, keep], torch.stack([targets[keep] - mean[keep], k], dim=-1))
+        assert loo["mean_std"][i] == pytest.approx(float(mean[i] + k @ solve[:, 0]), rel=1e-5, abs=1e-8)  # stabilizing jitter
+        assert loo["var_std"][i] == pytest.approx(float(K[i, i] - k @ solve[:, 1]), rel=1e-5, abs=1e-10)
+
+
+def test_tuning_records_failures_without_sentinel_scores(monkeypatch):
+    from mobo_linac.models import tuning
+    train_X = torch.rand(8, 2, dtype=torch.double)
+    train_Y = torch.rand(8, 2, dtype=torch.double)
+    bounds = torch.tensor([[0.0, 0.0], [1.0, 1.0]], dtype=torch.double)
+    original = tuning.build_gp_models
+
+    def flaky(**kwargs):
+        if kwargs["covar_type"] == "rbf":
+            raise RuntimeError("injected rbf failure")
+        return original(**kwargs)
+
+    monkeypatch.setattr(tuning, "build_gp_models", flaky)
+    summary = tuning.tune_gp_hyperparameters(train_X, train_Y, bounds, candidate_noise_ratios=[1e-6],
+                                             candidate_noise_modes=["deterministic_fixed"])
+    failed = [c for c in summary.candidates if c.status == "FAILED"]
+    assert len(failed) == 1 and "injected rbf failure" in failed[0].error
+    assert np.isnan(failed[0].mean_loo_log_predictive_density)
+    assert summary.best_candidate.covar_type == "matern52"

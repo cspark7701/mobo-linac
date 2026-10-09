@@ -111,15 +111,14 @@ def test_predictive_diagnostics_calculation():
 
     assert diag_dict["num_samples"] == 20
     assert diag_dict["num_objectives"] == 3
-    assert "overall_rmse" in diag_dict
-    assert "overall_r2" in diag_dict
+    assert "mean_in_sample_r2" in diag_dict
+    assert "mean_loo_log_predictive_density" in diag_dict
 
     for obj_name in ["norm_emit_x", "norm_emit_y", "sigma_energy"]:
-        assert obj_name in diag_dict["objectives"]
         obj_diag = diag_dict["objectives"][obj_name]
-        assert "rmse" in obj_diag
-        assert "r2" in obj_diag
-        assert "mean_standardized_residual" in obj_diag
+        assert {"in_sample_rmse", "in_sample_r2", "loo_rmse", "loo_log_predictive_density",
+                "loo_coverage_1sigma", "loo_coverage_2sigma", "mean_standardized_residual"} <= set(obj_diag)
+        assert "loo_rmse_estimate" not in obj_diag
 
 
 def test_constrained_acquisition_construction():
@@ -294,7 +293,14 @@ def test_tune_full_optimization_pipeline():
         train_X=train_X,
         train_Y=train_Y,
         bounds=bounds,
+        ref_point=torch.tensor([-1.0, -1.0, -1.0], dtype=torch.double),
         batch_size=2,
+        candidate_covars=["matern52"],
+        candidate_noise_ratios=[1.0e-6],
+        candidate_acq_types=["qLogNEHVI", "qEHVI"],
+        candidate_restarts=[2],
+        candidate_raw_samples=[16],
+        maxiter=5,
     )
 
     assert pipeline_summary.best_gp_config is not None

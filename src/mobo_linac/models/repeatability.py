@@ -16,26 +16,31 @@ from mobo_linac.result_schema import ResultSchema
 def compute_measured_noise_variance(
     results: List[EvaluationResult],
     config,
-    min_variance: float = 1.0e-8,
+    min_relative_std: float = 1.0e-6,
 ) -> Dict[str, float]:
     """
-    Computes measured variance across configured objective columns from repeated runs.
+    Measured variance of each configured objective from repeated evaluations.
+
+    The variance floor is relative to each objective's reporting scale,
+    ``(min_relative_std * scale)**2``, so it is negligible for objectives of any
+    magnitude (an absolute floor of 1e-8 would exceed the squared emittance itself).
 
     Args:
         results: EvaluationResult instances evaluated at identical or near-identical inputs.
-        config: MoboConfig or ResultSchema defining the objective order and names.
-        min_variance: Floor for calculated variance.
+        config: MoboConfig or ResultSchema defining the objective order, names and scales.
+        min_relative_std: Floor standard deviation as a fraction of the reporting scale.
 
     Returns:
         Dict mapping configured physical objective column -> measured variance value.
     """
     schema = ResultSchema.from_config(config)
+    floors = [(min_relative_std * scale) ** 2 for scale in schema.scales]
     valid_objs = [r.objectives_physical for r in results if r.simulation_valid and r.objectives_physical]
     if len(valid_objs) < 2:
-        return {name: min_variance for name in schema.physical_columns}
+        return dict(zip(schema.physical_columns, floors))
 
     variances = np.var(np.array(valid_objs), axis=0, ddof=1)
-    return {name: float(max(value, min_variance)) for name, value in zip(schema.physical_columns, variances)}
+    return {name: float(max(value, floor)) for name, value, floor in zip(schema.physical_columns, variances, floors)}
 
 
 def create_measured_yvar_tensor(

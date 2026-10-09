@@ -66,3 +66,11 @@ Comparison functions enforce strict validation before comparing metrics between 
 - Verification of identical objective normalization scale factors $\mathbf{S}$.
 - Verification of identical fixed reporting reference points $R_{\text{reporting}}$.
 - Verification of identical physical constraint specifications.
+
+---
+
+## 6. Surrogate and Acquisition Settings Selection
+
+`mobo_linac.models.tuning` ranks GP settings by the exact leave-one-out (LOO) mean log predictive density in standardized output units, computed in closed form for the fitted hyperparameters ($\mu_{-i} = y_i - [K^{-1}r]_i/[K^{-1}]_{ii}$, $\sigma^2_{-i} = 1/[K^{-1}]_{ii}$). In-sample RMSE and $R^2$ are reported but never used for ranking, since an interpolating GP fits its training data almost exactly. LOO RMSE and ±1σ/±2σ coverage are reported for calibration.
+
+Acquisition types and optimizer budgets are ranked by the expected hypervolume improvement of their proposed batch, evaluated with one common non-log Monte Carlo estimator (fixed QMC sampler) at the campaign's recorded reporting reference, so log and non-log acquisitions are compared on the same scale. Candidate diversity and timing are diagnostics only. Failed candidates keep their error and are excluded from ranking. Measured-noise variance floors are relative to each objective's reporting scale.
