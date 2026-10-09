@@ -14,7 +14,7 @@ from botorch.models import ModelListGP
 
 from mobo_linac.config import ConstraintsConfig, MoboConfig
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
-from mobo_linac.models.gp import build_gp_models, fit_gp_models
+from mobo_linac.models.gp import SurrogateSettings, build_gp_models, channel_record, fit_gp_models, fit_outcomes
 
 
 class SurrogatePipeline:
@@ -25,26 +25,15 @@ class SurrogatePipeline:
     def __init__(
         self,
         bounds: Tensor,
-        covar_type: str = "matern52",
-        noise_mode: str = "deterministic_fixed",
-        fixed_noise_val: Optional[float] = None,
-        relative_noise_ratio: float = 1.0e-6,
-        min_noise_variance: float = 1.0e-24,
-        objective_noise_variances: Optional[List[float]] = None,
+        settings: SurrogateSettings = SurrogateSettings(),
         constraints_config: Optional[Union[ConstraintsConfig, MoboConfig]] = None,
         device: Optional[Union[str, torch.device]] = None,
         constraint_layout: str = "diagnostics",
     ):
         from mobo_linac.utils import get_device
-        self.device = get_device(device if isinstance(device, str) else (str(device) if device is not None else None))
-
+        self.device = get_device(device)
         self.bounds = bounds.to(dtype=torch.double, device=self.device)
-        self.covar_type = covar_type
-        self.noise_mode = noise_mode
-        self.fixed_noise_val = fixed_noise_val
-        self.relative_noise_ratio = relative_noise_ratio
-        self.min_noise_variance = min_noise_variance
-        self.objective_noise_variances = objective_noise_variances
+        self.settings = settings
 
         if isinstance(constraints_config, MoboConfig):
             self.constraints_config: Optional[ConstraintsConfig] = constraints_config.constraints
@@ -62,6 +51,12 @@ class SurrogatePipeline:
         self.is_fitted: bool = False
         self.fit_outcomes = {}
         self.training_ids = []
+        self.campaign_metadata = {}
+
+    @classmethod
+    def from_config(cls, config: MoboConfig, bounds: Tensor, device=None) -> "SurrogatePipeline":
+        return cls(bounds, SurrogateSettings.from_config(config.model), constraints_config=config.constraints,
+                   device=device)
 
     def fit(
         self,
@@ -118,15 +113,7 @@ class SurrogatePipeline:
 
         # Fit objective surrogates
         self.objective_model = build_gp_models(
-            train_X=train_X_dbl,
-            train_Y=train_Y_dbl,
-            bounds=self.bounds,
-            covar_type=self.covar_type,
-            noise_mode=self.noise_mode,
-            fixed_noise_val=self.fixed_noise_val,
-            relative_noise_ratio=self.relative_noise_ratio,
-            min_noise_variance=self.min_noise_variance,
-            objective_noise_variances=self.objective_noise_variances,
+            train_X_dbl, train_Y_dbl, self.bounds, self.settings,
             train_Yvar=train_Yvar.to(dtype=torch.double, device=self.device) if train_Yvar is not None else None,
             device=self.device,
         )
@@ -135,26 +122,17 @@ class SurrogatePipeline:
         # Fit constraint surrogates if provided
         if train_constraints is not None and train_constraints.numel() > 0:
             c_dbl = train_constraints.to(dtype=torch.double, device=self.device)
+            # Constraint channels share the scalar noise settings, not the per-objective variances.
             self.constraint_model = build_gp_models(
-                train_X=train_X_dbl,
-                train_Y=c_dbl,
-                bounds=self.bounds,
-                covar_type=self.covar_type,
-                noise_mode=self.noise_mode,
-                train_Yvar=train_constraints_var,
-                fixed_noise_val=self.fixed_noise_val,
-                relative_noise_ratio=self.relative_noise_ratio,
-                min_noise_variance=self.min_noise_variance,
-                device=self.device,
+                train_X_dbl, c_dbl, self.bounds, self.settings, train_Yvar=train_constraints_var,
+                per_output_noise=False, device=self.device,
             )
             self.constraint_model = fit_gp_models(self.constraint_model)
         else:
             self.constraint_model = None
 
-        self.fit_outcomes = {
-            "objectives": getattr(self.objective_model, "fit_outcomes", ()),
-            "constraints": getattr(self.constraint_model, "fit_outcomes", ()),
-        }
+        self.fit_outcomes = {"objectives": fit_outcomes(self.objective_model),
+                             "constraints": fit_outcomes(self.constraint_model)}
         # A verified restored_prior can predict, while its outcome remains explicit.
         self.is_fitted = True
         return self
@@ -173,19 +151,13 @@ class SurrogatePipeline:
         if not self.is_fitted:
             raise RuntimeError("Cannot save an unfitted pipeline.")
         ids = self.training_ids if training_ids is None else list(training_ids)
-        rows = self.objective_model.models[0].artifact_metadata["train_X"].shape[0]
+        rows = channel_record(self.objective_model.models[0]).train_X.shape[0]
         if ids and len(ids) != rows:
             raise ValueError("training_ids must align with observation rows.")
         atomic_torch_save({
             "version": ARTIFACT_VERSION, "kind": "pipeline",
-            "settings": {
-                "bounds": self.bounds.detach().cpu(), "covar_type": self.covar_type,
-                "noise_mode": self.noise_mode, "fixed_noise_val": self.fixed_noise_val,
-                "relative_noise_ratio": self.relative_noise_ratio,
-                "min_noise_variance": self.min_noise_variance,
-                "objective_noise_variances": self.objective_noise_variances,
-                "constraint_layout": self.constraint_layout,
-            },
+            "settings": {"bounds": self.bounds.detach().cpu(), "surrogate": asdict(self.settings),
+                         "constraint_layout": self.constraint_layout},
             "constraints_config": asdict(self.constraints_config),
             "objectives": model_payload(self.objective_model),
             "constraints": model_payload(self.constraint_model) if self.constraint_model is not None else None,
@@ -198,15 +170,26 @@ class SurrogatePipeline:
         artifact = read_artifact(path)
         if artifact["kind"] != "pipeline":
             raise ValueError("Expected a pipeline artifact.")
-        pipeline = cls(**artifact["settings"],
-                       constraints_config=ConstraintsConfig(**artifact["constraints_config"]), device=device)
+        stored = dict(artifact["settings"])
+        bounds, layout = stored.pop("bounds"), stored.pop("constraint_layout", "diagnostics")
+        if "surrogate" in stored:
+            settings = SurrogateSettings(**stored["surrogate"])
+        else:  # archived flat settings
+            mode = stored.get("noise_mode", "deterministic_fixed")
+            settings = SurrogateSettings(
+                covar_type=stored.get("covar_type", "matern52"),
+                noise_mode="deterministic_fixed" if mode == "fixed" else mode,
+                fixed_noise_variance=stored.get("fixed_noise_val"),
+                relative_noise_ratio=stored.get("relative_noise_ratio", 1.0e-6),
+                min_noise_variance=stored.get("min_noise_variance", 1.0e-24),
+                objective_noise_variances=stored.get("objective_noise_variances"))
+        pipeline = cls(bounds, settings, constraints_config=ConstraintsConfig(**artifact["constraints_config"]),
+                       device=device, constraint_layout=layout)
         pipeline.objective_model = restore_model(artifact["objectives"], device=device)
         if artifact["constraints"] is not None:
             pipeline.constraint_model = restore_model(artifact["constraints"], device=device)
-        pipeline.fit_outcomes = {
-            "objectives": pipeline.objective_model.fit_outcomes,
-            "constraints": getattr(pipeline.constraint_model, "fit_outcomes", ()),
-        }
+        pipeline.fit_outcomes = {"objectives": fit_outcomes(pipeline.objective_model),
+                                 "constraints": fit_outcomes(pipeline.constraint_model)}
         pipeline.training_ids = artifact["training_ids"]
         pipeline.campaign_metadata = artifact["metadata"]
         pipeline.is_fitted = True

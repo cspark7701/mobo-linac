@@ -172,6 +172,14 @@ class ExecutionConfig:
     acqf_raw_samples: int = 1024
     acqf_maxiter: int = 200
     acqf_batch_limit: int = 5
+    # Reduced-budget fallback tiers of the acquisition optimizer and the CUDA batch limit
+    # (recorded in proposal metadata).
+    acqf_retry_maxiter: int = 100
+    acqf_retry_restart_divisor: int = 2
+    acqf_retry_min_restarts: int = 2
+    acqf_retry_raw_samples_divisor: int = 4
+    acqf_retry_min_raw_samples: int = 32
+    acqf_cuda_batch_limit: int = 1
     # Reference policy: the reporting reference is fixed once from the initial design with
     # this fractional range offset (unless supplied explicitly); the acquisition reference
     # is recomputed each iteration from the selected observations with its own offset.
@@ -193,7 +201,7 @@ class GpModelConfig:
     """Configuration for GP surrogate modeling and noise treatment."""
 
     covar_type: str = "matern52"
-    noise_mode: str = "deterministic_fixed"  # "deterministic_fixed", "fixed", "inferred", or "measured_fixed"
+    noise_mode: str = "deterministic_fixed"  # "deterministic_fixed", "inferred", or "measured_fixed"
     fixed_noise_variance: Optional[float] = None
     relative_noise_ratio: float = 1.0e-6
     min_noise_variance: float = 1.0e-24
@@ -417,7 +425,11 @@ FIELD_RULES = {
                          "static_files": {"uniqueItems": True, "items": {"type": "string", "minLength": 1}},
                          "executable": {"minLength": 1}},
     "ExecutionConfig": {
-        **{name: {"minimum": 1} for name in ("timeout_sec", "max_workers", "acqf_num_restarts", "acqf_raw_samples", "acqf_maxiter", "acqf_batch_limit")},
+        **{name: {"minimum": 1} for name in ("timeout_sec", "max_workers", "acqf_num_restarts", "acqf_raw_samples",
+                                             "acqf_maxiter", "acqf_batch_limit", "acqf_retry_maxiter",
+                                             "acqf_retry_restart_divisor", "acqf_retry_min_restarts",
+                                             "acqf_retry_raw_samples_divisor", "acqf_retry_min_raw_samples",
+                                             "acqf_cuda_batch_limit")},
         "retries": {"minimum": 0},
         "reporting_reference_offset": {"minimum": 0}, "acquisition_reference_offset": {"minimum": 0},
         "acquisition_reference_basis": {"enum": ["all_valid", "feasible"]},
@@ -427,7 +439,7 @@ FIELD_RULES = {
     },
     "GpModelConfig": {
         "covar_type": {"enum": ["matern52", "rbf"]},
-        "noise_mode": {"enum": ["deterministic_fixed", "fixed", "inferred", "measured_fixed"]},
+        "noise_mode": {"enum": ["deterministic_fixed", "inferred", "measured_fixed"]},
         **{name: {"exclusiveMinimum": 0} for name in ("fixed_noise_variance", "relative_noise_ratio", "min_noise_variance")},
         "objective_noise_variances": {"minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}},
     },
@@ -671,6 +683,7 @@ def migrate_legacy_layout(data: Dict[str, Any]) -> Dict[str, Any]:
 
     - ``execution.z_stop_m``/``z_loss_tolerance_m`` moved to the ``tracking`` section.
     - ``execution.template_dir`` moved to ``simulation.template_dir``.
+    - ``model.noise_mode: fixed`` is the former alias of ``deterministic_fixed``.
     - A ``sensitivity_profiles.nominal`` entry identical to ``constraints`` is dropped
       (the nominal profile *is* the top-level constraints); a differing one is rejected.
     """
@@ -684,6 +697,9 @@ def migrate_legacy_layout(data: Dict[str, Any]) -> Dict[str, Any]:
                 if name in tracking and tracking[name] != value:
                     raise ValueError(f"Conflicting execution.{name} and tracking.{name}.")
                 tracking[name] = value
+    model = data.get("model")
+    if isinstance(model, dict) and model.get("noise_mode") == "fixed":
+        data["model"] = dict(model, noise_mode="deterministic_fixed")  # former alias
     if isinstance(execution, dict) and "template_dir" in execution:
         template = execution.pop("template_dir")
         if template is not None:

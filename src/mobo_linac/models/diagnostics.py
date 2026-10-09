@@ -17,6 +17,8 @@ from typing import Any, Dict, List, Optional
 import numpy as np
 import torch
 
+from mobo_linac.utils.device import module_device
+
 
 def _single_models(model) -> List[Any]:
     return list(model.models) if hasattr(model, "models") else [model]
@@ -69,10 +71,7 @@ def compute_predictive_diagnostics(
     LOO mean log predictive density in standardized units (comparable across outputs),
     and the LOO coverage of the +-1 and +-2 sigma intervals.
     """
-    try:
-        model_device = next(model.parameters()).device
-    except (StopIteration, AttributeError):
-        model_device = train_X.device
+    model_device = module_device(model, train_X.device)
 
     train_X_dbl = train_X.to(device=model_device, dtype=torch.double)
     train_Y_dbl = train_Y.to(device=model_device, dtype=torch.double)

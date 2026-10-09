@@ -9,7 +9,7 @@ from botorch.models import ModelListGP
 
 from mobo_linac.config import GpModelConfig, MoboConfig
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
-from mobo_linac.models.gp import build_gp_models, fit_gp_models
+from mobo_linac.models.gp import SurrogateSettings, build_gp_models, channel_record, fit_gp_models
 from mobo_linac.models.pipeline import SurrogatePipeline
 from mobo_linac.models.repeatability import (
     compute_measured_noise_variance,
@@ -31,12 +31,8 @@ def test_gp_deterministic_fixed_noise_mode(dummy_data):
     """Verify deterministic_fixed noise mode uses non-trainable train_Yvar."""
     train_X, train_Y, bounds = dummy_data
     model_list = build_gp_models(
-        train_X=train_X,
-        train_Y=train_Y,
-        bounds=bounds,
-        covar_type="matern52",
-        noise_mode="deterministic_fixed",
-        fixed_noise_val=1.0e-6,
+        train_X, train_Y, bounds,
+        SurrogateSettings(covar_type="matern52", noise_mode="deterministic_fixed", fixed_noise_variance=1.0e-6),
     )
     assert len(model_list.models) == 3
 
@@ -54,12 +50,8 @@ def test_gp_measured_fixed_noise_mode(dummy_data):
     obj_variances = [1.0e-8, 2.0e-8, 5.0e-6]
 
     model_list = build_gp_models(
-        train_X=train_X,
-        train_Y=train_Y,
-        bounds=bounds,
-        covar_type="rbf",
-        noise_mode="measured_fixed",
-        objective_noise_variances=obj_variances,
+        train_X, train_Y, bounds,
+        SurrogateSettings(covar_type="rbf", noise_mode="measured_fixed", objective_noise_variances=obj_variances),
     )
     assert len(model_list.models) == 3
 
@@ -76,11 +68,8 @@ def test_gp_inferred_noise_mode(dummy_data):
     """Verify inferred noise mode constructs trainable GaussianLikelihood."""
     train_X, train_Y, bounds = dummy_data
     model_list = build_gp_models(
-        train_X=train_X,
-        train_Y=train_Y,
-        bounds=bounds,
-        covar_type="matern52",
-        noise_mode="inferred",
+        train_X, train_Y, bounds,
+        SurrogateSettings(covar_type="matern52", noise_mode="inferred"),
     )
     assert len(model_list.models) == 3
     fitted_list = fit_gp_models(model_list)
@@ -91,11 +80,7 @@ def test_surrogate_pipeline_integration(dummy_data):
     """Verify SurrogatePipeline works with GpModelConfig options."""
     train_X, train_Y, bounds = dummy_data
     pipeline = SurrogatePipeline(
-        bounds=bounds,
-        covar_type="matern52",
-        noise_mode="deterministic_fixed",
-        fixed_noise_val=1.0e-6,
-    )
+        bounds, SurrogateSettings(covar_type="matern52", noise_mode="deterministic_fixed", fixed_noise_variance=1.0e-6))
 
     pipeline.fit(train_X, train_Y)
     assert pipeline.is_fitted is True
@@ -154,12 +139,8 @@ def test_relative_noise_variance_scaling():
     train_Y = torch.cat([col0, col1, col2], dim=-1)
 
     model_list = build_gp_models(
-        train_X=train_X,
-        train_Y=train_Y,
-        bounds=bounds,
-        covar_type="matern52",
-        noise_mode="deterministic_fixed",
-        relative_noise_ratio=1.0e-6,
+        train_X, train_Y, bounds,
+        SurrogateSettings(covar_type="matern52", noise_mode="deterministic_fixed", relative_noise_ratio=1.0e-6),
     )
     assert len(model_list.models) == 3
 
@@ -229,22 +210,17 @@ def test_tune_gp_hyperparameters(dummy_data):
     assert np.isfinite(tuning_summary.best_candidate.mean_loo_log_predictive_density)
 
 
-def test_build_scalarized_gp_model(dummy_data):
-    """Verify build_scalarized_gp_model constructs and fits SingleTaskGP."""
-    from mobo_linac.models.gp import build_scalarized_gp_model
+def test_build_output_gp(dummy_data):
+    """Verify build_output_gp constructs and fits one output's SingleTaskGP."""
+    from mobo_linac.models.gp import build_output_gp
     from botorch.models import SingleTaskGP
 
     train_X, train_Y, bounds = dummy_data
     scalar_Y = train_Y[:, 0:1]
 
-    gp = build_scalarized_gp_model(
-        train_X=train_X,
-        train_Y=scalar_Y,
-        bounds=bounds,
-        covar_type="matern52",
-        noise_mode="deterministic_fixed",
-        relative_noise_ratio=1.0e-6,
-    )
+    gp = build_output_gp(train_X, scalar_Y, bounds,
+                         SurrogateSettings(covar_type="matern52", noise_mode="deterministic_fixed",
+                                           relative_noise_ratio=1.0e-6))
 
     assert isinstance(gp, SingleTaskGP)
     fitted_gp = fit_gp_models(gp)
@@ -262,12 +238,13 @@ def test_build_scalarized_gp_model(dummy_data):
 def test_heteroscedastic_noise_precedence_and_scaling(dummy_data):
     X, Y, bounds = dummy_data
     noise = torch.arange(1, 31, dtype=torch.double).reshape(10, 3) * 0.01
-    models = build_gp_models(X, Y, bounds, noise_mode="measured_fixed", train_Yvar=noise,
-                             objective_noise_variances=[0.9] * 3, fixed_noise_val=0.8, device="cpu")
+    models = build_gp_models(X, Y, bounds, SurrogateSettings(noise_mode="measured_fixed",
+                             objective_noise_variances=[0.9] * 3, fixed_noise_variance=0.8),
+                             train_Yvar=noise, device="cpu")
     for index, model in enumerate(models.models):
         expected = noise[:, index] / Y[:, index].var()
         torch.testing.assert_close(model.likelihood.noise, expected)
-        torch.testing.assert_close(model.artifact_metadata["train_Yvar"], noise[:, index:index+1])
+        torch.testing.assert_close(channel_record(model).train_Yvar, noise[:, index:index+1])
     fit_gp_models(models)
     for index, model in enumerate(models.models):
         torch.testing.assert_close(model.likelihood.noise, noise[:, index] / Y[:, index].var())
@@ -289,7 +266,8 @@ def test_noise_contract_rejects_invalid_inputs(dummy_data, invalid):
     else:
         kwargs = {"objective_noise_variances": [0.1]}
     with pytest.raises(ValueError):
-        build_gp_models(X, Y, bounds, **kwargs)
+        train_Yvar = kwargs.pop("train_Yvar", None)
+        build_gp_models(X, Y, bounds, SurrogateSettings(**kwargs), train_Yvar=train_Yvar)
 
 
 @pytest.mark.parametrize("adam_succeeds", [False, True])
@@ -297,7 +275,7 @@ def test_fit_failures_restore_snapshot_before_fallback(dummy_data, monkeypatch, 
     from copy import deepcopy
     import mobo_linac.models.gp as gp_module
     X, Y, bounds = dummy_data
-    model = gp_module.build_scalarized_gp_model(X, Y[:, :1], bounds, device="cpu")
+    model = gp_module.build_output_gp(X, Y[:, :1], bounds, device="cpu")
     snapshot = deepcopy(model.state_dict())
     fixed_noise = model.likelihood.noise.detach().clone()
     def fail_lbfgs(mll):
@@ -317,8 +295,8 @@ def test_fit_failures_restore_snapshot_before_fallback(dummy_data, monkeypatch, 
     monkeypatch.setattr(gp_module, "fit_gpytorch_mll", fail_lbfgs)
     monkeypatch.setattr(gp_module, "fit_gpytorch_mll_torch", adam)
     fitted = fit_gp_models(model)
-    assert fitted.fit_outcomes[0].status == ("adam" if adam_succeeds else "restored_prior")
-    assert len(fitted.fit_outcomes[0].errors) == (1 if adam_succeeds else 2)
+    assert gp_module.fit_outcomes(fitted)[0].status == ("adam" if adam_succeeds else "restored_prior")
+    assert len(gp_module.fit_outcomes(fitted)[0].errors) == (1 if adam_succeeds else 2)
     for key, value in snapshot.items():
         torch.testing.assert_close(model.state_dict()[key], value)
     torch.testing.assert_close(model.likelihood.noise, fixed_noise)
@@ -328,14 +306,15 @@ def test_fit_failures_restore_snapshot_before_fallback(dummy_data, monkeypatch, 
 def test_unusable_prior_is_not_advertised_as_fitted(dummy_data, monkeypatch):
     import mobo_linac.models.gp as gp_module
     X, Y, bounds = dummy_data
-    model = gp_module.build_scalarized_gp_model(X, Y[:, :1], bounds, device="cpu")
+    model = gp_module.build_output_gp(X, Y[:, :1], bounds, device="cpu")
     with torch.no_grad():
         next(model.parameters()).fill_(float("nan"))
     monkeypatch.setattr(gp_module, "fit_gpytorch_mll", lambda mll: None)
     monkeypatch.setattr(gp_module, "fit_gpytorch_mll_torch", lambda mll, **kwargs: None)
     with pytest.raises(RuntimeError, match="nonfinite parameters"):
         fit_gp_models(model)
-    assert not hasattr(model, "fit_outcomes")
+    assert gp_module.fit_outcomes(model) == ()
+    assert not hasattr(model, "fit_outcomes")  # fitted state is never attached to BoTorch modules
 
 
 def test_exact_loo_matches_explicit_leave_one_out_conditioning():
@@ -366,10 +345,10 @@ def test_tuning_records_failures_without_sentinel_scores(monkeypatch):
     bounds = torch.tensor([[0.0, 0.0], [1.0, 1.0]], dtype=torch.double)
     original = tuning.build_gp_models
 
-    def flaky(**kwargs):
-        if kwargs["covar_type"] == "rbf":
+    def flaky(train_X, train_Y, bounds, settings, **kwargs):
+        if settings.covar_type == "rbf":
             raise RuntimeError("injected rbf failure")
-        return original(**kwargs)
+        return original(train_X, train_Y, bounds, settings, **kwargs)
 
     monkeypatch.setattr(tuning, "build_gp_models", flaky)
     summary = tuning.tune_gp_hyperparameters(train_X, train_Y, bounds, candidate_noise_ratios=[1e-6],

@@ -317,6 +317,10 @@ def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch,
     import mobo_linac.campaigns.strategies as strategies_module
 
     class StubPipeline:
+        @classmethod
+        def from_config(cls, config, bounds, device=None):
+            return cls(bounds=bounds, device=device)
+
         objective_model = None
         constraint_model = None
 
@@ -336,10 +340,11 @@ def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch,
         size = kwargs["batch_size"]
         proposed_sizes.append(size)
         bounds = kwargs["bounds"]
-        return bounds.mean(dim=0).repeat(size, 1), torch.zeros(size)
+        from mobo_linac.acquisition.mobo import ProposalResult
+        return ProposalResult(bounds.mean(dim=0).repeat(size, 1), torch.zeros(size), None)
 
     monkeypatch.setattr(strategies_module, "SurrogatePipeline", StubPipeline)
-    monkeypatch.setattr(strategies_module, "build_scalarized_gp_model", lambda **kwargs: None)
+    monkeypatch.setattr(strategies_module, "build_output_gp", lambda *args, **kwargs: None)
     monkeypatch.setattr(strategies_module, "fit_gp_models", lambda model: model)
     monkeypatch.setattr(campaign_module, "save_model_artifact", lambda model, path, **kwargs: StubPipeline().save_artifact(path))
     monkeypatch.setattr(strategies_module, "qLogNoisyExpectedImprovement", lambda **kwargs: None)

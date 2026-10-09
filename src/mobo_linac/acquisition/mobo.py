@@ -5,7 +5,7 @@ Constructs and optimizes qLogNEHVI and qEHVI acquisition functions.
 """
 
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from typing import Any, Dict, List, Optional, Tuple, Union
 
 import torch
@@ -24,10 +24,11 @@ from botorch.utils.multi_objective.box_decompositions.non_dominated import (
 )
 
 from botorch.acquisition.multi_objective.objective import IdentityMCMultiOutputObjective
-from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
+from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS, Acquisition, decode_acquisition
 from mobo_linac.metrics.hypervolume import compute_reference_point
 
 from mobo_linac.utils import get_device, get_logger
+from mobo_linac.utils.device import module_device
 
 logger = get_logger(__name__)
 
@@ -45,6 +46,15 @@ class SliceObjective(IdentityMCMultiOutputObjective):
 
     def forward(self, samples: torch.Tensor, X: Optional[torch.Tensor] = None) -> torch.Tensor:
         return samples[..., :self.num_objectives]
+
+
+# Acquisition -> (BoTorch constructor, uses a noisy observed baseline).
+_MULTIOBJECTIVE_FACTORY = {
+    Acquisition.qLogEHVI: (qLogExpectedHypervolumeImprovement, False),
+    Acquisition.qEHVI: (qExpectedHypervolumeImprovement, False),
+    Acquisition.qLogNEHVI: (qLogNoisyExpectedHypervolumeImprovement, True),
+    Acquisition.qNEHVI: (qNoisyExpectedHypervolumeImprovement, True),
+}
 
 
 def build_acquisition_function(
@@ -75,10 +85,7 @@ def build_acquisition_function(
     Returns:
         Instantiated acquisition function.
     """
-    try:
-        model_device = next(model.parameters()).device
-    except (StopIteration, AttributeError):
-        model_device = train_X.device
+    model_device = module_device(model, train_X.device)
 
     ref_point_dbl = ref_point.to(device=model_device, dtype=torch.double)
     train_X_dbl = train_X.to(device=model_device, dtype=torch.double)
@@ -98,67 +105,45 @@ def build_acquisition_function(
     if objective is not None:
         kw_args["objective"] = objective
 
-    if acq_type in ("qLogEHVI", "qEHVI"):
-        partitioning = FastNondominatedPartitioning(ref_point=ref_point_dbl, Y=feas_Y)
-        if acq_type == "qLogEHVI":
-            acq_func = qLogExpectedHypervolumeImprovement(
-                model=model,
-                ref_point=ref_point_dbl,
-                partitioning=partitioning,
-                sampler=sampler,
-                **kw_args,
-            )
-        else:
-            acq_func = qExpectedHypervolumeImprovement(
-                model=model,
-                ref_point=ref_point_dbl,
-                partitioning=partitioning,
-                sampler=sampler,
-                **kw_args,
-            )
-    elif acq_type in ("qLogNEHVI", "qNEHVI"):
-        if acq_type == "qLogNEHVI":
-            acq_func = qLogNoisyExpectedHypervolumeImprovement(
-                model=model,
-                ref_point=ref_point_dbl,
-                X_baseline=train_X_dbl,
-                prune_baseline=True,
-                sampler=sampler,
-                **kw_args,
-            )
-        else:
-            acq_func = qNoisyExpectedHypervolumeImprovement(
-                model=model,
-                ref_point=ref_point_dbl,
-                X_baseline=train_X_dbl,
-                prune_baseline=True,
-                sampler=sampler,
-                **kw_args,
-            )
+    try:
+        constructor, noisy = _MULTIOBJECTIVE_FACTORY[decode_acquisition(acq_type)]
+    except (ValueError, KeyError):
+        raise ValueError(f"Unsupported acquisition type: '{acq_type}'. "
+                         f"Choose one of {list(MULTIOBJECTIVE_ACQUISITIONS)}.") from None
+    if noisy:  # noisy variants integrate over the observed baseline
+        kw_args.update(X_baseline=train_X_dbl, prune_baseline=True)
     else:
-        raise ValueError(f"Unsupported acquisition type: '{acq_type}'. Choose one of {list(MULTIOBJECTIVE_ACQUISITIONS)}.")
-
+        kw_args["partitioning"] = FastNondominatedPartitioning(ref_point=ref_point_dbl, Y=feas_Y)
+    acq_func = constructor(model=model, ref_point=ref_point_dbl, sampler=sampler, **kw_args)
     return acq_func
 
 
 
 @dataclass
 class ProposalResult:
-    """Validated proposal and audit metadata; supports legacy two-value unpacking."""
+    """Validated proposal and audit metadata."""
 
     candidates: torch.Tensor
     acq_values: torch.Tensor
     metadata: Dict[str, Any]
 
-    def __iter__(self):
-        yield self.candidates
-        yield self.acq_values
 
-    def __getitem__(self, index):
-        return (self.candidates, self.acq_values)[index]
+@dataclass(frozen=True)
+class FallbackPolicy:
+    """Reduced budgets of the retry/CPU tiers and the CUDA batch limit (from ``execution``)."""
 
-    def __len__(self):
-        return 2
+    retry_maxiter: int = 100
+    retry_restart_divisor: int = 2
+    retry_min_restarts: int = 2
+    retry_raw_samples_divisor: int = 4
+    retry_min_raw_samples: int = 32
+    cuda_batch_limit: int = 1
+
+    @classmethod
+    def from_execution(cls, execution) -> "FallbackPolicy":
+        return cls(execution.acqf_retry_maxiter, execution.acqf_retry_restart_divisor,
+                   execution.acqf_retry_min_restarts, execution.acqf_retry_raw_samples_divisor,
+                   execution.acqf_retry_min_raw_samples, execution.acqf_cuda_batch_limit)
 
 
 def _validate_proposal(candidates, acq_values, bounds, batch_size):
@@ -187,6 +172,7 @@ def generate_next_candidates(
     retry_on_failure: bool = True,
     sobol_engine: Optional[torch.quasirandom.SobolEngine] = None,
     fallback_seed: int = 0,
+    policy: FallbackPolicy = FallbackPolicy(),
 ) -> ProposalResult:
     """Propose with primary, reduced-budget, isolated CPU, then seeded Sobol tiers.
 
@@ -214,15 +200,17 @@ def generate_next_candidates(
     if placement and target_device != original_device:
         raise ValueError("Requested proposal device differs from acquisition placement; move the model at the campaign boundary.")
     bounds_dbl = bounds.to(device=target_device, dtype=torch.double)
-    opt_options = {"batch_limit": 1 if target_device.type == "cuda" else batch_limit, "maxiter": maxiter}
+    opt_options = {"batch_limit": policy.cuda_batch_limit if target_device.type == "cuda" else batch_limit,
+                   "maxiter": maxiter}
     opt_options.update(options or {})
     for name in ("batch_limit", "maxiter"):
         if type(opt_options[name]) is not int or opt_options[name] < 1:
             raise ValueError(f"Optimizer option {name} must be a positive integer.")
     attempts = []
     start = sobol_engine.num_generated if sobol_engine is not None else 0
-    reduced_options = {"batch_limit": 1, "maxiter": min(opt_options["maxiter"], 100)}
-    reduced_restarts, reduced_raw = max(2, num_restarts // 2), max(32, raw_samples // 4)
+    reduced_options = {"batch_limit": 1, "maxiter": min(opt_options["maxiter"], policy.retry_maxiter)}
+    reduced_restarts = max(policy.retry_min_restarts, num_restarts // policy.retry_restart_divisor)
+    reduced_raw = max(policy.retry_min_raw_samples, raw_samples // policy.retry_raw_samples_divisor)
     tiers = [("primary", target_device, num_restarts, raw_samples, opt_options),
              ("retry", target_device, reduced_restarts, reduced_raw, reduced_options),
              ("cpu", torch.device("cpu"), reduced_restarts, reduced_raw, reduced_options)]
@@ -244,7 +232,7 @@ def generate_next_candidates(
             return ProposalResult(candidates.to(bounds_dbl), values.to(bounds_dbl), {
                 "method": tier, "device": str(target_device), "optimizer_device": str(attempt_device),
                 "attempts": attempts, "fallback_reason": attempts[-2].get("error") if len(attempts) > 1 else None,
-                "sobol": {"start": start, "end": start},
+                "sobol": {"start": start, "end": start}, "fallback_policy": asdict(policy),
             })
         except Exception as error:
             record.update(status="failed", error=f"{type(error).__name__}: {error}")
@@ -263,4 +251,5 @@ def generate_next_candidates(
         "method": "sobol", "device": str(target_device), "optimizer_device": None,
         "attempts": attempts, "fallback_reason": attempts[-1]["error"],
         "sobol": {"seed": sobol_engine.seed, "start": start, "end": sobol_engine.num_generated},
+        "fallback_policy": asdict(policy),
     })

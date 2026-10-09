@@ -23,7 +23,7 @@ from gpytorch.mlls import ExactMarginalLogLikelihood
 from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
 from mobo_linac.config import GpModelConfig, ExecutionConfig
 from mobo_linac.models.diagnostics import compute_predictive_diagnostics
-from mobo_linac.models.gp import build_gp_models, fit_gp_models
+from mobo_linac.models.gp import build_gp_models, fit_gp_models, SurrogateSettings
 
 
 @dataclass
@@ -82,9 +82,10 @@ def tune_gp_hyperparameters(
                 started = time.perf_counter()
                 candidate = HyperparameterCandidateResult(covar, mode, ratio)
                 try:
-                    model = fit_gp_models(build_gp_models(train_X=train_X, train_Y=train_Y, bounds=bounds,
-                                                          covar_type=covar, noise_mode=mode,
-                                                          relative_noise_ratio=ratio, device=device))
+                    model = fit_gp_models(build_gp_models(
+                        train_X, train_Y, bounds,
+                        SurrogateSettings(covar_type=covar, noise_mode=mode, relative_noise_ratio=ratio),
+                        device=device))
                     mll_values = []
                     for sub_model in model.models:
                         mll = ExactMarginalLogLikelihood(sub_model.likelihood, sub_model)
@@ -298,11 +299,12 @@ def tune_full_optimization_pipeline(
                                          candidate_covars=list(candidate_covars),
                                          candidate_noise_ratios=list(candidate_noise_ratios),
                                          candidate_noise_modes=["deterministic_fixed"], device=device)
-    model = fit_gp_models(build_gp_models(train_X=train_X, train_Y=train_Y, bounds=bounds,
-                                          covar_type=gp_summary.best_config.covar_type,
-                                          noise_mode=gp_summary.best_config.noise_mode,
-                                          relative_noise_ratio=gp_summary.best_config.relative_noise_ratio,
-                                          device=device))
+    best = gp_summary.best_config
+    model = fit_gp_models(build_gp_models(
+        train_X, train_Y, bounds,
+        SurrogateSettings(covar_type=best.covar_type, noise_mode=best.noise_mode,
+                          relative_noise_ratio=best.relative_noise_ratio),
+        device=device))
     acq_summary = tune_acquisition_hyperparameters(
         model=model, train_X=train_X, train_Y=train_Y, ref_point=torch.as_tensor(ref_point, dtype=torch.double),
         bounds=bounds, candidate_acq_types=list(candidate_acq_types), candidate_restarts=list(candidate_restarts),

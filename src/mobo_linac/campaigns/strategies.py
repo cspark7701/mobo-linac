@@ -11,11 +11,11 @@ import torch
 from botorch.acquisition.logei import qLogNoisyExpectedImprovement
 from botorch.models import ModelListGP
 
-from mobo_linac.acquisition.mobo import SliceObjective, build_acquisition_function, generate_next_candidates
+from mobo_linac.acquisition.mobo import FallbackPolicy, SliceObjective, build_acquisition_function, generate_next_candidates
 from mobo_linac.config import ExecutionConfig, MoboConfig
 from mobo_linac.constraints import get_botorch_constraint_functions
 from mobo_linac.metrics.hypervolume import compute_reference_point
-from mobo_linac.models.gp import build_scalarized_gp_model, fit_gp_models
+from mobo_linac.models.gp import SurrogateSettings, build_output_gp, fit_gp_models
 from mobo_linac.models.pipeline import SurrogatePipeline
 from mobo_linac.result_schema import ResultSchema
 
@@ -38,19 +38,20 @@ class AcquisitionSettings:
     maxiter: int
     batch_limit: int
 
+    fallback: FallbackPolicy = FallbackPolicy()
+
     @classmethod
-    def from_execution(cls, execution: ExecutionConfig, batch_limit: Optional[int] = None) -> "AcquisitionSettings":
+    def from_execution(cls, execution: ExecutionConfig) -> "AcquisitionSettings":
         return cls(execution.acqf_num_restarts, execution.acqf_raw_samples, execution.acqf_maxiter,
-                   execution.acqf_batch_limit if batch_limit is None else batch_limit)
+                   execution.acqf_batch_limit, FallbackPolicy.from_execution(execution))
 
 
 def _optimize(acq_func, bounds, batch_size, settings: AcquisitionSettings, device, sobol_engine):
     result = generate_next_candidates(acq_func=acq_func, bounds=bounds, batch_size=batch_size,
                                       num_restarts=settings.num_restarts, raw_samples=settings.raw_samples,
                                       maxiter=settings.maxiter, batch_limit=settings.batch_limit,
-                                      device=device, sobol_engine=sobol_engine)
-    candidates, _ = result
-    return candidates.detach().cpu().tolist(), getattr(result, "metadata", None)
+                                      device=device, sobol_engine=sobol_engine, policy=settings.fallback)
+    return result.candidates.detach().cpu().tolist(), result.metadata
 
 
 @dataclass
@@ -71,21 +72,17 @@ class ScalarizedProposal:
         scalar_Y = ((training.train_Y.to(dtype=torch.double, device=device) / scales)
                     * self.scalar_weights.to(dtype=torch.double, device=device)).sum(dim=-1, keepdim=True)
         bounds = self.bounds.to(device=device, dtype=torch.double)
-        model = self.config.model
-        gp = build_scalarized_gp_model(
-            train_X=train_X, train_Y=scalar_Y, bounds=bounds, covar_type=model.covar_type,
-            noise_mode=model.noise_mode, fixed_noise_val=model.fixed_noise_variance,
-            relative_noise_ratio=model.relative_noise_ratio, min_noise_variance=model.min_noise_variance,
-            device=device,
-        )
+        # One GP of the weighted cost; per-objective noise variances do not apply to it.
+        gp = build_output_gp(train_X, scalar_Y, bounds,
+                             SurrogateSettings.from_config(self.config.model).for_output(None), device=device)
         fit_gp_models(gp)
         self.persist_model(gp, iteration, training)
         if device.type == "cuda" and torch.cuda.is_available():
             torch.cuda.empty_cache()
         acq_func = qLogNoisyExpectedImprovement(model=gp, X_baseline=train_X, prune_baseline=True)
-        settings = AcquisitionSettings.from_execution(self.config.execution,
-                                                      batch_limit=1 if device.type == "cuda" else None)
-        return _optimize(acq_func, bounds, batch_size, settings, device, sobol_engine)
+        # The CUDA batch limit is applied by the optimizer's fallback policy.
+        return _optimize(acq_func, bounds, batch_size, AcquisitionSettings.from_execution(self.config.execution),
+                         device, sobol_engine)
 
 
 @dataclass
@@ -100,13 +97,7 @@ class MultiObjectiveProposal:
     persist_model: PersistModel
 
     def _surrogate(self, training):
-        model = self.config.model
-        pipeline = SurrogatePipeline(
-            bounds=self.bounds, covar_type=model.covar_type, noise_mode=model.noise_mode,
-            fixed_noise_val=model.fixed_noise_variance, relative_noise_ratio=model.relative_noise_ratio,
-            min_noise_variance=model.min_noise_variance, objective_noise_variances=model.objective_noise_variances,
-            constraints_config=self.config.constraints, device=self.device,
-        )
+        pipeline = SurrogatePipeline.from_config(self.config, self.bounds, device=self.device)
         if not self.constrained:
             pipeline.fit(training.train_X, training.train_Y)
             return pipeline, pipeline.objective_model, None, None

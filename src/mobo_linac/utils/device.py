@@ -33,3 +33,11 @@ def get_device(device_str: Optional[Union[str, torch.device]] = None, *, allow_c
     if index >= torch.cuda.device_count():
         raise ValueError(f"Requested CUDA index {index} is unavailable.")
     return torch.device("cuda", index)
+
+
+def module_device(module, default: torch.device) -> torch.device:
+    """Device of a module's parameters (``default`` for parameter-free or non-module objects)."""
+    try:
+        return next(module.parameters()).device
+    except (StopIteration, AttributeError):
+        return default

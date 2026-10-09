@@ -4,9 +4,11 @@ Gaussian Process Surrogate Models Module for mobo_linac.
 
 from mobo_linac.models.gp import (
     FitOutcome,
+    SurrogateSettings,
     build_gp_models,
-    build_scalarized_gp_model,
+    build_output_gp,
     fit_gp_models,
+    fit_outcomes,
 )
 from mobo_linac.models.artifacts import load_model_artifact, save_model_artifact
 from mobo_linac.models.pipeline import SurrogatePipeline
@@ -25,7 +27,9 @@ __all__ = [
     "save_model_artifact",
     "load_model_artifact",
     "build_gp_models",
-    "build_scalarized_gp_model",
+    "build_output_gp",
+    "SurrogateSettings",
+    "fit_outcomes",
     "fit_gp_models",
     "SurrogatePipeline",
     "tune_gp_hyperparameters",

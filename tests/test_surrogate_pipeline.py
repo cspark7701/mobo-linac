@@ -4,6 +4,7 @@ Unit tests for SurrogatePipeline (Task 31 refactoring).
 
 import pytest
 import torch
+from mobo_linac.models.gp import SurrogateSettings
 from mobo_linac.models.pipeline import SurrogatePipeline
 
 
@@ -74,9 +75,10 @@ def test_selected_identity_rows_reach_both_gp_models(monkeypatch):
     config.objectives = config.objectives[:1]
     observed = get_training_observations(records, require_diagnostics=True, config=config)
     calls = []
-    def record_build(**kwargs):
-        calls.append(kwargs)
-        return object()
+    def record_build(train_X, train_Y, bounds, settings, **kwargs):
+        calls.append(dict(kwargs, train_X=train_X, train_Y=train_Y, bounds=bounds, settings=settings))
+        from types import SimpleNamespace
+        return SimpleNamespace(models=[])  # a model list without fitted outputs
     monkeypatch.setattr("mobo_linac.models.pipeline.build_gp_models", record_build)
     monkeypatch.setattr("mobo_linac.models.pipeline.fit_gp_models", lambda model: model)
     pipeline = SurrogatePipeline(torch.tensor([[0.0], [1.0]]), device="cpu")
@@ -183,7 +185,7 @@ def test_pipeline_artifact_roundtrip_without_fitting(tmp_path, monkeypatch, nois
     Y = torch.cat((X.sin(), X.cos()), dim=1)
     C = X - 0.5
     noise = torch.tensor([[0.01, 0.02], [0.03, 0.04], [0.05, 0.06]], dtype=torch.double)
-    pipeline = SurrogatePipeline(torch.tensor([[0.0], [1.0]]), noise_mode=noise_mode,
+    pipeline = SurrogatePipeline(torch.tensor([[0.0], [1.0]]), SurrogateSettings(noise_mode=noise_mode),
                                  constraint_layout="residual", device="cpu")
     kwargs = {"train_Yvar": noise, "train_constraints_var": noise[:, :1]} if noise_mode == "measured_fixed" else {}
     ids = [("run", str(i)) for i in range(3)]
@@ -209,7 +211,7 @@ def test_pipeline_artifact_roundtrip_without_fitting(tmp_path, monkeypatch, nois
 
 def test_measured_constraint_noise_must_be_explicit():
     X = torch.tensor([[0.1], [0.4]], dtype=torch.double)
-    pipeline = SurrogatePipeline(torch.tensor([[0.0], [1.0]]), noise_mode="measured_fixed",
+    pipeline = SurrogatePipeline(torch.tensor([[0.0], [1.0]]), SurrogateSettings(noise_mode="measured_fixed"),
                                  constraint_layout="residual", device="cpu")
     with pytest.raises(ValueError, match="measured_fixed requires"):
         pipeline.fit(X, X.sin(), X - 0.5, train_Yvar=torch.full_like(X, 0.01))
@@ -239,3 +241,23 @@ def test_artifact_rejects_unknown_version(tmp_path):
     torch.save({"version": 999, "kind": "pipeline"}, path)
     with pytest.raises(ValueError, match="Unsupported surrogate artifact version"):
         SurrogatePipeline.load_artifact(path)
+
+
+def test_archived_flat_pipeline_artifact_still_loads(tmp_path):
+    """Artifacts written before typed settings (flat settings, 'fixed' alias) restore identically."""
+    import torch as _torch
+    X = _torch.tensor([[0.1], [0.4], [0.8]], dtype=_torch.double)
+    pipeline = SurrogatePipeline(_torch.tensor([[0.0], [1.0]]), device="cpu").fit(X, X.sin())
+    path = tmp_path / "current.pt"
+    pipeline.save_artifact(path)
+    payload = _torch.load(path, weights_only=False)
+    payload["settings"] = {"bounds": payload["settings"]["bounds"], "covar_type": "matern52", "noise_mode": "fixed",
+                           "fixed_noise_val": None, "relative_noise_ratio": 1e-6, "min_noise_variance": 1e-24,
+                           "objective_noise_variances": None, "constraint_layout": "diagnostics"}
+    for channel in payload["objectives"]["channels"]:
+        channel["metadata"]["noise_mode"] = "fixed"
+    archived = tmp_path / "archived.pt"
+    _torch.save(payload, archived)
+    restored = SurrogatePipeline.load_artifact(archived)
+    assert restored.settings.noise_mode == "deterministic_fixed"
+    _torch.testing.assert_close(restored.predict_objectives(X)[0], pipeline.predict_objectives(X)[0])

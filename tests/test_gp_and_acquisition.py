@@ -11,7 +11,12 @@ from gpytorch.likelihoods import GaussianLikelihood
 from mobo_linac.config import ConstraintsConfig
 from mobo_linac.models.gp import build_gp_models, fit_gp_models
 from mobo_linac.models.diagnostics import compute_predictive_diagnostics
-from mobo_linac.acquisition.mobo import build_acquisition_function, generate_next_candidates
+from mobo_linac.acquisition.mobo import ProposalResult, build_acquisition_function, generate_next_candidates
+from mobo_linac.models.gp import SurrogateSettings
+
+
+def _unpack(result: ProposalResult):
+    return result.candidates, result.acq_values
 
 
 def test_gp_kernel_and_ard_dimensions():
@@ -21,7 +26,7 @@ def test_gp_kernel_and_ard_dimensions():
     bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
 
     # 1. Test Matérn-5/2 kernel construction
-    gp_matern = build_gp_models(train_X, train_Y, bounds, covar_type="matern52")
+    gp_matern = build_gp_models(train_X, train_Y, bounds, SurrogateSettings(covar_type="matern52"))
     assert len(gp_matern.models) == 3
     for sub_model in gp_matern.models:
         assert isinstance(sub_model.covar_module, ScaleKernel)
@@ -31,7 +36,7 @@ def test_gp_kernel_and_ard_dimensions():
         assert base.ard_num_dims == 6
 
     # 2. Test RBF kernel construction
-    gp_rbf = build_gp_models(train_X, train_Y, bounds, covar_type="rbf")
+    gp_rbf = build_gp_models(train_X, train_Y, bounds, SurrogateSettings(covar_type="rbf"))
     for sub_model in gp_rbf.models:
         assert isinstance(sub_model.covar_module, ScaleKernel)
         base = sub_model.covar_module.base_kernel
@@ -46,12 +51,12 @@ def test_gp_noise_model_and_likelihood():
     bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
 
     # 1. Fixed noise model
-    gp_fixed = build_gp_models(train_X, train_Y, bounds, noise_mode="fixed", fixed_noise_val=1e-6)
+    gp_fixed = build_gp_models(train_X, train_Y, bounds, SurrogateSettings(noise_mode="deterministic_fixed", fixed_noise_variance=1e-6))
     for sub_model in gp_fixed.models:
         assert hasattr(sub_model.likelihood, "noise") or hasattr(sub_model.likelihood, "noise_covar")
 
     # 2. Inferred noise model
-    gp_inferred = build_gp_models(train_X, train_Y, bounds, noise_mode="inferred")
+    gp_inferred = build_gp_models(train_X, train_Y, bounds, SurrogateSettings(noise_mode="inferred"))
     for sub_model in gp_inferred.models:
         assert isinstance(sub_model.likelihood, GaussianLikelihood)
 
@@ -176,7 +181,7 @@ def test_configurable_acquisition_optimization_budget():
     )
 
     batch_size = 3
-    candidates, acq_values = generate_next_candidates(
+    candidates, acq_values = _unpack(generate_next_candidates(
         acq_func=acq_func,
         bounds=bounds,
         batch_size=batch_size,
@@ -184,7 +189,7 @@ def test_configurable_acquisition_optimization_budget():
         raw_samples=32,
         maxiter=10,
         batch_limit=2,
-    )
+    ))
 
     assert candidates.shape == (batch_size, 6)
     assert candidates.dtype == torch.double
@@ -206,14 +211,14 @@ def test_resilient_acquisition_sobol_fallback():
     broken_acq = BrokenAcqFunc()
 
     # generate_next_candidates should catch the error and fallback to Sobol sampling
-    candidates, acq_values = generate_next_candidates(
+    candidates, acq_values = _unpack(generate_next_candidates(
         acq_func=broken_acq,
         bounds=bounds,
         batch_size=batch_size,
         num_restarts=2,
         raw_samples=16,
         retry_on_failure=True,
-    )
+    ))
 
     assert candidates.shape == (batch_size, 6)
     assert candidates.dtype == torch.double
@@ -313,10 +318,10 @@ def test_tune_full_optimization_pipeline():
 
 
 def test_single_gp_artifact_preserves_fallback_predictions(tmp_path, monkeypatch):
-    from mobo_linac.models.gp import build_scalarized_gp_model
+    from mobo_linac.models.gp import build_output_gp, fit_outcomes
     from mobo_linac.models.artifacts import save_model_artifact, load_model_artifact
     X = torch.tensor([[0.1], [0.4], [0.8]], dtype=torch.double)
-    model = build_scalarized_gp_model(X, X.sin(), torch.tensor([[0.0], [1.0]]), device="cpu")
+    model = build_output_gp(X, X.sin(), torch.tensor([[0.0], [1.0]]), device="cpu")
     def fail(*args, **kwargs):
         raise RuntimeError("injected optimizer failure")
     monkeypatch.setattr("mobo_linac.models.gp.fit_gpytorch_mll", fail)
@@ -326,11 +331,13 @@ def test_single_gp_artifact_preserves_fallback_predictions(tmp_path, monkeypatch
     path = tmp_path / "model.pt"
     save_model_artifact(model, path, training_ids=[("r", str(i)) for i in range(3)])
     restored = load_model_artifact(path)
-    after = restored.posterior(X)
+    after = restored.model.posterior(X)
     torch.testing.assert_close(before.mean, after.mean)
     torch.testing.assert_close(before.variance, after.variance)
-    assert restored.fit_outcomes == model.fit_outcomes
-    assert restored.fit_outcomes[0].status == "restored_prior"
+    assert fit_outcomes(restored.model) == fit_outcomes(model)
+    assert fit_outcomes(restored.model)[0].status == "restored_prior"
+    assert restored.training_ids == [("r", str(i)) for i in range(3)]
+    assert not hasattr(restored.model, "training_ids")
 
 
 @pytest.mark.parametrize("mode", ["scalarized_bo", "constrained_mobo", "unconstrained_mobo"])
@@ -345,8 +352,9 @@ def test_campaign_checkpoint_links_reloadable_model(tmp_path, monkeypatch, mode)
     import mobo_linac.campaigns.runner as campaign
     import mobo_linac.campaigns.strategies as strategies_module
 
-    monkeypatch.setattr(strategies_module, "generate_next_candidates", lambda **kwargs:
-                        (kwargs["bounds"].mean(dim=0).repeat(kwargs["batch_size"], 1), None))
+    from mobo_linac.acquisition.mobo import ProposalResult
+    monkeypatch.setattr(strategies_module, "generate_next_candidates", lambda **kwargs: ProposalResult(
+        kwargs["bounds"].mean(dim=0).repeat(kwargs["batch_size"], 1), torch.zeros(1), None))
     runner = campaign.MoboCampaignRunner(
         config=load_config("configs/mobo_200MeV.yaml"), output_dir=tmp_path,
         num_initial_samples=3, num_batches=1, batch_size=1, seed=7, device="cpu",
@@ -361,11 +369,12 @@ def test_campaign_checkpoint_links_reloadable_model(tmp_path, monkeypatch, mode)
     assert reference["sha256"] == hashlib.sha256(path.read_bytes()).hexdigest()
     assert reference["proposal_iteration"] == 1
     restored = load_model_artifact(path) if mode == "scalarized_bo" else SurrogatePipeline.load_artifact(path)
+    metadata = restored.metadata if mode == "scalarized_bo" else restored.campaign_metadata
     assert restored.training_ids == [(result.run_id, result.evaluation_id) for result in results[:3]]
-    assert restored.campaign_metadata["optimization_mode"] == mode
-    assert restored.campaign_metadata["proposal_iteration"] == 1
+    assert metadata["optimization_mode"] == mode
+    assert metadata["proposal_iteration"] == 1
     query = torch.tensor([results[-1].x_physical], dtype=torch.double)
-    mean = restored.posterior(query).mean if mode == "scalarized_bo" else restored.predict_objectives(query)[0]
+    mean = restored.model.posterior(query).mean if mode == "scalarized_bo" else restored.predict_objectives(query)[0]
     assert torch.isfinite(mean).all()
 
 
@@ -398,8 +407,8 @@ def test_forced_proposal_tiers_validate_metadata_and_preserve_module(monkeypatch
     stream.draw(3)
     result = acquisition.generate_next_candidates(module, bounds, batch_size=2, num_restarts=8, raw_samples=128,
                                                   options={"maxiter": 50}, sobol_engine=stream, device="cpu")
-    candidates, values = result
-    assert result[0] is candidates and len(result) == 2
+    candidates, values = result.candidates, result.acq_values
+    assert not hasattr(result, "__iter__")  # no tuple emulation
     assert candidates.shape == (2, 2)
     assert torch.isfinite(candidates).all() and torch.isfinite(values).all()
     assert ((candidates >= bounds[0]) & (candidates <= bounds[1])).all()

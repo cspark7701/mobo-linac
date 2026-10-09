@@ -35,6 +35,10 @@ def fast_resume_proposals(monkeypatch):
     import mobo_linac.acquisition.mobo as acquisition_module
 
     class StubPipeline:
+        @classmethod
+        def from_config(cls, config, bounds, device=None):
+            return cls(bounds=bounds, device=device)
+
         objective_model = None
         constraint_model = None
 
@@ -53,7 +57,7 @@ def fast_resume_proposals(monkeypatch):
         pass
 
     monkeypatch.setattr(strategies_module, "SurrogatePipeline", StubPipeline)
-    monkeypatch.setattr(strategies_module, "build_scalarized_gp_model", lambda **kwargs: torch.nn.Linear(1, 1))
+    monkeypatch.setattr(strategies_module, "build_output_gp", lambda *args, **kwargs: torch.nn.Linear(1, 1))
     monkeypatch.setattr(strategies_module, "fit_gp_models", lambda model: model)
     def save_stub(model, path, **kwargs):
         path.parent.mkdir(parents=True, exist_ok=True)
