@@ -36,8 +36,9 @@ Robustness evaluations examine the representative candidates selected by the sha
 ### Evaluated Robustness Metrics
 - **Probability of Feasibility ($P_{\text{feas}}$)**: Fraction of perturbed ASTRA evaluations satisfying all six beam quality constraints.
 - **Emittance Growth Ratio ($\mu_{\varepsilon} / \varepsilon_{\text{nominal}}$)**: Relative increase in mean emittance under perturbation.
-- **Robust Operating Score**: Defined as $R = \frac{P_{\text{feas}}}{\max(1.0, \mu_{\varepsilon_x} / \varepsilon_{x,\text{nom}})}$.
-- **Fragility Classification**: Candidates with $P_{\text{feas}} < 80\%$ are classified as *fragile*.
+- **Constraint Margins**: For every channel of the active constraint profile, the worst signed margin normalized by its threshold ($m = (T - x)/|T|$ for upper limits, $(x - T)/|T|$ for lower limits).
+- **Robust Operating Score**: $R = \frac{P_{\text{feas}} \cdot \max(0.5, 1 + m_{\min})}{\max(1.0, \bar g)}$, where $\bar g$ is the mean degradation ratio over all configured objectives in their preferred direction. Undefined inputs leave $R$ unknown.
+- **Fragility Classification**: Candidates with $P_{\text{feas}}$ below the configured `fragility_threshold` (default 80%) are classified as *fragile*.
 
 ---
 

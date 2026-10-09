@@ -141,7 +141,6 @@ def test_pareto_verifier_plan_and_execution(sample_candidate, tmp_path):
 @pytest.mark.parametrize('workers', [1, 2])
 def test_complete_requests_reach_serial_and_process_backend(sample_candidate, recording_astra_project, tmp_path, workers):
     import json
-    from mobo_linac.robustness.evaluator import SOURCE_CHANNELS
 
     project, config = recording_astra_project
     evaluator = RobustnessEvaluator(config=config, base_output_dir=tmp_path / 'results', num_workers=workers)
@@ -164,7 +163,7 @@ def test_complete_requests_reach_serial_and_process_backend(sample_candidate, re
         assert assigned['cavity:phi(4)'] == task.parameters[5]
         assert 'solenoid:maxb(1)' not in assigned
         assert assigned['charge:nrad'] == task.namelist_overrides['charge:nrad']
-        supported = set(task.metadata['channel_deltas']) - set(SOURCE_CHANNELS)
+        supported = set(task.metadata['channel_targets'])
         assert set(manifest['applied_perturbations']) == supported
         assert all(value == 'unsupported' for value in manifest['source_application'].values())
         assert not Path(raw['eval_dir']).exists()

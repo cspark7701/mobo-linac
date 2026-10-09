@@ -162,27 +162,23 @@ def apply_parameters_to_astra(
     return applied_names
 
 
-def applied_lattice_perturbations(parameters, config, assigned_values, requested_deltas):
-    """Confirm that each channel's complete configured target set kept its requested value."""
-    channels = [
-        ("solenoid_field_T", "solenoid_field_relative_error", ["solenoid:maxb(1)"]),
-        ("quad_1_gradient_T_m", "quad1_gradient_relative_error", ["quadrupole:q_grad(1)"]),
-        ("quad_2_gradient_T_m", "quad2_gradient_relative_error", ["quadrupole:q_grad(2)"]),
-        ("gun_phase_deg", "gun_phase_error_deg", ["cavity:phi(1)"]),
-        ("acc1_acc2_phase_deg", "cavity_phase_acc12_error_deg", ["cavity:phi(2)", "cavity:phi(3)"]),
-        ("acc3_acc4_phase_deg", "cavity_phase_acc34_error_deg", ["cavity:phi(4)", "cavity:phi(5)"]),
-    ]
-    by_name = {name: (channel, targets) for name, channel, targets in channels}
-    targets_and_values = []
-    for variable, value in zip(config.design_variables, parameters):
-        if variable.name not in by_name:
+def applied_lattice_perturbations(parameters, config, assigned_values, requested_deltas, channel_targets):
+    """Confirm that each lattice channel's complete configured target set kept its requested value.
+
+    ``channel_targets`` maps a requested channel to the design variable it perturbs; channels
+    without a design variable (source settings) are never reported as applied.
+    """
+    variables = {variable.name: (variable, value) for variable, value in zip(config.design_variables, parameters)}
+    applied = {}
+    for channel, delta in requested_deltas.items():
+        target = channel_targets.get(channel)
+        if target not in variables:
             continue
-        channel, _ = by_name[variable.name]
+        variable, value = variables[target]
         targets = variable.coupled_targets if variable.is_coupled else [variable.astra_key]
-        targets_and_values.append((channel, targets, value))
-    return {channel: requested_deltas[channel] for channel, targets, value in targets_and_values
-            if channel in requested_deltas and targets
-            and all(assigned_values.get(target) == float(value) for target in targets)}
+        if targets and all(assigned_values.get(key) == float(value) for key in targets):
+            applied[channel] = delta
+    return applied
 
 
 def run_astra_eval(
@@ -305,7 +301,7 @@ def run_astra_eval(
         applied_overrides = dict(namelist_overrides or {})
         applied_perturbations = applied_lattice_perturbations(
             parameters, config, applied_namelist_values,
-            request_metadata.get("channel_deltas", {}))
+            request_metadata.get("channel_deltas", {}), request_metadata.get("channel_targets", {}))
         # Materialize effective inputs before launch, then preserve their exact bytes.
         if hasattr(astra_sim, "write_input"):
             astra_sim.write_input()

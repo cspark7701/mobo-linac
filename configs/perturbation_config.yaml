@@ -1,41 +1,78 @@
-version: "1.0"
+version: "2.0"
 description: "Realistic machine and beam perturbation distributions for linac robustness analysis"
 
+# Default sample count and base seed used by the robustness entry points.
 num_perturbations: 50
 seed: 42
+# common: every representative candidate uses the base seed (common random numbers);
+# candidate_offset: candidate i in one plan uses seed + 100 * i.
+seed_policy: "common"
+# Candidates with probability of feasibility below this value are classified fragile.
+fragility_threshold: 0.80
 
-perturbations:
-  gun_phase_error_deg:
-    distribution: "normal"
-    std: 0.10
-    unit: "deg"
-    basis: "RF phase stability of S-band gun klystron drive"
-  cavity_phase_error_deg:
-    distribution: "normal"
-    std: 0.10
-    unit: "deg"
-    basis: "RF phase stability of main accelerating structures"
-  solenoid_field_relative_error:
+# Lattice channels perturb configured design variables, in this draw order.
+# relative: value * (1 + delta); absolute: value + delta (delta in the variable's unit).
+lattice:
+  - channel: "solenoid_field_relative_error"
+    design_variable: "solenoid_field_T"
+    kind: "relative"
     distribution: "normal"
     std: 0.001
     unit: "dimensionless"
     basis: "Solenoid power supply current ripple (0.1%)"
-  quad_gradient_relative_error:
+  - channel: "quad1_gradient_relative_error"
+    design_variable: "quad_1_gradient_T_m"
+    kind: "relative"
     distribution: "normal"
     std: 0.001
     unit: "dimensionless"
     basis: "Quadrupole power supply stability and field gradient calibration (0.1%)"
-  bunch_charge_relative_jitter:
+  - channel: "quad2_gradient_relative_error"
+    design_variable: "quad_2_gradient_T_m"
+    kind: "relative"
+    distribution: "normal"
+    std: 0.001
+    unit: "dimensionless"
+    basis: "Quadrupole power supply stability and field gradient calibration (0.1%)"
+  - channel: "gun_phase_error_deg"
+    design_variable: "gun_phase_deg"
+    kind: "absolute"
+    distribution: "normal"
+    std: 0.10
+    unit: "deg"
+    basis: "RF phase stability of S-band gun klystron drive"
+  - channel: "cavity_phase_acc12_error_deg"
+    design_variable: "acc1_acc2_phase_deg"
+    kind: "absolute"
+    distribution: "normal"
+    std: 0.10
+    unit: "deg"
+    basis: "RF phase stability of main accelerating structures"
+  - channel: "cavity_phase_acc34_error_deg"
+    design_variable: "acc3_acc4_phase_deg"
+    kind: "absolute"
+    distribution: "normal"
+    std: 0.10
+    unit: "deg"
+    basis: "RF phase stability of main accelerating structures"
+
+# Source channels scale photocathode/laser settings. The ASTRA template reads a fixed
+# particle distribution, so these requests are recorded but marked unsupported.
+source:
+  - channel: "bunch_charge_relative_jitter"
+    setting: "bunch_charge_scale"
     distribution: "normal"
     std: 0.010
     unit: "dimensionless"
     basis: "Photocathode laser pulse energy fluctuation (1.0%)"
-  laser_spot_size_relative_jitter:
+  - channel: "laser_spot_size_relative_jitter"
+    setting: "laser_spot_scale"
     distribution: "normal"
     std: 0.010
     unit: "dimensionless"
     basis: "Laser transport beam size jitter on cathode (1.0%)"
-  laser_pulse_duration_relative_jitter:
+  - channel: "laser_pulse_duration_relative_jitter"
+    setting: "laser_pulse_duration_scale"
     distribution: "normal"
     std: 0.010
     unit: "dimensionless"

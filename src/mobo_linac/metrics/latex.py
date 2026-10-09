@@ -257,6 +257,25 @@ def generate_robustness_summary_latex_table(
         record_list = robustness_data.to_dict(orient="records")
     else:
         record_list = robustness_data
+    import json
+    record_list = [{key: json.loads(value) if key in ("objective_order", "objective_units") and isinstance(value, str) else value
+                    for key, value in record.items()} for record in record_list]
+    if record_list and "objective_order" in record_list[0]:
+        # Configured objectives, recorded per summary, in physical units.
+        columns = record_list[0]["objective_order"]
+        units = record_list[0].get("objective_units", {})
+        headers = ["Candidate Role"] + [f"Nominal {escape_latex(name)} ({escape_latex(units.get(name, 'unknown'))})" for name in columns] \
+            + [r"Feasibility $P_{\mathrm{feas}}$", "Robust Score"]
+        tex = [r"\begin{table}[htbp]", r"\centering", f"\\caption{{{escape_latex(caption)}}}", f"\\label{{{label}}}",
+               r"\resizebox{\textwidth}{!}{%", r"\begin{tabular}{l" + "c" * (len(columns) + 2) + "}", r"\toprule",
+               " & ".join(headers) + r" \\", r"\midrule"]
+        for rec in record_list:
+            cells = [escape_latex(rec.get("role", rec.get("candidate_label", "candidate")))]
+            cells += [format_scientific(rec.get(f"nominal_{name}")) for name in columns]
+            cells += [format_measured(rec.get("probability_of_feasibility"), 2), format_measured(rec.get("robust_score"))]
+            tex.append(" & ".join(cells) + r" \\")
+        tex += [r"\bottomrule", r"\end{tabular}}", r"\end{table}"]
+        return _write_table("\n".join(tex) + "\n", output_path)
 
     tex = [
         r"\begin{table}[htbp]",
