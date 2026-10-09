@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id
-from mobo_linac.astra.runner import run_astra_eval, AstraRunner
+from mobo_linac.astra.runner import run_astra_eval
 
 from mobo_linac.config import load_config as _load_test_config
 TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
@@ -179,28 +179,18 @@ def test_real_astra_isolated_run():
     if not Path(astra_bin).is_file() and not shutil.which("astra"):
         pytest.skip(f"ASTRA executable not available at {astra_bin} or on PATH")
 
+    from mobo_linac.config import load_config
+    from mobo_linac.execution import EvaluationRequest, ProcessPoolEvaluator
+    params1 = [0.22, 1.0, -1.0, 0.0, 0.0, 0.0]
+    params2 = [0.25, 1.2, -1.2, 5.0, 2.0, 2.0]
     with tempfile.TemporaryDirectory() as tmp_results:
-        runner = AstraRunner(
-            run_id="integration_test_run",
-            base_results_dir=tmp_results,
-            template_dir=root_dir,
-            timeout=300,
-        )
-
-        params1 = [0.22, 1.0, -1.0, 0.0, 0.0, 0.0]
-        params2 = [0.25, 1.2, -1.2, 5.0, 2.0, 2.0]
-
-        with ThreadPoolExecutor(max_workers=2) as executor:
-            fut1 = executor.submit(runner.run, params1, eval_id=1)
-            fut2 = executor.submit(runner.run, params2, eval_id=2)
-
-            res1 = fut1.result()
-            res2 = fut2.result()
-
+        with ProcessPoolEvaluator(load_config("configs/mobo_200MeV.yaml"), base_results_dir=tmp_results,
+                                  template_dir=root_dir, max_workers=2, timeout=300) as evaluator:
+            res1, res2 = evaluator.evaluate([EvaluationRequest(1, params1), EvaluationRequest(2, params2)],
+                                            run_id="integration_test_run")
         assert res1["eval_dir"] != res2["eval_dir"]
         assert Path(res1["manifest_path"]).exists()
         assert Path(res2["manifest_path"]).exists()
-
         assert res1["manifest"]["parameters"] == params1
         assert res2["manifest"]["parameters"] == params2
 

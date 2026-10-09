@@ -5,7 +5,7 @@ Unit tests for Config-Driven Dynamic Parameter Mapping & Beamline Element Decoup
 import pytest
 from pathlib import Path
 from mobo_linac.config import DesignVariableConfig, MoboConfig, load_config
-from mobo_linac.astra.runner import apply_parameters_to_astra, AstraRunner, run_astra_eval
+from mobo_linac.astra.runner import apply_parameters_to_astra, run_astra_eval
 
 
 def test_apply_parameters_requires_configuration():
@@ -73,8 +73,3 @@ def test_parameter_length_mismatch_raises():
         apply_parameters_to_astra(mock_sim, [0.1, 0.2], config=config)
 
 
-def test_astra_runner_config_support():
-    """Verify AstraRunner retains and passes config."""
-    config = load_config("configs/mobo_200MeV.yaml")
-    runner = AstraRunner(run_id="test_run", config=config)
-    assert runner.config is config

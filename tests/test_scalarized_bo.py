@@ -65,18 +65,17 @@ def test_scalarized_bo_execution(tmp_path, monkeypatch):
             })
         return results
 
-    def mock_evaluate_requests(self, requests, run_id="default_run", on_evaluation_complete=None):
+    def mock_evaluate(self, requests, run_id="default_run", on_complete=None):
         results = mock_evaluate_batch(self, [r.parameters for r in requests], run_id,
                                       [r.eval_id for r in requests])
         for result in results:
-            if on_evaluation_complete is not None:
-                on_evaluation_complete(result)
+            if on_complete is not None:
+                on_complete(result)
         return results
 
-    from mobo_linac.execution.parallel import BatchEvaluator
+    from mobo_linac.execution.parallel import ProcessPoolEvaluator
     # Campaigns submit complete requests; never launch the real simulator in this unit test.
-    monkeypatch.setattr(BatchEvaluator, "evaluate_batch", mock_evaluate_batch)
-    monkeypatch.setattr(BatchEvaluator, "evaluate_requests", mock_evaluate_requests)
+    monkeypatch.setattr(ProcessPoolEvaluator, "evaluate", mock_evaluate)
 
     args = DummyArgs()
     run_scalarized(args)
@@ -90,10 +89,10 @@ def test_scalarized_bo_execution(tmp_path, monkeypatch):
 def test_mobo_campaign_runner_scalarized_mode(tmp_path):
     """Test MoboCampaignRunner direct execution with optimization_mode='scalarized_bo'."""
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.cli import CliMockEvaluator
+    from mobo_linac.cli import MockEvaluator
 
     target_dir = tmp_path / "runner_scalarized_test"
-    evaluator = CliMockEvaluator(target_dir)
+    evaluator = MockEvaluator(target_dir)
 
     runner = MoboCampaignRunner(
         config="configs/mobo_200MeV.yaml",

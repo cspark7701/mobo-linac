@@ -7,6 +7,9 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+from mobo_linac.execution import FunctionEvaluator
+from tests.evaluators import callable_evaluator
+
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.candidate_evaluator import (
     CandidateEvaluatorBase,
@@ -102,7 +105,7 @@ def test_robustness_evaluator_plan_and_execution(sample_candidate, tmp_path):
         candidates=[sample_candidate],
         num_perturbations=5,
         seed=42,
-        custom_evaluator=mock_eval,
+        evaluator=callable_evaluator(mock_eval, mock=False),
     )
     assert len(summaries) == 1
     assert summaries[0]["probability_of_feasibility"] == 1.0
@@ -127,13 +130,13 @@ def test_pareto_verifier_plan_and_execution(sample_candidate, tmp_path):
         }
 
     cands_dict = {"knee_point": sample_candidate}
-    records, manifest_p, tex_p = verifier.verify_candidates(cands_dict, mock_evaluator=mock_eval)
+    records, manifest_p, tex_p = verifier.verify_candidates(cands_dict, evaluator=callable_evaluator(mock_eval))
     assert len(records) == 1
     assert records[0]["verification_status"] == "MOCK_VERIFIED"
     assert manifest_p.exists()
     assert tex_p.exists()
     original_manifest = manifest_p.read_bytes()
-    _, next_manifest, next_tex = verifier.verify_candidates(cands_dict, mock_evaluator=mock_eval)
+    _, next_manifest, next_tex = verifier.verify_candidates(cands_dict, evaluator=callable_evaluator(mock_eval))
     assert next_manifest != manifest_p
     assert manifest_p.read_bytes() == original_manifest
     assert next_tex.exists()
@@ -187,8 +190,6 @@ def test_override_failure_is_not_silently_applied(sample_candidate, recording_as
     assert manifest['applied_namelist_overrides'] == {}
     assert manifest['applied_perturbations'] == {}
     assert Path(raw['eval_dir']).exists()
-    with pytest.raises(ValueError, match='complete-request'):
-        evaluator.evaluate_plan_parallel(tasks, custom_evaluator=lambda *args, **kwargs: {})
 
 
 def test_request_evaluator_receives_full_state_and_config(sample_candidate, tmp_path):
@@ -200,13 +201,14 @@ def test_request_evaluator_receives_full_state_and_config(sample_candidate, tmp_
     tasks = evaluator.generate_evaluation_plan([sample_candidate], num_perturbations=2)
     tasks[0].namelist_overrides = {'charge:nrad': 16}
     captured = []
-    def recording(request, *, config):
+    def recording(request, run_id):
         assert isinstance(request, EvaluationRequest)
-        captured.append((request.to_dict(), config))
+        captured.append((request.to_dict(), run_id))
         return sample_candidate
-    evaluator.evaluate_plan_parallel(tasks, request_evaluator=recording)
+    outcomes = evaluator.evaluate_plan_parallel(tasks, evaluator=FunctionEvaluator(recording), run_id="study")
     assert [record for record, _ in captured] == [task.to_request().to_dict() for task in tasks]
-    assert all(cfg is config for _, cfg in captured)
+    assert all(run_id == "study" for _, run_id in captured)
+    assert [o.evaluated_result.run_id for o in outcomes] == ["study"] * len(tasks)
 
 
 def test_lattice_override_is_recorded_without_claiming_original_jitter(sample_candidate, recording_astra_project, tmp_path):
@@ -264,21 +266,20 @@ def test_cli_and_script_honor_config_through_shared_workflow(sample_candidate, r
 
 def test_analysis_streams_typed_results_and_returns_request_order(tmp_path, monkeypatch):
     from mobo_linac.config import load_config
-    from mobo_linac.execution.mock import MockBatchEvaluator
+    from mobo_linac.execution.mock import MockEvaluator
     from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask
     from mobo_linac.evaluation import create_evaluation_result
     config = load_config('configs/publication_200MeV.yaml')
     class Analysis(CandidateEvaluatorBase):
         def generate_evaluation_plan(self, candidates): return []
     class TypedBackend:
-        supports_completion_callback = True
-        def evaluate_requests(self, requests, run_id, on_evaluation_complete=None):
-            raw = MockBatchEvaluator(tmp_path).evaluate_requests(requests, run_id)
+        def evaluate(self, requests, run_id, on_complete=None):
+            raw = MockEvaluator(tmp_path).evaluate(requests, run_id)
             results = [create_evaluation_result(row, config) for row in reversed(raw)]
             for result in results:
-                on_evaluation_complete(result)
+                on_complete(result)
             return results
-    monkeypatch.setattr('mobo_linac.execution.candidate_evaluator.BatchEvaluator', lambda **kwargs: TypedBackend())
+    monkeypatch.setattr(CandidateEvaluatorBase, 'default_evaluator', lambda self: TypedBackend())
     tasks = [EvaluationTask(name, name, [0.2, 1, -1, 0, 0, 0]) for name in ['first', 'second']]
     done = []
     out = Analysis(config=config, base_output_dir=tmp_path).evaluate_plan_parallel(tasks, on_task_complete=done.append)

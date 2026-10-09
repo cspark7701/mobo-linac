@@ -42,7 +42,7 @@ from mobo_linac.cli.commands.run import (
     run_unconstrained,
     run_validation,
 )
-from mobo_linac.cli.common import CliMockEvaluator
+from mobo_linac.cli.common import MockEvaluator  # noqa: F401  (public CLI test double)
 
 
 def build_parser() -> argparse.ArgumentParser:

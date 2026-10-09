@@ -20,7 +20,7 @@ The repository has evolved through three complete development phases:
 ```mermaid
 graph TD
     A["Central YAML Configuration<br/>(configs/publication_200MeV.yaml)"] --> B["AstraWorkDirManager<br/>(Process-Safe Scratch Dirs)"]
-    B --> C["BatchEvaluator<br/>(ProcessPoolExecutor Workers)"]
+    B --> C["ProcessPoolEvaluator<br/>(persistent ProcessPoolExecutor)"]
     C --> D["ASTRA Simulation Engine<br/>(bin/astra / lume-astra)"]
     D --> E["Diagnostics & Constraint Evaluator<br/>(7 Physical Diagnostic Channels)"]
     E --> F["EvaluationResult Schema<br/>(Valid / Feasible / Failure Flags)"]
@@ -43,7 +43,7 @@ The core package [`mobo_linac`](../src/mobo_linac) is structured with strict sep
 | :--- | :--- | :--- |
 | **`config`** | Centralized dataclass configurations and validation | [`MoboConfig`](../src/mobo_linac/config.py#L187-L257), [`DesignVariableConfig`](../src/mobo_linac/config.py#L17-L48), [`ObjectiveConfig`](../src/mobo_linac/config.py#L50-L68), [`ConstraintsConfig`](../src/mobo_linac/config.py#L70-L101), [`load_config`](../src/mobo_linac/config.py#L259-L299) |
 | **`astra`** | ASTRA execution engine & isolated workdirs | [`AstraRunner`](../src/mobo_linac/astra/runner.py#L25-L120), [`AstraWorkDirManager`](../src/mobo_linac/astra/workdir.py#L20-L110), [`run_astra_eval`](../src/mobo_linac/astra/runner.py#L128-L240) |
-| **`execution`** | ProcessPoolExecutor parallel worker management | [`BatchEvaluator`](../src/mobo_linac/execution/parallel.py#L25-L95), [`evaluate_candidates_parallel`](../src/mobo_linac/execution/parallel.py#L100-L160) |
+| **`execution`** | ProcessPoolExecutor parallel worker management | [`ProcessPoolEvaluator`](../src/mobo_linac/execution/parallel.py#L25-L95), [`evaluate_candidates_parallel`](../src/mobo_linac/execution/parallel.py#L100-L160) |
 | **`models`** | Gaussian Process surrogates & hyperparameter tuning | [`build_gp_models`](../src/mobo_linac/models/gp.py#L22-L144), [`SurrogatePipeline`](../src/mobo_linac/models/pipeline.py#L25-L160), [`optimize_gp_hyperparameters`](../src/mobo_linac/models/tuning.py#L30-L110) |
 | **`acquisition`** | Multi-objective acquisition functions & proposal engine | [`build_acquisition_function`](../src/mobo_linac/acquisition/mobo.py#L30-L120), [`generate_next_candidates`](../src/mobo_linac/acquisition/mobo.py#L139-L265) |
 | **`campaigns`** | Single-run and paired multi-seed benchmark runners | [`MoboCampaignRunner`](../src/mobo_linac/campaigns/runner.py#L30-L522), [`BenchmarkCampaignRunner`](../src/mobo_linac/campaigns/benchmark.py#L30-L253) |

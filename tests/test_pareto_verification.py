@@ -3,6 +3,9 @@ Unit tests for Independent Pareto Candidate Verification (Task 08).
 """
 
 import pytest
+
+from mobo_linac.execution import FunctionEvaluator
+from tests.evaluators import callable_evaluator, mock_data_evaluator
 import numpy as np
 import torch
 
@@ -97,7 +100,7 @@ def test_independent_verification_rerun(sample_pareto_results, tmp_path):
         candidate=candidate,
         config=config,
         output_dir=tmp_path / "verify",
-        mock_rerun_data=mock_exact,
+        evaluator=mock_data_evaluator(mock_exact),
     )
 
     assert rec_verified["verification_status"] == "MOCK_VERIFIED"
@@ -114,7 +117,7 @@ def test_independent_verification_rerun(sample_pareto_results, tmp_path):
         candidate=candidate,
         config=config,
         output_dir=tmp_path / "verify",
-        mock_rerun_data=mock_rejected,
+        evaluator=mock_data_evaluator(mock_rejected),
     )
 
     assert rec_rejected["verification_status"] == "MOCK_REJECTED"
@@ -131,7 +134,7 @@ def test_export_verification_latex_table(sample_pareto_results, tmp_path):
         candidate=candidate,
         config=config,
         output_dir=tmp_path / "verify",
-        mock_rerun_data={"objectives_physical": candidate.objectives_physical, "diagnostics": candidate.diagnostics},
+        evaluator=mock_data_evaluator({"objectives_physical": candidate.objectives_physical, "diagnostics": candidate.diagnostics}),
     )
 
     tex_path = tmp_path / "verification_table.tex"
@@ -161,7 +164,7 @@ def test_run_verification_pipeline(sample_pareto_results, tmp_path):
         results=sample_pareto_results,
         config=config,
         output_dir=tmp_path / "pipeline_verify",
-        mock_evaluator=mock_eval,
+        evaluator=callable_evaluator(mock_eval),
     )
 
     assert len(records) == 6
@@ -180,14 +183,14 @@ def test_repeated_verification_retains_records_and_reports(sample_pareto_results
     config = load_config()
     mock = {'objectives_physical': candidate.objectives_physical,
             'diagnostics': candidate.diagnostics}
-    first = run_independent_verification_rerun('knee', candidate, config, tmp_path, mock)
+    first = run_independent_verification_rerun('knee', candidate, config, tmp_path, mock_data_evaluator(mock))
     first_bytes = Path(first['record_path']).read_bytes()
-    second = run_independent_verification_rerun('knee', candidate, config, tmp_path, mock)
+    second = run_independent_verification_rerun('knee', candidate, config, tmp_path, mock_data_evaluator(mock))
     assert first['record_path'] != second['record_path']
     assert Path(first['record_path']).read_bytes() == first_bytes
     assert json.loads(Path(second['record_path']).read_text())['verification_run_id'] == second['verification_run_id']
     roles = select_verification_candidates([candidate], config)
-    mocks = {role: mock for role in roles}
+    mocks = mock_data_evaluator(mock)
     _, first_manifest, first_tex = run_verification_pipeline([candidate], config, tmp_path, mocks)
     saved = first_manifest.read_bytes()
     _, second_manifest, second_tex = run_verification_pipeline([candidate], config, tmp_path, mocks)
@@ -236,7 +239,7 @@ def test_configured_real_reruns_and_audit(sample_pareto_results, recording_astra
         execution = json.loads(inputs.read_text().splitlines()[-1])
         assignments = json.loads(inputs.read_text().splitlines()[-2])
         assert execution['timeout_sec'] == 17
-        assert (execution['pid'] == os.getpid()) is (workers == 1)
+        assert execution['pid'] != os.getpid()  # every worker count runs process-isolated
         assert assignments['solenoid:maxb(2)'] == candidate.x_physical[0]
         assert assignments['charge:nrad'] == 32
         assert record['input_sha256'] == file_sha256(inputs)
@@ -274,7 +277,7 @@ def test_unknown_comparisons_never_agree(sample_pareto_results, tmp_path, mutati
     assert deltas['comparison_complete'] is False
     assert issue in deltas['comparison_issues']
     record = run_independent_verification_rerun('knee', original, config, tmp_path,
-               mock_rerun_data={'objectives_physical': rerun.objectives_physical, 'diagnostics': rerun.diagnostics})
+               evaluator=mock_data_evaluator({'objectives_physical': rerun.objectives_physical, 'diagnostics': rerun.diagnostics}))
     assert record['comparison_status'] == 'COMPARISON_UNKNOWN'
     assert record['verification_status'] == 'MOCK_COMPARISON_UNKNOWN'
     assert record['input_sha256'] is None and record['executable_sha256'] is None
@@ -284,12 +287,12 @@ def test_missing_rerun_metrics_and_feasibility_change(sample_pareto_results, tmp
     config = load_config()
     original = sample_pareto_results[0]
     missing = run_independent_verification_rerun('missing', original, config, tmp_path,
-                mock_rerun_data={'diagnostics': original.diagnostics})
+                evaluator=mock_data_evaluator({'diagnostics': original.diagnostics}))
     assert missing['verification_status'] == 'MOCK_RERUN_FAILED'
     assert all(value is None for value in missing['rerun_objectives'].values())
     diagnostics = dict(original.diagnostics, sigma_x_m=2e-3)
     changed = run_independent_verification_rerun('changed', original, config, tmp_path,
-                mock_rerun_data={'objectives_physical': original.objectives_physical, 'diagnostics': diagnostics})
+                evaluator=mock_data_evaluator({'objectives_physical': original.objectives_physical, 'diagnostics': diagnostics}))
     assert changed['max_diff_pct'] == 0.0
     assert changed['comparison_status'] == 'REJECTED'
 
@@ -302,12 +305,12 @@ def test_tampered_provenance_cannot_verify(sample_pareto_results, recording_astr
 
     project, config = recording_astra_project
     candidate = replace(sample_pareto_results[0], objectives_physical=[1e-6, 1e-6, 0.5e6])
-    def backend(request, *, config):
+    def backend(request, run_id):
         result = run_astra_eval(request.parameters, 'captured', request.eval_id, config=config,
                                template_dir=project, base_results_dir=tmp_path / 'work')
         (Path(result['manifest_path']).parent / 'inputs' / 'astra.in').write_text('tampered')
         return result
-    records, _, _ = ParetoVerifier(config, tmp_path / 'reports').verify_candidates({'knee': candidate}, request_evaluator=backend)
+    records, _, _ = ParetoVerifier(config, tmp_path / 'reports').verify_candidates({'knee': candidate}, evaluator=FunctionEvaluator(backend))
     assert records[0]['comparison_status'] == 'VERIFIED'
     assert records[0]['verification_status'] == 'AUDIT_FAILED'
     assert any('checksum mismatch' in issue for issue in records[0]['rerun_audit']['issues'])
@@ -343,8 +346,8 @@ def test_function_class_and_cli_equivalent(sample_pareto_results, recording_astr
 def test_transmission_participates_in_error_threshold(sample_pareto_results, tmp_path):
     original = sample_pareto_results[0]
     record = run_independent_verification_rerun('knee', original, load_config(), tmp_path,
-                 mock_rerun_data={'objectives_physical': original.objectives_physical,
-                                  'diagnostics': dict(original.diagnostics, transmission_fraction=0.99)})
+                 evaluator=mock_data_evaluator({'objectives_physical': original.objectives_physical,
+                                  'diagnostics': dict(original.diagnostics, transmission_fraction=0.99)}))
     assert record['max_diff_pct'] == pytest.approx(1.0)
     assert record['comparison_status'] == 'CONDITIONALLY_VERIFIED'
     assert record['verification_status'] == 'MOCK_CONDITIONALLY_VERIFIED'

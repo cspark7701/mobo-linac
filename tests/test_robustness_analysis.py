@@ -237,12 +237,12 @@ def test_complete_plan_reproducibility_zero_jitter_and_reordered_config(sample_p
 def test_reports_never_claim_unapplied_source_or_mock_jitter(sample_pareto_results, tmp_path):
     import json
     from pathlib import Path
-    from mobo_linac.execution.mock import MockBatchEvaluator
+    from mobo_linac.execution.mock import MockEvaluator
     from mobo_linac.robustness.evaluator import RobustnessEvaluator
 
     evaluator = RobustnessEvaluator(TEST_CONFIG, base_output_dir=tmp_path)
-    mock = MockBatchEvaluator(tmp_path)
-    summary = evaluator.evaluate_candidates(sample_pareto_results[:1], 3, seed=31, batch_evaluator=mock)[0]
+    mock = MockEvaluator(tmp_path)
+    summary = evaluator.evaluate_candidates(sample_pareto_results[:1], 3, seed=31, evaluator=mock)[0]
     assert summary['unsupported_channels'] == sorted(c.channel for c in evaluator.spec.source)
     assert summary['execution_kinds'] == ['mock']
     assert summary['evaluated_channels'] == []
@@ -258,7 +258,7 @@ def test_reports_never_claim_unapplied_source_or_mock_jitter(sample_pareto_resul
         assert record['request']['metadata']['seed'] == 31
         assert record['request']['metadata']['unsupported_channels']
     original = archive.read_bytes()
-    next_summary = evaluator.evaluate_candidates(sample_pareto_results[:1], 3, seed=31, batch_evaluator=mock)[0]
+    next_summary = evaluator.evaluate_candidates(sample_pareto_results[:1], 3, seed=31, evaluator=mock)[0]
     assert next_summary['request_manifest_path'] != str(archive)
     assert archive.read_bytes() == original
 

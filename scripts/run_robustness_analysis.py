@@ -10,7 +10,7 @@ from pathlib import Path
 from typing import Optional
 
 from mobo_linac.config import load_config
-from mobo_linac.execution.mock import MockBatchEvaluator
+from mobo_linac.execution.mock import MockEvaluator
 from mobo_linac.io.run_data import discover_candidate_source, load_candidates
 from mobo_linac.robustness.workflow import run_robustness_workflow
 
@@ -72,13 +72,13 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
     results = load_candidates(pareto_path, config=config) if pareto_path is not None else []
     mock = getattr(args, "mock_evaluator", None)
     if mock is True:
-        mock = MockBatchEvaluator(args.output_dir, config=config)
+        mock = MockEvaluator(args.output_dir, config=config)
     elif mock is False:
         mock = None
     return run_robustness_workflow(
         results, config, args.output_dir, num_perturbations=args.num_perturbations,
         num_workers=args.num_workers, seed=args.seed,
-        dry_run=getattr(args, "dry_run", False), batch_evaluator=mock,
+        dry_run=getattr(args, "dry_run", False), evaluator=mock,
     )
 
 

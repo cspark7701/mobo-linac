@@ -113,14 +113,14 @@ def test_benchmark_cli_rejects_unimplemented_algorithms(tmp_path, algorithm):
 
 def test_cli_resume_restores_scalarized_nondefault_campaign(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.io.checkpoint import load_run_checkpoint
 
     run_dir = tmp_path / "scalarized_resume"
     MoboCampaignRunner(
         output_dir=run_dir, num_initial_samples=1, num_batches=0, batch_size=2,
         seed=123, num_workers=3, optimization_mode="scalarized_bo",
-        scalar_weights=[0.6, 0.3, 0.1], evaluator=MockBatchEvaluator(run_dir),
+        scalar_weights=[0.6, 0.3, 0.1], evaluator=MockEvaluator(run_dir),
         device="cpu", export_plots=False, export_env_info=False,
     ).run()
     original_config = (run_dir / "config.yaml").read_bytes()
@@ -140,12 +140,12 @@ def test_cli_resume_restores_scalarized_nondefault_campaign(tmp_path):
 
 def test_cli_resume_defaults_to_saved_plan(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.io.checkpoint import load_run_checkpoint
 
     MoboCampaignRunner(
         output_dir=tmp_path, num_initial_samples=1, num_batches=0,
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
     before = load_run_checkpoint(tmp_path)
     main(["resume", "--run-dir", str(tmp_path), "--mock-evaluator"])
@@ -163,13 +163,13 @@ def test_cli_resume_rejects_missing_checkpoint_without_creating_directory(tmp_pa
 
 def test_cli_resume_uses_embedded_config_outside_project_cwd(tmp_path, monkeypatch):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.io.checkpoint import load_run_checkpoint
 
     run_dir = tmp_path / "original"
     MoboCampaignRunner(
         output_dir=run_dir, num_initial_samples=1, num_batches=0,
-        evaluator=MockBatchEvaluator(run_dir), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(run_dir), device="cpu", export_plots=False,
     ).run()
     unrelated = tmp_path / "unrelated"
     unrelated.mkdir()
@@ -180,14 +180,13 @@ def test_cli_resume_uses_embedded_config_outside_project_cwd(tmp_path, monkeypat
 
 def test_cli_recovers_initial_design_before_first_completed_checkpoint(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.io.checkpoint import load_run_checkpoint
     from mobo_linac.io.journal import load_streaming_evaluations
 
-    class InterruptedEvaluator(MockBatchEvaluator):
-        def evaluate_batch(self, candidates, run_id, eval_ids, on_evaluation_complete):
-            result = self._generate_candidate_result(candidates[1], run_id, eval_ids[1])
-            on_evaluation_complete(result)
+    class InterruptedEvaluator(MockEvaluator):
+        def evaluate(self, requests, run_id, on_complete=None):
+            on_complete(self.respond(requests[1].parameters, run_id, requests[1].eval_id))
             raise RuntimeError("before checkpoint zero")
 
     with pytest.raises(RuntimeError, match="before checkpoint zero"):

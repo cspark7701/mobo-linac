@@ -374,9 +374,9 @@ def test_nonfinite_namelist_override_fails_before_attempt_creation(tmp_path):
 
 def test_campaign_records_resolved_default_source(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     runner = MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=2, num_batches=0,
-                               evaluator=MockBatchEvaluator(tmp_path), export_plots=False, export_env_info=False)
+                               evaluator=MockEvaluator(tmp_path), export_plots=False, export_env_info=False)
     runner.run()
     recorded = json.loads((tmp_path / "config_source.json").read_text())
     assert Path(recorded["resolved_path"]) == runner.config_path == runner.config.source_path
@@ -445,13 +445,14 @@ def test_benchmark_preserves_resolved_configuration_source(tmp_path):
 
 
 def test_invalid_batch_parameters_are_not_coerced_before_validation(tmp_path, monkeypatch):
-    from mobo_linac.execution.parallel import evaluate_candidates_parallel
+    from mobo_linac.execution import EvaluationRequest, ProcessPoolEvaluator
     def forbid(*args, **kwargs):
         pytest.fail("Invalid request reached a worker")
-    monkeypatch.setattr("mobo_linac.execution.parallel._worker_eval_task", forbid)
+    monkeypatch.setattr("mobo_linac.execution.parallel.run_worker_task", forbid)
     output = tmp_path / "invalid"
+    evaluator = ProcessPoolEvaluator(load_config('configs/mobo_200MeV.yaml'), base_results_dir=output, max_workers=1)
     with pytest.raises(ValueError, match="finite numbers"):
-        evaluate_candidates_parallel([[True, 1, -1, 0, 0, 0]], max_workers=1, base_results_dir=output, config=load_config('configs/mobo_200MeV.yaml'))
+        evaluator.evaluate([EvaluationRequest(1, [True, 1, -1, 0, 0, 0])])
     assert not output.exists()
 
 

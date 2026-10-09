@@ -13,7 +13,7 @@ from mobo_linac.campaigns.scalarized_suite import (
     get_scalarized_case,
     run_scalarized_suite,
 )
-from mobo_linac.cli.common import CliMockEvaluator
+from mobo_linac.cli.common import MockEvaluator
 from mobo_linac.config import load_config
 
 CONFIG = load_config("configs/mobo_200MeV.yaml")
@@ -58,9 +58,9 @@ def test_case_weights_must_match_objectives():
 
 
 def test_scalarized_suite_execution_with_mock_evaluator(tmp_path):
-    """Test running Option 2 suite with CliMockEvaluator across multiple cases."""
+    """Test running Option 2 suite with MockEvaluator across multiple cases."""
     suite_dir = tmp_path / "phase1_suite_test"
-    evaluator = CliMockEvaluator(suite_dir)
+    evaluator = MockEvaluator(suite_dir)
 
     # Run a 2-case subset for test speed
     target_cases = ["balanced", "high_brightness"]
@@ -181,9 +181,9 @@ def test_case_alone_matches_case_within_suite(tmp_path):
     common = dict(config="configs/mobo_200MeV.yaml", n_iterations=1, batch_size=2,
                   num_initial_samples=3, seed=11, device="cpu")
     run_scalarized_suite(output_dir=tmp_path / "alone", cases_to_run=["x_dominant"],
-                         evaluator=CliMockEvaluator(tmp_path / "m1"), **common)
+                         evaluator=MockEvaluator(tmp_path / "m1"), **common)
     run_scalarized_suite(output_dir=tmp_path / "suite", cases_to_run=["balanced", "x_dominant"],
-                         evaluator=CliMockEvaluator(tmp_path / "m2"), **common)
+                         evaluator=MockEvaluator(tmp_path / "m2"), **common)
     alone = json.loads((tmp_path / "alone" / "x_dominant" / "candidate_history.json").read_text())
     within = json.loads((tmp_path / "suite" / "x_dominant" / "candidate_history.json").read_text())
     assert [r["x_physical"] for r in alone] == [r["x_physical"] for r in within]

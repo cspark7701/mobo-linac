@@ -15,7 +15,7 @@ from pathlib import Path
 
 from mobo_linac.campaign_options import normalize_scalar_weights, resolve_campaign_options, validate_campaign_options
 from mobo_linac.config import load_config
-from mobo_linac.cli.common import CliMockEvaluator, add_common_run_args
+from mobo_linac.cli.common import MockEvaluator, add_common_run_args
 
 MODES = {
     "unconstrained": ("unconstrained_mobo", "Unconstrained MOBO"),
@@ -57,7 +57,7 @@ def _print_plan(title, config, options, output_dir, extra=()):
 
 
 def _mock(args, directory, config):
-    return CliMockEvaluator(Path(directory), config=config) if getattr(args, "mock_evaluator", False) else None
+    return MockEvaluator(Path(directory), config=config) if getattr(args, "mock_evaluator", False) else None
 
 
 def run_campaign_command(args: argparse.Namespace, kind: str) -> None:

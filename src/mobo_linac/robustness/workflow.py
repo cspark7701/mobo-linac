@@ -12,7 +12,7 @@ from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_MAPPING_
 
 
 def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
-                            num_workers=4, seed=42, dry_run=False, batch_evaluator=None, spec=None):
+                            num_workers=4, seed=42, dry_run=False, evaluator=None, spec=None):
     """Select representatives, evaluate perturbed states and export summaries.
 
     All representative roles form one plan; per-candidate seeds follow the
@@ -40,11 +40,11 @@ def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
     selection = select_representatives(results, config)
     selection.write(output_dir / "representatives.json")
     candidates = dict(selection.roles)
-    evaluator = RobustnessEvaluator(config=config, base_output_dir=output_dir, num_workers=num_workers,
-                                    timeout=config.execution.timeout_sec, spec=spec)
-    summaries = evaluator.evaluate_candidates(
+    study = RobustnessEvaluator(config=config, base_output_dir=output_dir, num_workers=num_workers,
+                                timeout=config.execution.timeout_sec, spec=spec)
+    summaries = study.evaluate_candidates(
         list(candidates.values()), roles=list(candidates), num_perturbations=num_perturbations,
-        seed=seed, batch_evaluator=batch_evaluator)
+        seed=seed, evaluator=evaluator)
     rows = [{key: json.dumps(value, sort_keys=True) if isinstance(value, (dict, list)) else value
              for key, value in summary.items()} for summary in summaries]
     frame = pd.DataFrame(rows)

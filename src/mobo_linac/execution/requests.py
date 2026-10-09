@@ -52,3 +52,12 @@ def validate_evaluation_settings(parameters, config, namelist_overrides=None, so
             if not values or any(not isinstance(item, (str, bool, int, float)) or
                                  (isinstance(item, (int, float)) and not math.isfinite(item)) for item in values):
                 raise ValueError(f"Namelist override {key} must contain finite numeric, boolean, or string values.")
+
+
+def requests_for(candidates, eval_ids=None) -> List[EvaluationRequest]:
+    """Plain requests for parameter vectors (identities default to positions 1..N)."""
+    candidates = [list(map(float, candidate)) for candidate in candidates]
+    eval_ids = list(eval_ids) if eval_ids is not None else list(range(1, len(candidates) + 1))
+    if len(eval_ids) != len(candidates):
+        raise ValueError("eval_ids must match candidates.")
+    return [EvaluationRequest(eid, candidate) for eid, candidate in zip(eval_ids, candidates)]

@@ -6,14 +6,10 @@ from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
 import argparse
 from pathlib import Path
 
-from mobo_linac.execution.mock import (
-    CliMockEvaluator,
-    MockBatchEvaluator,
-)
+from mobo_linac.execution.mock import MockEvaluator
 
 __all__ = [
-    "CliMockEvaluator",
-    "MockBatchEvaluator",
+    "MockEvaluator",
     "add_common_run_args",
 ]
 

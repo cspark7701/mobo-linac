@@ -161,6 +161,7 @@ def recording_astra_project(tmp_path, monkeypatch):
     config.design_variables[0].astra_key = 'solenoid:maxb(2)'
     config.design_variables[4].coupled_targets = ['cavity:phi(2)', 'cavity:phi(6)']
     config.execution.clean_on_success = True
+    config.execution.template_dir = str(project)  # inputs come from configuration, not the cwd
     return project, config
 
 

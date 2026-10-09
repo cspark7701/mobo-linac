@@ -41,7 +41,7 @@ from mobo_linac.campaigns.strategies import make_strategy
 from mobo_linac.config import CampaignSettings, MoboConfig, config_from_dict, load_config
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.contracts import evaluate_requests
-from mobo_linac.execution.parallel import BatchEvaluator
+from mobo_linac.execution.parallel import ProcessPoolEvaluator
 from mobo_linac.execution.requests import EvaluationRequest
 from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
 from mobo_linac.io.checkpoint import (
@@ -278,14 +278,11 @@ class MoboCampaignRunner:
     def build_evaluator(self):
         if self.custom_evaluator is not None:
             return self.custom_evaluator
-        return BatchEvaluator(
+        return ProcessPoolEvaluator(
+            self.config,
             base_results_dir=self.run_dir.parent,  # evaluations live in <base>/<run_id>/ = run_dir
             template_dir=resolve_template_dir(self.config),
             max_workers=self.num_workers,
-            timeout=self.config.execution.timeout_sec,
-            retries=self.config.execution.retries,
-            clean_on_success=self.config.execution.clean_on_success,
-            config=self.config,
         )
 
     def run(self) -> Tuple[List[EvaluationResult], HypervolumeTracker, Path]:

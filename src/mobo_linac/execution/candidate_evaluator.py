@@ -11,11 +11,11 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 import numpy as np
 
-from mobo_linac.config import MoboConfig, ExecutionConfig
-from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
-from mobo_linac.execution.parallel import BatchEvaluator
+from mobo_linac.config import MoboConfig
+from mobo_linac.evaluation import EvaluationResult
+from mobo_linac.execution.parallel import ProcessPoolEvaluator
 from mobo_linac.execution.requests import EvaluationRequest
-from mobo_linac.execution.contracts import evaluate_requests, evaluation_identity
+from mobo_linac.execution.contracts import Evaluator, evaluate_requests, evaluation_identity
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.diagnostics import finite_measurement, normalize_diagnostics
 
@@ -107,18 +107,21 @@ class CandidateEvaluatorBase(ABC):
         base_output_dir: Union[str, Path] = "results",
         num_workers: int = 1,
         timeout: int = 30,
-        template_dir: Union[str, Path] = ".",
+        template_dir: Optional[Union[str, Path]] = None,
         template_in: str = "astra.in",
     ):
+        from mobo_linac.astra.runner import resolve_template_dir
         if not isinstance(config, MoboConfig):
             raise TypeError("Candidate evaluation requires the campaign MoboConfig.")
         self.config = config
         self.config.validate()
-        ExecutionConfig(timeout_sec=timeout, max_workers=num_workers).validate()
+        for name, value in (("timeout", timeout), ("num_workers", num_workers)):
+            if type(value) is not int or value < 1:
+                raise ValueError(f"{name} must be a positive integer.")
         self.base_output_dir = Path(base_output_dir)
         self.num_workers = num_workers
         self.timeout = timeout
-        self.template_dir = Path(template_dir)
+        self.template_dir = Path(template_dir).resolve() if template_dir is not None else resolve_template_dir(config)
         self.template_in = template_in
 
     @abstractmethod
@@ -137,77 +140,38 @@ class CandidateEvaluatorBase(ABC):
         """Computes relative percentage deltas between nominal and evaluated result."""
         return compute_metric_deltas(nominal_result, evaluated_result, self.config)
 
+    def default_evaluator(self) -> ProcessPoolEvaluator:
+        """The production ASTRA backend for this study's settings."""
+        return ProcessPoolEvaluator(self.config, base_results_dir=self.base_output_dir, template_dir=self.template_dir,
+                                    template_in=self.template_in, max_workers=self.num_workers, timeout=self.timeout)
+
     def evaluate_plan_parallel(
         self,
         tasks: List[EvaluationTask],
-        custom_evaluator: Optional[Any] = None,
+        evaluator: Optional[Evaluator] = None,
         on_task_complete: Optional[Callable[[EvaluationOutcome], None]] = None,
-        request_evaluator: Optional[Any] = None,
         run_id: str = "candidate_eval",
     ) -> List[EvaluationOutcome]:
-        """
-        Executes evaluation tasks in parallel, mapping outputs to EvaluationOutcome records.
-        """
+        """Evaluate the tasks with one evaluator (default: the process-pool ASTRA backend)."""
         for task in tasks:
             task.to_request().validate(self.config)
         if not tasks:
             return []
-
-        outcomes: List[EvaluationOutcome] = []
-
-        if custom_evaluator is not None and request_evaluator is not None:
-            raise ValueError("Choose a legacy evaluator or a complete-request evaluator")
-        if custom_evaluator is not None and any(task.namelist_overrides for task in tasks):
-            raise ValueError("Namelist overrides require a complete-request evaluator")
-        if custom_evaluator is not None or request_evaluator is not None:
-            for task in tasks:
-                if request_evaluator is not None:
-                    raw_res = request_evaluator(task.to_request(), config=self.config)
-                else:
-                    raw_res = custom_evaluator(task.parameters, run_id=task.task_id, eval_id=task.role)
-                eval_res = (
-                    raw_res
-                    if isinstance(raw_res, EvaluationResult)
-                    else create_evaluation_result(raw_res, self.config)
-                )
-                deltas = self.compute_relative_metric_deltas(task.nominal_result, eval_res)
-                outcome = EvaluationOutcome(
-                    task=task,
-                    evaluated_result=eval_res,
-                    metric_deltas=deltas,
-                    execution_details=raw_res if isinstance(raw_res, dict) else {},
-                )
-                outcomes.append(outcome)
-                if on_task_complete is not None:
-                    on_task_complete(outcome)
-            return outcomes
-
-        evaluator = BatchEvaluator(
-            base_results_dir=self.base_output_dir,
-            template_dir=self.template_dir,
-            template_in=self.template_in,
-            max_workers=self.num_workers,
-            timeout=self.timeout,
-            config=self.config,
-            retries=self.config.execution.retries,
-            clean_on_success=self.config.execution.clean_on_success,
-        )
-
         by_id = {evaluation_identity(task.task_id): task for task in tasks}
-        completed_outcomes = {}
+        outcomes: Dict[str, EvaluationOutcome] = {}
 
         def complete(completion):
-            identity = completion.result.evaluation_id
-            task = by_id[identity]
+            task = by_id[completion.result.evaluation_id]
             outcome = EvaluationOutcome(
                 task=task, evaluated_result=completion.result,
                 metric_deltas=self.compute_relative_metric_deltas(task.nominal_result, completion.result),
                 execution_details=completion.details,
             )
-            completed_outcomes[identity] = outcome
+            outcomes[completion.result.evaluation_id] = outcome
             if on_task_complete is not None:
                 on_task_complete(outcome)
 
-        completions = evaluate_requests(evaluator, [task.to_request() for task in tasks],
+        backend = evaluator if evaluator is not None else self.default_evaluator()
+        completions = evaluate_requests(backend, [task.to_request() for task in tasks],
                                         run_id=run_id, config=self.config, on_complete=complete)
-        return [completed_outcomes[completion.result.evaluation_id] for completion in completions]
+        return [outcomes[completion.result.evaluation_id] for completion in completions]

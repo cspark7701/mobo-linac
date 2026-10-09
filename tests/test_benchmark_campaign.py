@@ -3,6 +3,7 @@ Unit tests for Statistically Rigorous Benchmark Campaign Orchestration and Analy
 """
 
 from mobo_linac.result_schema import ResultSchema
+from mobo_linac.execution.requests import requests_for
 import json
 from pathlib import Path
 import pytest
@@ -114,7 +115,7 @@ def test_benchmark_campaign_manifest_generation(tmp_path):
     ("scalarized_bo", "scalarized_bo", "qLogNEI", False),
 ])
 def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acquisition, constrained):
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.evaluation import create_evaluation_result
     from mobo_linac.io.results import save_evaluation_results
     import mobo_linac.campaigns.runner as campaign_module
@@ -132,7 +133,7 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
                 captured["total_eval_budget"], captured["seed"],
                 captured["config"].get_parameter_bounds_tensor(),
             )
-            raw = MockBatchEvaluator(tmp_path).evaluate_batch(candidates.tolist())
+            raw = MockEvaluator(tmp_path).evaluate(requests_for(candidates.tolist()))
             results = [create_evaluation_result(r, captured["config"]) for r in raw]
             # A complete test double publishes the same artifact contract as the real runner.
             from mobo_linac.io.artifacts import RunArtifactWriter
@@ -205,19 +206,19 @@ def test_invalid_benchmark_settings(tmp_path, algorithms, seeds, initial, batch)
 
 def test_mock_campaign_exact_budget_pairing_and_completion(tmp_path, monkeypatch):
     import json
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.benchmark_algorithms import SUPPORTED_BENCHMARK_ALGORITHMS
     from mobo_linac.campaigns.runner import MoboCampaignRunner
 
     # Failed evaluations still count toward the exact budget and bypass expensive GP fitting.
-    class RecordingEvaluator(MockBatchEvaluator):
+    class RecordingEvaluator(MockEvaluator):
         def __init__(self):
             super().__init__(tmp_path, fail_eval_ids=[f"eval_{i:06d}" for i in range(1, 7)])
             self.batches = []
 
-        def evaluate_batch(self, candidates, **kwargs):
-            self.batches.append((kwargs["run_id"], candidates))
-            return super().evaluate_batch(candidates, **kwargs)
+        def evaluate(self, requests, run_id, on_complete=None):
+            self.batches.append((run_id, [r.parameters for r in requests]))
+            return super().evaluate(requests, run_id, on_complete)
 
     evaluator = RecordingEvaluator()
     original_init = MoboCampaignRunner.__init__
@@ -276,7 +277,7 @@ def test_interrupted_history_is_not_completed_or_overwritten(tmp_path):
 
 def test_reporting_settings_in_state_and_metrics(tmp_path, monkeypatch):
     from mobo_linac.config import BenchmarkConfig
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.campaigns.runner import MoboCampaignRunner
     import json
 
@@ -295,7 +296,7 @@ def test_reporting_settings_in_state_and_metrics(tmp_path, monkeypatch):
             reporting_ref_point=[2.0, 3.0, 4.0],
         ), device="cpu",
     )
-    runner.execute_benchmark_campaigns(mock_evaluator=MockBatchEvaluator(tmp_path))
+    runner.execute_benchmark_campaigns(mock_evaluator=MockEvaluator(tmp_path))
     run_dir = runner.get_run_dir("unconstrained_qlognehvi", 42)
     state = json.loads((run_dir / "benchmark_state.json").read_text())
     assert state["reporting_ref_point_physical_norm"] == [2.0, 3.0, 4.0]
@@ -311,7 +312,7 @@ def test_reporting_settings_in_state_and_metrics(tmp_path, monkeypatch):
     "constrained_qlognehvi", "unconstrained_qlognehvi", "qlogehvi", "scalarized_bo",
 ])
 def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch, algorithm):
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     import mobo_linac.campaigns.runner as campaign_module
     import mobo_linac.campaigns.strategies as strategies_module
 
@@ -356,13 +357,13 @@ def test_partial_final_batch_reaches_acquisition_proposal(tmp_path, monkeypatch,
         algorithms=[algorithm], seeds=[42], n_sobol_init=2,
         total_eval_budget=5, batch_size=2, device="cpu",
     )
-    manifest = runner.execute_benchmark_campaigns(mock_evaluator=MockBatchEvaluator(tmp_path))
+    manifest = runner.execute_benchmark_campaigns(mock_evaluator=MockEvaluator(tmp_path))
     assert proposed_sizes == [2, 1]
     assert manifest.iloc[0]["status"] == "completed"
 
 
 def test_analysis_uses_persisted_manifest_for_custom_settings(tmp_path, monkeypatch):
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.campaigns.runner import MoboCampaignRunner
 
     original_run = MoboCampaignRunner.run
@@ -377,7 +378,7 @@ def test_analysis_uses_persisted_manifest_for_custom_settings(tmp_path, monkeypa
         config=config, output_dir=tmp_path, algorithms=["scalarized_bo"], seeds=[7],
         n_sobol_init=1, total_eval_budget=2, batch_size=4, device="cpu",
     )
-    runner.execute_benchmark_campaigns(mock_evaluator=MockBatchEvaluator(tmp_path))
+    runner.execute_benchmark_campaigns(mock_evaluator=MockEvaluator(tmp_path))
     analysis_runner = BenchmarkCampaignRunner(config=config, output_dir=tmp_path)
     aggregate, summary = analysis_runner.analyze_completed_results()
     assert aggregate["algorithm"].unique().tolist() == ["scalarized_bo"]
@@ -389,10 +390,10 @@ def test_analysis_uses_persisted_manifest_for_custom_settings(tmp_path, monkeypa
 
 def test_mock_interruption_leaves_incomplete_state(tmp_path):
     import json
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
 
-    class InterruptingEvaluator(MockBatchEvaluator):
-        def evaluate_batch(self, candidates, **kwargs):
+    class InterruptingEvaluator(MockEvaluator):
+        def evaluate(self, requests, run_id, on_complete=None):
             raise RuntimeError("Injected interruption")
 
     runner = BenchmarkCampaignRunner(
@@ -407,12 +408,12 @@ def test_mock_interruption_leaves_incomplete_state(tmp_path):
     assert state["status"] == "running"
     assert runner.run_campaign_manifest().iloc[0]["status"] == "incomplete"
     with pytest.raises(RuntimeError, match="is incomplete"):
-        runner.execute_benchmark_campaigns(mock_evaluator=MockBatchEvaluator(tmp_path))
+        runner.execute_benchmark_campaigns(mock_evaluator=MockEvaluator(tmp_path))
     assert not (run_dir / "candidate_history.csv").exists()
 
 
 def test_missing_persisted_history_cannot_complete(tmp_path, monkeypatch):
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.evaluation import create_evaluation_result
     import mobo_linac.campaigns.runner as campaign_module
     import mobo_linac.campaigns.strategies as strategies_module
@@ -422,7 +423,7 @@ def test_missing_persisted_history_cannot_complete(tmp_path, monkeypatch):
             self.config = kwargs["config"]
 
         def run(self):
-            raw = MockBatchEvaluator(tmp_path).evaluate_batch([[0.0] * 6] * 2)
+            raw = MockEvaluator(tmp_path).evaluate(requests_for([[0.0] * 6] * 2))
             return [create_evaluation_result(r, self.config) for r in raw], None, None
 
     monkeypatch.setattr(campaign_module, "MoboCampaignRunner", MissingArtifactRunner)
@@ -479,7 +480,7 @@ def test_vectorized_bootstrap_matches_reference_loop():
 
 
 def test_benchmark_summary_reads_extrema_from_candidate_history(tmp_path, monkeypatch):
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.campaigns.runner import MoboCampaignRunner
     original_run = MoboCampaignRunner.run
 
@@ -491,6 +492,6 @@ def test_benchmark_summary_reads_extrema_from_candidate_history(tmp_path, monkey
     config = load_config("configs/publication_200MeV.yaml")
     runner = BenchmarkCampaignRunner(config=config, output_dir=tmp_path, algorithms=["scalarized_bo"], seeds=[7],
                                      n_sobol_init=2, total_eval_budget=3, batch_size=4, device="cpu")
-    runner.execute_benchmark_campaigns(mock_evaluator=MockBatchEvaluator(tmp_path, config=config))
+    runner.execute_benchmark_campaigns(mock_evaluator=MockEvaluator(tmp_path, config=config))
     _, summary = BenchmarkCampaignRunner.from_output_dir(tmp_path).analyze_completed_results()
     assert np.isfinite(summary.iloc[0][["min_norm_emit_x_m_rad", "min_norm_emit_y_m_rad", "min_sigma_energy_eV"]].astype(float)).all()

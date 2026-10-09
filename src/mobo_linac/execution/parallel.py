@@ -1,20 +1,24 @@
 """
-Process-Safe Parallel Execution Module for ASTRA Candidate Evaluations.
+Process-isolated ASTRA evaluation backend.
 
-Replaces unsafe shared-thread execution with process-isolated execution using
-ProcessPoolExecutor. Guarantees deterministic order, candidate alignment, and
-resilience against single-candidate failures.
+``ProcessPoolEvaluator`` keeps one ``ProcessPoolExecutor`` for its lifetime and runs every
+candidate in a worker process (also with a single worker), so crashes and environment side
+effects behave the same regardless of the worker count. ``in_process=True`` is an explicit
+opt-in for debugging. Results are returned aligned with the submitted requests.
 """
 
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from dataclasses import asdict, dataclass, field
 import multiprocessing
 import os
-import uuid
-from concurrent.futures import ProcessPoolExecutor, as_completed
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+import uuid
+import weakref
 
 from mobo_linac.execution.requests import EvaluationRequest
 from mobo_linac.status import DEFAULT_RETRY_STATUSES, SimulationStatus, decode_status
+
 
 def run_astra_eval(**kwargs):
     """Lazy backend dispatch; also preserves the public worker injection seam."""
@@ -22,342 +26,192 @@ def run_astra_eval(**kwargs):
     return execute(**kwargs)
 
 
+@dataclass
+class WorkerTask:
+    """Serializable description of one candidate evaluation sent to a worker process."""
 
-def _worker_eval_task(task_args: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    Top-level worker task executed by ProcessPoolExecutor.
-    Must take serializable arguments dictionary.
+    candidate_idx: int
+    request: Dict[str, Any]  # EvaluationRequest.to_dict()
+    run_id: str
+    base_results_dir: str
+    template_dir: str
+    template_in: str = "astra.in"
+    timeout: int = 30
+    retries: int = 0
+    clean_on_success: bool = False
+    use_symlinks: bool = False
+    config: Optional[Dict[str, Any]] = None  # asdict(MoboConfig)
 
-    Args:
-        task_args: Dictionary containing candidate parameters and configuration.
+    @property
+    def parameters(self) -> List[float]:
+        return [float(value) for value in self.request["parameters"]]
 
-    Returns:
-        Structured evaluation result dictionary.
-    """
-    candidate_idx = task_args["candidate_idx"]
-    parameters = task_args["parameters"]
-    run_id = task_args["run_id"]
-    eval_id = task_args["eval_id"]
-    base_results_dir = task_args.get("base_results_dir", "results")
-    template_dir = task_args.get("template_dir", ".")
-    template_in = task_args.get("template_in", "astra.in")
-    timeout = task_args.get("timeout", 30)
-    retries = task_args.get("retries", 0)
-    clean_on_success = task_args.get("clean_on_success", False)
-    use_symlinks = task_args.get("use_symlinks", False)
-    config = task_args.get("config", None)
-    # Only infrastructure outcomes are retried; deterministic physics failures are final.
-    execution = getattr(config, "execution", None) or (config or {}).get("execution", {})
-    retry_statuses = set(getattr(execution, "retry_statuses", None) or
-                         (execution.get("retry_statuses") if isinstance(execution, dict) else None) or
-                         DEFAULT_RETRY_STATUSES)
+    @property
+    def eval_id(self):
+        return self.request["eval_id"]
 
-    attempts = 0
-    max_attempts = retries + 1
-    last_res: Dict[str, Any] = {}
-    attempt_history = []
-
-    while attempts < max_attempts:
-        attempts += 1
-        attempt_id = "attempt_" + uuid.uuid4().hex
-        try:
-            res = run_astra_eval(
-                parameters=parameters,
-                run_id=run_id,
-                eval_id=eval_id,
-                base_results_dir=base_results_dir,
-                template_dir=template_dir,
-                template_in=template_in,
-                timeout=timeout,
-                clean_on_success=clean_on_success,
-                use_symlinks=use_symlinks,
-                config=config,
-                attempt_id=attempt_id,
-                retry_index=attempts - 1,
-                namelist_overrides=task_args.get("request", {}).get("namelist_overrides"),
-                source_settings=task_args.get("request", {}).get("source_settings", {}),
-                request_metadata=task_args.get("request", {}).get("metadata", {}),
-            )
-            res.setdefault("run_id", run_id)
-            res.setdefault("eval_id", eval_id)
-            res.setdefault("parameters", parameters)
-            res.setdefault("request", task_args.get("request", {}))
-            res["candidate_idx"] = candidate_idx
-            res["retries_attempted"] = attempts - 1
-            res.setdefault("attempt_id", attempt_id)
-            status = decode_status(res["status"])
-            attempt_history.append({"attempt_id": res["attempt_id"], "manifest_path": res.get("manifest_path"),
-                                    "status": status.value, "retried": False})
-            res["attempt_history"] = list(attempt_history)
-            if status is SimulationStatus.SUCCESS or status.value not in retry_statuses:
-                return res
-            attempt_history[-1]["retried"] = attempts < max_attempts
-            last_res = res
-        except Exception as e:
-            attempt_history.append({"attempt_id": attempt_id, "manifest_path": None,
-                                    "status": SimulationStatus.UNHANDLED_EXCEPTION.value,
-                                    "error": f"{type(e).__name__}: {e}",
-                                    "retried": attempts < max_attempts and SimulationStatus.UNHANDLED_EXCEPTION.value in retry_statuses})
-            if SimulationStatus.UNHANDLED_EXCEPTION.value not in retry_statuses:
-                attempts = max_attempts
-            last_res = {
-                "attempt_id": attempt_id, "attempt_history": list(attempt_history),
-                "candidate_idx": candidate_idx,
-                "run_id": run_id,
-                "eval_id": eval_id,
-                "parameters": parameters,
-                "status": SimulationStatus.UNHANDLED_EXCEPTION.value,
-                "objectives": None,
-                "diagnostics": None,
-                "eval_dir": None,
-                "manifest_path": None,
-                "error": f"{type(e).__name__}: {e}",
-                "request": task_args.get("request", {}),
-                "retries_attempted": attempts - 1,
-            }
-
-    return last_res
+    def retry_statuses(self) -> set:
+        execution = (self.config or {}).get("execution") or {}
+        return set(execution.get("retry_statuses") or DEFAULT_RETRY_STATUSES)
 
 
-def _worker_crash_result(task, error):
-    """Retain submitted identity and full request even when the pool is broken."""
+def failure_result(task: WorkerTask, status: SimulationStatus, error: str, *, attempt_id=None,
+                   attempt_history=None, retries_attempted: int = 0) -> Dict[str, Any]:
+    """The one failure record layout (worker exception or crashed/broken pool), with the full request."""
     return {
-        "candidate_idx": task["candidate_idx"], "run_id": task["run_id"],
-        "eval_id": task["eval_id"], "parameters": task["parameters"],
-        "request": task["request"], "status": SimulationStatus.WORKER_CRASH.value, "objectives": None,
-        "diagnostics": None, "eval_dir": None, "manifest_path": None,
-        "error": f"Worker process crashed: {error}", "retries_attempted": 0,
+        "candidate_idx": task.candidate_idx, "run_id": task.run_id, "eval_id": task.eval_id,
+        "parameters": task.parameters, "request": task.request, "status": status.value,
+        "objectives": None, "diagnostics": None, "eval_dir": None, "manifest_path": None,
+        "error": error, "retries_attempted": retries_attempted, "attempt_id": attempt_id,
+        "attempt_history": list(attempt_history or []),
     }
 
 
-def evaluate_candidates_parallel(
-    candidates: Sequence[Sequence[float]],
-    run_id: str = "batch_run",
-    eval_ids: Optional[Sequence[Union[int, str]]] = None,
-    max_workers: Optional[int] = None,
-    timeout: int = 30,
-    retries: int = 0,
-    base_results_dir: Union[str, Path] = "results",
-    template_dir: Union[str, Path] = ".",
-    template_in: str = "astra.in",
-    clean_on_success: bool = False,
-    use_symlinks: bool = False,
-    mp_context: Optional[str] = None,
-    config: Optional[Union[Any, Dict[str, Any]]] = None,
-    on_evaluation_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
-    requests: Optional[Sequence[EvaluationRequest]] = None,
-) -> List[Dict[str, Any]]:
-    """
-    Evaluates a batch of candidate parameter vectors in parallel using ProcessPoolExecutor.
-
-    Guarantees that the returned list of results is strictly ordered matching the input candidates.
-
-    Args:
-        candidates: Sequence of candidate parameter vectors.
-        run_id: Unique identifier for the optimization run.
-        eval_ids: Optional list of evaluation IDs matching candidates length.
-        max_workers: Maximum number of worker processes.
-        timeout: Timeout in seconds for each ASTRA execution.
-        retries: Number of retries on transient evaluation failures.
-        base_results_dir: Root results output directory.
-        template_dir: Source directory for static files and template input.
-        template_in: Template ASTRA input file name.
-        clean_on_success: If True, remove evaluation working directory after success.
-        use_symlinks: Use symlinks for static data files instead of copying.
-        mp_context: Multiprocessing start method ('spawn', 'forkserver', 'fork').
-        config: Optional MoboConfig or config dictionary for dynamic parameter mapping.
-        on_evaluation_complete: Optional callback invoked immediately whenever any candidate finishes.
-        requests: Optional complete requests; identities and parameters must match the batch.
-
-    Returns:
-        List of structured result dictionaries aligned with input candidates.
-    """
-    from mobo_linac.config import ExecutionConfig, MoboConfig, config_from_dict
-    if isinstance(config, dict):
-        config = config_from_dict(config)
-    if isinstance(config, MoboConfig):
-        config.validate()
-    ExecutionConfig(timeout_sec=timeout, max_workers=max_workers if max_workers is not None else 1,
-                    retries=retries, clean_on_success=clean_on_success).validate()
-    n_candidates = len(candidates)
-    if n_candidates == 0:
-        return []
-
-    if eval_ids is None:
-        eval_ids_list = [i + 1 for i in range(n_candidates)]
-    else:
-        if len(eval_ids) != n_candidates:
-            raise ValueError(f"eval_ids length ({len(eval_ids)}) must match candidates length ({n_candidates})")
-        eval_ids_list = list(eval_ids)
-
-    from mobo_linac.execution.contracts import evaluation_identity
-    if len({evaluation_identity(eid) for eid in eval_ids_list}) != n_candidates:
-        raise ValueError("Duplicate evaluation request identity")
-    if requests is None:
-        requests = [EvaluationRequest(eid, list(cand))
-                    for cand, eid in zip(candidates, eval_ids_list)]
-    if len(requests) != n_candidates:
-        raise ValueError("requests length must match candidates length")
-    for request, cand, eid in zip(requests, candidates, eval_ids_list):
-        request.validate(config)
-        if request.eval_id != eid or list(request.parameters) != list(cand):
-            raise ValueError("Request identity/parameters must match the candidate batch")
-
-    if max_workers is None or max_workers <= 0:
-        cpu_cnt = os.cpu_count() or 1
-        max_workers = min(n_candidates, max(1, cpu_cnt))
-
-    # Serialize config if needed for worker processes
-    serializable_config = None
-    if config is not None:
-        if hasattr(config, "__dataclass_fields__"):
-            from dataclasses import asdict
-            serializable_config = asdict(config)
-        elif isinstance(config, dict):
-            serializable_config = config
-
-    # Prepare serializable task dictionaries for each worker
-    tasks = []
-    for idx, (cand, eid) in enumerate(zip(candidates, eval_ids_list)):
-        task = {
-            "candidate_idx": idx,
-            "parameters": [float(p) for p in cand],
-            "run_id": run_id,
-            "eval_id": eid,
-            "base_results_dir": str(base_results_dir),
-            "template_dir": str(template_dir),
-            "template_in": template_in,
-            "timeout": timeout,
-            "retries": retries,
-            "clean_on_success": clean_on_success,
-            "use_symlinks": use_symlinks,
-            "config": serializable_config,
-            "request": requests[idx].to_dict(),
-        }
-        tasks.append(task)
-
-    results: List[Optional[Dict[str, Any]]] = [None] * n_candidates
-
-    # Sequential execution if max_workers == 1 or single candidate
-    if max_workers == 1 or n_candidates == 1:
-        for idx, task in enumerate(tasks):
-            res = _worker_eval_task(task)
-            results[idx] = res
-            if on_evaluation_complete is not None:
-                on_evaluation_complete(res)
-        return [r for r in results if r is not None]
-
-    # ProcessPoolExecutor setup
-    ctx = multiprocessing.get_context(mp_context) if mp_context else None
-    executor = ProcessPoolExecutor(max_workers=max_workers, mp_context=ctx)
-
-    try:
-        future_to_idx = {}
-        for idx, task in enumerate(tasks):
-            try:
-                future_to_idx[executor.submit(_worker_eval_task, task)] = idx
-            except Exception as error:
-                results[idx] = _worker_crash_result(task, error)
-                if on_evaluation_complete is not None:
-                    on_evaluation_complete(results[idx])
-
-        for future in as_completed(future_to_idx):
-            idx = future_to_idx[future]
-            try:
-                res = future.result()
-                results[idx] = res
-            except Exception as e:
-                # Catch worker process crash or unhandled exception
-                res = _worker_crash_result(tasks[idx], e)
-                results[idx] = res
-
-            if on_evaluation_complete is not None and results[idx] is not None:
-                on_evaluation_complete(results[idx])
-    finally:
-        executor.shutdown(wait=True)
-
-    return [r for r in results if r is not None]
+def run_worker_task(task: WorkerTask) -> Dict[str, Any]:
+    """Evaluate one candidate with category-aware retries (only infrastructure outcomes retry)."""
+    retry_statuses = task.retry_statuses()
+    max_attempts = task.retries + 1
+    history: List[Dict[str, Any]] = []
+    last: Dict[str, Any] = {}
+    for attempt in range(1, max_attempts + 1):
+        attempt_id = "attempt_" + uuid.uuid4().hex
+        try:
+            res = run_astra_eval(
+                parameters=task.parameters, run_id=task.run_id, eval_id=task.eval_id,
+                base_results_dir=task.base_results_dir, template_dir=task.template_dir,
+                template_in=task.template_in, timeout=task.timeout, clean_on_success=task.clean_on_success,
+                use_symlinks=task.use_symlinks, config=task.config, attempt_id=attempt_id, retry_index=attempt - 1,
+                namelist_overrides=task.request.get("namelist_overrides"),
+                source_settings=task.request.get("source_settings") or {},
+                request_metadata=task.request.get("metadata") or {},
+            )
+        except Exception as error:
+            message = f"{type(error).__name__}: {error}"
+            retry = attempt < max_attempts and SimulationStatus.UNHANDLED_EXCEPTION.value in retry_statuses
+            history.append({"attempt_id": attempt_id, "manifest_path": None,
+                            "status": SimulationStatus.UNHANDLED_EXCEPTION.value, "error": message, "retried": retry})
+            last = failure_result(task, SimulationStatus.UNHANDLED_EXCEPTION, message, attempt_id=attempt_id,
+                                  attempt_history=history, retries_attempted=attempt - 1)
+            if not retry:
+                return last
+            continue
+        for key, value in (("run_id", task.run_id), ("eval_id", task.eval_id), ("parameters", task.parameters),
+                           ("request", task.request), ("attempt_id", attempt_id)):
+            res.setdefault(key, value)
+        res["candidate_idx"] = task.candidate_idx
+        res["retries_attempted"] = attempt - 1
+        status = decode_status(res["status"])
+        history.append({"attempt_id": res["attempt_id"], "manifest_path": res.get("manifest_path"),
+                        "status": status.value, "retried": False})
+        res["attempt_history"] = list(history)
+        if status is SimulationStatus.SUCCESS or status.value not in retry_statuses:
+            return res
+        history[-1]["retried"] = attempt < max_attempts
+        last = res
+    return last
 
 
-class BatchEvaluator:
-    """
-    Reusable process-safe batch evaluator for optimization campaigns.
-    """
+def _positive_int(name: str, value) -> int:
+    if type(value) is not int or value < 1:
+        raise ValueError(f"{name} must be a positive integer.")
+    return value
 
-    supports_completion_callback = True
+
+class ProcessPoolEvaluator:
+    """Process-isolated ASTRA backend with a persistent worker pool."""
 
     def __init__(
         self,
+        config,
         base_results_dir: Union[str, Path] = "results",
-        template_dir: Union[str, Path] = ".",
+        template_dir: Optional[Union[str, Path]] = None,
         template_in: str = "astra.in",
         max_workers: Optional[int] = None,
-        timeout: int = 30,
-        retries: int = 0,
-        clean_on_success: bool = False,
+        timeout: Optional[int] = None,
+        retries: Optional[int] = None,
+        clean_on_success: Optional[bool] = None,
         use_symlinks: bool = False,
         mp_context: Optional[str] = None,
-        config: Optional[Union[Any, Dict[str, Any]]] = None,
+        in_process: bool = False,
     ):
-        self.base_results_dir = base_results_dir
-        self.template_dir = template_dir
+        from mobo_linac.astra.runner import resolve_template_dir
+        from mobo_linac.config import MoboConfig
+        if not isinstance(config, MoboConfig):
+            raise TypeError("ProcessPoolEvaluator requires the campaign MoboConfig.")
+        config.validate()
+        execution = config.execution
+        self.config = config
+        self.base_results_dir = Path(base_results_dir)
+        self.template_dir = Path(template_dir).resolve() if template_dir is not None else resolve_template_dir(config)
         self.template_in = template_in
-        self.max_workers = max_workers
-        self.timeout = timeout
-        self.retries = retries
-        self.clean_on_success = clean_on_success
+        self.max_workers = _positive_int("max_workers", max_workers if max_workers is not None
+                                         else min(execution.max_workers, os.cpu_count() or 1))
+        self.timeout = _positive_int("timeout", execution.timeout_sec if timeout is None else timeout)
+        self.retries = execution.retries if retries is None else retries
+        if type(self.retries) is not int or self.retries < 0:
+            raise ValueError("retries must be a nonnegative integer.")
+        self.clean_on_success = execution.clean_on_success if clean_on_success is None else bool(clean_on_success)
         self.use_symlinks = use_symlinks
         self.mp_context = mp_context
-        self.config = config
+        self.in_process = in_process
+        self._executor: Optional[ProcessPoolExecutor] = None
 
-    def evaluate_batch(
-        self,
-        candidates: Sequence[Sequence[float]],
-        run_id: str = "batch_run",
-        eval_ids: Optional[Sequence[Union[int, str]]] = None,
-        on_evaluation_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
-    ) -> List[Dict[str, Any]]:
-        """
-        Evaluate candidate batch and return detailed result dictionaries.
-        """
-        return evaluate_candidates_parallel(
-            candidates=candidates,
-            run_id=run_id,
-            eval_ids=eval_ids,
-            max_workers=self.max_workers,
-            timeout=self.timeout,
-            retries=self.retries,
-            base_results_dir=self.base_results_dir,
-            template_dir=self.template_dir,
-            template_in=self.template_in,
-            clean_on_success=self.clean_on_success,
-            use_symlinks=self.use_symlinks,
-            mp_context=self.mp_context,
-            config=self.config,
-            on_evaluation_complete=on_evaluation_complete,
-        )
+    def _pool(self) -> ProcessPoolExecutor:
+        if self._executor is None:
+            context = multiprocessing.get_context(self.mp_context) if self.mp_context else None
+            self._executor = ProcessPoolExecutor(max_workers=self.max_workers, mp_context=context)
+            weakref.finalize(self, self._executor.shutdown, wait=True)
+        return self._executor
 
-    def evaluate_requests(
-        self,
-        requests: Sequence[EvaluationRequest],
-        run_id: str = "batch_run",
-        on_evaluation_complete: Optional[Callable[[Dict[str, Any]], None]] = None,
-    ) -> List[Dict[str, Any]]:
-        """Execute complete per-candidate requests without dropping overrides or metadata."""
-        return evaluate_candidates_parallel(
-            candidates=[request.parameters for request in requests],
-            eval_ids=[request.eval_id for request in requests],
-            requests=requests,
-            run_id=run_id,
-            max_workers=self.max_workers,
-            timeout=self.timeout,
-            retries=self.retries,
-            base_results_dir=self.base_results_dir,
-            template_dir=self.template_dir,
-            template_in=self.template_in,
-            clean_on_success=self.clean_on_success,
-            use_symlinks=self.use_symlinks,
-            mp_context=self.mp_context,
-            config=self.config,
-            on_evaluation_complete=on_evaluation_complete,
-        )
+    def close(self) -> None:
+        if self._executor is not None:
+            self._executor.shutdown(wait=True)
+            self._executor = None
+
+    def __enter__(self) -> "ProcessPoolEvaluator":
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.close()
+
+    def tasks(self, requests: Sequence[EvaluationRequest], run_id: str) -> List[WorkerTask]:
+        config = asdict(self.config)
+        return [WorkerTask(candidate_idx=index, request=request.to_dict(), run_id=run_id,
+                           base_results_dir=str(self.base_results_dir), template_dir=str(self.template_dir),
+                           template_in=self.template_in, timeout=self.timeout, retries=self.retries,
+                           clean_on_success=self.clean_on_success, use_symlinks=self.use_symlinks, config=config)
+                for index, request in enumerate(requests)]
+
+    def evaluate(self, requests: Sequence[EvaluationRequest], run_id: str = "batch_run",
+                 on_complete: Optional[Callable[[Dict[str, Any]], None]] = None) -> List[Dict[str, Any]]:
+        """Evaluate every request; returns raw results aligned with ``requests``."""
+        for request in requests:
+            request.validate(self.config)
+        tasks = self.tasks(requests, run_id)
+        results: List[Optional[Dict[str, Any]]] = [None] * len(tasks)
+
+        def publish(index, result):
+            results[index] = result
+            if on_complete is not None:
+                on_complete(result)
+
+        if self.in_process:
+            for index, task in enumerate(tasks):
+                publish(index, run_worker_task(task))
+        else:
+            futures = {}
+            for index, task in enumerate(tasks):
+                try:
+                    futures[self._pool().submit(run_worker_task, task)] = index
+                except Exception as error:  # broken pool during submission
+                    publish(index, failure_result(task, SimulationStatus.WORKER_CRASH, f"Worker process crashed: {error}"))
+            for future in as_completed(futures):
+                index = futures[future]
+                try:
+                    result = future.result()
+                except Exception as error:  # crashed worker process
+                    result = failure_result(tasks[index], SimulationStatus.WORKER_CRASH, f"Worker process crashed: {error}")
+                publish(index, result)
+        if any(result is None for result in results):
+            raise RuntimeError("Evaluation backend lost a submitted candidate.")
+        return results

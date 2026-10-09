@@ -7,7 +7,7 @@ CLI command handlers for multi-algorithm benchmarking:
 import argparse
 from pathlib import Path
 
-from mobo_linac.cli.common import CliMockEvaluator
+from mobo_linac.cli.common import MockEvaluator
 from mobo_linac.config import load_config
 
 
@@ -28,7 +28,7 @@ def run_benchmark(args: argparse.Namespace) -> None:
         num_workers=getattr(args, "num_workers", None),
     )
     mock_eval = (
-        CliMockEvaluator(runner.output_dir, config=config)
+        MockEvaluator(runner.output_dir, config=config)
         if getattr(args, "mock_evaluator", False)
         else None
     )

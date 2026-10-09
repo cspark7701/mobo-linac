@@ -36,7 +36,7 @@ def test_package_version():
 def test_subpackage_imports():
     """Verify clean importability of all subpackages."""
     assert mobo_linac.astra.AstraWorkDirManager is not None
-    assert mobo_linac.execution.BatchEvaluator is not None
+    assert mobo_linac.execution.ProcessPoolEvaluator is not None
     assert mobo_linac.models.build_gp_models is not None
     assert mobo_linac.acquisition.build_acquisition_function is not None
     assert mobo_linac.metrics.HypervolumeTracker is not None
@@ -72,7 +72,7 @@ class BlockSimulator(importlib.abc.MetaPathFinder):
 sys.meta_path.insert(0, BlockSimulator())
 before = dict(os.environ)
 from mobo_linac.campaigns.runner import MoboCampaignRunner
-from mobo_linac.execution.mock import MockBatchEvaluator
+from mobo_linac.execution.mock import MockEvaluator
 from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase
 from mobo_linac.io.run_data import read_run_data
 from mobo_linac.metrics.publication import campaign_summary
@@ -82,7 +82,7 @@ for mode, constrained in [('scalarized_bo', False), ('unconstrained_mobo', False
     root = Path(sys.argv[1]) / mode
     results, tracker, run_dir = MoboCampaignRunner(config='configs/publication_200MeV.yaml',
         output_dir=root, num_initial_samples=2, num_batches=0, seed=42,
-        optimization_mode=mode, constrained=constrained, evaluator=MockBatchEvaluator(root),
+        optimization_mode=mode, constrained=constrained, evaluator=MockEvaluator(root),
         export_plots=False, export_env_info=False).run()
     assert len(results) == 2
     assert campaign_summary(read_run_data(run_dir))
@@ -91,9 +91,9 @@ from mobo_linac.robustness.workflow import run_robustness_workflow
 from mobo_linac.verification.verifier import run_verification_pipeline
 config = load_config('configs/publication_200MeV.yaml')
 run_robustness_workflow(results, config, Path(sys.argv[1]) / 'robustness',
-                       num_perturbations=1, batch_evaluator=MockBatchEvaluator(root))
+                       num_perturbations=1, evaluator=MockEvaluator(root))
 run_verification_pipeline(results, config=config, output_dir=Path(sys.argv[1]) / 'verification',
-                          mock_evaluator=MockBatchEvaluator(root))
+                          evaluator=MockEvaluator(root))
 assert os.environ.get('ASTRA_BIN') == before.get('ASTRA_BIN')
 assert os.environ.get('GENERATOR_BIN') == before.get('GENERATOR_BIN')
 assert 'astra' not in sys.modules and 'distgen' not in sys.modules
@@ -126,12 +126,12 @@ def test_campaign_run_restores_default_dtype(tmp_path):
     import torch
     from mobo_linac.campaigns.runner import MoboCampaignRunner
     from mobo_linac.config import load_config
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     torch.set_default_dtype(torch.float32)
     try:
         MoboCampaignRunner(config=load_config("configs/mobo_200MeV.yaml"), output_dir=tmp_path / "run",
                            num_initial_samples=2, num_batches=0, device="cpu", export_plots=False,
-                           export_env_info=False, evaluator=MockBatchEvaluator(tmp_path)).run()
+                           export_env_info=False, evaluator=MockEvaluator(tmp_path)).run()
         assert torch.get_default_dtype() == torch.float32
     finally:
         torch.set_default_dtype(torch.double)

@@ -99,11 +99,11 @@ def test_device_and_proposal_logging_obey_quiet_mode(monkeypatch, capsys):
 
 def test_campaign_progress_obeys_quiet_mode(tmp_path, capsys):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     try:
         configure_logging(quiet=True)
         MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=2, num_batches=0,
-                           evaluator=MockBatchEvaluator(tmp_path), device="cpu",
+                           evaluator=MockEvaluator(tmp_path), device="cpu",
                            export_plots=False, export_env_info=False).run()
         assert "Starting Optimization Campaign" not in capsys.readouterr().out
     finally:

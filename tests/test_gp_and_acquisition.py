@@ -338,7 +338,7 @@ def test_campaign_checkpoint_links_reloadable_model(tmp_path, monkeypatch, mode)
     import hashlib
     from pathlib import Path
     from mobo_linac.config import load_config
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.io.checkpoint import load_run_checkpoint
     from mobo_linac.models.pipeline import SurrogatePipeline
     from mobo_linac.models.artifacts import load_model_artifact
@@ -351,7 +351,7 @@ def test_campaign_checkpoint_links_reloadable_model(tmp_path, monkeypatch, mode)
         config=load_config("configs/mobo_200MeV.yaml"), output_dir=tmp_path,
         num_initial_samples=3, num_batches=1, batch_size=1, seed=7, device="cpu",
         optimization_mode=mode, constrained=mode == "constrained_mobo",
-        evaluator=MockBatchEvaluator(tmp_path), export_plots=False, export_env_info=False,
+        evaluator=MockEvaluator(tmp_path), export_plots=False, export_env_info=False,
     )
     results, _, _ = runner.run()
     state = load_run_checkpoint(tmp_path)

@@ -8,7 +8,7 @@ CLI command handlers for Pareto validation, candidate verification, and robustne
 import argparse
 from pathlib import Path
 
-from mobo_linac.cli.common import CliMockEvaluator
+from mobo_linac.cli.common import MockEvaluator
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import create_evaluation_result
 
@@ -51,12 +51,12 @@ def run_robustness(args: argparse.Namespace) -> None:
 
     results = load_candidates(input_path, config=config)
 
-    mock = CliMockEvaluator(output_dir, config=config) if getattr(args, "mock_evaluator", False) else None
+    mock = MockEvaluator(output_dir, config=config) if getattr(args, "mock_evaluator", False) else None
     run_robustness_workflow(
         results, config, output_dir,
         num_perturbations=getattr(args, "num_perturbations", 20),
         num_workers=getattr(args, "num_workers", None) or config.execution.max_workers, seed=getattr(args, "seed", 42),
-        dry_run=getattr(args, "dry_run", False), batch_evaluator=mock,
+        dry_run=getattr(args, "dry_run", False), evaluator=mock,
     )
 
 
@@ -77,17 +77,16 @@ def run_verification(args: argparse.Namespace) -> None:
     mock = bool(getattr(args, "mock_evaluator", False))
     if not results and not mock:
         raise ValueError("Verification requires measured candidate history; no input data found")
-    mock_evaluator = None
+    evaluator = None
     if mock:
-        evaluator = CliMockEvaluator(output_dir, config=config)
-        mock_evaluator = evaluator
+        evaluator = MockEvaluator(output_dir, config=config)
         if not results:
             nominal = [variable.nominal_value for variable in config.design_variables]
-            results = [create_evaluation_result(evaluator(nominal, run_id="mock_nominal"), config)]
+            results = [create_evaluation_result(evaluator.respond(nominal, run_id="mock_nominal"), config)]
     records, manifest, table = run_verification_pipeline(
-        results, config=config, output_dir=output_dir, mock_evaluator=mock_evaluator,
+        results, config=config, output_dir=output_dir, evaluator=evaluator,
         num_workers=getattr(args, "num_workers", None), timeout=getattr(args, "timeout", None),
-        template_dir=getattr(args, "template_dir", "."), template_in=getattr(args, "template_in", "astra.in"))
+        template_dir=getattr(args, "template_dir", None), template_in=getattr(args, "template_in", "astra.in"))
     print(f"Verification produced {len(records)} audit records: {manifest}")
 
 
@@ -156,7 +155,7 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     )
     run_ver_parser.add_argument("--num-workers", type=int, default=None, help="Override configured worker count")
     run_ver_parser.add_argument("--timeout", type=int, default=None, help="Override configured timeout in seconds")
-    run_ver_parser.add_argument("--template-dir", default=".", help="ASTRA template and static input directory")
+    run_ver_parser.add_argument("--template-dir", default=None, help="ASTRA template and static input directory (default: config execution.template_dir)")
     run_ver_parser.add_argument("--template-in", default="astra.in", help="ASTRA input template filename")
     run_ver_parser.set_defaults(handler=run_verification)
 

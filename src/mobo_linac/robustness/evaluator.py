@@ -446,28 +446,18 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
         candidates: Sequence[EvaluationResult],
         num_perturbations: int = 50,
         seed: int = 42,
-        custom_evaluator: Optional[Any] = None,
-        request_evaluator: Optional[Any] = None,
         roles: Optional[Sequence[str]] = None,
-        batch_evaluator: Optional[Any] = None,
+        evaluator: Optional[Any] = None,
+        run_id: str = "candidate_eval",
     ) -> List[Dict[str, Any]]:
         """
-        Executes robustness evaluation plan and computes statistical summaries.
+        Executes the robustness plan with one evaluator (default: the ASTRA process pool)
+        and computes statistical summaries.
         """
         if num_perturbations <= 0:
             raise ValueError("Robustness evaluation requires at least one perturbation")
         tasks = self.generate_evaluation_plan(candidates, num_perturbations=num_perturbations, seed=seed, roles=roles)
-        if batch_evaluator is not None:
-            if custom_evaluator is not None or request_evaluator is not None:
-                raise ValueError("Choose one robustness backend")
-            from mobo_linac.execution.contracts import evaluate_requests
-            completions = evaluate_requests(batch_evaluator, [task.to_request() for task in tasks],
-                                            run_id="candidate_eval", config=self.config)
-            outcomes = [EvaluationOutcome(task, completion.result, execution_details=completion.details)
-                        for task, completion in zip(tasks, completions)]
-        else:
-            outcomes = self.evaluate_plan_parallel(tasks, custom_evaluator=custom_evaluator,
-                                                  request_evaluator=request_evaluator)
+        outcomes = self.evaluate_plan_parallel(tasks, evaluator=evaluator, run_id=run_id)
         session = self.base_output_dir / "robustness_runs" / ("robustness_" + uuid.uuid4().hex)
         session.mkdir(parents=True, exist_ok=False)
         request_records = []

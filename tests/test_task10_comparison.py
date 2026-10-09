@@ -1,6 +1,8 @@
 import sys
 from pathlib import Path
 import pytest
+
+from tests.evaluators import callable_evaluator
 import pandas as pd
 import numpy as np
 
@@ -66,7 +68,7 @@ def test_verify_pareto_candidates_mock(tmp_path, monkeypatch):
         i = round((parameters[0] - 0.20) / 0.01)
         return mock_results[i - 1]
 
-    records = verify_pareto_candidates(mock_results, config, tmp_path, mock_evaluator=evaluator)
+    records = verify_pareto_candidates(mock_results, config, tmp_path, evaluator=callable_evaluator(evaluator))
 
     assert len(records) == 6
     for rec in records:

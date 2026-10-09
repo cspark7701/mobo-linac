@@ -5,7 +5,7 @@ CLI command handler for resuming an optimization campaign from checkpoint.
 import argparse
 from pathlib import Path
 
-from mobo_linac.cli.common import CliMockEvaluator
+from mobo_linac.cli.common import MockEvaluator
 
 
 def resume_optimization(args: argparse.Namespace) -> None:
@@ -31,7 +31,7 @@ def resume_optimization(args: argparse.Namespace) -> None:
     if legacy_weights is not None and ckpt_data.migrated_from != "1.0":
         raise ValueError("--legacy-scalar-weights applies only to legacy v1 checkpoints.")
 
-    evaluator = CliMockEvaluator(run_dir) if getattr(args, "mock_evaluator", False) else None
+    evaluator = MockEvaluator(run_dir) if getattr(args, "mock_evaluator", False) else None
 
     runner = MoboCampaignRunner(
         output_dir=run_dir,

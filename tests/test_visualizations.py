@@ -171,12 +171,13 @@ def test_figure_scope_and_cleanup(sample_evaluation_results, tmp_path):
 
 def test_noncanonical_configuration_figures(tmp_path):
     from tests.test_configuration_boundaries import noncanonical_config
-    from mobo_linac.execution.mock import MockBatchEvaluator
+    from mobo_linac.execution.mock import MockEvaluator
+    from mobo_linac.execution.requests import requests_for
     from mobo_linac.evaluation import create_evaluation_result
     config = noncanonical_config()
-    mock = MockBatchEvaluator(tmp_path, config=config)
+    mock = MockEvaluator(tmp_path, config=config)
     results = [create_evaluation_result(raw, config)
-               for raw in mock.evaluate_batch([[v.nominal_value + 0.01 * i for v in config.design_variables] for i in range(6)])]
+               for raw in mock.evaluate(requests_for([[v.nominal_value + 0.01 * i for v in config.design_variables] for i in range(6)]))]
     plt.close("all")
     for function, args in ((plot_pareto_front, {}), (plot_objective_evolution, {}), (plot_best_so_far, {})):
         function(results, config=config, **args)
@@ -188,8 +189,9 @@ def test_noncanonical_configuration_figures(tmp_path):
 
 def test_campaign_finalization_leaves_no_open_figures(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution.mock import MockBatchEvaluator
+    from mobo_linac.execution.mock import MockEvaluator
+    from mobo_linac.execution.requests import requests_for
     plt.close("all")
     MoboCampaignRunner(config=CONFIG, output_dir=tmp_path / "run", num_initial_samples=3, num_batches=0,
-                       device="cpu", export_plots=True, evaluator=MockBatchEvaluator(tmp_path)).run()
+                       device="cpu", export_plots=True, evaluator=MockEvaluator(tmp_path)).run()
     assert plt.get_fignums() == []

@@ -25,7 +25,7 @@ def noncanonical_config():
 @pytest.mark.parametrize("mode", ["unconstrained_mobo", "constrained_mobo", "scalarized_bo"])
 def test_noncanonical_configuration_runs_campaign_exports_and_reports(tmp_path, mode):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution.mock import MockBatchEvaluator
+    from mobo_linac.execution.mock import MockEvaluator
     from mobo_linac.io.run_data import read_run_data
     from mobo_linac.metrics.publication import campaign_summary
 
@@ -33,7 +33,7 @@ def test_noncanonical_configuration_runs_campaign_exports_and_reports(tmp_path, 
     runner = MoboCampaignRunner(
         config=config, output_dir=tmp_path / mode, num_initial_samples=4, num_batches=1,
         batch_size=2, seed=7, optimization_mode=mode, device="cpu", export_plots=True,
-        evaluator=MockBatchEvaluator(tmp_path / "mock", config=config),
+        evaluator=MockEvaluator(tmp_path / "mock", config=config),
     )
     results, tracker, run_dir = runner.run()
     assert len(results) == 6

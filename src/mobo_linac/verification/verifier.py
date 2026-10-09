@@ -50,7 +50,7 @@ def comparison_status(original, rerun, deltas, tol_verified, tol_conditional):
 class ParetoVerifier(CandidateEvaluatorBase):
     def __init__(self, config, base_output_dir='results/verification', num_workers=None,
                  timeout=None, tol_verified=1e-3, tol_conditional=0.10,
-                 template_dir='.', template_in='astra.in'):
+                 template_dir=None, template_in='astra.in'):
         if config is None:
             raise TypeError("Verification requires the campaign MoboConfig.")
         super().__init__(config=config, base_output_dir=base_output_dir,
@@ -80,34 +80,19 @@ class ParetoVerifier(CandidateEvaluatorBase):
                                    'original_attempt_id': candidate.attempt_id}))
         return tasks
 
-    def verify_candidates(self, candidates_dict, mock_evaluator=None, mock_rerun_data_map=None,
-                          request_evaluator=None):
+    def verify_candidates(self, candidates_dict, evaluator=None):
+        """Rerun every role with one evaluator (default: the ASTRA process pool).
+
+        Completions reporting ``execution_kind == 'mock'`` are recorded with ``MOCK_`` statuses
+        and are not provenance-audited.
+        """
         if not candidates_dict:
             raise ValueError('Verification requires candidate data')
-        if sum(option is not None for option in (mock_evaluator, mock_rerun_data_map, request_evaluator)) > 1:
-            raise ValueError('Choose one verification backend')
         tasks = self.generate_evaluation_plan(list(candidates_dict.values()), list(candidates_dict))
         session = create_verification_session(self.base_output_dir)
-        mock = mock_evaluator is not None or mock_rerun_data_map is not None
-        if mock_rerun_data_map is not None and set(candidates_dict) - set(mock_rerun_data_map):
-            raise ValueError('Explicit mock data must cover every candidate role')
-        if mock:
-            def adapter(request, *, config):
-                role = request.metadata['role']
-                if mock_rerun_data_map is not None:
-                    data = mock_rerun_data_map[role]
-                    raw = {'status': 'SUCCESS' if data.get('simulation_valid', True) else 'RUN_FAILED',
-                           'objectives': data.get('objectives_physical'), 'diagnostics': data.get('diagnostics', {})}
-                else:
-                    raw = mock_evaluator(request.parameters, run_id=f'verification_{role}', eval_id=role)
-                if isinstance(raw, EvaluationResult):
-                    return replace(raw, evaluation_id=request.eval_id, run_id=session.name,
-                                   x_physical=list(request.parameters))
-                return dict(raw, eval_id=request.eval_id, run_id=session.name,
-                            parameters=list(request.parameters), execution_kind='mock')
-            request_evaluator = adapter
-        outcomes = self.evaluate_plan_parallel(tasks, request_evaluator=request_evaluator, run_id=session.name)
-        records = [self.build_record(outcome, session, mock) for outcome in outcomes]
+        outcomes = self.evaluate_plan_parallel(tasks, evaluator=evaluator, run_id=session.name)
+        records = [self.build_record(outcome, session, outcome.execution_details.get('execution_kind') == 'mock')
+                   for outcome in outcomes]
         manifest, table = save_verification_reports(records, session, self.base_output_dir,
                           {'config': asdict(self.config), 'timeout_sec': self.timeout, 'num_workers': self.num_workers,
                            'template_dir': str(self.template_dir.resolve()), 'template_in': self.template_in,
@@ -170,21 +155,18 @@ class ParetoVerifier(CandidateEvaluatorBase):
 
 
 def run_independent_verification_rerun(role, candidate, config, output_dir='results/verification',
-        mock_rerun_data=None, mock_evaluator=None, tol_verified=1e-3, tol_conditional=0.10, **settings):
+        evaluator=None, tol_verified=1e-3, tol_conditional=0.10, **settings):
     verifier = ParetoVerifier(config=config, base_output_dir=output_dir,
                              tol_verified=tol_verified, tol_conditional=tol_conditional, **settings)
-    records, _, _ = verifier.verify_candidates({role: candidate}, mock_evaluator=mock_evaluator,
-                    mock_rerun_data_map={role: mock_rerun_data} if mock_rerun_data is not None else None)
+    records, _, _ = verifier.verify_candidates({role: candidate}, evaluator=evaluator)
     return records[0]
 
 
-def run_verification_pipeline(results, config, output_dir='results/verification',
-                              mock_rerun_data_map=None, mock_evaluator=None, **settings):
+def run_verification_pipeline(results, config, output_dir='results/verification', evaluator=None, **settings):
     verifier = ParetoVerifier(config=config, base_output_dir=output_dir, **settings)
     selection = select_representatives(results, config)
     selection.write(Path(output_dir) / "representatives.json")
-    return verifier.verify_candidates(dict(selection.roles),
-               mock_evaluator=mock_evaluator, mock_rerun_data_map=mock_rerun_data_map)
+    return verifier.verify_candidates(dict(selection.roles), evaluator=evaluator)
 
 
 def create_verification_session(out_path):

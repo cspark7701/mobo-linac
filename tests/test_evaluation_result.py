@@ -207,9 +207,9 @@ def test_exclude_invalid_from_gp_train_tensors():
     ([1e-6], "MISSING_OUTPUT"),
 ])
 def test_missing_or_conflicting_objectives_never_train(objectives, category):
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     from mobo_linac.io.results import get_train_tensors
-    raw = MockBatchEvaluator()([0.0] * 6)
+    raw = MockEvaluator().respond([0.0] * 6)
     raw["objectives"] = objectives
     result = create_evaluation_result(raw, TEST_CONFIG)
     assert not result.simulation_valid
@@ -221,6 +221,6 @@ def test_missing_or_conflicting_objectives_never_train(objectives, category):
 
 
 def test_evaluation_result_requires_campaign_configuration():
-    from mobo_linac.execution import MockBatchEvaluator
+    from mobo_linac.execution import MockEvaluator
     with pytest.raises(TypeError, match="MoboConfig"):
-        create_evaluation_result(MockBatchEvaluator()([0.0] * 6), None)
+        create_evaluation_result(MockEvaluator().respond([0.0] * 6), None)

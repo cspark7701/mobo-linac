@@ -60,11 +60,11 @@ def run_campaign_variant(
 
 
 
-def verify_pareto_candidates(results, config, output_dir, mock_evaluator=None, num_workers=None):
+def verify_pareto_candidates(results, config, output_dir, evaluator=None, num_workers=None):
     """Use the shared audited rerun service, including explicit mock statuses."""
     from mobo_linac.verification.verifier import run_verification_pipeline
     records, _, _ = run_verification_pipeline(results, config=config,
-        output_dir=Path(output_dir) / "verification", mock_evaluator=mock_evaluator, num_workers=num_workers)
+        output_dir=Path(output_dir) / "verification", evaluator=evaluator, num_workers=num_workers)
     return [dict(record, status=record["verification_status"]) for record in records]
 
 

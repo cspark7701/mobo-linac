@@ -9,7 +9,7 @@ from pathlib import Path
 
 from mobo_linac.config import load_config
 from mobo_linac.campaigns.runner import MoboCampaignRunner
-from mobo_linac.execution import MockBatchEvaluator
+from mobo_linac.execution import MockEvaluator
 from mobo_linac.io.checkpoint import load_run_checkpoint
 from mobo_linac.io.results import get_train_tensors
 
@@ -79,7 +79,7 @@ def test_uninterrupted_vs_resumed_campaign(tmp_path):
 
     # 1. Uninterrupted run (8 initial + 3 batches of 2 = 14 evals)
     dir_uninterrupted = tmp_path / "uninterrupted"
-    mock_eval_1 = MockBatchEvaluator(dir_uninterrupted)
+    mock_eval_1 = MockEvaluator(dir_uninterrupted)
     runner_full = MoboCampaignRunner(
         config=config,
         output_dir=dir_uninterrupted,
@@ -94,7 +94,7 @@ def test_uninterrupted_vs_resumed_campaign(tmp_path):
 
     # 2. Partial run (8 initial + 1 batch of 2 = 10 evals)
     dir_resumed = tmp_path / "resumed"
-    mock_eval_2 = MockBatchEvaluator(dir_resumed)
+    mock_eval_2 = MockEvaluator(dir_resumed)
     runner_part1 = MoboCampaignRunner(
         config=config,
         output_dir=dir_resumed,
@@ -197,7 +197,7 @@ def test_intra_batch_streaming_persistence_and_resume(tmp_path):
 
     # 2. Campaign runner streaming verification
     camp_dir = tmp_path / "camp_stream"
-    mock_eval = MockBatchEvaluator(camp_dir)
+    mock_eval = MockEvaluator(camp_dir)
     config = load_config("configs/publication_200MeV.yaml")
     runner = MoboCampaignRunner(
         config=config,
@@ -228,12 +228,12 @@ def test_complete_state_resume_preserves_failures_and_metrics(tmp_path, mode):
     full_dir = tmp_path / "full"
     full, full_tracker, _ = MoboCampaignRunner(
         **options, output_dir=full_dir, num_batches=3,
-        evaluator=MockBatchEvaluator(full_dir, fail_eval_ids=failed),
+        evaluator=MockEvaluator(full_dir, fail_eval_ids=failed),
     ).run()
     split_dir = tmp_path / "split"
     MoboCampaignRunner(
         **options, output_dir=split_dir, num_batches=1,
-        evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
+        evaluator=MockEvaluator(split_dir, fail_eval_ids=failed),
     ).run()
     checkpoint = load_run_checkpoint(split_dir)
     assert checkpoint.version == "3.0"
@@ -246,7 +246,7 @@ def test_complete_state_resume_preserves_failures_and_metrics(tmp_path, mode):
     resumed_runner = MoboCampaignRunner(
         output_dir=split_dir, resume=True, num_batches=3, device="cpu",
         export_plots=False, export_env_info=False,
-        evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
+        evaluator=MockEvaluator(split_dir, fail_eval_ids=failed),
     )
     resumed, resumed_tracker, _ = resumed_runner.run()
     assert resumed_runner.optimization_mode == mode
@@ -276,15 +276,15 @@ def test_real_acquisition_fallback_restores_sobol_position(tmp_path, monkeypatch
     options = dict(num_initial_samples=3, batch_size=2, seed=31, device="cpu",
                    export_plots=False, export_env_info=False)
     full, full_tracker, _ = MoboCampaignRunner(
-        **options, output_dir=full_dir, num_batches=3, evaluator=MockBatchEvaluator(full_dir),
+        **options, output_dir=full_dir, num_batches=3, evaluator=MockEvaluator(full_dir),
     ).run()
     MoboCampaignRunner(
-        **options, output_dir=split_dir, num_batches=1, evaluator=MockBatchEvaluator(split_dir),
+        **options, output_dir=split_dir, num_batches=1, evaluator=MockEvaluator(split_dir),
     ).run()
     checkpoint = load_run_checkpoint(split_dir)
     assert checkpoint.progress.sobol_state["num_generated"] == 5
     resumed, tracker, _ = MoboCampaignRunner(
-        output_dir=split_dir, resume=True, num_batches=3, evaluator=MockBatchEvaluator(split_dir),
+        output_dir=split_dir, resume=True, num_batches=3, evaluator=MockEvaluator(split_dir),
         device="cpu", export_plots=False, export_env_info=False,
     ).run()
     assert [r.x_physical for r in full] == [r.x_physical for r in resumed]
@@ -306,16 +306,16 @@ def test_low_data_sobol_resume_with_invalid_initial_evaluations(tmp_path):
     full_dir, split_dir = tmp_path / "full", tmp_path / "split"
     full, full_tracker, _ = MoboCampaignRunner(
         **options, output_dir=full_dir, num_batches=3,
-        evaluator=MockBatchEvaluator(full_dir, fail_eval_ids=failed),
+        evaluator=MockEvaluator(full_dir, fail_eval_ids=failed),
     ).run()
     MoboCampaignRunner(
         **options, output_dir=split_dir, num_batches=1,
-        evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
+        evaluator=MockEvaluator(split_dir, fail_eval_ids=failed),
     ).run()
     resumed, tracker, _ = MoboCampaignRunner(
         output_dir=split_dir, resume=True, num_batches=3, device="cpu",
         export_plots=False, export_env_info=False,
-        evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
+        evaluator=MockEvaluator(split_dir, fail_eval_ids=failed),
     ).run()
     assert [r.x_physical for r in full] == [r.x_physical for r in resumed]
     assert full_tracker.history == tracker.history
@@ -329,7 +329,7 @@ def test_same_dimension_incompatible_config_rejected_before_writes(tmp_path, cha
     config = load_config("configs/publication_200MeV.yaml")
     MoboCampaignRunner(
         config=config, output_dir=tmp_path, num_initial_samples=3, num_batches=1,
-        batch_size=2, device="cpu", export_plots=False, evaluator=MockBatchEvaluator(tmp_path),
+        batch_size=2, device="cpu", export_plots=False, evaluator=MockEvaluator(tmp_path),
     ).run()
     changed = deepcopy(config)
     if change == "order":
@@ -358,7 +358,7 @@ def test_same_dimension_incompatible_config_rejected_before_writes(tmp_path, cha
     with pytest.raises(ValueError, match="Incompatible checkpoint configuration"):
         MoboCampaignRunner(
             config=changed, output_dir=tmp_path, resume=True, num_batches=2,
-            evaluator=MockBatchEvaluator(tmp_path), device="cpu",
+            evaluator=MockEvaluator(tmp_path), device="cpu",
         ).run()
     assert snapshot() == before
 
@@ -366,12 +366,12 @@ def test_same_dimension_incompatible_config_rejected_before_writes(tmp_path, cha
 def test_batch_size_override_keeps_completed_membership(tmp_path):
     MoboCampaignRunner(
         output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
     previous_history = load_run_checkpoint(tmp_path).metrics.metric_history
     runner = MoboCampaignRunner(
         output_dir=tmp_path, resume=True, num_batches=3, batch_size=1,
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     )
     results, tracker, _ = runner.run()
     assert len(results) == 7
@@ -382,11 +382,11 @@ def test_batch_size_override_keeps_completed_membership(tmp_path):
 
 
 def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
-    class InterruptedEvaluator(MockBatchEvaluator):
-        def evaluate_batch(self, candidates, **kwargs):
-            if (kwargs.get("eval_ids") or [0])[0] == "eval_000005":
+    class InterruptedEvaluator(MockEvaluator):
+        def evaluate(self, requests, run_id="mock", on_complete=None):
+            if requests[0].eval_id == "eval_000005":
                 raise RuntimeError("interrupted before second batch")
-            return super().evaluate_batch(candidates, **kwargs)
+            return super().evaluate(requests, run_id, on_complete)
 
     with pytest.raises(RuntimeError, match="interrupted"):
         MoboCampaignRunner(
@@ -397,7 +397,7 @@ def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
     assert checkpoint.iteration == 1
     assert checkpoint.campaign.planned_num_batches == 3
     runner = MoboCampaignRunner(
-        output_dir=tmp_path, resume=True, batch_size=3, evaluator=MockBatchEvaluator(tmp_path),
+        output_dir=tmp_path, resume=True, batch_size=3, evaluator=MockEvaluator(tmp_path),
         device="cpu", export_plots=False,
     )
     results, _, _ = runner.run()
@@ -410,7 +410,7 @@ def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
 def test_legacy_completed_checkpoint_migration(tmp_path):
     MoboCampaignRunner(
         output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
     path = tmp_path / "checkpoints" / "checkpoint.pt"
     state = load_run_checkpoint(path)
@@ -426,7 +426,7 @@ def test_legacy_completed_checkpoint_migration(tmp_path):
     assert migrated.progress.evaluation_batches == [0, 0, 0, 1, 1]
     with pytest.warns(RuntimeWarning, match="Legacy v1"):
         resumed, _, _ = MoboCampaignRunner(
-            output_dir=tmp_path, resume=True, num_batches=2, evaluator=MockBatchEvaluator(tmp_path),
+            output_dir=tmp_path, resume=True, num_batches=2, evaluator=MockEvaluator(tmp_path),
             device="cpu", export_plots=False,
         ).run()
     assert len(resumed) == 7
@@ -437,7 +437,7 @@ def test_legacy_scalarized_weights_require_explicit_input(tmp_path):
     MoboCampaignRunner(
         output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
         optimization_mode="scalarized_bo", scalar_weights=[0.6, 0.3, 0.1],
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
     path = tmp_path / "checkpoints" / "checkpoint.pt"
     payload = flat_legacy_payload(load_run_checkpoint(path))
@@ -449,7 +449,7 @@ def test_legacy_scalarized_weights_require_explicit_input(tmp_path):
     with pytest.warns(RuntimeWarning, match="Legacy v1"):
         runner = MoboCampaignRunner(
             output_dir=tmp_path, resume=True, num_batches=2, scalar_weights=[0.6, 0.3, 0.1],
-            evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+            evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
         )
         runner.run()
     assert runner.scalar_weights.tolist() == pytest.approx([0.6, 0.3, 0.1])
@@ -459,13 +459,13 @@ def test_legacy_scalarized_weights_require_explicit_input(tmp_path):
 def test_cuda_rng_continuation(tmp_path):
     options = dict(num_initial_samples=3, num_batches=1, batch_size=2, seed=9,
                    device="cuda", export_plots=False, export_env_info=False)
-    MoboCampaignRunner(output_dir=tmp_path, evaluator=MockBatchEvaluator(tmp_path), **options).run()
+    MoboCampaignRunner(output_dir=tmp_path, evaluator=MockEvaluator(tmp_path), **options).run()
     checkpoint = load_run_checkpoint(tmp_path)
     assert len(checkpoint.rng.cuda_rng_states) == torch.cuda.device_count()
     expected = torch.rand(4, device="cuda")
     torch.rand(50, device="cuda")
     runner = MoboCampaignRunner(
-        output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
+        output_dir=tmp_path, resume=True, evaluator=MockEvaluator(tmp_path),
         device="cuda", export_plots=False, export_env_info=False,
     )
     runner.run()  # Saved target is already complete: restore without new proposal draws.
@@ -477,7 +477,7 @@ def test_cuda_rng_continuation(tmp_path):
 def test_corrupted_campaign_state_rejected_without_overwriting_metadata(tmp_path, field):
     MoboCampaignRunner(
         output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
     path = tmp_path / "checkpoints" / "checkpoint.pt"
     payload = load_run_checkpoint(path).to_dict()
@@ -504,11 +504,11 @@ def test_corrupted_campaign_state_rejected_without_overwriting_metadata(tmp_path
 def test_resume_from_checkpoint_uses_original_directory(tmp_path):
     MoboCampaignRunner(
         output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
     runner = MoboCampaignRunner(
         resume_from=tmp_path / "checkpoints" / "checkpoint.pt", num_batches=2,
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     )
     results, _, run_dir = runner.run()
     assert run_dir == tmp_path
@@ -519,7 +519,7 @@ def test_resume_cannot_fork_into_new_directory(tmp_path):
     source = tmp_path / "source"
     MoboCampaignRunner(
         output_dir=source, num_initial_samples=3, num_batches=1, batch_size=2,
-        evaluator=MockBatchEvaluator(source), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(source), device="cpu", export_plots=False,
     ).run()
     destination = tmp_path / "fork"
     with pytest.raises(ValueError, match="original run identity"):
@@ -532,7 +532,7 @@ def test_resume_cannot_fork_into_new_directory(tmp_path):
 def test_resume_rejects_explicit_device_change_even_without_cuda(tmp_path):
     MoboCampaignRunner(
         output_dir=tmp_path, num_initial_samples=1, num_batches=0,
-        evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+        evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
     original_config = (tmp_path / "config.yaml").read_bytes()
     with pytest.raises(ValueError, match="device differs"):
@@ -540,7 +540,7 @@ def test_resume_rejects_explicit_device_change_even_without_cuda(tmp_path):
     assert (tmp_path / "config.yaml").read_bytes() == original_config
 
 
-class InterruptingStreamEvaluator(MockBatchEvaluator):
+class InterruptingStreamEvaluator(MockEvaluator):
     """Complete one chosen candidate out of order, then interrupt the parent."""
 
     def __init__(self, run_dir, interrupt_batch=None, completion_position=1, **kwargs):
@@ -549,14 +549,13 @@ class InterruptingStreamEvaluator(MockBatchEvaluator):
         self.completion_position = completion_position
         self.submissions = []
 
-    def evaluate_batch(self, candidates, run_id="mock", eval_ids=None, on_evaluation_complete=None):
-        self.submissions.append((list(eval_ids), candidates))
+    def evaluate(self, requests, run_id="mock", on_complete=None):
+        self.submissions.append(([r.eval_id for r in requests], [r.parameters for r in requests]))
         if len(self.submissions) - 1 == self.interrupt_batch:
-            position = self.completion_position
-            result = self._generate_candidate_result(candidates[position], run_id, eval_ids[position])
-            on_evaluation_complete(result)
+            request = requests[self.completion_position]
+            on_complete(self.respond(request.parameters, run_id, request.eval_id))
             raise RuntimeError("Injected parent interruption")
-        return super().evaluate_batch(candidates, run_id, eval_ids, on_evaluation_complete)
+        return super().evaluate(requests, run_id, on_complete)
 
 
 @pytest.mark.parametrize("mode", ["unconstrained_mobo", "constrained_mobo", "scalarized_bo"])
@@ -570,7 +569,7 @@ def test_partial_batch_recovery_matches_uninterrupted_campaign(tmp_path, mode, i
     failed = ["eval_000002", "eval_000005"]
     full_dir = tmp_path / "full"
     full, full_tracker, _ = MoboCampaignRunner(
-        **options, output_dir=full_dir, evaluator=MockBatchEvaluator(full_dir, fail_eval_ids=failed),
+        **options, output_dir=full_dir, evaluator=MockEvaluator(full_dir, fail_eval_ids=failed),
     ).run()
     interrupted_dir = tmp_path / "interrupted"
     evaluator = InterruptingStreamEvaluator(interrupted_dir, interrupted_batch, fail_eval_ids=failed)
@@ -651,7 +650,7 @@ def test_checkpoint_commit_interruption_does_not_repeat_completed_batch(tmp_path
         with pytest.raises(RuntimeError, match="checkpoint interruption"):
             MoboCampaignRunner(
                 output_dir=tmp_path, num_initial_samples=3, num_batches=interrupted_iteration, batch_size=2,
-                evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
+                evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
             ).run()
     evaluator = InterruptingStreamEvaluator(tmp_path)
     results, tracker, _ = MoboCampaignRunner(
@@ -671,17 +670,17 @@ def test_campaign_callback_persistence_failure_is_observable(tmp_path, monkeypat
     def fail_append(*args, **kwargs):
         raise OSError("Injected journal disk failure")
 
-    class SwallowingEvaluator(MockBatchEvaluator):
-        def evaluate_batch(self, candidates, run_id, eval_ids, on_evaluation_complete):
-            results = super().evaluate_batch(candidates, run_id, eval_ids)
+    class SwallowingEvaluator(MockEvaluator):
+        def evaluate(self, requests, run_id, on_complete=None):
+            results = super().evaluate(requests, run_id)
             for result in results:
                 try:
-                    on_evaluation_complete(result)
+                    on_complete(result)
                 except OSError:
                     pass
             return results
 
-    evaluator = SwallowingEvaluator(tmp_path) if swallow_callback_error else MockBatchEvaluator(tmp_path)
+    evaluator = SwallowingEvaluator(tmp_path) if swallow_callback_error else MockEvaluator(tmp_path)
     with monkeypatch.context() as patch:
         patch.setattr(runner_module.EvaluationJournal, "append", fail_append)
         with pytest.raises(OSError, match="journal disk failure"):
@@ -692,7 +691,7 @@ def test_campaign_callback_persistence_failure_is_observable(tmp_path, monkeypat
     assert (tmp_path / "checkpoints" / "pending_batch.pt").exists()
     assert not (tmp_path / "checkpoints" / "checkpoint.pt").exists()
     recovered, _, _ = MoboCampaignRunner(
-        output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
+        output_dir=tmp_path, resume=True, evaluator=MockEvaluator(tmp_path),
         device="cpu", export_plots=False,
     ).run()
     assert len(recovered) == 2
@@ -729,7 +728,7 @@ def test_inflight_fallback_recovery_restores_post_proposal_rng(tmp_path, monkeyp
                    device="cpu", export_plots=False, export_env_info=False)
     full_dir, split_dir = tmp_path / "full", tmp_path / "split"
     full, full_tracker, _ = MoboCampaignRunner(
-        **options, output_dir=full_dir, evaluator=MockBatchEvaluator(full_dir),
+        **options, output_dir=full_dir, evaluator=MockEvaluator(full_dir),
     ).run()
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(**options, output_dir=split_dir,
@@ -743,7 +742,7 @@ def test_inflight_fallback_recovery_restores_post_proposal_rng(tmp_path, monkeyp
     np.random.random(100)
     random.random()
     resumed, tracker, _ = MoboCampaignRunner(
-        output_dir=split_dir, resume=True, evaluator=MockBatchEvaluator(split_dir),
+        output_dir=split_dir, resume=True, evaluator=MockEvaluator(split_dir),
         device="cpu", export_plots=False, export_env_info=False,
     ).run()
     assert [r.x_physical for r in resumed] == [r.x_physical for r in full]
@@ -827,7 +826,7 @@ def test_configured_two_variable_mixed_objective_campaign(tmp_path, mode):
     directory = tmp_path / mode
     runner = MoboCampaignRunner(config=config, output_dir=directory, num_initial_samples=2,
                                 num_batches=1, batch_size=1, device="cpu", export_plots=True,
-                                optimization_mode=mode, evaluator=MockBatchEvaluator(directory))
+                                optimization_mode=mode, evaluator=MockEvaluator(directory))
     results, tracker, _ = runner.run()
     x, y, feasible = get_train_tensors(results, config=config)
     assert x.shape == (3, 2) and y.shape == (3, 2)
@@ -845,7 +844,7 @@ def test_configured_two_variable_mixed_objective_campaign(tmp_path, mode):
     assert tracker.history[0]["reporting_ref_point_physical"][1] == tracker.reporting_ref_point[1]
     assert load_run_checkpoint(directory).metrics.reporting_scales == [2e6, 1e-6]
     resumed = MoboCampaignRunner(output_dir=directory, resume=True, num_batches=2,
-                                 export_plots=False, device="cpu", evaluator=MockBatchEvaluator(directory))
+                                 export_plots=False, device="cpu", evaluator=MockEvaluator(directory))
     continued, _, _ = resumed.run()
     assert len(continued) == 4
     assert list(pd.read_csv(directory / "evaluations_stream.csv").columns) == list(stream.columns)
@@ -858,7 +857,7 @@ def test_configured_all_failed_campaign_exports_empty_headers(tmp_path):
     config.objectives = [config.objectives[2], config.objectives[0]]
     runner = MoboCampaignRunner(config=config, output_dir=tmp_path, num_initial_samples=1,
                                 num_batches=0, export_plots=False, device="cpu",
-                                evaluator=MockBatchEvaluator(tmp_path, failure_rate=1.0))
+                                evaluator=MockEvaluator(tmp_path, failure_rate=1.0))
     results, _, _ = runner.run()
     assert not results[0].simulation_valid
     assert pd.read_csv(tmp_path / "objectives_model.csv").shape == (0, 2)
@@ -880,13 +879,13 @@ def test_parallel_batch_elapsed_time_is_distinct_from_sum_of_worker_runtimes(tmp
     import mobo_linac.campaigns.strategies as strategies_module
     clock = [0.0]
     monkeypatch.setattr(runner_module.time, "perf_counter", lambda: clock[0])
-    class ParallelTimingEvaluator(MockBatchEvaluator):
-        def evaluate_batch(self, *args, **kwargs):
+    class ParallelTimingEvaluator(MockEvaluator):
+        def evaluate(self, *args, **kwargs):
             # Four workers each report five seconds; their batch completes in six seconds.
             clock[0] += 6.0
-            return super().evaluate_batch(*args, **kwargs)
-        def _generate_candidate_result(self, *args, **kwargs):
-            record = super()._generate_candidate_result(*args, **kwargs)
+            return super().evaluate(*args, **kwargs)
+        def respond(self, *args, **kwargs):
+            record = super().respond(*args, **kwargs)
             record["timestamps"]["duration_sec"] = 5.0
             return record
     runner = MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=4, num_batches=0,
@@ -905,7 +904,7 @@ def test_requested_plot_failure_prevents_final_completion(tmp_path, monkeypatch)
         raise OSError("Injected figure failure")
     monkeypatch.setattr(runner_module, "plot_hypervolume_progress", fail_plot)
     runner = MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=1, num_batches=0,
-                                evaluator=MockBatchEvaluator(tmp_path), export_plots=True, device="cpu")
+                                evaluator=MockEvaluator(tmp_path), export_plots=True, device="cpu")
     with pytest.raises(OSError, match="figure failure"):
         runner.run()
     assert (tmp_path / "checkpoints/checkpoint.pt").exists()
@@ -915,14 +914,14 @@ def test_requested_plot_failure_prevents_final_completion(tmp_path, monkeypatch)
 def test_completed_legacy_metadata_resume_exports_empty_history(tmp_path):
     import json
     MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=2, num_batches=0,
-                       evaluator=MockBatchEvaluator(tmp_path), device="cpu",
+                       evaluator=MockEvaluator(tmp_path), device="cpu",
                        export_plots=False, export_env_info=False).run()
     path = tmp_path / "checkpoints" / "checkpoint.pt"
     payload = flat_legacy_payload(load_run_checkpoint(path))
     payload.pop("proposal_history")  # archived v2 checkpoints before proposal history
     torch.save(payload, path)
     (tmp_path / "proposal_history.json").unlink()
-    MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
+    MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=MockEvaluator(tmp_path),
                        device="cpu", export_plots=False, export_env_info=False).run()
     assert json.loads((tmp_path / "proposal_history.json").read_text()) == []
 
@@ -938,6 +937,6 @@ def test_pending_proposal_history_conflict_fails_before_writes(tmp_path):
     torch.save(payload, path)
     before = {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
     with pytest.raises(ValueError, match="proposal history"):
-        MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
+        MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=MockEvaluator(tmp_path),
                            device="cpu", export_plots=False, export_env_info=False).run()
     assert before == {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}

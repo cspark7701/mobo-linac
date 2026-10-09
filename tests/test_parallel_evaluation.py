@@ -14,6 +14,31 @@ from mobo_linac.config import load_config as _load_test_config
 TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
 
 
+from dataclasses import asdict
+
+from mobo_linac.execution.parallel import (
+    ProcessPoolEvaluator,
+    WorkerTask,
+    run_worker_task,
+)
+from mobo_linac.execution.requests import EvaluationRequest, requests_for
+
+
+def evaluate_candidates(candidates, run_id, max_workers, base_results_dir, template_dir=None,
+                        eval_ids=None, on_complete=None, config=TEST_CONFIG):
+    with ProcessPoolEvaluator(config, base_results_dir=base_results_dir, template_dir=template_dir,
+                              max_workers=max_workers) as evaluator:
+        return evaluator.evaluate(requests_for(candidates, eval_ids), run_id=run_id, on_complete=on_complete)
+
+
+def worker_task(parameters, run_id, eval_id, base_results_dir, template_dir, retries=0, config=None,
+                clean_on_success=False):
+    return WorkerTask(candidate_idx=0, request=EvaluationRequest(eval_id, list(parameters)).to_dict(),
+                      run_id=run_id, base_results_dir=str(base_results_dir), template_dir=str(template_dir),
+                      retries=retries, clean_on_success=clean_on_success,
+                      config=asdict(config) if config is not None else None)
+
+
 @pytest.mark.parametrize("max_workers", [1, 2])
 def test_callback_persistence_errors_propagate_in_serial_and_parallel(tmp_path, monkeypatch, max_workers):
     def worker(**kwargs):
@@ -27,19 +52,12 @@ def test_callback_persistence_errors_propagate_in_serial_and_parallel(tmp_path, 
 
     monkeypatch.setattr("mobo_linac.execution.parallel.run_astra_eval", worker)
     with pytest.raises(OSError, match="journal write failed"):
-        evaluate_candidates_parallel(
+        evaluate_candidates(
             [[0.2, 1, -1, 0, 0, 0], [0.3, 1, -1, 0, 0, 0]],
             run_id="durable_run", eval_ids=["eval_000009", "eval_000010"],
-            max_workers=max_workers, base_results_dir=tmp_path,
-            on_evaluation_complete=callback,
-            config=TEST_CONFIG,
+            max_workers=max_workers, base_results_dir=tmp_path, on_complete=callback,
         )
 
-from mobo_linac.execution.parallel import (
-    BatchEvaluator,
-    evaluate_candidates_parallel,
-    _worker_eval_task,
-)
 
 
 @pytest.fixture
@@ -81,17 +99,8 @@ def temp_project(tmp_path):
 
 def test_worker_eval_task_mock_failure(temp_project, monkeypatch):
     """Test worker handles failure gracefully and returns structured dict."""
-    task = {
-        "candidate_idx": 0,
-        "parameters": [0.2, 1.0, -1.0, 0.0, 0.0, 0.0],
-        "run_id": "test_run",
-        "eval_id": 1,
-        "base_results_dir": str(temp_project["results_dir"]),
-        "template_dir": str(temp_project["template_dir"]),
-        "template_in": "astra.in",
-        "timeout": 5,
-        "retries": 1,
-    }
+    task = worker_task([0.2, 1.0, -1.0, 0.0, 0.0, 0.0], "test_run", 1, temp_project["results_dir"],
+                       temp_project["template_dir"], retries=1)
 
     # Mock run_astra_eval to simulate failure
     def mock_run_astra_eval(**kwargs):
@@ -106,7 +115,7 @@ def test_worker_eval_task_mock_failure(temp_project, monkeypatch):
 
     monkeypatch.setattr("mobo_linac.execution.parallel.run_astra_eval", mock_run_astra_eval)
 
-    res = _worker_eval_task(task)
+    res = run_worker_task(task)
 
     assert res["candidate_idx"] == 0
     assert res["status"] == "failed"
@@ -138,14 +147,7 @@ def test_parallel_deterministic_order_and_alignment(temp_project, monkeypatch):
 
     monkeypatch.setattr("mobo_linac.execution.parallel.run_astra_eval", mock_run_astra_eval)
 
-    results = evaluate_candidates_parallel(
-        candidates=candidates,
-        run_id="order_test",
-        max_workers=4,
-        base_results_dir=temp_project["results_dir"],
-        template_dir=temp_project["template_dir"],
-        config=TEST_CONFIG,
-    )
+    results = evaluate_candidates(candidates, "order_test", 4, temp_project["results_dir"], temp_project["template_dir"])
 
     assert len(results) == 4
     for i, res in enumerate(results):
@@ -183,14 +185,7 @@ def test_partial_failure_resilience(temp_project, monkeypatch):
 
     monkeypatch.setattr("mobo_linac.execution.parallel.run_astra_eval", mock_run_astra_eval)
 
-    results = evaluate_candidates_parallel(
-        candidates=candidates,
-        run_id="resilience_test",
-        max_workers=2,
-        base_results_dir=temp_project["results_dir"],
-        template_dir=temp_project["template_dir"],
-        config=TEST_CONFIG,
-    )
+    results = evaluate_candidates(candidates, "resilience_test", 2, temp_project["results_dir"], temp_project["template_dir"])
 
     assert len(results) == 3
     assert results[0]["status"] == "success"
@@ -218,23 +213,9 @@ def test_serial_and_parallel_agreement(temp_project, monkeypatch):
 
     monkeypatch.setattr("mobo_linac.execution.parallel.run_astra_eval", mock_run_astra_eval)
 
-    serial_res = evaluate_candidates_parallel(
-        candidates=candidates,
-        run_id="test_serial",
-        max_workers=1,
-        base_results_dir=temp_project["results_dir"],
-        template_dir=temp_project["template_dir"],
-        config=TEST_CONFIG,
-    )
+    serial_res = evaluate_candidates(candidates, "test_serial", 1, temp_project["results_dir"], temp_project["template_dir"])
 
-    parallel_res = evaluate_candidates_parallel(
-        candidates=candidates,
-        run_id="test_parallel",
-        max_workers=2,
-        base_results_dir=temp_project["results_dir"],
-        template_dir=temp_project["template_dir"],
-        config=TEST_CONFIG,
-    )
+    parallel_res = evaluate_candidates(candidates, "test_parallel", 2, temp_project["results_dir"], temp_project["template_dir"])
 
     assert len(serial_res) == len(parallel_res)
     for s, p in zip(serial_res, parallel_res):
@@ -245,12 +226,12 @@ def test_serial_and_parallel_agreement(temp_project, monkeypatch):
 
 def test_batch_evaluator_class(temp_project, monkeypatch):
     """Test BatchEvaluator class encapsulation."""
-    evaluator = BatchEvaluator(
+    evaluator = ProcessPoolEvaluator(
+        TEST_CONFIG,
         base_results_dir=temp_project["results_dir"],
         template_dir=temp_project["template_dir"],
         max_workers=2,
         timeout=15,
-        config=TEST_CONFIG,
     )
 
     def mock_run_astra_eval(parameters, **kwargs):
@@ -266,7 +247,8 @@ def test_batch_evaluator_class(temp_project, monkeypatch):
     monkeypatch.setattr("mobo_linac.execution.parallel.run_astra_eval", mock_run_astra_eval)
 
     candidates = [[0.20, 1.0, -1.0, 0.0, 0.0, 0.0]]
-    results = evaluator.evaluate_batch(candidates, run_id="batch_class_test")
+    results = evaluator.evaluate(requests_for(candidates), run_id="batch_class_test")
+    evaluator.close()
     assert len(results) == 1
     assert results[0]["status"] == "success"
 
@@ -289,15 +271,9 @@ def test_real_parallel_astra_evaluations():
         [0.24, 1.3, -1.3, 4.0, 1.0, 1.0],
     ]
 
-    evaluator = BatchEvaluator(
-        base_results_dir="results",
-        template_dir=root_dir,
-        max_workers=2,
-        timeout=300,
-        config=TEST_CONFIG,
-    )
-
-    results = evaluator.evaluate_batch(candidates, run_id="integration_parallel_run")
+    with ProcessPoolEvaluator(TEST_CONFIG, base_results_dir="results", template_dir=root_dir,
+                              max_workers=2, timeout=300) as evaluator:
+        results = evaluator.evaluate(requests_for(candidates), run_id="integration_parallel_run")
 
     assert len(results) == 2
     for idx, res in enumerate(results):
@@ -346,13 +322,9 @@ def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monke
             }.items()}}
     monkeypatch.setattr('mobo_linac.astra.runner.Astra', StubAstra)
     config = load_config()
-    result = _worker_eval_task({
-        'candidate_idx': 0, 'parameters': [0.2, 1, -1, 0, 0, 0],
-        'run_id': 'retry', 'eval_id': 1, 'retries': 1,
-        'base_results_dir': temp_project['results_dir'],
-        'template_dir': temp_project['template_dir'], 'config': config,
-        'clean_on_success': cleanup,
-    })
+    result = run_worker_task(worker_task([0.2, 1, -1, 0, 0, 0], 'retry', 1, temp_project['results_dir'],
+                                         temp_project['template_dir'], retries=1, config=config,
+                                         clean_on_success=cleanup))
     assert result['status'] == 'SUCCESS', result['error']
     history = result['attempt_history']
     assert [entry['status'] for entry in history] == ['UNHANDLED_EXCEPTION', 'SUCCESS']
@@ -406,11 +378,11 @@ def test_worker_crash_retains_serializable_request_and_order(tmp_path, monkeypat
     monkeypatch.setattr(parallel, 'ProcessPoolExecutor', Pool)
     requests = [EvaluationRequest(f'candidate_{i}', [0.2, 1, -1, 0, 0, 0],
                                  {'charge:nrad': i + 1}, metadata={'index': i}) for i in range(2)]
-    out = BatchEvaluator(base_results_dir=tmp_path, max_workers=2, config=TEST_CONFIG).evaluate_requests(requests, run_id='crash')
+    out = ProcessPoolEvaluator(TEST_CONFIG, base_results_dir=tmp_path, max_workers=2).evaluate(requests, run_id='crash')
     assert [row['eval_id'] for row in out] == [request.eval_id for request in requests]
     assert all(row['status'] == 'WORKER_CRASH' and 'Worker process crashed' in row['error'] for row in out)
     assert [row['request'] for row in out] == [request.to_dict() for request in requests]
-    assert [task['request'] for task in captured] == [request.to_dict() for request in requests]
+    assert [task.request for task in captured] == [request.to_dict() for request in requests]
 
 
 @pytest.mark.parametrize("final_z, expected_attempts, expected_status", [
@@ -440,11 +412,21 @@ def test_retries_follow_simulation_status_policy(temp_project, monkeypatch, fina
                 "z": final_z}.items()}}
 
     monkeypatch.setattr("mobo_linac.astra.runner.Astra", StubAstra)
-    result = _worker_eval_task({
-        "candidate_idx": 0, "parameters": [0.2, 1, -1, 0, 0, 0], "run_id": "policy", "eval_id": 1,
-        "retries": 2, "base_results_dir": temp_project["results_dir"],
-        "template_dir": temp_project["template_dir"], "config": load_config("configs/mobo_200MeV.yaml"),
-    })
+    result = run_worker_task(worker_task([0.2, 1, -1, 0, 0, 0], "policy", 1, temp_project["results_dir"],
+                                         temp_project["template_dir"], retries=2,
+                                         config=load_config("configs/mobo_200MeV.yaml")))
     assert result["status"] == expected_status
     assert len(attempts) == expected_attempts
     assert len(result["attempt_history"]) == expected_attempts
+
+
+def test_single_worker_crash_is_reported_like_a_pooled_crash(tmp_path, monkeypatch):
+    """One worker still runs out of process: a crashing worker is a WORKER_CRASH, not a parent failure."""
+    import os
+    def crash(**kwargs):
+        os._exit(17)
+    monkeypatch.setattr("mobo_linac.execution.parallel.run_astra_eval", crash)
+    for workers in (1, 2):
+        out = evaluate_candidates([[0.2, 1, -1, 0, 0, 0]], f"crash_{workers}", workers, tmp_path)
+        assert [row["status"] for row in out] == ["WORKER_CRASH"]
+        assert "Worker process crashed" in out[0]["error"]
