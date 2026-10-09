@@ -12,7 +12,8 @@ import torch
 
 from mobo_linac.campaign_options import OPTIMIZATION_MODES, Acquisition, decode_acquisition
 from mobo_linac.config import MoboConfig, config_from_dict
-from mobo_linac.io.results import CheckpointState, get_train_tensors
+from mobo_linac.io.checkpoint import CheckpointState
+from mobo_linac.io.results import get_train_tensors
 from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference_point
 from mobo_linac.result_schema import ResultSchema
 
@@ -22,8 +23,18 @@ def prepare_resume_state(
     config: MoboConfig,
     legacy_scalar_weights: Optional[Sequence[float]] = None,
 ) -> CheckpointState:
-    """Migrate explicit legacy assumptions, then validate without writing run artifacts."""
+    """Check configuration, migrate legacy assumptions, then validate; never writes run artifacts."""
     state = deepcopy(checkpoint)
+    check_configuration_compatibility(state, config)
+    if state.migrated_from == "1.0":
+        migrate_legacy_v1_state(state, config, legacy_scalar_weights)
+    validate_structure(state)
+    validate_consistency(state, config)
+    return state
+
+
+def check_configuration_compatibility(state: CheckpointState, config: MoboConfig) -> None:
+    """The saved scientific configuration must match the resuming one (worker count may differ)."""
     if not isinstance(state.config, dict):
         raise ValueError("Checkpoint lacks the saved configuration required for safe resume.")
     # Display labels/units are not scientific settings; archived layouts are migrated first.
@@ -39,158 +50,175 @@ def prepare_resume_state(
         if saved_execution.get(name) != current["execution"][name]:
             raise ValueError(f"Incompatible checkpoint configuration: execution.{name} changed.")
 
-    if state.version == "1.0":
-        if state.num_initial_samples is None or state.evaluation_batches is None or state.seed is None:
-            raise ValueError("Legacy checkpoint cannot infer initial design/batch membership/seed safely.")
-        if state.optimization_mode == "scalarized_bo":
-            if legacy_scalar_weights is None:
-                raise ValueError("Legacy scalarized checkpoint omitted weights; supply explicit legacy scalar weights.")
-            weights = np.asarray(legacy_scalar_weights, dtype=float)
-            if not np.isfinite(weights).all() or (weights < 0).any() or weights.sum() <= 0:
-                raise ValueError("Legacy scalar weights must be finite, nonnegative, with positive sum.")
-            state.scalar_weights = (weights / weights.sum()).tolist()
-        else:
-            state.scalar_weights = [1.0 / len(config.objectives)] * len(config.objectives)
-        # Only the old runner's low-data Sobol branch consumed this stream after initialization.
-        draws = state.num_initial_samples
-        for iteration in range(1, state.iteration + 1):
-            prior = [r for r, batch in zip(state.results, state.evaluation_batches) if batch < iteration]
-            if get_train_tensors(prior, config=config)[0].shape[0] < 2:
-                draws += state.evaluation_batches.count(iteration)
-        state.sobol_state = {"seed": state.seed, "dimension": len(config.design_variables), "num_generated": draws}
-        state.reporting_scales = list(ResultSchema.from_config(config).scales)
-        if state.reporting_ref_point is None:
-            initial_y = get_train_tensors(state.results[:state.num_initial_samples], config=config)[1]
-            state.reporting_ref_point = compute_reference_point(initial_y, config=config).tolist()
-        tracker = HypervolumeTracker(state.reporting_ref_point, config)
-        for iteration in range(state.iteration + 1):
-            prefix = [r for r, batch in zip(state.results, state.evaluation_batches) if batch <= iteration]
-            _, y, feasible = get_train_tensors(prefix, config=config)
-            tracker.track_iteration(iteration, y, feasible)
-        state.metric_history = tracker.history
-        state.hypervolumes = [record["feasible_hypervolume"] for record in tracker.history]
-        state.device = "cpu"
-        state.cuda_rng_states = []
-        warnings.warn(
-            state.migration_notes[-1] + " Resume is best effort; original scalar weights must be supplied "
-            "and legacy GPU continuation cannot be reproduced.",
-            RuntimeWarning,
-        )
 
-    bootstrap = state.iteration == -1 and state.pending_proposal is not None
-    required = (
-        "run_id", "optimization_mode", "scalar_weights", "num_initial_samples", "initial_design",
-        "sobol_state", "evaluation_batches", "metric_history", "reporting_scales", "device",
-        "seed", "batch_size", "torch_rng_state", "numpy_rng_state",
+def migrate_legacy_v1_state(state: CheckpointState, config: MoboConfig,
+                            legacy_scalar_weights: Optional[Sequence[float]]) -> None:
+    """Fill v1 gaps that need the configuration (weights, Sobol position, reference, metrics)."""
+    if state.campaign.num_initial_samples is None or state.progress.evaluation_batches is None or state.campaign.seed is None:
+        raise ValueError("Legacy checkpoint cannot infer initial design/batch membership/seed safely.")
+    if state.campaign.optimization_mode == "scalarized_bo":
+        if legacy_scalar_weights is None:
+            raise ValueError("Legacy scalarized checkpoint omitted weights; supply explicit legacy scalar weights.")
+        weights = np.asarray(legacy_scalar_weights, dtype=float)
+        if not np.isfinite(weights).all() or (weights < 0).any() or weights.sum() <= 0:
+            raise ValueError("Legacy scalar weights must be finite, nonnegative, with positive sum.")
+        state.campaign.scalar_weights = (weights / weights.sum()).tolist()
+    else:
+        state.campaign.scalar_weights = [1.0 / len(config.objectives)] * len(config.objectives)
+    # Only the old runner's low-data Sobol branch consumed this stream after initialization.
+    draws = state.campaign.num_initial_samples
+    for iteration in range(1, state.iteration + 1):
+        prior = [r for r, batch in zip(state.results, state.progress.evaluation_batches) if batch < iteration]
+        if get_train_tensors(prior, config=config)[0].shape[0] < 2:
+            draws += state.progress.evaluation_batches.count(iteration)
+    state.progress.sobol_state = {"seed": state.campaign.seed, "dimension": len(config.design_variables), "num_generated": draws}
+    state.metrics.reporting_scales = list(ResultSchema.from_config(config).scales)
+    if state.metrics.reporting_ref_point is None:
+        initial_y = get_train_tensors(state.results[:state.campaign.num_initial_samples], config=config)[1]
+        state.metrics.reporting_ref_point = compute_reference_point(initial_y, config=config).tolist()
+    tracker = HypervolumeTracker(state.metrics.reporting_ref_point, config)
+    for iteration in range(state.iteration + 1):
+        prefix = [r for r, batch in zip(state.results, state.progress.evaluation_batches) if batch <= iteration]
+        _, y, feasible = get_train_tensors(prefix, config=config)
+        tracker.track_iteration(iteration, y, feasible)
+    state.metrics.metric_history = tracker.history
+    state.metrics.hypervolumes = [record["feasible_hypervolume"] for record in tracker.history]
+    state.campaign.device = "cpu"
+    state.rng.cuda_rng_states = []
+    warnings.warn(
+        state.migration_notes[-1] + " Resume is best effort; original scalar weights must be supplied "
+        "and legacy GPU continuation cannot be reproduced.",
+        RuntimeWarning,
     )
+
+
+def _bootstrap(state: CheckpointState) -> bool:
+    """A pending first batch with no completed iteration yet."""
+    return state.iteration == -1 and state.proposals.pending_proposal is not None
+
+
+def validate_structure(state: CheckpointState) -> None:
+    """Required values present, with the right types and admissible ranges."""
+    bootstrap = _bootstrap(state)
+    required = [("campaign", name) for name in ("run_id", "optimization_mode", "scalar_weights",
+                                                "num_initial_samples", "device", "seed", "batch_size")]
+    required += [("progress", "initial_design"), ("progress", "sobol_state"), ("progress", "evaluation_batches"),
+                 ("metrics", "metric_history"), ("metrics", "reporting_scales"),
+                 ("rng", "torch_rng_state"), ("rng", "numpy_rng_state")]
     if not bootstrap:
-        required += ("reporting_ref_point",)
-    if state.version == "2.0":
-        required += ("planned_num_batches", "num_workers", "python_rng_state", "cuda_rng_states")
-    missing = [name for name in required if getattr(state, name) is None]
+        required.append(("metrics", "reporting_ref_point"))
+    if state.migrated_from != "1.0":
+        required += [("campaign", "planned_num_batches"), ("campaign", "num_workers"),
+                     ("rng", "python_rng_state"), ("rng", "cuda_rng_states")]
+    missing = [name for group, name in required if getattr(getattr(state, group), name) is None]
     if missing:
         raise ValueError(f"Incomplete campaign checkpoint: missing {', '.join(missing)}.")
-    for name in ("iteration", "num_initial_samples", "batch_size", "seed"):
-        if type(getattr(state, name)) is not int:
+    for value, name in ((state.iteration, "iteration"), (state.campaign.num_initial_samples, "num_initial_samples"),
+                        (state.campaign.batch_size, "batch_size"), (state.campaign.seed, "seed")):
+        if type(value) is not int:
             raise ValueError(f"Invalid checkpoint integer field: {name}.")
-    if state.planned_num_batches is not None and (
-        type(state.planned_num_batches) is not int or state.planned_num_batches < state.iteration
+    if state.campaign.planned_num_batches is not None and (
+        type(state.campaign.planned_num_batches) is not int or state.campaign.planned_num_batches < state.iteration
     ):
         raise ValueError("Invalid checkpoint planned iteration count.")
-    if state.num_workers is not None and (type(state.num_workers) is not int or state.num_workers < 1):
+    if state.campaign.num_workers is not None and (type(state.campaign.num_workers) is not int or state.campaign.num_workers < 1):
         raise ValueError("Invalid checkpoint worker count.")
-    if (state.iteration < 0 and not bootstrap) or state.num_initial_samples < 1 or state.batch_size < 1:
+    if (state.iteration < 0 and not bootstrap) or state.campaign.num_initial_samples < 1 or state.campaign.batch_size < 1:
         raise ValueError("Invalid checkpoint iteration or sample counts.")
-    if state.optimization_mode not in OPTIMIZATION_MODES:
+    if state.campaign.optimization_mode not in OPTIMIZATION_MODES:
         raise ValueError("Invalid checkpoint optimization mode.")
-    if state.constrained != (state.optimization_mode == "constrained_mobo"):
+    if state.campaign.constrained != (state.campaign.optimization_mode == "constrained_mobo"):
         raise ValueError("Checkpoint mode and constrained flag disagree.")
     try:
-        acquisition = decode_acquisition(state.acquisition_mode)
+        acquisition = decode_acquisition(state.campaign.acquisition_mode)
     except ValueError:
         raise ValueError("Invalid checkpoint acquisition mode.") from None
-    if (state.optimization_mode == "scalarized_bo") != (acquisition is Acquisition.qLogNEI):
+    if (state.campaign.optimization_mode == "scalarized_bo") != (acquisition is Acquisition.qLogNEI):
         raise ValueError("Checkpoint scalarized acquisition is inconsistent.")
-    if state.elapsed_wall_time_s is not None and (not math.isfinite(state.elapsed_wall_time_s) or state.elapsed_wall_time_s < 0):
+    if state.progress.elapsed_wall_time_s is not None and (not math.isfinite(state.progress.elapsed_wall_time_s) or state.progress.elapsed_wall_time_s < 0):
         raise ValueError("Invalid checkpoint elapsed wall time.")
-    if state.evaluation_elapsed_s is not None:
-        if len(state.evaluation_elapsed_s) != len(state.results) or any(value is not None and (not math.isfinite(value) or value < 0) for value in state.evaluation_elapsed_s):
+    if state.progress.evaluation_elapsed_s is not None:
+        if len(state.progress.evaluation_elapsed_s) != len(state.results) or any(value is not None and (not math.isfinite(value) or value < 0) for value in state.progress.evaluation_elapsed_s):
             raise ValueError("Invalid checkpoint evaluation wall times.")
-    weights = np.asarray(state.scalar_weights, dtype=float)
+    state.rng.validate()
+
+
+def validate_consistency(state: CheckpointState, config: MoboConfig) -> None:
+    """History, metrics, design, proposals and pending batch agree with each other and the config."""
+    bootstrap = _bootstrap(state)
+    weights = np.asarray(state.campaign.scalar_weights, dtype=float)
     if (weights.shape != (len(config.objectives),) or not np.isfinite(weights).all()
             or (weights < 0).any() or not np.isclose(weights.sum(), 1.0)):
         raise ValueError("Invalid checkpoint scalar weights.")
-    if state.reporting_scales != list(ResultSchema.from_config(config).scales):
+    if state.metrics.reporting_scales != list(ResultSchema.from_config(config).scales):
         raise ValueError("Incompatible checkpoint reporting scales.")
-    if not bootstrap and (len(state.reporting_ref_point) != len(config.objectives)
-            or not all(math.isfinite(v) for v in state.reporting_ref_point)):
+    if not bootstrap and (len(state.metrics.reporting_ref_point) != len(config.objectives)
+            or not all(math.isfinite(v) for v in state.metrics.reporting_ref_point)):
         raise ValueError("Invalid checkpoint reporting reference point.")
-    batches = state.evaluation_batches
+    batches = state.progress.evaluation_batches
     if (len(batches) != len(state.results) or any(type(b) is not int for b in batches)
             or batches != sorted(batches) or set(batches) != set(range(state.iteration + 1))
-            or (not bootstrap and batches.count(0) != state.num_initial_samples)):
+            or (not bootstrap and batches.count(0) != state.campaign.num_initial_samples)):
         raise ValueError("Invalid checkpoint evaluation batch membership.")
-    if any(r.run_id != state.run_id for r in state.results):
+    if any(r.run_id != state.campaign.run_id for r in state.results):
         raise ValueError("Checkpoint evaluation records disagree with run identity.")
     if len({r.evaluation_id for r in state.results}) != len(state.results):
         raise ValueError("Checkpoint contains duplicate evaluation identities.")
-    design = np.asarray(state.initial_design, dtype=float)
-    if design.shape != (state.num_initial_samples, len(config.design_variables)) or not np.isfinite(design).all():
+    design = np.asarray(state.progress.initial_design, dtype=float)
+    if design.shape != (state.campaign.num_initial_samples, len(config.design_variables)) or not np.isfinite(design).all():
         raise ValueError("Invalid checkpoint initial design.")
-    for parameters, result in zip(state.initial_design, state.results[:state.num_initial_samples]):
+    for parameters, result in zip(state.progress.initial_design, state.results[:state.campaign.num_initial_samples]):
         if parameters != result.x_physical:
             raise ValueError("Checkpoint initial design does not match evaluation history.")
-    sobol = state.sobol_state
-    if (sobol.get("dimension") != len(config.design_variables) or sobol.get("seed") != state.seed
-            or type(sobol.get("num_generated")) is not int or sobol["num_generated"] < state.num_initial_samples):
+    sobol = state.progress.sobol_state
+    if (sobol.get("dimension") != len(config.design_variables) or sobol.get("seed") != state.campaign.seed
+            or type(sobol.get("num_generated")) is not int or sobol["num_generated"] < state.campaign.num_initial_samples):
         raise ValueError("Invalid checkpoint Sobol state.")
-    if len(state.metric_history) != state.iteration + 1:
+    if len(state.metrics.metric_history) != state.iteration + 1:
         raise ValueError("Invalid checkpoint metric history length.")
-    for iteration, record in enumerate(state.metric_history):
+    for iteration, record in enumerate(state.metrics.metric_history):
         prefix = [r for r, batch in zip(state.results, batches) if batch <= iteration]
         _, y, feasible = get_train_tensors(prefix, config=config)
         if (record.get("iteration") != iteration
-                or record.get("reporting_ref_point_model") != state.reporting_ref_point
+                or record.get("reporting_ref_point_model") != state.metrics.reporting_ref_point
                 or record.get("num_valid_points") != y.shape[0]
                 or record.get("num_feasible_points") != int(feasible.sum())):
             raise ValueError("Checkpoint metric history disagrees with batch membership or reporting reference.")
         for metric in ("all_point_hypervolume", "feasible_hypervolume"):
             if not math.isfinite(record.get(metric, float("nan"))) or record[metric] < 0:
                 raise ValueError("Invalid checkpoint hypervolume metric.")
-    if state.hypervolumes != [r["feasible_hypervolume"] for r in state.metric_history]:
+    if state.metrics.hypervolumes != [r["feasible_hypervolume"] for r in state.metrics.metric_history]:
         raise ValueError("Checkpoint hypervolumes disagree with metric history.")
-    if state.total_eval_budget is not None and state.total_eval_budget < len(state.results):
+    if state.campaign.total_eval_budget is not None and state.campaign.total_eval_budget < len(state.results):
         raise ValueError("Checkpoint evaluation count exceeds its total budget.")
-    if bootstrap and (state.results or state.metric_history or state.reporting_ref_point is not None):
+    if bootstrap and (state.results or state.metrics.metric_history or state.metrics.reporting_ref_point is not None):
         raise ValueError("Invalid initial pending-proposal base state.")
-    if state.proposal_history is not None:
-        if not isinstance(state.proposal_history, list):
+    if state.proposals.proposal_history is not None:
+        if not isinstance(state.proposals.proposal_history, list):
             raise ValueError("Invalid checkpoint proposal history.")
-        indices = [item.get("batch_idx") for item in state.proposal_history if isinstance(item, dict)]
-        maximum = state.iteration + (1 if state.pending_proposal is not None else 0)
-        if (len(indices) != len(state.proposal_history) or any(type(index) is not int or not 0 <= index <= maximum for index in indices)
-                or indices != sorted(set(indices)) or any(not isinstance(item.get("metadata"), dict) for item in state.proposal_history)):
+        indices = [item.get("batch_idx") for item in state.proposals.proposal_history if isinstance(item, dict)]
+        maximum = state.iteration + (1 if state.proposals.pending_proposal is not None else 0)
+        if (len(indices) != len(state.proposals.proposal_history) or any(type(index) is not int or not 0 <= index <= maximum for index in indices)
+                or indices != sorted(set(indices)) or any(not isinstance(item.get("metadata"), dict) for item in state.proposals.proposal_history)):
             raise ValueError("Invalid checkpoint proposal history.")
-        if state.pending_proposal is not None and "metadata" in state.pending_proposal:
-            if not state.proposal_history or state.proposal_history[-1] != {"batch_idx": state.pending_proposal["batch_idx"], "metadata": state.pending_proposal["metadata"]}:
+        if state.proposals.pending_proposal is not None and "metadata" in state.proposals.pending_proposal:
+            if not state.proposals.proposal_history or state.proposals.proposal_history[-1] != {"batch_idx": state.proposals.pending_proposal["batch_idx"], "metadata": state.proposals.pending_proposal["metadata"]}:
                 raise ValueError("Pending proposal metadata disagrees with checkpoint history.")
-    if state.pending_proposal is not None:
+    if state.proposals.pending_proposal is not None:
         validate_pending_proposal(state, config)
-    validate_rng_state(state)
-    return state
 
 
 def validate_pending_proposal(state: CheckpointState, config: MoboConfig) -> None:
-    pending = state.pending_proposal
+    pending = state.proposals.pending_proposal
     if not isinstance(pending, dict) or pending.get("version") != "1.0":
         raise ValueError("Unsupported pending proposal schema.")
     batch = pending.get("batch_idx")
     if type(batch) is not int or batch != state.iteration + 1:
         raise ValueError("Pending batch does not follow completed checkpoint.")
     candidates = np.asarray(pending.get("candidates"), dtype=float)
-    expected = state.num_initial_samples if batch == 0 else state.batch_size
-    if batch > 0 and state.total_eval_budget is not None:
-        expected = min(expected, state.total_eval_budget - len(state.results))
+    expected = state.campaign.num_initial_samples if batch == 0 else state.campaign.batch_size
+    if batch > 0 and state.campaign.total_eval_budget is not None:
+        expected = min(expected, state.campaign.total_eval_budget - len(state.results))
     if (expected < 1 or candidates.shape != (expected, len(config.design_variables))
             or not np.isfinite(candidates).all()):
         raise ValueError("Invalid pending candidate design/count.")
@@ -201,30 +229,44 @@ def validate_pending_proposal(state: CheckpointState, config: MoboConfig) -> Non
     expected_ids = [f"eval_{len(state.results) + i + 1:06d}" for i in range(expected)]
     if ids != expected_ids:
         raise ValueError("Pending candidate identities do not follow evaluation history.")
-    if batch == 0 and pending["candidates"] != state.initial_design:
+    if batch == 0 and pending["candidates"] != state.progress.initial_design:
         raise ValueError("Pending initial design disagrees with checkpoint.")
-    if batch > state.planned_num_batches:
+    if batch > state.campaign.planned_num_batches:
         raise ValueError("Pending batch exceeds the campaign plan.")
 
 
-def validate_rng_state(state: CheckpointState) -> None:
-    """Check RNG payloads on temporary generators before touching global random state."""
-    try:
-        torch.Generator().set_state(state.torch_rng_state.cpu())
-        np.random.RandomState().set_state(state.numpy_rng_state)
-        if state.python_rng_state is not None:
-            random.Random().setstate(state.python_rng_state)
-        for cuda_state in state.cuda_rng_states or []:
-            if cuda_state.dtype != torch.uint8 or cuda_state.ndim != 1 or cuda_state.numel() == 0:
-                raise ValueError("Invalid CUDA RNG state tensor.")
-    except (TypeError, ValueError, RuntimeError, AttributeError) as error:
-        raise ValueError(f"Invalid checkpoint RNG state: {error}") from error
-
-
 def restore_rng_state(state: CheckpointState) -> None:
-    torch.set_rng_state(state.torch_rng_state.cpu())
-    np.random.set_state(state.numpy_rng_state)
-    if state.python_rng_state is not None:
-        random.setstate(state.python_rng_state)
-    if state.cuda_rng_states:
-        torch.cuda.set_rng_state_all([rng.cpu() for rng in state.cuda_rng_states])
+    state.rng.restore()
+
+
+def resolve_resume_device(state: CheckpointState, requested_device) -> torch.device:
+    """The saved device (explicit requests must match it), with a CUDA RNG topology check."""
+    from mobo_linac.utils import get_device
+
+    def canonical(device, saved=False):
+        value = torch.device(device)
+        if value.type == "cuda":
+            index = value.index
+            if index is None:
+                index = 0 if saved or not torch.cuda.is_available() else torch.cuda.current_device()
+            return (value.type, index)
+        return (value.type, None)
+
+    saved_type, saved_index = canonical(state.campaign.device, saved=True)
+    automatic = requested_device is None or str(requested_device).strip().lower() in ("auto", "")
+    requested = torch.device(saved_type, saved_index) if automatic else str(requested_device).strip().lower()
+    if canonical(requested) != (saved_type, saved_index):
+        raise ValueError("Resume device differs from checkpoint; deterministic CPU/GPU migration is unsupported.")
+    device = get_device(requested, allow_cpu_fallback=False)
+    if device.type == "cuda":
+        cuda_states = state.rng.cuda_rng_states or []
+        if not torch.cuda.is_available() or len(cuda_states) != torch.cuda.device_count():
+            raise ValueError("Checkpoint CUDA RNG topology is unavailable or incompatible.")
+        if canonical(device)[1] >= torch.cuda.device_count():
+            raise ValueError("Checkpoint CUDA device is unavailable.")
+        try:
+            for index, rng in enumerate(cuda_states):
+                torch.Generator(device=f"cuda:{index}").set_state(rng.cpu())
+        except RuntimeError as error:
+            raise ValueError(f"Invalid checkpoint CUDA RNG state: {error}") from error
+    return device

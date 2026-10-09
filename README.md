@@ -44,7 +44,7 @@ mobo-linac/
 │   ├── metrics/                       # Fixed reference hypervolume, Pareto & LaTeX reporting
 │   ├── models/                        # Multi-scale Gaussian Processes & SurrogatePipeline
 │   ├── robustness/                    # Full-chain photocathode/laser perturbation analysis
-│   ├── io/                            # Results dataframes & atomic CheckpointState serialization
+│   ├── io/                            # Results dataframes, journal & typed v3 checkpoints (io/checkpoint.py)
 │   └── plotting/                      # Pareto, hypervolume, & diagnostic figures
 │
 ├── configs/

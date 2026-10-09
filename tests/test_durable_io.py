@@ -51,13 +51,14 @@ def test_write_once_and_append_semantics(tmp_path):
 
 def test_checkpoints_load_without_unpickling_arbitrary_objects(tmp_path):
     from mobo_linac.config import load_config
-    from mobo_linac.io.results import load_run_checkpoint, save_run_checkpoint
-    path = save_run_checkpoint(0, [], [], tmp_path / "checkpoint.pt", config=load_config("configs/mobo_200MeV.yaml"))
+    from mobo_linac.io.checkpoint import load_run_checkpoint, save_run_checkpoint
+    from tests.test_result_serialization import make_checkpoint_state
+    path = save_run_checkpoint(tmp_path / "checkpoint.pt", make_checkpoint_state(0, [], []))
     state = load_run_checkpoint(path)  # weights_only with the NumPy RNG allow-list
-    assert state.numpy_rng_state[0] == "MT19937"
-    np.random.RandomState().set_state(state.numpy_rng_state)
+    assert state.rng.numpy_rng_state[0] == "MT19937"
+    np.random.RandomState().set_state(state.rng.numpy_rng_state)
 
-    torch.save({"iteration": 0, "payload": Untrusted()}, tmp_path / "unsafe.pt")
+    torch.save({"iteration": 0, "config": Untrusted()}, tmp_path / "unsafe.pt")
     with pytest.raises(ValueError, match="unsafe"):
         load_run_checkpoint(tmp_path / "unsafe.pt")
     assert load_run_checkpoint(tmp_path / "unsafe.pt", allow_unsafe_pickle=True).iteration == 0

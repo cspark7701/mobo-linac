@@ -20,7 +20,8 @@ from mobo_linac.campaign_options import normalize_scalar_weights, validate_campa
 from mobo_linac.config import MoboConfig, config_from_dict, load_config
 from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
 from mobo_linac.io.durable import atomic_csv, atomic_json
-from mobo_linac.io.results import get_train_tensors, load_evaluation_results, load_run_checkpoint, results_to_dataframe
+from mobo_linac.io.checkpoint import load_run_checkpoint
+from mobo_linac.io.results import get_train_tensors, load_evaluation_results, results_to_dataframe
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
 from mobo_linac.metrics.reporting import validate_campaign_compatibility
 
@@ -52,9 +53,9 @@ def case_seed(config: MoboConfig, case_id: str, base_seed: int, position: int, p
 def _recorded_case(path: Path) -> Tuple[List[float], int]:
     """Weights and seed recorded by the case's own campaign checkpoint."""
     checkpoint = load_run_checkpoint(path)
-    if checkpoint is None or checkpoint.scalar_weights is None or checkpoint.seed is None:
+    if checkpoint is None or checkpoint.campaign.scalar_weights is None or checkpoint.campaign.seed is None:
         raise ValueError(f"Scalarized case {path} lacks recorded weights/seed; it cannot be aggregated.")
-    return [float(w) for w in checkpoint.scalar_weights], int(checkpoint.seed)
+    return [float(w) for w in checkpoint.campaign.scalar_weights], int(checkpoint.campaign.seed)
 
 
 def aggregate_scalarized_cases(

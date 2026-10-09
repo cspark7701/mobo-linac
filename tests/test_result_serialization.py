@@ -9,13 +9,21 @@ import numpy as np
 import pandas as pd
 
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
-from mobo_linac.io.results import (
+from mobo_linac.io.checkpoint import (
+    CampaignSpec,
     CheckpointState,
-    load_evaluation_results,
+    MetricState,
+    ProgressState,
+    ProposalState,
+    RngState,
     load_run_checkpoint,
+    migrate_to_v3,
+    save_run_checkpoint,
+)
+from mobo_linac.io.results import (
+    load_evaluation_results,
     results_to_dataframe,
     save_evaluation_results,
-    save_run_checkpoint,
 )
 import torch
 import json
@@ -179,89 +187,104 @@ def test_save_and_load_evaluation_results(sample_results, tmp_path):
     assert loaded_csv[0].simulation_valid is True
 
 
-def test_save_and_load_checkpoint(sample_results, tmp_path):
-    """Test saving and loading optimization checkpoints."""
-    ckpt_path = tmp_path / "checkpoint.pt"
-    hypervolumes = [0.0, 1.5e-10, 2.1e-10]
-
-    save_run_checkpoint(
-        iteration=5,
-        results=sample_results,
-        hypervolumes=hypervolumes,
-        checkpoint_path=ckpt_path,
-        acquisition_mode="qLogNEHVI",
+def make_checkpoint_state(iteration, results, hypervolumes, acquisition_mode="qLogNEHVI", seed=42):
+    """A complete typed snapshot of a small unconstrained campaign."""
+    return CheckpointState(
+        iteration=iteration, results=list(results), config=None,
+        campaign=CampaignSpec(run_id="test_run", optimization_mode="unconstrained_mobo",
+                              acquisition_mode=acquisition_mode, constrained=False, seed=seed,
+                              scalar_weights=[1 / 3] * 3, num_initial_samples=len(results), batch_size=1,
+                              planned_num_batches=iteration, num_workers=1, total_eval_budget=None, device="cpu"),
+        rng=RngState.capture(),
+        progress=ProgressState(initial_design=[r.x_physical for r in results], sobol_state=None,
+                               evaluation_batches=[0] * len(results), elapsed_wall_time_s=None,
+                               evaluation_elapsed_s=None),
+        metrics=MetricState(reporting_ref_point=None, reporting_scales=None, metric_history=[],
+                            hypervolumes=list(hypervolumes)),
+        proposals=ProposalState(proposal_history=[], pending_proposal=None),
     )
 
-    assert ckpt_path.exists()
 
+def test_save_and_load_checkpoint(sample_results, tmp_path):
+    """Typed snapshots round-trip through the v3 payload."""
+    ckpt_path = tmp_path / "checkpoint.pt"
+    hypervolumes = [0.0, 1.5e-10, 2.1e-10]
+    save_run_checkpoint(ckpt_path, make_checkpoint_state(5, sample_results, hypervolumes))
     ckpt = load_run_checkpoint(ckpt_path)
-    assert isinstance(ckpt, CheckpointState)
+    assert isinstance(ckpt, CheckpointState) and ckpt.version == "3.0" and ckpt.migrated_from is None
     assert ckpt.iteration == 5
-    assert ckpt["iteration"] == 5
-    assert ckpt.hypervolumes == hypervolumes
+    assert ckpt.metrics.hypervolumes == hypervolumes
     assert len(ckpt.results) == 2
     assert ckpt.results[0].evaluation_id == "eval_000001"
     assert ckpt.results[0].simulation_valid is True
-    assert ckpt.torch_rng_state is not None
-    assert ckpt.numpy_rng_state is not None
+    assert ckpt.rng.torch_rng_state is not None and ckpt.rng.numpy_rng_state is not None
+    assert not hasattr(ckpt, "__getitem__") and not hasattr(ckpt, "get")
 
 
 def test_checkpoint_state_schema_validation(sample_results):
-    """Verify CheckpointState schema validation and error handling."""
-    state = CheckpointState(
-        iteration=3,
-        results=sample_results,
-        hypervolumes=[0.1, 0.2],
-        acquisition_mode="qLogEHVI",
-        seed=42,
-    )
+    """Construction requires every record field; decoding rejects malformed or unknown structures."""
+    state = make_checkpoint_state(3, sample_results, [0.1, 0.2], acquisition_mode="qLogEHVI")
     d = state.to_dict()
-    assert d["iteration"] == 3
+    assert d["iteration"] == 3 and d["version"] == "3.0"
     assert len(d["results_serialized"]) == 2
-
-    # Reconstruction from dict
     restored = CheckpointState.from_dict(d)
-    assert restored.iteration == 3
-    assert restored.acquisition_mode == "qLogEHVI"
+    assert restored.campaign.acquisition_mode == "qLogEHVI"
     assert len(restored.results) == 2
-    assert restored.seed == 42
+    assert restored.campaign.seed == 42
 
-    # Invalid structures raise ValueError
+    with pytest.raises(TypeError):
+        CampaignSpec(run_id="r", optimization_mode="unconstrained_mobo", acquisition_mode="qLogNEHVI",
+                     constrained=False, seed=1, scalar_weights=[1.0], num_initial_samples=1, batch_size=1,
+                     planned_num_batches=1, num_workers=1, total_eval_budget=None)  # device omitted
     with pytest.raises(ValueError, match="must be a dictionary"):
         CheckpointState.from_dict("not_a_dict")  # type: ignore
-
     with pytest.raises(ValueError, match="missing required 'iteration' field"):
         CheckpointState.from_dict({"hypervolumes": [0.1]})
+    with pytest.raises(ValueError, match="Unknown checkpoint fields"):
+        CheckpointState.from_dict({**d, "surprise": 1})
+    with pytest.raises(ValueError, match="campaign"):
+        CheckpointState.from_dict({**d, "campaign": {**d["campaign"], "typo_seed": 1}})
+    with pytest.raises(ValueError, match="Unknown legacy checkpoint fields"):
+        CheckpointState.from_dict({"version": "2.0", "iteration": 0, "typo_seed": 1})
+
+
+def test_v1_and_v2_payloads_migrate_to_identical_v3_states(sample_results):
+    """An archived v1 payload and its v2 migration decode to the same typed state."""
+    v1 = {"iteration": 1, "results_serialized": [r.to_dict() for r in sample_results], "hypervolumes": [0.0, 0.1],
+          "acquisition_mode": "qLogNEHVI", "reporting_ref_point": [-1.0, -1.0, -1.0], "seed": 7, "batch_size": 1,
+          "constrained": False, "torch_rng_state": torch.get_rng_state(), "numpy_rng_state": np.random.get_state(),
+          "config": None}
+    from mobo_linac.io.checkpoint import migrate_v1_to_v2
+    v2 = migrate_v1_to_v2(v1)
+    from_v1, from_v2 = CheckpointState.from_dict(v1), CheckpointState.from_dict(v2)
+    assert from_v1.migrated_from == "1.0" and from_v2.migrated_from == "2.0"
+    from_v2.migrated_from = from_v1.migrated_from
+    assert repr(from_v1) == repr(from_v2)
+    assert from_v1.campaign.num_initial_samples == 1 and from_v1.progress.evaluation_batches == [0, 1]
+    assert migrate_to_v3(v1)["version"] == "3.0"
 
 
 def test_atomic_checkpoint_save(sample_results, tmp_path):
-    """Verify atomic checkpoint writes leave no leftover temporary files and ensure target integrity."""
+    """Atomic checkpoint writes leave no temporary files; iteration snapshots refresh checkpoint.pt."""
     ckpt_path = tmp_path / "checkpoints" / "checkpoint_iter_02.pt"
-    hypervolumes = [0.0, 1.2e-10]
-
-    saved_path = save_run_checkpoint(
-        iteration=2,
-        results=sample_results,
-        hypervolumes=hypervolumes,
-        checkpoint_path=ckpt_path,
-        acquisition_mode="qLogNEHVI",
-    )
-
+    saved_path = save_run_checkpoint(ckpt_path, make_checkpoint_state(2, sample_results, [0.0, 1.2e-10]))
     assert saved_path.exists()
     latest_path = tmp_path / "checkpoints" / "checkpoint.pt"
     assert latest_path.exists()
+    assert list(tmp_path.glob("**/*.tmp*")) == []
+    assert load_run_checkpoint(saved_path).iteration == load_run_checkpoint(latest_path).iteration == 2
+    assert len(load_run_checkpoint(latest_path).results) == 2
 
-    # Verify no .tmp files left behind
-    tmp_files = list(tmp_path.glob("**/*.tmp*"))
-    assert len(tmp_files) == 0
 
-    # Verify loaded content from both iteration checkpoint and latest checkpoint
-    loaded_iter = load_run_checkpoint(saved_path)
-    loaded_latest = load_run_checkpoint(latest_path)
-
-    assert loaded_iter.iteration == 2
-    assert loaded_latest.iteration == 2
-    assert len(loaded_latest.results) == 2
+def test_checkpoint_discovery_order(sample_results, tmp_path):
+    from mobo_linac.io.checkpoint import find_checkpoint, run_directory
+    state = make_checkpoint_state(1, sample_results, [0.0])
+    pending = save_run_checkpoint(tmp_path / "checkpoints" / "pending_batch.pt", state)
+    assert find_checkpoint(tmp_path) == pending
+    iteration = save_run_checkpoint(tmp_path / "checkpoints" / "checkpoint_iter_01.pt", state)
+    assert find_checkpoint(tmp_path) == tmp_path / "checkpoints" / "checkpoint.pt"
+    assert run_directory(iteration) == run_directory(tmp_path) == tmp_path
+    assert find_checkpoint(tmp_path / "missing") is None
 
 
 def test_dynamic_config_column_binding(tmp_path):

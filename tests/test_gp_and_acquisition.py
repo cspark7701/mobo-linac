@@ -339,7 +339,7 @@ def test_campaign_checkpoint_links_reloadable_model(tmp_path, monkeypatch, mode)
     from pathlib import Path
     from mobo_linac.config import load_config
     from mobo_linac.execution import MockBatchEvaluator
-    from mobo_linac.io.results import load_run_checkpoint
+    from mobo_linac.io.checkpoint import load_run_checkpoint
     from mobo_linac.models.pipeline import SurrogatePipeline
     from mobo_linac.models.artifacts import load_model_artifact
     import mobo_linac.campaigns.runner as campaign

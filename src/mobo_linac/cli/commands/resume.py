@@ -11,7 +11,7 @@ from mobo_linac.cli.common import CliMockEvaluator
 def resume_optimization(args: argparse.Namespace) -> None:
     """Resumes an existing optimization campaign from checkpoint."""
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.io.results import load_run_checkpoint
+    from mobo_linac.io.checkpoint import load_run_checkpoint
 
     run_dir = Path(getattr(args, "run_dir", getattr(args, "output_dir", "results")))
 
@@ -28,7 +28,7 @@ def resume_optimization(args: argparse.Namespace) -> None:
     # validates saved state before it touches any existing artifacts.
     batch_size = getattr(args, "batch_size", None)
     legacy_weights = getattr(args, "legacy_scalar_weights", None)
-    if legacy_weights is not None and ckpt_data.version != "1.0":
+    if legacy_weights is not None and ckpt_data.migrated_from != "1.0":
         raise ValueError("--legacy-scalar-weights applies only to legacy v1 checkpoints.")
 
     evaluator = CliMockEvaluator(run_dir) if getattr(args, "mock_evaluator", False) else None

@@ -14,9 +14,9 @@ def persist_model(run_dir, model, iteration, training_ids, metadata, *, pipeline
             "proposal_iteration": iteration}
 
 
-def commit_checkpoint(run_dir, proposal_history, pending_path, pending, *, save_checkpoint, **snapshot):
-    """Commit the authoritative snapshot before removing a recovered pending batch."""
-    save_checkpoint(**snapshot)
+def commit_checkpoint(run_dir, proposal_history, pending_path, pending, *, save_checkpoint):
+    """Commit the authoritative snapshot (``save_checkpoint()``) before removing a recovered pending batch."""
+    save_checkpoint()
     if pending is None:
         unlink_durable(pending_path)
     atomic_json(run_dir / "proposal_history.json", proposal_history)

@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 import platform
 import random
+from dataclasses import asdict
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
 import numpy as np
@@ -26,7 +27,7 @@ from mobo_linac.acquisition.mobo import (
 )
 from mobo_linac.campaign_options import Acquisition, decode_acquisition, normalize_scalar_weights, validate_campaign_options
 from mobo_linac.config import CampaignSettings, MoboConfig, config_from_dict, load_config
-from mobo_linac.campaigns.state import prepare_resume_state, restore_rng_state
+from mobo_linac.campaigns.state import prepare_resume_state, resolve_resume_device, restore_rng_state
 from mobo_linac.campaigns.recovery import load_resume_candidate, reconcile_resume
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.parallel import BatchEvaluator
@@ -38,11 +39,19 @@ from mobo_linac.campaigns.reporting import finalize_campaign
 from mobo_linac.models.artifacts import save_model_artifact
 from mobo_linac.models.gp import build_scalarized_gp_model, fit_gp_models
 from mobo_linac.io.journal import EvaluationJournal
-from mobo_linac.io.results import (
+from mobo_linac.io.checkpoint import (
+    CampaignSpec,
     CheckpointState,
+    MetricState,
+    ProgressState,
+    ProposalState,
+    RngState,
+    run_directory,
+    save_run_checkpoint,
+)
+from mobo_linac.io.results import (
     get_training_observations,
     get_train_tensors,
-    save_run_checkpoint,
 )
 from mobo_linac.metrics.hypervolume import (
     HypervolumeTracker,
@@ -177,9 +186,7 @@ class MoboCampaignRunner:
                 raise ValueError("This measured_fixed campaign requires explicit fixed noise for all fitted channels.")
 
         if resume_from and output_dir is None:
-            source = Path(resume_from)
-            if source.is_file():
-                source = source.parent.parent if source.parent.name in ("checkpoints", "gp_checkpoint") else source.parent
+            source = run_directory(resume_from)
             self.run_dir = source
             self.run_id = source.name
         elif output_dir:
@@ -212,48 +219,48 @@ class MoboCampaignRunner:
         if not self._config_explicit:
             self.config = config_from_dict(checkpoint.config)
         state = prepare_resume_state(checkpoint, self.config, self._requested_weights)
-        if state.run_id != self.run_dir.name:
+        if state.campaign.run_id != self.run_dir.name:
             raise ValueError("Resume must use the original run identity/directory; renamed or forked runs need a separate workflow.")
-        if self._requested_initial_samples is not None and self._requested_initial_samples != state.num_initial_samples:
+        if self._requested_initial_samples is not None and self._requested_initial_samples != state.campaign.num_initial_samples:
             raise ValueError("Incompatible resume initial sample count.")
-        if self._requested_seed is not None and self._requested_seed != state.seed:
+        if self._requested_seed is not None and self._requested_seed != state.campaign.seed:
             raise ValueError("Incompatible resume seed.")
-        if self.constrained and not state.constrained:
+        if self.constrained and not state.campaign.constrained:
             raise ValueError("Incompatible resume constrained flag.")
-        if self._requested_mode is not None and self._requested_mode != state.optimization_mode:
+        if self._requested_mode is not None and self._requested_mode != state.campaign.optimization_mode:
             raise ValueError("Incompatible resume optimization mode.")
         if self._requested_acquisition is not None:
-            if decode_acquisition(self._requested_acquisition) is not decode_acquisition(state.acquisition_mode):
+            if decode_acquisition(self._requested_acquisition) is not decode_acquisition(state.campaign.acquisition_mode):
                 raise ValueError("Incompatible resume acquisition mode.")
-        if state.version == "2.0" and self._requested_weights is not None:
-            weights = normalize_scalar_weights(self._requested_weights, len(state.scalar_weights))
-            if weights.shape != (len(state.scalar_weights),) or not torch.allclose(weights, torch.tensor(state.scalar_weights, dtype=torch.double)):
+        if state.migrated_from != "1.0" and self._requested_weights is not None:
+            weights = normalize_scalar_weights(self._requested_weights, len(state.campaign.scalar_weights))
+            if weights.shape != (len(state.campaign.scalar_weights),) or not torch.allclose(weights, torch.tensor(state.campaign.scalar_weights, dtype=torch.double)):
                 raise ValueError("Incompatible resume scalar weights.")
-        if self._requested_budget is not None and self._requested_budget != state.total_eval_budget:
+        if self._requested_budget is not None and self._requested_budget != state.campaign.total_eval_budget:
             raise ValueError("Incompatible resume total evaluation budget.")
-        self.run_id = state.run_id
-        self.num_initial_samples = state.num_initial_samples
-        self.seed = state.seed
-        self.optimization_mode = state.optimization_mode
-        self.constrained = state.constrained
-        self.acq_type = decode_acquisition(state.acquisition_mode).value
-        self.scalar_weights = torch.tensor(state.scalar_weights, dtype=torch.double)
-        self.batch_size = state.batch_size if self._requested_batch_size is None else self._requested_batch_size
+        self.run_id = state.campaign.run_id
+        self.num_initial_samples = state.campaign.num_initial_samples
+        self.seed = state.campaign.seed
+        self.optimization_mode = state.campaign.optimization_mode
+        self.constrained = state.campaign.constrained
+        self.acq_type = decode_acquisition(state.campaign.acquisition_mode).value
+        self.scalar_weights = torch.tensor(state.campaign.scalar_weights, dtype=torch.double)
+        self.batch_size = state.campaign.batch_size if self._requested_batch_size is None else self._requested_batch_size
         if type(self.batch_size) is not int or self.batch_size < 1:
             raise ValueError("Resume batch size must be a positive integer.")
-        self.total_eval_budget = state.total_eval_budget
+        self.total_eval_budget = state.campaign.total_eval_budget
         if self._requested_num_workers is None:
-            self.num_workers = state.num_workers or self.config.execution.max_workers
+            self.num_workers = state.campaign.num_workers or self.config.execution.max_workers
         if type(self.num_workers) is not int or self.num_workers < 1:
             raise ValueError("Resume worker count must be a positive integer.")
-        planned_batches = state.planned_num_batches
+        planned_batches = state.campaign.planned_num_batches
         if self._requested_num_batches is None and planned_batches is None:
             raise ValueError("Legacy checkpoint omitted the planned iteration count; specify num_batches/--n-iterations.")
         self.num_batches = planned_batches if self._requested_num_batches is None else self._requested_num_batches
         if self.total_eval_budget is not None:
             remaining = self.total_eval_budget - len(state.results)
-            if state.pending_proposal is not None:
-                remaining -= len(state.pending_proposal["candidates"])
+            if state.proposals.pending_proposal is not None:
+                remaining -= len(state.proposals.pending_proposal["candidates"])
                 required = state.iteration + 1 + (remaining + self.batch_size - 1) // self.batch_size
             else:
                 required = state.iteration + (remaining + self.batch_size - 1) // self.batch_size
@@ -263,35 +270,10 @@ class MoboCampaignRunner:
                 raise ValueError("Resume iteration count must consume the saved total budget with the selected batch size.")
         if type(self.num_batches) is not int:
             raise ValueError("Resume iteration target must be an integer.")
-        minimum_iteration = state.pending_proposal["batch_idx"] if state.pending_proposal else state.iteration
+        minimum_iteration = state.proposals.pending_proposal["batch_idx"] if state.proposals.pending_proposal else state.iteration
         if self.num_batches < minimum_iteration:
             raise ValueError("Resume iteration target is earlier than the completed checkpoint.")
-        requested_device = self._requested_device
-        def canonical_device(device, saved=False):
-            value = torch.device(device)
-            if value.type == "cuda":
-                index = value.index
-                if index is None:
-                    index = 0 if saved or not torch.cuda.is_available() else torch.cuda.current_device()
-                return (value.type, index)
-            return (value.type, None)
-        saved_type, saved_index = canonical_device(state.device, saved=True)
-        saved_device = torch.device(saved_type, saved_index)
-        automatic = requested_device is None or str(requested_device).strip().lower() in ("auto", "")
-        requested = saved_device if automatic else str(requested_device).strip().lower()
-        if canonical_device(requested) != (saved_type, saved_index):
-            raise ValueError("Resume device differs from checkpoint; deterministic CPU/GPU migration is unsupported.")
-        self.device = get_device(requested, allow_cpu_fallback=False)
-        if self.device.type == "cuda":
-            if not torch.cuda.is_available() or len(state.cuda_rng_states or []) != torch.cuda.device_count():
-                raise ValueError("Checkpoint CUDA RNG topology is unavailable or incompatible.")
-            if canonical_device(self.device)[1] >= torch.cuda.device_count():
-                raise ValueError("Checkpoint CUDA device is unavailable.")
-            try:
-                for index, rng in enumerate(state.cuda_rng_states):
-                    torch.Generator(device=f"cuda:{index}").set_state(rng.cpu())
-            except RuntimeError as error:
-                raise ValueError(f"Invalid checkpoint CUDA RNG state: {error}") from error
+        self.device = resolve_resume_device(state, self._requested_device)
         self._recovered_completions = reconcile_resume(
             state, completed, pending, self.config, self.run_dir, self._requested_weights
         )
@@ -330,18 +312,18 @@ class MoboCampaignRunner:
             requested_ref = torch.as_tensor(self._requested_reporting_ref, dtype=torch.double)
             if requested_ref.shape != (len(schema.signs),) or not torch.isfinite(requested_ref).all():
                 raise ValueError("Reporting reference must match finite configured objectives.")
-            if resume_state is not None and resume_state.reporting_ref_point is not None and requested_ref.tolist() != resume_state.reporting_ref_point:
+            if resume_state is not None and resume_state.metrics.reporting_ref_point is not None and requested_ref.tolist() != resume_state.metrics.reporting_ref_point:
                 raise ValueError("Incompatible resume reporting reference.")
         started = time.perf_counter()
-        elapsed_base = (resume_state.elapsed_wall_time_s or 0.0) if resume_state else 0.0
+        elapsed_base = (resume_state.progress.elapsed_wall_time_s or 0.0) if resume_state else 0.0
         elapsed = lambda: elapsed_base + time.perf_counter() - started
         elapsed_by_id = {}
         if resume_state is not None:
-            elapsed_by_id = {r.evaluation_id: value for r, value in zip(resume_state.results, resume_state.evaluation_elapsed_s or [None] * len(resume_state.results))}
+            elapsed_by_id = {r.evaluation_id: value for r, value in zip(resume_state.results, resume_state.progress.evaluation_elapsed_s or [None] * len(resume_state.results))}
         saved_meta = self.run_dir / "reporting_metadata.json"
-        if resume_state is not None and resume_state.reporting_ref_point is not None and saved_meta.exists():
+        if resume_state is not None and resume_state.metrics.reporting_ref_point is not None and saved_meta.exists():
             previous_meta = json.loads(saved_meta.read_text())
-            validate_campaign_compatibility(previous_meta, reporting_metadata(self.config, resume_state.reporting_ref_point))
+            validate_campaign_compatibility(previous_meta, reporting_metadata(self.config, resume_state.metrics.reporting_ref_point))
         else:
             previous_meta = None
         if resume_state is not None and validate_run_completion(self.run_dir):
@@ -352,7 +334,7 @@ class MoboCampaignRunner:
         reference_policy = "explicit" if self._requested_reporting_ref is not None else "initial_design"
         if previous_meta is not None:
             reference_policy = previous_meta.get("reference_policy", reference_policy)
-        timing_scope = "active_sessions" if resume_state is None or resume_state.elapsed_wall_time_s is not None else "observed_resume_session"
+        timing_scope = "active_sessions" if resume_state is None or resume_state.progress.elapsed_wall_time_s is not None else "observed_resume_session"
         if self.optimization_mode == "scalarized_bo":
             mode_str = f"Scalarized BO (weights={self.scalar_weights.tolist()})"
         elif self.constrained:
@@ -393,14 +375,14 @@ class MoboCampaignRunner:
 
         sobol_engine = torch.quasirandom.SobolEngine(dimension=bounds.shape[1], scramble=True, seed=self.seed)
 
-        proposal_history = deepcopy(resume_state.proposal_history or []) if resume_state is not None else []
+        proposal_history = deepcopy(resume_state.proposals.proposal_history or []) if resume_state is not None else []
 
         def _evaluate_with_streaming(
             cand_list: List[List[float]],
             batch_idx: int,
             proposal_metadata=None,
         ) -> List[EvaluationResult]:
-            active = resume_state.pending_proposal if resume_state is not None else None
+            active = resume_state.proposals.pending_proposal if resume_state is not None else None
             if active is not None and active["batch_idx"] == batch_idx:
                 proposal = active
                 if cand_list != proposal["candidates"]:
@@ -460,61 +442,52 @@ class MoboCampaignRunner:
         def _persist_checkpoint(iteration: int, pending=None):
             # Scalarized checkpoints keep their recorded alias of qLogNEI (decode_acquisition maps it back).
             checkpoint_mode = "scalarized_qLogNEI" if self.optimization_mode == "scalarized_bo" else self.acq_type
-            commit_checkpoint(self.run_dir, proposal_history, pending_path, pending,
-                save_checkpoint=save_run_checkpoint,
-                iteration=iteration,
-                results=results,
-                hypervolumes=[record["feasible_hypervolume"] for record in tracker.history] if tracker is not None else [],
-                checkpoint_path=pending_path if pending is not None else self.run_dir / "checkpoints" / f"checkpoint_iter_{iteration:02d}.pt",
-                acquisition_mode=checkpoint_mode,
-                config=self.config,
-                reporting_ref_point=reporting_ref_point,
-                seed=self.seed,
-                batch_size=self.batch_size,
-                constrained=self.constrained,
-                campaign_state={
-                    "proposal_history": deepcopy(proposal_history),
-                    "model_artifact": model_artifact,
-                    "run_id": self.run_id,
-                    "optimization_mode": self.optimization_mode,
-                    "scalar_weights": self.scalar_weights.tolist(),
-                    "num_initial_samples": self.num_initial_samples,
-                    "initial_design": initial_candidates,
-                    "sobol_state": {"seed": self.seed, "dimension": bounds.shape[1], "num_generated": sobol_engine.num_generated},
-                    "evaluation_batches": evaluation_batches,
-                    "metric_history": deepcopy(tracker.history) if tracker is not None else [],
-                    "pending_proposal": pending,
-                    "reporting_scales": list(schema.scales),
-                    "elapsed_wall_time_s": elapsed(),
-                    "evaluation_elapsed_s": [elapsed_by_id.get(r.evaluation_id) for r in results],
-                    "planned_num_batches": self.num_batches,
-                    "num_workers": self.num_workers,
-                    "total_eval_budget": self.total_eval_budget,
-                    "device": str(self.device),
-                    "cuda_rng_states": torch.cuda.get_rng_state_all() if self.device.type == "cuda" else [],
-                    "migration_notes": resume_state.migration_notes if resume_state is not None else [],
-                },
+            state = CheckpointState(
+                iteration=iteration, results=results, config=asdict(self.config),
+                campaign=CampaignSpec(
+                    run_id=self.run_id, optimization_mode=self.optimization_mode, acquisition_mode=checkpoint_mode,
+                    constrained=self.constrained, seed=self.seed, scalar_weights=self.scalar_weights.tolist(),
+                    num_initial_samples=self.num_initial_samples, batch_size=self.batch_size,
+                    planned_num_batches=self.num_batches, num_workers=self.num_workers,
+                    total_eval_budget=self.total_eval_budget, device=str(self.device)),
+                rng=RngState.capture(self.device),
+                progress=ProgressState(
+                    initial_design=initial_candidates,
+                    sobol_state={"seed": self.seed, "dimension": bounds.shape[1], "num_generated": sobol_engine.num_generated},
+                    evaluation_batches=evaluation_batches, elapsed_wall_time_s=elapsed(),
+                    evaluation_elapsed_s=[elapsed_by_id.get(r.evaluation_id) for r in results]),
+                metrics=MetricState(
+                    reporting_ref_point=reporting_ref_point.tolist() if reporting_ref_point is not None else None,
+                    reporting_scales=list(schema.scales),
+                    metric_history=deepcopy(tracker.history) if tracker is not None else [],
+                    hypervolumes=[record["feasible_hypervolume"] for record in tracker.history] if tracker is not None else []),
+                proposals=ProposalState(proposal_history=deepcopy(proposal_history), pending_proposal=pending),
+                model_artifact=model_artifact,
+                migration_notes=resume_state.migration_notes if resume_state is not None else [],
             )
+            path = pending_path if pending is not None else self.run_dir / "checkpoints" / f"checkpoint_iter_{iteration:02d}.pt"
+            commit_checkpoint(self.run_dir, proposal_history, pending_path, pending,
+                              save_checkpoint=lambda: save_run_checkpoint(path, state))
 
 
         journal = EvaluationJournal(self.run_dir, self.config)  # validated and repaired once per session
         if resume_state is not None:
             if len(journal):
                 journal.write_csv()
-            if resume_state.pending_proposal is None and pending_path.exists():
+            if resume_state.proposals.pending_proposal is None and pending_path.exists():
                 pending_path.unlink()  # Checkpoint won the durable commit before interruption.
-            initial_candidates = deepcopy(resume_state.initial_design)
-            sobol_engine.fast_forward(resume_state.sobol_state["num_generated"])
+            initial_candidates = deepcopy(resume_state.progress.initial_design)
+            sobol_engine.fast_forward(resume_state.progress.sobol_state["num_generated"])
             restore_rng_state(resume_state)
 
         if resume_state is not None and resume_state.iteration >= 0:
             results = resume_state.results
-            evaluation_batches = list(resume_state.evaluation_batches)
-            initial_candidates = deepcopy(resume_state.initial_design)
+            evaluation_batches = list(resume_state.progress.evaluation_batches)
+            initial_candidates = deepcopy(resume_state.progress.initial_design)
             start_iteration = resume_state.iteration + 1
-            reporting_ref_point = torch.tensor(resume_state.reporting_ref_point, dtype=torch.double)
+            reporting_ref_point = torch.tensor(resume_state.metrics.reporting_ref_point, dtype=torch.double)
             tracker = HypervolumeTracker(reporting_ref_point=reporting_ref_point, config=self.config)
-            tracker.history = deepcopy(resume_state.metric_history)
+            tracker.history = deepcopy(resume_state.metrics.metric_history)
             train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=self.config)
             logger.info(f"\nResuming campaign '{self.run_id}' from iteration {start_iteration} ({len(results)} existing evaluations)...\n")
         else:
@@ -563,9 +536,9 @@ class MoboCampaignRunner:
             train_X, train_Y, train_feas_mask = training.train_X, training.train_Y, training.feasible
 
             proposal_metadata = None
-            if (resume_state is not None and resume_state.pending_proposal is not None
-                    and resume_state.pending_proposal["batch_idx"] == iteration):
-                next_cand_list = deepcopy(resume_state.pending_proposal["candidates"])
+            if (resume_state is not None and resume_state.proposals.pending_proposal is not None
+                    and resume_state.proposals.pending_proposal["batch_idx"] == iteration):
+                next_cand_list = deepcopy(resume_state.proposals.pending_proposal["candidates"])
             elif train_X.shape[0] < 2:
                 sobol_start = sobol_engine.num_generated
                 new_sobol = sobol_engine.draw(proposal_batch_size).to(dtype=torch.double)

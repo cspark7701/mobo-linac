@@ -5,17 +5,15 @@ checkpoint saving/restoration, and intra-batch streaming persistence.
 """
 
 from mobo_linac.io.results import (
-    CheckpointState,
     TrainingObservations,
     get_training_observations,
     get_constraint_tensors,
     get_train_tensors,
     load_evaluation_results,
-    load_run_checkpoint,
     results_to_dataframe,
     save_evaluation_results,
-    save_run_checkpoint,
 )
+from mobo_linac.io.checkpoint import CheckpointState, load_run_checkpoint, save_run_checkpoint
 from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
 from mobo_linac.io.journal import (
     EvaluationJournal,

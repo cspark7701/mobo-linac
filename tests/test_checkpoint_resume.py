@@ -10,7 +10,17 @@ from pathlib import Path
 from mobo_linac.config import load_config
 from mobo_linac.campaigns.runner import MoboCampaignRunner
 from mobo_linac.execution import MockBatchEvaluator
-from mobo_linac.io.results import load_run_checkpoint, get_train_tensors
+from mobo_linac.io.checkpoint import load_run_checkpoint
+from mobo_linac.io.results import get_train_tensors
+
+
+def flat_legacy_payload(state):
+    """The flat v2 on-disk layout of a typed checkpoint (for archived-format fixtures)."""
+    payload = state.to_dict()
+    for group in ("campaign", "rng", "progress", "metrics", "proposals"):
+        payload.update(payload.pop(group))
+    payload["version"] = "2.0"
+    return payload
 
 from mobo_linac.config import load_config as _load_test_config
 TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
@@ -225,13 +235,13 @@ def test_complete_state_resume_preserves_failures_and_metrics(tmp_path, mode):
         evaluator=MockBatchEvaluator(split_dir, fail_eval_ids=failed),
     ).run()
     checkpoint = load_run_checkpoint(split_dir)
-    assert checkpoint.version == "2.0"
+    assert checkpoint.version == "3.0"
     assert isinstance(checkpoint.config, dict)
-    assert checkpoint.num_initial_samples == 3
-    assert checkpoint.initial_design == [r.x_physical for r in checkpoint.results[:3]]
-    assert checkpoint.evaluation_batches == [0, 0, 0, 1, 1]
-    assert checkpoint.sobol_state["num_generated"] == 3  # Successful BO proposals did not consume Sobol.
-    assert checkpoint.num_workers == 3
+    assert checkpoint.campaign.num_initial_samples == 3
+    assert checkpoint.progress.initial_design == [r.x_physical for r in checkpoint.results[:3]]
+    assert checkpoint.progress.evaluation_batches == [0, 0, 0, 1, 1]
+    assert checkpoint.progress.sobol_state["num_generated"] == 3  # Successful BO proposals did not consume Sobol.
+    assert checkpoint.campaign.num_workers == 3
     resumed_runner = MoboCampaignRunner(
         output_dir=split_dir, resume=True, num_batches=3, device="cpu",
         export_plots=False, export_env_info=False,
@@ -247,7 +257,7 @@ def test_complete_state_resume_preserves_failures_and_metrics(tmp_path, mode):
     assert full_tracker.history == resumed_tracker.history
     assert resumed_tracker.history[0]["num_valid_points"] == 2
     assert resumed_tracker.history[1]["num_valid_points"] == 3
-    assert load_run_checkpoint(split_dir).evaluation_batches == [0, 0, 0, 1, 1, 2, 2, 3, 3]
+    assert load_run_checkpoint(split_dir).progress.evaluation_batches == [0, 0, 0, 1, 1, 2, 2, 3, 3]
 
 
 def test_real_acquisition_fallback_restores_sobol_position(tmp_path, monkeypatch):
@@ -271,16 +281,16 @@ def test_real_acquisition_fallback_restores_sobol_position(tmp_path, monkeypatch
         **options, output_dir=split_dir, num_batches=1, evaluator=MockBatchEvaluator(split_dir),
     ).run()
     checkpoint = load_run_checkpoint(split_dir)
-    assert checkpoint.sobol_state["num_generated"] == 5
+    assert checkpoint.progress.sobol_state["num_generated"] == 5
     resumed, tracker, _ = MoboCampaignRunner(
         output_dir=split_dir, resume=True, num_batches=3, evaluator=MockBatchEvaluator(split_dir),
         device="cpu", export_plots=False, export_env_info=False,
     ).run()
     assert [r.x_physical for r in full] == [r.x_physical for r in resumed]
     assert full_tracker.history == tracker.history
-    assert load_run_checkpoint(split_dir).sobol_state["num_generated"] == 9
-    history = load_run_checkpoint(split_dir).proposal_history
-    assert history == load_run_checkpoint(full_dir).proposal_history
+    assert load_run_checkpoint(split_dir).progress.sobol_state["num_generated"] == 9
+    history = load_run_checkpoint(split_dir).proposals.proposal_history
+    assert history == load_run_checkpoint(full_dir).proposals.proposal_history
     assert [entry["metadata"]["method"] for entry in history] == ["initial_sobol", "sobol", "sobol", "sobol"]
     assert history[1]["metadata"]["sobol"]["start"] == 3
     assert history[-1]["metadata"]["sobol"]["end"] == 9
@@ -357,7 +367,7 @@ def test_batch_size_override_keeps_completed_membership(tmp_path):
         output_dir=tmp_path, num_initial_samples=3, num_batches=1, batch_size=2,
         evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
-    previous_history = load_run_checkpoint(tmp_path).metric_history
+    previous_history = load_run_checkpoint(tmp_path).metrics.metric_history
     runner = MoboCampaignRunner(
         output_dir=tmp_path, resume=True, num_batches=3, batch_size=1,
         evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
@@ -366,8 +376,8 @@ def test_batch_size_override_keeps_completed_membership(tmp_path):
     assert len(results) == 7
     assert tracker.history[:2] == previous_history
     checkpoint = load_run_checkpoint(tmp_path)
-    assert checkpoint.batch_size == 1
-    assert checkpoint.evaluation_batches == [0, 0, 0, 1, 1, 2, 3]
+    assert checkpoint.campaign.batch_size == 1
+    assert checkpoint.progress.evaluation_batches == [0, 0, 0, 1, 1, 2, 3]
 
 
 def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
@@ -384,7 +394,7 @@ def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
         ).run()
     checkpoint = load_run_checkpoint(tmp_path)
     assert checkpoint.iteration == 1
-    assert checkpoint.planned_num_batches == 3
+    assert checkpoint.campaign.planned_num_batches == 3
     runner = MoboCampaignRunner(
         output_dir=tmp_path, resume=True, batch_size=3, evaluator=MockBatchEvaluator(tmp_path),
         device="cpu", export_plots=False,
@@ -393,7 +403,7 @@ def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
     assert len(results) == 7
     assert runner.total_eval_budget == 7
     assert runner.num_batches == 3  # The durable second proposal retains its original size.
-    assert load_run_checkpoint(tmp_path).evaluation_batches == [0, 0, 1, 1, 2, 2, 3]
+    assert load_run_checkpoint(tmp_path).progress.evaluation_batches == [0, 0, 1, 1, 2, 2, 3]
 
 
 def test_legacy_completed_checkpoint_migration(tmp_path):
@@ -406,20 +416,20 @@ def test_legacy_completed_checkpoint_migration(tmp_path):
     legacy_fields = {"version", "iteration", "results_serialized", "hypervolumes", "acquisition_mode",
                      "reporting_ref_point", "seed", "batch_size", "constrained", "torch_rng_state",
                      "numpy_rng_state", "config"}
-    payload = {k: v for k, v in state.to_dict().items() if k in legacy_fields}
+    payload = {k: v for k, v in flat_legacy_payload(state).items() if k in legacy_fields}
     payload["version"] = "1.0"
     torch.save(payload, path)
     migrated = load_run_checkpoint(path)
-    assert migrated.version == "1.0"
-    assert migrated.num_initial_samples == 3
-    assert migrated.evaluation_batches == [0, 0, 0, 1, 1]
+    assert migrated.migrated_from == "1.0" and migrated.version == "3.0"
+    assert migrated.campaign.num_initial_samples == 3
+    assert migrated.progress.evaluation_batches == [0, 0, 0, 1, 1]
     with pytest.warns(RuntimeWarning, match="Legacy v1"):
         resumed, _, _ = MoboCampaignRunner(
             output_dir=tmp_path, resume=True, num_batches=2, evaluator=MockBatchEvaluator(tmp_path),
             device="cpu", export_plots=False,
         ).run()
     assert len(resumed) == 7
-    assert load_run_checkpoint(tmp_path).version == "2.0"
+    assert load_run_checkpoint(tmp_path).version == "3.0"
 
 
 def test_legacy_scalarized_weights_require_explicit_input(tmp_path):
@@ -429,7 +439,7 @@ def test_legacy_scalarized_weights_require_explicit_input(tmp_path):
         evaluator=MockBatchEvaluator(tmp_path), device="cpu", export_plots=False,
     ).run()
     path = tmp_path / "checkpoints" / "checkpoint.pt"
-    payload = load_run_checkpoint(path).to_dict()
+    payload = flat_legacy_payload(load_run_checkpoint(path))
     payload["version"] = "1.0"
     payload.pop("scalar_weights")
     torch.save(payload, path)
@@ -450,7 +460,7 @@ def test_cuda_rng_continuation(tmp_path):
                    device="cuda", export_plots=False, export_env_info=False)
     MoboCampaignRunner(output_dir=tmp_path, evaluator=MockBatchEvaluator(tmp_path), **options).run()
     checkpoint = load_run_checkpoint(tmp_path)
-    assert len(checkpoint.cuda_rng_states) == torch.cuda.device_count()
+    assert len(checkpoint.rng.cuda_rng_states) == torch.cuda.device_count()
     expected = torch.rand(4, device="cuda")
     torch.rand(50, device="cuda")
     runner = MoboCampaignRunner(
@@ -471,15 +481,15 @@ def test_corrupted_campaign_state_rejected_without_overwriting_metadata(tmp_path
     path = tmp_path / "checkpoints" / "checkpoint.pt"
     payload = load_run_checkpoint(path).to_dict()
     if field == "evaluation_batches":
-        payload[field] = [0] * len(payload["results_serialized"])
+        payload["progress"][field] = [0] * len(payload["results_serialized"])
     elif field == "metric_history":
-        payload[field][0]["num_valid_points"] += 1
+        payload["metrics"][field][0]["num_valid_points"] += 1
     elif field == "reporting_scales":
-        payload[field] = [1e-3, 1e-3, 1e6]
+        payload["metrics"][field] = [1e-3, 1e-3, 1e6]
     elif field == "reporting_ref_point":
-        payload[field][0] -= 1.0
+        payload["metrics"][field][0] -= 1.0
     elif field == "torch_rng_state":
-        payload[field] = torch.ones(1, dtype=torch.uint8)
+        payload["rng"][field] = torch.ones(1, dtype=torch.uint8)
     else:
         payload[field] = "99.0"
     torch.save(payload, path)
@@ -566,8 +576,8 @@ def test_partial_batch_recovery_matches_uninterrupted_campaign(tmp_path, mode, i
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(**options, output_dir=interrupted_dir, evaluator=evaluator).run()
     pending = load_run_checkpoint(interrupted_dir / "checkpoints" / "pending_batch.pt")
-    assert pending.pending_proposal["batch_idx"] == interrupted_batch
-    ids = pending.pending_proposal["evaluation_ids"]
+    assert pending.proposals.pending_proposal["batch_idx"] == interrupted_batch
+    ids = pending.proposals.pending_proposal["evaluation_ids"]
     completed_id = ids[1]
     if interrupted_batch == 0:
         assert not (interrupted_dir / "checkpoints" / "checkpoint.pt").exists()
@@ -626,13 +636,13 @@ def test_checkpoint_commit_interruption_does_not_repeat_completed_batch(tmp_path
 
     original_save = runner_module.save_run_checkpoint
 
-    def interrupt_save(**kwargs):
-        target = Path(kwargs["checkpoint_path"])
+    def interrupt_save(path, state):
+        target = Path(path)
         if target.name == f"checkpoint_iter_{interrupted_iteration:02d}.pt":
             if after_commit:
-                original_save(**kwargs)
+                original_save(path, state)
             raise RuntimeError("Injected checkpoint interruption")
-        return original_save(**kwargs)
+        return original_save(path, state)
 
     with monkeypatch.context() as patch:
         patch.setattr(runner_module, "save_run_checkpoint", interrupt_save)
@@ -722,9 +732,9 @@ def test_inflight_fallback_recovery_restores_post_proposal_rng(tmp_path, monkeyp
         MoboCampaignRunner(**options, output_dir=split_dir,
                            evaluator=InterruptingStreamEvaluator(split_dir, 1)).run()
     pending = load_run_checkpoint(split_dir / "checkpoints" / "pending_batch.pt")
-    assert pending.sobol_state["num_generated"] == 5
-    assert pending.pending_proposal["metadata"] == pending.proposal_history[-1]["metadata"]
-    assert pending.proposal_history[-1]["metadata"]["method"] == "sobol"
+    assert pending.progress.sobol_state["num_generated"] == 5
+    assert pending.proposals.pending_proposal["metadata"] == pending.proposals.proposal_history[-1]["metadata"]
+    assert pending.proposals.proposal_history[-1]["metadata"]["method"] == "sobol"
     # Disturb all parent RNGs before recovery.
     torch.rand(100)
     np.random.random(100)
@@ -735,8 +745,8 @@ def test_inflight_fallback_recovery_restores_post_proposal_rng(tmp_path, monkeyp
     ).run()
     assert [r.x_physical for r in resumed] == [r.x_physical for r in full]
     assert tracker.history == full_tracker.history
-    assert load_run_checkpoint(split_dir).sobol_state == load_run_checkpoint(full_dir).sobol_state
-    assert load_run_checkpoint(split_dir).proposal_history == load_run_checkpoint(full_dir).proposal_history
+    assert load_run_checkpoint(split_dir).progress.sobol_state == load_run_checkpoint(full_dir).progress.sobol_state
+    assert load_run_checkpoint(split_dir).proposals.proposal_history == load_run_checkpoint(full_dir).proposals.proposal_history
 
 
 @pytest.mark.parametrize("corruption", ["interior_json", "unknown_identity", "candidate", "batch", "pending_ids", "pending_metrics"])
@@ -753,10 +763,10 @@ def test_recovery_conflicts_fail_before_writes(tmp_path, corruption):
     if corruption.startswith("pending"):
         payload = load_run_checkpoint(pending_path).to_dict()
         if corruption == "pending_ids":
-            payload["pending_proposal"]["evaluation_ids"][0] = "eval_999999"
+            payload["proposals"]["pending_proposal"]["evaluation_ids"][0] = "eval_999999"
         else:
-            payload["metric_history"][0]["feasible_hypervolume"] += 1
-            payload["hypervolumes"][0] += 1
+            payload["metrics"]["metric_history"][0]["feasible_hypervolume"] += 1
+            payload["metrics"]["hypervolumes"][0] += 1
         torch.save(payload, pending_path)
     else:
         lines = journal.read_text().splitlines()
@@ -830,7 +840,7 @@ def test_configured_two_variable_mixed_objective_campaign(tmp_path, mode):
     assert set(pareto.norm_emit_x_m_rad) <= {r.objectives_physical[1] for r in results}
     assert set(pareto.sigma_energy_eV) <= {r.objectives_physical[0] for r in results}
     assert tracker.history[0]["reporting_ref_point_physical"][1] == tracker.reporting_ref_point[1]
-    assert load_run_checkpoint(directory).reporting_scales == [2e6, 1e-6]
+    assert load_run_checkpoint(directory).metrics.reporting_scales == [2e6, 1e-6]
     resumed = MoboCampaignRunner(output_dir=directory, resume=True, num_batches=2,
                                  export_plots=False, device="cpu", evaluator=MockBatchEvaluator(directory))
     continued, _, _ = resumed.run()
@@ -903,8 +913,8 @@ def test_completed_legacy_metadata_resume_exports_empty_history(tmp_path):
                        evaluator=MockBatchEvaluator(tmp_path), device="cpu",
                        export_plots=False, export_env_info=False).run()
     path = tmp_path / "checkpoints" / "checkpoint.pt"
-    payload = load_run_checkpoint(path).to_dict()
-    payload.pop("proposal_history")
+    payload = flat_legacy_payload(load_run_checkpoint(path))
+    payload.pop("proposal_history")  # archived v2 checkpoints before proposal history
     torch.save(payload, path)
     (tmp_path / "proposal_history.json").unlink()
     MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=MockBatchEvaluator(tmp_path),
@@ -919,7 +929,7 @@ def test_pending_proposal_history_conflict_fails_before_writes(tmp_path):
                            export_plots=False, export_env_info=False).run()
     path = tmp_path / "checkpoints" / "pending_batch.pt"
     payload = load_run_checkpoint(path).to_dict()
-    payload["proposal_history"][0]["metadata"]["method"] = "corrupted"
+    payload["proposals"]["proposal_history"][0]["metadata"]["method"] = "corrupted"
     torch.save(payload, path)
     before = {p: p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
     with pytest.raises(ValueError, match="proposal history"):
