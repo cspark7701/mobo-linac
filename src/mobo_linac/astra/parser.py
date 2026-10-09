@@ -49,8 +49,8 @@ class AstraOutputParser:
         from mobo_linac.result_schema import ResultSchema
         self.schema = ResultSchema.from_config(config)
         self.config = config
-        self.target_z_stop = float(config.execution.z_stop_m)
-        self.z_loss_tolerance = float(config.execution.z_loss_tolerance_m)
+        self.target_z_stop = float(config.tracking.z_stop_m)
+        self.z_loss_tolerance = float(config.tracking.z_loss_tolerance_m)
 
     def parse_astra_simulation(
         self,

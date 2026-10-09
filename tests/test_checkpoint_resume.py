@@ -337,7 +337,7 @@ def test_same_dimension_incompatible_config_rejected_before_writes(tmp_path, cha
     elif change == "model":
         changed.model.covar_type = "rbf"
     elif change == "exit_plane":
-        changed.execution.z_stop_m += 0.1
+        changed.tracking.z_stop_m += 0.1
     else:
         changed.execution.acqf_maxiter += 1
     def snapshot():

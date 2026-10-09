@@ -2,6 +2,7 @@
 Shared argument mixins and mock evaluators for the mobo_linac CLI.
 """
 
+from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
 import argparse
 from pathlib import Path
 
@@ -57,7 +58,7 @@ def add_common_run_args(subparser: argparse.ArgumentParser) -> None:
         "-a",
         "--acquisition",
         type=str,
-        choices=["qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"],
+        choices=list(MULTIOBJECTIVE_ACQUISITIONS),
         default=None,
         help="MOBO acquisition (default: config campaign.acquisition; scalarized BO uses qLogNEI)",
     )

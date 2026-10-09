@@ -73,12 +73,12 @@ class BenchmarkCampaignRunner:
     def __init__(
         self,
         config: MoboConfig,
-        output_dir: Union[str, Path] = "results/publication_benchmark",
+        output_dir: Optional[Union[str, Path]] = None,
         algorithms: Optional[List[str]] = None,
         seeds: Optional[List[int]] = None,
-        total_eval_budget: int = 40,
-        n_sobol_init: int = 10,
-        batch_size: int = 4,
+        total_eval_budget: Optional[int] = None,
+        n_sobol_init: Optional[int] = None,
+        batch_size: Optional[int] = None,
         device: str = "auto",
         benchmark_config: Optional[BenchmarkConfig] = None,
         num_workers: Optional[int] = None,
@@ -89,21 +89,20 @@ class BenchmarkCampaignRunner:
         self.num_workers = config.execution.max_workers if num_workers is None else num_workers
         if type(self.num_workers) is not int or self.num_workers < 1:
             raise ValueError("num_workers must be >= 1.")
-        self.benchmark_config = benchmark_config or BenchmarkConfig(
-            algorithms=list(SUPPORTED_BENCHMARK_ALGORITHMS) if algorithms is None else algorithms,
-            seeds=list(range(42, 52)) if seeds is None else seeds,
-            total_eval_budget=total_eval_budget,
-            n_sobol_init=n_sobol_init,
-            batch_size=batch_size,
-            output_dir=str(output_dir),
-        )
+        if benchmark_config is None:
+            # Explicit arguments override the configuration's benchmark section, then defaults.
+            requested = dict(algorithms=algorithms, seeds=seeds, total_eval_budget=total_eval_budget,
+                             n_sobol_init=n_sobol_init, batch_size=batch_size,
+                             output_dir=None if output_dir is None else str(output_dir))
+            benchmark_config = replace(config.benchmark or BenchmarkConfig(),
+                                       **{name: value for name, value in requested.items() if value is not None})
+        self.benchmark_config = benchmark_config
         self.benchmark_config.validate()
         self.benchmark_config.resolved_reporting_ref_point(len(config.objectives))
         self.config = replace(
             config, constraints=config.get_constraint_profile(self.benchmark_config.constraint_profile)
         )
-        if hasattr(config, "resolved_path"):
-            self.config.resolved_path = config.resolved_path
+        self.config.source_path = config.source_path  # provenance is not a dataclass field
         self.output_dir = Path(self.benchmark_config.output_dir)
         self.algorithms = list(self.benchmark_config.algorithms)
         self.seeds = list(self.benchmark_config.seeds)

@@ -184,7 +184,7 @@ def validate_config(args: argparse.Namespace) -> None:
     p = getattr(args, "config", None)
     try:
         cfg = load_config(p)
-        p = cfg.resolved_path
+        p = cfg.source_path
         print(f"  - Config: {p}")
         print(f"✓ Configuration '{cfg.name}' (v{cfg.version}) is VALID.")
         print(f"  - Design Variables: {len(cfg.design_variables)}")

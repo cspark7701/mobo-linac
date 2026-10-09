@@ -2,10 +2,10 @@
 Command Line Interface (CLI) Package for mobo_linac.
 
 Provides console commands:
-    mobo-linac run-unconstrained --config configs/publication.yaml
-    mobo-linac run-constrained --config configs/publication.yaml
-    mobo-linac run-scalarized --config configs/publication.yaml
-    mobo-linac run-validation --config configs/publication.yaml
+    mobo-linac run-unconstrained --config configs/publication_200MeV.yaml
+    mobo-linac run-constrained --config configs/publication_200MeV.yaml
+    mobo-linac run-scalarized --config configs/publication_200MeV.yaml
+    mobo-linac run-validation --config configs/publication_200MeV.yaml
     mobo-linac resume --run-dir results/<run_id>
     mobo-linac analyze --run-dir results/<run_id>
     mobo-linac run-benchmark --config configs/publication_200MeV.yaml

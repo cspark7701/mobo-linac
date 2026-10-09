@@ -20,6 +20,7 @@ import pandas as pd
 import torch
 from gpytorch.mlls import ExactMarginalLogLikelihood
 
+from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
 from mobo_linac.config import GpModelConfig, ExecutionConfig
 from mobo_linac.models.diagnostics import compute_predictive_diagnostics
 from mobo_linac.models.gp import build_gp_models, fit_gp_models
@@ -224,7 +225,7 @@ def compare_acquisition_functions(
     """Compare acquisition types at one optimizer budget by the common EHVI of their batches."""
     results = [_evaluate_acquisition(model, train_X, train_Y, ref_point, bounds, acq_type, num_restarts,
                                      raw_samples, batch_size, maxiter, 1, device)
-               for acq_type in (acq_types or ["qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"])]
+               for acq_type in (acq_types or MULTIOBJECTIVE_ACQUISITIONS)]
     return _acquisition_table(_ranked(results))
 
 

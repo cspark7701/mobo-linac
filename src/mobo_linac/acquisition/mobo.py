@@ -24,6 +24,7 @@ from botorch.utils.multi_objective.box_decompositions.non_dominated import (
 )
 
 from botorch.acquisition.multi_objective.objective import IdentityMCMultiOutputObjective
+from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS
 from mobo_linac.metrics.hypervolume import compute_reference_point
 
 from mobo_linac.utils import get_device, get_logger
@@ -135,7 +136,7 @@ def build_acquisition_function(
                 **kw_args,
             )
     else:
-        raise ValueError(f"Unsupported acquisition type: '{acq_type}'. Choose 'qLogNEHVI', 'qLogEHVI', 'qEHVI', or 'qNEHVI'.")
+        raise ValueError(f"Unsupported acquisition type: '{acq_type}'. Choose one of {list(MULTIOBJECTIVE_ACQUISITIONS)}.")
 
     return acq_func
 

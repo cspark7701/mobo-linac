@@ -341,10 +341,10 @@ PyTorch/BoTorch/GPyTorch environment; full software environments are not bundled
 ### Configuration resolution and validation
 
 An omitted `--config` uses one discovery policy: search `./configs` first, then the
-repository's `configs` directory, preferring `publication_200MeV.yaml`,
-`publication.yaml`, then `mobo_200MeV.yaml`. An explicit path must exist and never
-selects a fallback. `resolve_config_path()` returns the actual absolute path;
-`load_config()` records it in `config.resolved_path`. New campaigns write this
+repository's `configs` directory, preferring `publication_200MeV.yaml`, then
+`mobo_200MeV.yaml`. An explicit path must exist and never selects a fallback.
+`resolve_config_path()` returns the actual absolute path; `load_config()` records it
+in the declared provenance attribute `config.source_path` (never serialized). New campaigns write this
 source separately in `config_source.json`; scientific configuration JSON/YAML and
 checkpoint dictionaries retain their dataclass fields. Installed environments without
 bundled configurations must supply a path. Explicit perturbation files use the same
@@ -358,7 +358,19 @@ ignored. YAML unquoted scientific notation such as `195.0e6` is parsed as a numb
 quoted numeric strings, booleans in numeric fields, NaN/Inf, and fractional counts fail.
 JSON Schema describes field types/ranges; runtime validation additionally checks relations
 such as bound ordering, objective signs/alias collisions, and noise-vector dimensions.
-Always use `load_config()` or `config.validate()` before execution.
+Always use `load_config()` or `config.validate()` before execution; loading validates
+every field once and then the relational rules once.
+
+Constraint bounds are generated from the diagnostic channel registry
+(`mobo_linac.diagnostics.DIAGNOSTIC_CHANNELS`): each channel declares its bound field
+names, defaults and admissible range, so adding a constraint channel needs only a registry
+entry and YAML values; schema, documentation rows and figures follow. The nominal profile
+is the top-level `constraints` section (`sensitivity_profiles` holds only the alternatives).
+The exit plane lives in `tracking` (`z_stop_m`, `z_loss_tolerance_m`); archived layouts with
+these fields under `execution` are migrated on load. Optional `benchmark:` (run-benchmark
+defaults) and `perturbations:` (robustness specification, validated against the design
+variables) sections are part of the schema. Acquisition names come from one enum
+(`mobo_linac.campaign_options.Acquisition`).
 
 Design bounds must be finite and **strictly increasing**. Fixed machine settings belong
 in the ASTRA template, outside the optimization vector, until explicit fixed-variable

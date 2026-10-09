@@ -106,15 +106,6 @@ sensitivity_profiles:
     min_mean_kinetic_energy_eV: 198.0e6
     max_mean_kinetic_energy_eV: 202.0e6
     min_transmission: 0.9999
-  nominal:
-    max_sigma_x_m: 1.0e-3
-    max_sigma_y_m: 1.0e-3
-    max_sigma_xp_rad: 1.0e-3
-    max_sigma_yp_rad: 1.0e-3
-    max_sigma_z_m: 1.0e-3
-    min_mean_kinetic_energy_eV: 195.0e6
-    max_mean_kinetic_energy_eV: 205.0e6
-    min_transmission: 0.90
   relaxed:
     max_sigma_x_m: 2.0e-3
     max_sigma_y_m: 2.0e-3
@@ -124,6 +115,11 @@ sensitivity_profiles:
     min_mean_kinetic_energy_eV: 190.0e6
     max_mean_kinetic_energy_eV: 210.0e6
     min_transmission: 0.80
+
+# Lattice exit plane: a particle set must reach z_stop_m - z_loss_tolerance_m.
+tracking:
+  z_stop_m: 16.2
+  z_loss_tolerance_m: 0.1
 
 execution:
   timeout_sec: 30
@@ -176,3 +172,13 @@ scalarized_cases:
     seed_offset: 400
     description: "Quadrupole doublet asymmetry prioritizing vertical emittance waist"
     symbol: "w_{y} = [0.20,\\,0.60,\\,0.20]"
+
+# Paired multi-seed benchmark defaults (run-benchmark arguments override them).
+benchmark:
+  algorithms: [constrained_qlognehvi, unconstrained_qlognehvi, qlogehvi, scalarized_bo]
+  seeds: [42, 43, 44, 45, 46, 47, 48, 49, 50, 51]
+  total_eval_budget: 40
+  n_sobol_init: 10
+  batch_size: 4
+  constraint_profile: nominal
+  output_dir: results/publication_benchmark

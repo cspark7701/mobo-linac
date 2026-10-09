@@ -96,7 +96,8 @@ fi
 "$PYTHON_BIN" - "$CONFIG" "$N_ITERATIONS" "$BATCH_SIZE" "$NUM_INITIAL_SAMPLES" "$NUM_WORKERS" "$SEED" "${REFERENCE[@]}" <<'PY'
 import sys
 import torch
-from mobo_linac.config import load_config, validate_campaign_options
+from mobo_linac.campaign_options import validate_campaign_options
+from mobo_linac.config import load_config
 config = load_config(sys.argv[1])
 iterations, batch, initial, workers, seed = map(int, sys.argv[2:7])
 validate_campaign_options(num_initial_samples=initial, num_batches=iterations,

@@ -22,13 +22,13 @@ def run_benchmark(args: argparse.Namespace) -> None:
         algorithms=getattr(args, "algorithms", None),
         seeds=args.seeds,
         total_eval_budget=args.budget,
-        n_sobol_init=getattr(args, "n_sobol_init", 10),
-        batch_size=getattr(args, "batch_size", 4),
+        n_sobol_init=getattr(args, "n_sobol_init", None),
+        batch_size=getattr(args, "batch_size", None),
         device=getattr(args, "device", "auto"),
         num_workers=getattr(args, "num_workers", None),
     )
     mock_eval = (
-        CliMockEvaluator(Path(args.output_dir), config=config)
+        CliMockEvaluator(runner.output_dir, config=config)
         if getattr(args, "mock_evaluator", False)
         else None
     )
@@ -55,26 +55,26 @@ def register_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
         "--config", type=str, default=None, help="Path to config file"
     )
     run_bm_parser.add_argument(
-        "--output-dir", type=str, default="results/publication_benchmark", help="Output directory"
+        "--output-dir", type=str, default=None, help="Output directory (default: config benchmark.output_dir)"
     )
     run_bm_parser.add_argument(
         "--algorithms", nargs="+", type=str, default=None, help="Implemented algorithms: constrained_qlognehvi, unconstrained_qlognehvi, qlogehvi, scalarized_bo"
     )
     run_bm_parser.add_argument(
-        "--seeds", nargs="+", type=int, default=list(range(42, 52)), help="List of random seeds"
+        "--seeds", nargs="+", type=int, default=None, help="List of random seeds (default: config benchmark.seeds)"
     )
     run_bm_parser.add_argument(
-        "--budget", type=int, default=40, help="Total evaluation budget per algorithm-seed pair"
+        "--budget", type=int, default=None, help="Total evaluation budget per algorithm-seed pair (default: config)"
     )
     run_bm_parser.add_argument(
-        "--n-sobol-init", type=int, default=10, help="Number of initial Sobol samples"
+        "--n-sobol-init", type=int, default=None, help="Number of initial Sobol samples (default: config)"
     )
     run_bm_parser.add_argument(
         "-b", "-q", "--batch-size", "--batch_size",
         dest="batch_size",
         type=int,
-        default=4,
-        help="BO batch size per iteration",
+        default=None,
+        help="BO batch size per iteration (default: config benchmark.batch_size)",
     )
     run_bm_parser.add_argument(
         "--num-workers", type=int, default=None, help="Parallel worker processes (default: config execution.max_workers)"

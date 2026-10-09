@@ -78,6 +78,7 @@ def test_benchmark_cli_forwards_workers_and_algorithm_settings(tmp_path, monkeyp
     class RecordingBenchmarkRunner:
         def __init__(self, **kwargs):
             captured.update(kwargs)
+            self.output_dir = kwargs["output_dir"]
 
         def execute_benchmark_campaigns(self, **kwargs):
             captured.update(kwargs)

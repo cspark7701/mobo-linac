@@ -16,7 +16,8 @@ import pandas as pd
 import torch
 
 from mobo_linac.campaigns.runner import MoboCampaignRunner
-from mobo_linac.config import MoboConfig, config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
+from mobo_linac.campaign_options import normalize_scalar_weights, validate_campaign_options
+from mobo_linac.config import MoboConfig, config_from_dict, load_config
 from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
 from mobo_linac.io.durable import atomic_csv, atomic_json
 from mobo_linac.io.results import get_train_tensors, load_evaluation_results, load_run_checkpoint, results_to_dataframe

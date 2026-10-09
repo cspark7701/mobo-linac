@@ -231,6 +231,13 @@ def load_perturbation_spec(config_path: Optional[Union[str, Path]] = None) -> Pe
     return PerturbationSpecification.from_yaml(path)
 
 
+def configured_perturbation_spec(config) -> PerturbationSpecification:
+    """The configuration's ``perturbations`` section, else the default perturbation file."""
+    if getattr(config, "perturbations", None) is not None:
+        return PerturbationSpecification.from_dict(config.perturbations)
+    return load_perturbation_spec()
+
+
 def generate_perturbed_machine_states(
     nominal: Dict[str, float],
     spec: PerturbationSpecification,
@@ -383,7 +390,7 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
             num_workers=num_workers,
             timeout=timeout,
         )
-        self.spec = spec or load_perturbation_spec()
+        self.spec = spec or configured_perturbation_spec(self.config)
         self.spec.validate_for(self.config)
 
     def candidate_seed(self, seed: int, index: int) -> int:

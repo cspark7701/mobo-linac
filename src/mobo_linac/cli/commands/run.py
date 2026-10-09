@@ -13,7 +13,8 @@ import argparse
 import math
 from pathlib import Path
 
-from mobo_linac.config import load_config, normalize_scalar_weights, resolve_campaign_options, validate_campaign_options
+from mobo_linac.campaign_options import normalize_scalar_weights, resolve_campaign_options, validate_campaign_options
+from mobo_linac.config import load_config
 from mobo_linac.cli.common import CliMockEvaluator, add_common_run_args
 
 MODES = {
@@ -46,7 +47,7 @@ def resolve_plan(args, optimization_mode="unconstrained_mobo"):
 
 def _print_plan(title, config, options, output_dir, extra=()):
     print(f"[DRY-RUN] {title} Campaign Plan:")
-    print(f"  - Config: {config.resolved_path}")
+    print(f"  - Config: {config.source_path}")
     print(f"  - Output Directory: {output_dir}")
     print(f"  - Initial Samples: {options['num_initial_samples']}")
     print(f"  - Iterations: {options['num_batches']} (batch size: {options['batch_size']})")

@@ -24,7 +24,8 @@ from mobo_linac.acquisition.mobo import (
     build_acquisition_function,
     generate_next_candidates,
 )
-from mobo_linac.config import CampaignSettings, MoboConfig, config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
+from mobo_linac.campaign_options import Acquisition, decode_acquisition, normalize_scalar_weights, validate_campaign_options
+from mobo_linac.config import CampaignSettings, MoboConfig, config_from_dict, load_config
 from mobo_linac.campaigns.state import prepare_resume_state, restore_rng_state
 from mobo_linac.campaigns.recovery import load_resume_candidate, reconcile_resume
 from mobo_linac.evaluation import EvaluationResult
@@ -111,10 +112,10 @@ class MoboCampaignRunner:
 
         if isinstance(config, (str, Path)) or (config is None and not (resume or resume_from)):
             self.config = load_config(config)
-            self.config_path = self.config.resolved_path
+            self.config_path = self.config.source_path
         else:
             self.config = config
-            self.config_path = getattr(config, "resolved_path", None)
+            self.config_path = getattr(config, "source_path", None)
         # Omitted options use the configuration's campaign defaults (resume restores saved values).
         defaults = self.config.campaign if self.config is not None else CampaignSettings()
         num_initial_samples = defaults.num_initial_samples if num_initial_samples is None else num_initial_samples
@@ -122,7 +123,7 @@ class MoboCampaignRunner:
         batch_size = defaults.batch_size if batch_size is None else batch_size
         seed = defaults.seed if seed is None else seed
         if acq_type is None:
-            acq_type = "qLogNEI" if optimization_mode == "scalarized_bo" else defaults.acquisition
+            acq_type = Acquisition.qLogNEI.value if optimization_mode == "scalarized_bo" else defaults.acquisition
         if self.config is not None:
             self.config.validate()
         validate_campaign_options(num_initial_samples=num_initial_samples, num_batches=num_batches,
@@ -222,8 +223,7 @@ class MoboCampaignRunner:
         if self._requested_mode is not None and self._requested_mode != state.optimization_mode:
             raise ValueError("Incompatible resume optimization mode.")
         if self._requested_acquisition is not None:
-            saved_acquisition = "qLogNEI" if state.optimization_mode == "scalarized_bo" else state.acquisition_mode
-            if self._requested_acquisition not in (saved_acquisition, state.acquisition_mode):
+            if decode_acquisition(self._requested_acquisition) is not decode_acquisition(state.acquisition_mode):
                 raise ValueError("Incompatible resume acquisition mode.")
         if state.version == "2.0" and self._requested_weights is not None:
             weights = normalize_scalar_weights(self._requested_weights, len(state.scalar_weights))
@@ -236,7 +236,7 @@ class MoboCampaignRunner:
         self.seed = state.seed
         self.optimization_mode = state.optimization_mode
         self.constrained = state.constrained
-        self.acq_type = "qLogNEI" if state.optimization_mode == "scalarized_bo" else state.acquisition_mode
+        self.acq_type = decode_acquisition(state.acquisition_mode).value
         self.scalar_weights = torch.tensor(state.scalar_weights, dtype=torch.double)
         self.batch_size = state.batch_size if self._requested_batch_size is None else self._requested_batch_size
         if type(self.batch_size) is not int or self.batch_size < 1:
@@ -458,6 +458,7 @@ class MoboCampaignRunner:
 
 
         def _persist_checkpoint(iteration: int, pending=None):
+            # Scalarized checkpoints keep their recorded alias of qLogNEI (decode_acquisition maps it back).
             checkpoint_mode = "scalarized_qLogNEI" if self.optimization_mode == "scalarized_bo" else self.acq_type
             commit_checkpoint(self.run_dir, proposal_history, pending_path, pending,
                 save_checkpoint=save_run_checkpoint,

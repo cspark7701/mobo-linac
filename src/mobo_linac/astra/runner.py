@@ -225,7 +225,8 @@ def run_astra_eval(
     Returns:
         Dict containing execution status, objectives, diagnostics, paths, and manifest info.
     """
-    from mobo_linac.config import MoboConfig, config_from_dict, validate_evaluation_settings, ExecutionConfig
+    from mobo_linac.config import MoboConfig, config_from_dict, ExecutionConfig
+    from mobo_linac.execution.requests import validate_evaluation_settings
     if isinstance(config, dict):
         config = config_from_dict(config)
     if not isinstance(config, MoboConfig):

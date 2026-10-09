@@ -96,6 +96,11 @@ constraints:
   max_mean_kinetic_energy_eV: 205.0e6
   min_transmission: 0.90
 
+# Lattice exit plane: a particle set must reach z_stop_m - z_loss_tolerance_m.
+tracking:
+  z_stop_m: 16.2
+  z_loss_tolerance_m: 0.1
+
 execution:
   timeout_sec: 30
   max_workers: 4

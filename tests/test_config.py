@@ -101,7 +101,7 @@ def test_invalid_objective_direction_and_sign():
     with pytest.raises(ValueError, match="physical_direction"):
         ObjectiveConfig(
             name="obj1",
-            explicit_name="Objective 1",
+            explicit_name="objective_1",
             unit="m",
             physical_direction="sideways",
             model_sign=-1,
@@ -110,7 +110,7 @@ def test_invalid_objective_direction_and_sign():
     with pytest.raises(ValueError, match="model_sign"):
         ObjectiveConfig(
             name="obj2",
-            explicit_name="Objective 2",
+            explicit_name="objective_2",
             unit="m",
             physical_direction="minimize",
             model_sign=1,  # Minimization must be -1
@@ -119,7 +119,7 @@ def test_invalid_objective_direction_and_sign():
 
 def test_invalid_constraints_rejected():
     """Verify constraint validation fails on non-physical thresholds."""
-    with pytest.raises(ValueError, match="kinetic energy constraints"):
+    with pytest.raises(ValueError, match="mean kinetic energy constraints"):
         ConstraintsConfig(
             min_mean_kinetic_energy_eV=220.0e6,
             max_mean_kinetic_energy_eV=200.0e6,
@@ -128,7 +128,7 @@ def test_invalid_constraints_rejected():
     with pytest.raises(ValueError, match="min_transmission"):
         ConstraintsConfig(min_transmission=1.5).validate()
 
-    with pytest.raises(ValueError, match="Beam size constraints"):
+    with pytest.raises(ValueError, match="max_sigma_x_m violates exclusiveMinimum"):
         ConstraintsConfig(max_sigma_x_m=-1.0).validate()
 
 
@@ -136,7 +136,7 @@ def test_duplicate_design_variable_rejected():
     """Verify MoboConfig rejects duplicate design variable names."""
     dv1 = DesignVariableConfig("var1", "key1", "T", 1.0, 0.1, 0.5, 1.5)
     dv2 = DesignVariableConfig("var1", "key2", "T", 1.0, 0.1, 0.5, 1.5)
-    obj = ObjectiveConfig("obj1", "Explicit Obj", "m", "minimize", -1)
+    obj = ObjectiveConfig("obj1", "explicit_obj", "m", "minimize", -1)
 
     cfg = MoboConfig(
         version="1.0",
@@ -184,7 +184,7 @@ def test_cli_validate_config(capsys, tmp_path):
     sys.argv = [
         "mobo-linac",
         "validate-config",
-        "--config", "configs/publication.yaml",
+        "--config", "configs/publication_200MeV.yaml",
         "--export-schema", str(schema_p),
         "--export-docs", str(docs_p),
     ]
@@ -234,8 +234,8 @@ def test_default_resolution_records_actual_source(tmp_path, monkeypatch):
     target.write_text(source.read_text())
     monkeypatch.chdir(tmp_path)
     config = load_config()
-    assert config.resolved_path == target.resolve() == resolve_config_path()
-    assert "resolved_path" not in asdict(config)
+    assert config.source_path == target.resolve() == resolve_config_path()
+    assert "source_path" not in asdict(config)
 
 
 @pytest.mark.parametrize("section,field", [
@@ -243,8 +243,8 @@ def test_default_resolution_records_actual_source(tmp_path, monkeypatch):
     ("design_variables", "upper_bound"), ("design_variables", "ratio"),
     ("constraints", "max_sigma_x_m"), ("constraints", "max_mean_kinetic_energy_eV"),
     ("model", "fixed_noise_variance"), ("model", "relative_noise_ratio"),
-    ("model", "min_noise_variance"), ("execution", "z_stop_m"),
-    ("execution", "z_loss_tolerance_m"),
+    ("model", "min_noise_variance"), ("tracking", "z_stop_m"),
+    ("tracking", "z_loss_tolerance_m"),
 ])
 @pytest.mark.parametrize("value", [float("nan"), float("inf"), -float("inf")])
 def test_all_numeric_config_fields_reject_nonfinite(section, field, value):
@@ -257,7 +257,7 @@ def test_all_numeric_config_fields_reject_nonfinite(section, field, value):
 
 @pytest.mark.parametrize("field,value", [("acqf_maxiter", 0), ("acqf_batch_limit", -1),
     ("timeout_sec", 1.5), ("max_workers", True), ("retries", -1),
-    ("z_stop_m", 0), ("z_loss_tolerance_m", -0.1), ("clean_on_success", "false")])
+    ("clean_on_success", "false")])
 def test_execution_limits_share_strict_field_rules(field, value):
     config = ExecutionConfig()
     setattr(config, field, value)
@@ -348,7 +348,7 @@ def test_runner_invalid_options_create_no_directory(tmp_path, kwargs):
 
 
 def test_large_finite_scalar_weights_normalize_without_overflow():
-    from mobo_linac.config import normalize_scalar_weights
+    from mobo_linac.campaign_options import normalize_scalar_weights
     weights = normalize_scalar_weights([1e308, 1e308, 1e308], 3)
     torch.testing.assert_close(weights, torch.full((3,), 1/3, dtype=torch.double))
 
@@ -379,7 +379,7 @@ def test_campaign_records_resolved_default_source(tmp_path):
                                evaluator=MockBatchEvaluator(tmp_path), export_plots=False, export_env_info=False)
     runner.run()
     recorded = json.loads((tmp_path / "config_source.json").read_text())
-    assert Path(recorded["resolved_path"]) == runner.config_path == runner.config.resolved_path
+    assert Path(recorded["resolved_path"]) == runner.config_path == runner.config.source_path
     assert recorded["source"] == "file"
 
 
@@ -398,7 +398,7 @@ def test_nonfinite_design_request_is_rejected_before_directory(tmp_path):
 
 
 def test_scalarized_acquisition_combination_is_validated():
-    from mobo_linac.config import validate_campaign_options
+    from mobo_linac.campaign_options import validate_campaign_options
     values = dict(num_initial_samples=2, num_batches=1, batch_size=1, acq_type="qLogNEI")
     validate_campaign_options(**values, optimization_mode="scalarized_bo")
     with pytest.raises(ValueError, match="qLogNEI requires"):
@@ -441,7 +441,7 @@ def test_benchmark_preserves_resolved_configuration_source(tmp_path):
     from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
     config = load_config("configs/mobo_200MeV.yaml")
     benchmark = BenchmarkCampaignRunner(config, output_dir=tmp_path)
-    assert benchmark.config.resolved_path == config.resolved_path
+    assert benchmark.config.source_path == config.source_path
 
 
 def test_invalid_batch_parameters_are_not_coerced_before_validation(tmp_path, monkeypatch):
@@ -453,3 +453,114 @@ def test_invalid_batch_parameters_are_not_coerced_before_validation(tmp_path, mo
     with pytest.raises(ValueError, match="finite numbers"):
         evaluate_candidates_parallel([[True, 1, -1, 0, 0, 0]], max_workers=1, base_results_dir=output, config=load_config('configs/mobo_200MeV.yaml'))
     assert not output.exists()
+
+
+@pytest.mark.parametrize("field,value", [("z_stop_m", 0), ("z_loss_tolerance_m", -0.1)])
+def test_tracking_exit_plane_rules(field, value):
+    from mobo_linac.config import TrackingConfig
+    config = TrackingConfig()
+    setattr(config, field, value)
+    with pytest.raises(ValueError):
+        config.validate()
+
+
+def test_config_module_imports_cleanly_with_warnings_as_errors():
+    import subprocess
+    import sys
+    completed = subprocess.run([sys.executable, "-W", "error", "-c", "import mobo_linac.config"],
+                               capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_each_load_validates_fields_and_relations_once(monkeypatch):
+    import mobo_linac.config as config_module
+    calls = {"fields": 0, "relations": 0}
+    original_value, original_relations = config_module._validate_value, config_module.MoboConfig.check_relations
+    def count_value(value, definition, path):
+        calls["fields"] += path == "MoboConfig"
+        return original_value(value, definition, path)
+    def count_relations(self):
+        calls["relations"] += 1
+        return original_relations(self)
+    monkeypatch.setattr(config_module, "_validate_value", count_value)
+    monkeypatch.setattr(config_module.MoboConfig, "check_relations", count_relations)
+    config = load_config("configs/publication_200MeV.yaml")
+    assert calls == {"fields": 1, "relations": 1}
+    config.get_parameter_bounds_tensor()  # no re-validation on accessors
+    assert calls == {"fields": 1, "relations": 1}
+
+
+def test_archived_layout_migrates_and_serializes_to_current_layout():
+    from dataclasses import asdict
+    from mobo_linac.config import config_from_dict
+    current = asdict(load_config("configs/publication_200MeV.yaml"))
+    archived = {key: value for key, value in current.items() if key != "tracking"}
+    archived["execution"] = {**current["execution"], "z_stop_m": 16.2, "z_loss_tolerance_m": 0.1}
+    archived["sensitivity_profiles"] = {**current["sensitivity_profiles"], "nominal": current["constraints"]}
+    migrated = config_from_dict(archived)
+    assert migrated.tracking.z_stop_m == 16.2 and "z_stop_m" not in asdict(migrated)["execution"]
+    assert "nominal" not in migrated.sensitivity_profiles
+    assert migrated.get_constraint_profile("nominal") == migrated.constraints
+    divergent = dict(archived, sensitivity_profiles={"nominal": {**current["constraints"], "max_sigma_x_m": 5e-3}})
+    with pytest.raises(ValueError, match="nominal"):
+        config_from_dict(divergent)
+
+
+SYNTHETIC_CHANNEL_SCRIPT = r"""
+import mobo_linac.diagnostics as diagnostics
+channel = diagnostics.DiagnosticChannel(
+    "bunch_charge_C", ("charge",), "C", lower_attribute="min_bunch_charge_C", lower_violation="charge",
+    physical_minimum=0.0, label="$Q$", display_unit="pC", display_scale=1e-12,
+    description="Bunch charge", lower_default=1.0e-10)
+diagnostics.DIAGNOSTIC_CHANNELS = diagnostics.DIAGNOSTIC_CHANNELS + (channel,)  # the only code edit
+from dataclasses import asdict
+from mobo_linac.config import config_from_dict, export_config_schema, generate_config_markdown_docs, load_config
+data = asdict(load_config("configs/mobo_200MeV.yaml"))
+data["constraints"]["min_bunch_charge_C"] = 2.0e-10  # the YAML edit
+config = config_from_dict(data)
+assert config.constraints.min_bunch_charge_C == 2.0e-10
+rule = export_config_schema()["properties"]["constraints"]["properties"]["min_bunch_charge_C"]
+assert rule == {"type": "number", "exclusiveMinimum": 0.0, "default": 1.0e-10}, rule
+assert "| Bunch charge ($Q$) | $\\ge 200$ | pC |" in generate_config_markdown_docs(config)
+data["constraints"]["min_bunch_charge_C"] = -1.0
+try:
+    config_from_dict(data)
+except ValueError as error:
+    assert "min_bunch_charge_C" in str(error)
+else:
+    raise AssertionError("negative bound accepted")
+"""
+
+
+def test_synthetic_constraint_channel_needs_only_a_registry_entry():
+    """A channel added to the registry becomes a validated, documented constraint field."""
+    import subprocess
+    import sys
+    completed = subprocess.run([sys.executable, "-c", SYNTHETIC_CHANNEL_SCRIPT], capture_output=True, text=True)
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_display_metadata_does_not_affect_checkpoint_compatibility():
+    config = load_config("configs/mobo_200MeV.yaml")
+    relabeled = load_config("configs/mobo_200MeV.yaml")
+    relabeled.design_variables[0].label = None
+    relabeled.objectives[0].display_unit = "nm"
+    assert relabeled.scientific_dict() == config.scientific_dict()
+    relabeled.design_variables[0].upper_bound += 1.0
+    assert relabeled.scientific_dict() != config.scientific_dict()
+
+
+def test_acquisition_names_and_legacy_alias_decode_once():
+    from mobo_linac.campaign_options import Acquisition, MULTIOBJECTIVE_ACQUISITIONS, decode_acquisition
+    assert decode_acquisition("scalarized_qLogNEI") is Acquisition.qLogNEI
+    assert "qLogNEI" not in MULTIOBJECTIVE_ACQUISITIONS
+    with pytest.raises(ValueError, match="Unsupported acquisition"):
+        decode_acquisition("qUnknown")
+
+
+def test_benchmark_section_supplies_runner_defaults(tmp_path):
+    from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
+    config = load_config("configs/publication_200MeV.yaml")
+    runner = BenchmarkCampaignRunner(config, output_dir=tmp_path, seeds=[7])
+    assert runner.seeds == [7] and runner.total_eval_budget == config.benchmark.total_eval_budget
+    assert runner.output_dir == tmp_path

@@ -10,6 +10,7 @@ import warnings
 import numpy as np
 import torch
 
+from mobo_linac.campaign_options import OPTIMIZATION_MODES, Acquisition, decode_acquisition
 from mobo_linac.config import MoboConfig, config_from_dict
 from mobo_linac.io.results import CheckpointState, get_train_tensors
 from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference_point
@@ -25,11 +26,13 @@ def prepare_resume_state(
     state = deepcopy(checkpoint)
     if not isinstance(state.config, dict):
         raise ValueError("Checkpoint lacks the saved configuration required for safe resume.")
-    current = asdict(config)
-    for section in ("design_variables", "objectives", "constraints", "model"):
-        if asdict(config_from_dict(state.config)).get(section) != current[section]:
+    # Display labels/units are not scientific settings; archived layouts are migrated first.
+    current = config.scientific_dict()
+    saved = config_from_dict(state.config).scientific_dict()
+    for section in ("design_variables", "objectives", "constraints", "model", "tracking"):
+        if saved.get(section) != current[section]:
             raise ValueError(f"Incompatible checkpoint configuration: {section} changed.")
-    saved_execution = asdict(config_from_dict(state.config))["execution"]
+    saved_execution = saved["execution"]
     for name in current["execution"]:
         if name == "max_workers":
             continue
@@ -98,15 +101,16 @@ def prepare_resume_state(
         raise ValueError("Invalid checkpoint worker count.")
     if (state.iteration < 0 and not bootstrap) or state.num_initial_samples < 1 or state.batch_size < 1:
         raise ValueError("Invalid checkpoint iteration or sample counts.")
-    if state.optimization_mode not in ("scalarized_bo", "constrained_mobo", "unconstrained_mobo"):
+    if state.optimization_mode not in OPTIMIZATION_MODES:
         raise ValueError("Invalid checkpoint optimization mode.")
     if state.constrained != (state.optimization_mode == "constrained_mobo"):
         raise ValueError("Checkpoint mode and constrained flag disagree.")
-    if state.optimization_mode == "scalarized_bo":
-        if state.acquisition_mode not in ("scalarized_qLogNEI", "qLogNEI"):
-            raise ValueError("Checkpoint scalarized acquisition is inconsistent.")
-    elif state.acquisition_mode not in ("qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"):
-        raise ValueError("Invalid checkpoint acquisition mode.")
+    try:
+        acquisition = decode_acquisition(state.acquisition_mode)
+    except ValueError:
+        raise ValueError("Invalid checkpoint acquisition mode.") from None
+    if (state.optimization_mode == "scalarized_bo") != (acquisition is Acquisition.qLogNEI):
+        raise ValueError("Checkpoint scalarized acquisition is inconsistent.")
     if state.elapsed_wall_time_s is not None and (not math.isfinite(state.elapsed_wall_time_s) or state.elapsed_wall_time_s < 0):
         raise ValueError("Invalid checkpoint elapsed wall time.")
     if state.evaluation_elapsed_s is not None:

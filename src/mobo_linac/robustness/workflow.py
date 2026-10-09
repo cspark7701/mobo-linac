@@ -8,7 +8,7 @@ import pandas as pd
 from mobo_linac.io.durable import atomic_csv
 from mobo_linac.metrics.latex import generate_robustness_summary_latex_table
 from mobo_linac.metrics.selection import select_representatives
-from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_MAPPING_REASON, load_perturbation_spec
+from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_MAPPING_REASON, configured_perturbation_spec
 
 
 def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
@@ -22,11 +22,11 @@ def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
     config.validate()
     if type(num_perturbations) is not int or num_perturbations <= 0:
         raise ValueError("Robustness analysis requires at least one perturbation")
-    from mobo_linac.config import validate_campaign_options
+    from mobo_linac.campaign_options import validate_campaign_options
     validate_campaign_options(num_initial_samples=1, num_batches=0, batch_size=1,
                               num_workers=num_workers, seed=seed)
     output_dir.mkdir(parents=True, exist_ok=True)
-    spec = spec or load_perturbation_spec()
+    spec = spec or configured_perturbation_spec(config)
     spec.validate_for(config)
     if dry_run:
         print("[DRY-RUN] Robustness Analysis Plan:")

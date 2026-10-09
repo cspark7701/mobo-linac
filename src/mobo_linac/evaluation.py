@@ -134,7 +134,7 @@ def create_evaluation_result(
             name in diagnostics and not finite_measurement(diagnostics[name]) for name in DIAGNOSTIC_NAMES):
         category, reason = FailureCategory.NAN_INF_DIAGNOSTICS, "Objectives or diagnostics contain NaN, infinite, or non-numeric values"
     else:
-        target_z = float(config.execution.z_stop_m) - float(config.execution.z_loss_tolerance_m)
+        target_z = float(config.tracking.z_stop_m) - float(config.tracking.z_loss_tolerance_m)
         z_final = telemetry.get("z_final_m")
         if z_final is None and isinstance(raw_res.get("stats"), dict) and len(raw_res["stats"].get("z", [])) > 0:
             z_final = raw_res["stats"]["z"][-1]
