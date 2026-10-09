@@ -50,13 +50,13 @@ def comparison_status(original, rerun, deltas, tol_verified, tol_conditional):
 class ParetoVerifier(CandidateEvaluatorBase):
     def __init__(self, config, base_output_dir='results/verification', num_workers=None,
                  timeout=None, tol_verified=1e-3, tol_conditional=0.10,
-                 template_dir=None, template_in='astra.in'):
+                 template_dir=None):
         if config is None:
             raise TypeError("Verification requires the campaign MoboConfig.")
         super().__init__(config=config, base_output_dir=base_output_dir,
                          num_workers=config.execution.max_workers if num_workers is None else num_workers,
                          timeout=config.execution.timeout_sec if timeout is None else timeout,
-                         template_dir=template_dir, template_in=template_in)
+                         template_dir=template_dir)
         self.tol_verified, self.tol_conditional = float(tol_verified), float(tol_conditional)
         if not (math.isfinite(self.tol_verified) and math.isfinite(self.tol_conditional)
                 and 0 <= self.tol_verified <= self.tol_conditional):
@@ -95,7 +95,8 @@ class ParetoVerifier(CandidateEvaluatorBase):
                    for outcome in outcomes]
         manifest, table = save_verification_reports(records, session, self.base_output_dir,
                           {'config': asdict(self.config), 'timeout_sec': self.timeout, 'num_workers': self.num_workers,
-                           'template_dir': str(self.template_dir.resolve()), 'template_in': self.template_in,
+                           'template_dir': str(self.template_dir) if self.template_dir is not None else self.config.simulation.template_dir,
+                           'input_template': self.config.simulation.input_template,
                            'tol_verified_relative': self.tol_verified, 'tol_conditional_relative': self.tol_conditional})
         return records, manifest, table
 

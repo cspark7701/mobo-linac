@@ -256,7 +256,7 @@ def test_input_snapshot_dereferences_mutable_symlink(temp_project):
 
     manager = AstraWorkDirManager(temp_project['results_dir'], temp_project['template_dir'])
     attempt, archive = manager.reserve_attempt('symlink', 1)
-    directory = manager.prepare_eval_dir('symlink', 1, attempt_id=attempt, use_symlinks=True)
+    directory = manager.prepare_eval_dir('symlink', 1, static_files=['gun.dat'], attempt_id=attempt, use_symlinks=True)
     hashes = manager.snapshot_inputs(directory, archive)
     source = temp_project['template_dir'] / 'gun.dat'
     source.write_text('changed after evaluation')
@@ -277,3 +277,65 @@ def test_provenance_failure_retains_workdir_and_final_failure_record(temp_projec
     assert result['status'] == 'PROVENANCE_ERROR'
     assert Path(result['eval_dir']).exists()
     assert json.loads(Path(result['manifest_path']).read_text())['provenance_error'] == 'snapshot storage unavailable'
+
+
+def test_missing_executable_fails_before_any_attempt_is_reserved(tmp_path, monkeypatch):
+    from dataclasses import replace
+    from mobo_linac.config import load_config
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.simulation = replace(config.simulation, executable=str(tmp_path / "absent_astra"))
+    monkeypatch.delenv("ASTRA_BIN", raising=False)
+    monkeypatch.setenv("PATH", str(tmp_path / "empty"))
+    with pytest.raises(FileNotFoundError, match="ASTRA executable"):
+        run_astra_eval([0.2, 1, -1, 0, 0, 0], "no_binary", 1, base_results_dir=tmp_path / "results", config=config)
+    assert not (tmp_path / "results").exists()
+
+
+def test_second_lattice_runs_through_configuration_only(tmp_path, monkeypatch):
+    """A different template directory and static-file set needs no code change."""
+    import json
+    import os
+    from dataclasses import replace
+    from mobo_linac.astra.workdir import read_evaluation_manifest
+    from mobo_linac.config import load_config
+    lattice = tmp_path / "lattice_b"
+    lattice.mkdir()
+    (lattice / "deck.in").write_text((Path(__file__).resolve().parents[1] / "astra.in").read_text())
+    for name in ("cavity_b.dat", "beam_b.ini"):
+        (lattice / name).write_text(f"{name} contents")
+    executable = lattice / "astra_b"
+    executable.write_text("#!/bin/sh\n")
+    executable.chmod(0o755)
+
+    class Recording:
+        particles = []
+        def __init__(self, input_file, workdir, command=None, **kwargs):
+            self.directory, self.command, self.output = Path(workdir), command, {}
+        def __setitem__(self, key, value):
+            pass
+        def run(self):
+            self.output = {"stats": {key: [value] for key, value in {
+                "norm_emit_x": 1e-6, "norm_emit_y": 1e-6, "sigma_energy": 0.5e6, "sigma_x": 0.5e-3,
+                "sigma_y": 0.5e-3, "sigma_xp": 0.4e-3, "sigma_yp": 0.4e-3, "sigma_z": 0.5e-3,
+                "mean_kinetic_energy": 200e6, "transmission_fraction": 1.0, "z": 16.2}.items()}}
+    monkeypatch.setattr("mobo_linac.astra.runner.Astra", Recording)
+    before = dict(os.environ)
+    config = load_config("configs/mobo_200MeV.yaml")
+    config.simulation = replace(config.simulation, template_dir=str(lattice), input_template="deck.in",
+                                static_files=["cavity_b.dat", "beam_b.ini"], executable=str(executable))
+    result = run_astra_eval([0.2, 1, -1, 0, 0, 0], "lattice_b", 1, base_results_dir=tmp_path / "results", config=config)
+    assert result["status"] == "SUCCESS", result["error"]
+    manifest = read_evaluation_manifest(result["manifest_path"])
+    assert set(manifest["input_hashes"]) == {"astra.in", "cavity_b.dat", "beam_b.ini"}
+    assert manifest["executable"]["path"] == str(executable.resolve())
+    assert "manifest" not in result  # the record references the manifest instead of duplicating it
+    assert dict(os.environ) == before
+
+
+def test_no_user_specific_or_source_tree_paths_in_astra_package():
+    import re
+    root = Path(__file__).resolve().parents[1] / "src" / "mobo_linac" / "astra"
+    text = "".join(path.read_text() for path in root.glob("*.py"))
+    assert "/home/" not in text and "~/Work" not in text and "Work/simulation_codes" not in text
+    assert not re.search(r"parents\[\d\]", text)
+    assert "os.environ[" not in text

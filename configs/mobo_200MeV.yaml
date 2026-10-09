@@ -101,6 +101,14 @@ tracking:
   z_stop_m: 16.2
   z_loss_tolerance_m: 0.1
 
+# Beam-dynamics code inputs; relative paths are resolved against this file's directory.
+# The executable falls back to $ASTRA_BIN and then PATH when the configured file is absent.
+simulation:
+  template_dir: ".."
+  input_template: astra.in
+  static_files: [gun.dat, PAL_SOL_A.dat, TWS_Sband.dat, pal_photo2.ini]
+  executable: "../bin/astra"
+
 execution:
   timeout_sec: 30
   max_workers: 4

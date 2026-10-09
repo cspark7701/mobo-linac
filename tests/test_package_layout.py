@@ -160,5 +160,5 @@ def test_astra_template_directory_is_independent_of_working_directory(tmp_path, 
     runner = MoboCampaignRunner(config=config, output_dir=tmp_path / "run", num_initial_samples=2,
                                 num_batches=0, device="cpu")
     assert runner.build_evaluator().template_dir == expected
-    config.execution.template_dir = "configs/.."
+    config.simulation.template_dir = ".."  # relative to the configuration file's directory
     assert resolve_template_dir(config) == expected

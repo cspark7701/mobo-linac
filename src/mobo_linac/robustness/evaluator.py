@@ -16,7 +16,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import yaml
 
-from mobo_linac.astra.workdir import validate_component
+from mobo_linac.astra.workdir import read_evaluation_manifest, validate_component
 from mobo_linac.io.durable import write_once_json
 from mobo_linac.config import MoboConfig, resolve_config_path
 from mobo_linac.constraints import ConstraintEvaluator
@@ -462,7 +462,9 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
         session.mkdir(parents=True, exist_ok=False)
         request_records = []
         for outcome in outcomes:
-            evidence = outcome.execution_details.get("manifest", {})
+            # ASTRA completions reference their immutable attempt manifest.
+            manifest_path = outcome.execution_details.get("manifest_path")
+            evidence = read_evaluation_manifest(manifest_path) if manifest_path else {}
             request_records.append({
                 "request": outcome.task.to_request().to_dict(),
                 "result": outcome.evaluated_result.to_dict(),

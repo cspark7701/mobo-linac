@@ -10,7 +10,7 @@ from mobo_linac.astra.runner import apply_parameters_to_astra, run_astra_eval
 
 def test_apply_parameters_requires_configuration():
     """There is no implicit six-parameter namelist mapping."""
-    with pytest.raises(TypeError, match="design_variables"):
+    with pytest.raises(TypeError, match="MoboConfig"):
         apply_parameters_to_astra({}, [0.28, 5.0, -4.5, 30.0, -15.0, 10.0], config=None)
 
 
@@ -49,7 +49,9 @@ def test_apply_parameters_custom_decoupled_cavities():
     mock_sim = {}
     params = [0.29, 6.0, -4.0, 32.0, -18.0, -12.0, 5.0]
 
-    applied = apply_parameters_to_astra(mock_sim, params, config={"design_variables": custom_dvs})
+    from dataclasses import replace
+    config = replace(load_config("configs/mobo_200MeV.yaml"), design_variables=custom_dvs)
+    applied = apply_parameters_to_astra(mock_sim, params, config=config)
 
     assert len(applied) == 7
     assert applied == ["sol", "q1", "q2", "gun_phi", "acc1_phi", "acc2_phi", "acc3_4_phi"]

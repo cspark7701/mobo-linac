@@ -193,14 +193,23 @@ The compiled ASTRA simulation binaries are integrated into the local `./bin/` di
 - `bin/astra`: Main ASTRA tracking simulation executable.
 - `bin/generator`: Particle distribution generator executable.
 
-By default, `mobo_linac.astra.runner` automatically detects and uses the local `./bin/astra` and `./bin/generator` binaries without requiring manual environment variables.
+The executable, template input, static field/distribution files and template directory
+are configuration data (`simulation:` section; relative paths are resolved against the
+configuration file):
 
-If you wish to override these binaries with custom external builds, you can set the environment variables:
-
-```bash
-export ASTRA_BIN="/path/to/custom/bin/astra"
-export GENERATOR_BIN="/path/to/custom/bin/generator"
+```yaml
+simulation:
+  template_dir: ".."
+  input_template: astra.in
+  static_files: [gun.dat, PAL_SOL_A.dat, TWS_Sband.dat, pal_photo2.ini]
+  executable: "../bin/astra"
 ```
+
+The executable is resolved from `simulation.executable`, then `$ASTRA_BIN`, then `PATH`;
+a missing executable fails before any attempt directory is reserved. The resolved path is
+passed to lume-astra explicitly and recorded (with its SHA-256) in every attempt manifest;
+the process environment is never modified. To use an external build, point
+`simulation.executable` at it (or remove that key and set `ASTRA_BIN`).
 
 ---
 

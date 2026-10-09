@@ -81,7 +81,7 @@ class MockEvaluator:
                        for channel in DIAGNOSTIC_CHANNELS}
         return dict(base, status="SUCCESS", objectives=objectives, diagnostics=diagnostics, error=None,
                     timestamps={"duration_sec": max(0.01, self.delay_sec)},
-                    manifest_path=str(Path(work_dir) / "manifest.json") if work_dir is not None else None)
+                    manifest_path=None)  # no attempt manifest is written for synthetic responses
 
     def evaluate(self, requests: Sequence[EvaluationRequest], run_id: str = "mock_batch",
                  on_complete: Optional[Callable[[Dict[str, Any]], None]] = None) -> List[Dict[str, Any]]:

@@ -86,7 +86,7 @@ def run_verification(args: argparse.Namespace) -> None:
     records, manifest, table = run_verification_pipeline(
         results, config=config, output_dir=output_dir, evaluator=evaluator,
         num_workers=getattr(args, "num_workers", None), timeout=getattr(args, "timeout", None),
-        template_dir=getattr(args, "template_dir", None), template_in=getattr(args, "template_in", "astra.in"))
+        template_dir=getattr(args, "template_dir", None))
     print(f"Verification produced {len(records)} audit records: {manifest}")
 
 
@@ -156,7 +156,6 @@ def register_audit_commands(subparsers: argparse._SubParsersAction) -> None:
     run_ver_parser.add_argument("--num-workers", type=int, default=None, help="Override configured worker count")
     run_ver_parser.add_argument("--timeout", type=int, default=None, help="Override configured timeout in seconds")
     run_ver_parser.add_argument("--template-dir", default=None, help="ASTRA template and static input directory (default: config execution.template_dir)")
-    run_ver_parser.add_argument("--template-in", default="astra.in", help="ASTRA input template filename")
     run_ver_parser.set_defaults(handler=run_verification)
 
     # Subcommand: validate-config

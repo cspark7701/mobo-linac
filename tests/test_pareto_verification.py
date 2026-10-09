@@ -4,6 +4,7 @@ Unit tests for Independent Pareto Candidate Verification (Task 08).
 
 import pytest
 
+from mobo_linac.astra.workdir import read_evaluation_manifest
 from mobo_linac.execution import FunctionEvaluator
 from tests.evaluators import callable_evaluator, mock_data_evaluator
 import numpy as np
@@ -370,7 +371,7 @@ def test_original_and_rerun_audits_link_exact_attempts(recording_astra_project, 
     record = first[0]
     assert record['verification_status'] == 'VERIFIED'
     assert record['original_audit']['audit_status'] == 'VERIFIED'
-    assert record['original_audit']['input_sha256'] == raw['manifest']['input_hashes']['astra.in']
+    assert record['original_audit']['input_sha256'] == read_evaluation_manifest(raw['manifest_path'])['input_hashes']['astra.in']
     assert record['original_attempt_id'] == raw['attempt_id']
     assert record['original_manifest_path'] == raw['manifest_path']
     assert record['attempt_id'] != record['original_attempt_id']

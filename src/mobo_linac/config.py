@@ -5,7 +5,7 @@ Defines declarative schemas, strict physical validation, JSON Schema exporter,
 and Markdown documentation generator for accelerator Bayesian optimization.
 """
 
-from dataclasses import MISSING, asdict, dataclass, field, fields, is_dataclass, make_dataclass
+from dataclasses import MISSING, asdict, dataclass, field, fields, is_dataclass, make_dataclass, replace
 from functools import lru_cache
 import json
 import math
@@ -131,6 +131,36 @@ class TrackingConfig:
 
 
 @dataclass
+class SimulationConfig:
+    """Beam-dynamics code inputs: template directory, input template, static files, executable.
+
+    ``load_config`` resolves relative ``template_dir``/``executable`` against the configuration
+    file's directory and stores them absolute; the executable is otherwise found through
+    ``$ASTRA_BIN`` and then ``PATH``.
+    """
+
+    template_dir: Optional[str] = None
+    input_template: str = "astra.in"
+    static_files: List[str] = field(default_factory=list)
+    executable: Optional[str] = None
+
+    def validate(self) -> None:
+        _validate_fields(self)
+
+    def check_relations(self) -> None:
+        if any(Path(name).is_absolute() or ".." in Path(name).parts for name in self.static_files):
+            raise ValueError("simulation.static_files must be names inside simulation.template_dir.")
+
+    def resolved_against(self, base: Path) -> "SimulationConfig":
+        def absolute(value):
+            if value is None:
+                return None
+            path = Path(value).expanduser()
+            return str((path if path.is_absolute() else base / path).resolve())
+        return replace(self, template_dir=absolute(self.template_dir), executable=absolute(self.executable))
+
+
+@dataclass
 class ExecutionConfig:
     """Execution runtime configuration."""
 
@@ -150,9 +180,6 @@ class ExecutionConfig:
     acquisition_reference_basis: str = "all_valid"
     # Simulation statuses that start a fresh attempt (bounded by ``retries``).
     retry_statuses: List[str] = field(default_factory=lambda: list(DEFAULT_RETRY_STATUSES))
-    # Directory holding the ASTRA template input and field maps; relative paths are resolved
-    # against the project root, and None means the project root (never the working directory).
-    template_dir: Optional[str] = None
 
     def validate(self) -> None:
         _validate_fields(self)
@@ -271,6 +298,7 @@ class MoboConfig:
     # case is the base seed plus its stable seed_offset, independent of the cases selected.
     scalarized_cases: Dict[str, ScalarizedCaseConfig] = field(default_factory=dict)
     tracking: TrackingConfig = field(default_factory=TrackingConfig)
+    simulation: SimulationConfig = field(default_factory=SimulationConfig)
     # Optional campaign-family settings: benchmark defaults and the robustness perturbation
     # specification (validated against the design variables when present).
     benchmark: Optional[BenchmarkConfig] = None
@@ -287,7 +315,7 @@ class MoboConfig:
         """Cross-field rules not expressible as field schema rules."""
         for section in [*self.design_variables, *self.objectives, self.constraints,
                         *self.sensitivity_profiles.values(), self.execution, self.model, self.campaign,
-                        self.tracking, *self.scalarized_cases.values(),
+                        self.tracking, self.simulation, *self.scalarized_cases.values(),
                         *([self.benchmark] if self.benchmark is not None else [])]:
             section.check_relations()
         for kind, names in (("design variable name", [dv.name for dv in self.design_variables]),
@@ -385,12 +413,15 @@ FIELD_RULES = {
     "ConstraintsConfig": {attribute: rule for channel in DIAGNOSTIC_CHANNELS
                           for attribute, _, rule in channel.bound_fields()},
     "TrackingConfig": {"z_stop_m": {"exclusiveMinimum": 0}, "z_loss_tolerance_m": {"minimum": 0}},
+    "SimulationConfig": {"template_dir": {"minLength": 1}, "input_template": {"minLength": 1},
+                         "static_files": {"uniqueItems": True, "items": {"type": "string", "minLength": 1}},
+                         "executable": {"minLength": 1}},
     "ExecutionConfig": {
         **{name: {"minimum": 1} for name in ("timeout_sec", "max_workers", "acqf_num_restarts", "acqf_raw_samples", "acqf_maxiter", "acqf_batch_limit")},
         "retries": {"minimum": 0},
         "reporting_reference_offset": {"minimum": 0}, "acquisition_reference_offset": {"minimum": 0},
         "acquisition_reference_basis": {"enum": ["all_valid", "feasible"]},
-        "template_dir": {"minLength": 1},
+
         "retry_statuses": {"uniqueItems": True, "items": {"type": "string", "enum": [
             status.value for status in SimulationStatus if status is not SimulationStatus.SUCCESS]}},
     },
@@ -630,6 +661,7 @@ def load_config(config_path: Optional[Union[str, Path]] = None) -> MoboConfig:
     if not isinstance(data, dict):
         raise ValueError(f"Configuration at {path} must contain a top-level dictionary.")
     config = config_from_dict(data, default_name=path.stem)
+    config.simulation = config.simulation.resolved_against(path.parent)
     config.source_path = path  # provenance: a declared non-field attribute, never serialized
     return config
 
@@ -638,6 +670,7 @@ def migrate_legacy_layout(data: Dict[str, Any]) -> Dict[str, Any]:
     """Map earlier saved layouts onto the current one (input is not modified).
 
     - ``execution.z_stop_m``/``z_loss_tolerance_m`` moved to the ``tracking`` section.
+    - ``execution.template_dir`` moved to ``simulation.template_dir``.
     - A ``sensitivity_profiles.nominal`` entry identical to ``constraints`` is dropped
       (the nominal profile *is* the top-level constraints); a differing one is rejected.
     """
@@ -651,6 +684,10 @@ def migrate_legacy_layout(data: Dict[str, Any]) -> Dict[str, Any]:
                 if name in tracking and tracking[name] != value:
                     raise ValueError(f"Conflicting execution.{name} and tracking.{name}.")
                 tracking[name] = value
+    if isinstance(execution, dict) and "template_dir" in execution:
+        template = execution.pop("template_dir")
+        if template is not None:
+            data.setdefault("simulation", {}).setdefault("template_dir", template)
     profiles = data.get("sensitivity_profiles")
     if isinstance(profiles, dict) and "nominal" in profiles:
         defaults = {attribute: default for channel in DIAGNOSTIC_CHANNELS for attribute, default, _ in channel.bound_fields()}
@@ -685,6 +722,7 @@ def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") ->
         scalarized_cases={case_id: ScalarizedCaseConfig(**case)
                           for case_id, case in (data.get("scalarized_cases") or {}).items()},
         tracking=TrackingConfig(**(data.get("tracking") or {})),
+        simulation=SimulationConfig(**(data.get("simulation") or {})),
         benchmark=optional("benchmark", BenchmarkConfig),
         perturbations=data.get("perturbations"),
     )

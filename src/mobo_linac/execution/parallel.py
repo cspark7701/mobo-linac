@@ -35,7 +35,6 @@ class WorkerTask:
     run_id: str
     base_results_dir: str
     template_dir: str
-    template_in: str = "astra.in"
     timeout: int = 30
     retries: int = 0
     clean_on_success: bool = False
@@ -69,6 +68,8 @@ def failure_result(task: WorkerTask, status: SimulationStatus, error: str, *, at
 
 def run_worker_task(task: WorkerTask) -> Dict[str, Any]:
     """Evaluate one candidate with category-aware retries (only infrastructure outcomes retry)."""
+    from mobo_linac.config import config_from_dict
+    config = config_from_dict(task.config)  # the serialized configuration is converted once per task
     retry_statuses = task.retry_statuses()
     max_attempts = task.retries + 1
     history: List[Dict[str, Any]] = []
@@ -79,8 +80,8 @@ def run_worker_task(task: WorkerTask) -> Dict[str, Any]:
             res = run_astra_eval(
                 parameters=task.parameters, run_id=task.run_id, eval_id=task.eval_id,
                 base_results_dir=task.base_results_dir, template_dir=task.template_dir,
-                template_in=task.template_in, timeout=task.timeout, clean_on_success=task.clean_on_success,
-                use_symlinks=task.use_symlinks, config=task.config, attempt_id=attempt_id, retry_index=attempt - 1,
+                timeout=task.timeout, clean_on_success=task.clean_on_success,
+                use_symlinks=task.use_symlinks, config=config, attempt_id=attempt_id, retry_index=attempt - 1,
                 namelist_overrides=task.request.get("namelist_overrides"),
                 source_settings=task.request.get("source_settings") or {},
                 request_metadata=task.request.get("metadata") or {},
@@ -125,7 +126,6 @@ class ProcessPoolEvaluator:
         config,
         base_results_dir: Union[str, Path] = "results",
         template_dir: Optional[Union[str, Path]] = None,
-        template_in: str = "astra.in",
         max_workers: Optional[int] = None,
         timeout: Optional[int] = None,
         retries: Optional[int] = None,
@@ -143,7 +143,6 @@ class ProcessPoolEvaluator:
         self.config = config
         self.base_results_dir = Path(base_results_dir)
         self.template_dir = Path(template_dir).resolve() if template_dir is not None else resolve_template_dir(config)
-        self.template_in = template_in
         self.max_workers = _positive_int("max_workers", max_workers if max_workers is not None
                                          else min(execution.max_workers, os.cpu_count() or 1))
         self.timeout = _positive_int("timeout", execution.timeout_sec if timeout is None else timeout)
@@ -178,7 +177,7 @@ class ProcessPoolEvaluator:
         config = asdict(self.config)
         return [WorkerTask(candidate_idx=index, request=request.to_dict(), run_id=run_id,
                            base_results_dir=str(self.base_results_dir), template_dir=str(self.template_dir),
-                           template_in=self.template_in, timeout=self.timeout, retries=self.retries,
+                           timeout=self.timeout, retries=self.retries,
                            clean_on_success=self.clean_on_success, use_symlinks=self.use_symlinks, config=config)
                 for index, request in enumerate(requests)]
 

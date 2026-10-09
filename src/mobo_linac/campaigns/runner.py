@@ -223,6 +223,11 @@ class MoboCampaignRunner:
             raise FileNotFoundError(f"No valid checkpoint found to resume at '{target}'")
         if not self._config_explicit:
             self.config = config_from_dict(checkpoint.config)
+            if self.config.simulation.template_dir is None:
+                # Archived checkpoints predate the simulation section: take the code inputs
+                # (not the scientific settings) from the default configuration.
+                self.config.simulation = load_config().simulation
+                logger.warning("Checkpoint configuration lacks simulation paths; using the default configuration's.")
         weights = None if self.overrides.scalar_weights is None else list(self.overrides.scalar_weights)
         state = prepare_resume_state(checkpoint, self.config, weights)
         if state.campaign.run_id != self.run_dir.name:
@@ -398,7 +403,8 @@ class CampaignLoop:
             atomic_json(self.run_dir / "config_source.json", {
                 "resolved_path": str(runner.config_path) if runner.config_path else None,
                 "source": "file" if runner.config_path else "in_memory",
-                "template_dir": str(resolve_template_dir(self.config))})
+                "template_dir": self.config.simulation.template_dir,
+                "executable": self.config.simulation.executable})
 
     def restore(self) -> int:
         """Adopt a completed checkpoint's loop state; returns the first iteration to run."""

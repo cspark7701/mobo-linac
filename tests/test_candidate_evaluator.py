@@ -216,7 +216,8 @@ def test_lattice_override_is_recorded_without_claiming_original_jitter(sample_ca
     evaluator = RobustnessEvaluator(config=config, base_output_dir=tmp_path)
     tasks = evaluator.generate_evaluation_plan([sample_candidate], num_perturbations=1)
     tasks[0].namelist_overrides = {'solenoid:maxb(2)': 0.7}
-    manifest = evaluator.evaluate_plan_parallel(tasks)[0].execution_details['manifest']
+    from mobo_linac.astra.workdir import read_evaluation_manifest
+    manifest = read_evaluation_manifest(evaluator.evaluate_plan_parallel(tasks)[0].execution_details['manifest_path'])
     assert manifest['applied_namelist_values']['solenoid:maxb(2)'] == 0.7
     assert manifest['requested_perturbations']['solenoid_field_relative_error'] != 0
     assert 'solenoid_field_relative_error' not in manifest['applied_perturbations']

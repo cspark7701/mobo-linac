@@ -179,13 +179,13 @@ Current implementation
 - Full-chain photocathode & laser jitter robustness modeling (7 physical noise channels)
 - Atomic POSIX crash-proof checkpoint serialization (`mobo_linac.io.durable`)
 - Centralized publication-grade LaTeX reporting module (`mobo_linac.metrics.latex`)
-- Automated environment fallback resolution for integrated ASTRA executables (`./bin/astra`)
+- Configuration-driven ASTRA executable and template resolution (`simulation:` section; `./bin/astra` by default)
 
 ---
 
 # Execution & Environment Architecture
 
-- **ASTRA Binaries**: Pre-bundled local executables stored under `./bin/` (`astra`, `generator`, `PAstra`). `mobo_linac.astra.runner` dynamically detects `$PROJECT_ROOT/bin/astra` with fallback support for custom `$ASTRA_BIN` environment variables.
+- **ASTRA Binaries**: Pre-bundled local executables stored under `./bin/` (`astra`, `generator`, `PAstra`). The configuration's `simulation:` section names the executable, template directory, input template and static files; `mobo_linac.astra.runner` resolves the executable from `simulation.executable`, then `$ASTRA_BIN`, then `PATH`, without modifying the environment.
 - **Python Dependencies**: Package specified in `pyproject.toml` using PEP 508 direct Git dependencies for `lume-astra` (`git+https://github.com/ChristopherMayes/lume-astra.git`).
 
 ---

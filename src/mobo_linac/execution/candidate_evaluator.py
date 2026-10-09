@@ -108,9 +108,7 @@ class CandidateEvaluatorBase(ABC):
         num_workers: int = 1,
         timeout: int = 30,
         template_dir: Optional[Union[str, Path]] = None,
-        template_in: str = "astra.in",
     ):
-        from mobo_linac.astra.runner import resolve_template_dir
         if not isinstance(config, MoboConfig):
             raise TypeError("Candidate evaluation requires the campaign MoboConfig.")
         self.config = config
@@ -121,8 +119,8 @@ class CandidateEvaluatorBase(ABC):
         self.base_output_dir = Path(base_output_dir)
         self.num_workers = num_workers
         self.timeout = timeout
-        self.template_dir = Path(template_dir).resolve() if template_dir is not None else resolve_template_dir(config)
-        self.template_in = template_in
+        # None: the configured simulation.template_dir, resolved when the ASTRA backend is built.
+        self.template_dir = Path(template_dir).resolve() if template_dir is not None else None
 
     @abstractmethod
     def generate_evaluation_plan(
@@ -143,7 +141,7 @@ class CandidateEvaluatorBase(ABC):
     def default_evaluator(self) -> ProcessPoolEvaluator:
         """The production ASTRA backend for this study's settings."""
         return ProcessPoolEvaluator(self.config, base_results_dir=self.base_output_dir, template_dir=self.template_dir,
-                                    template_in=self.template_in, max_workers=self.num_workers, timeout=self.timeout)
+                                    max_workers=self.num_workers, timeout=self.timeout)
 
     def evaluate_plan_parallel(
         self,

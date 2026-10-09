@@ -10,17 +10,10 @@ import json
 import shutil
 import uuid
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Union
+from typing import Any, Dict, List, Optional, Sequence, Union
 
 from mobo_linac.io.durable import fsync_dir, snapshot_file, write_once_json  # noqa: F401  (re-exported)
 
-
-DEFAULT_STATIC_FILES = [
-    "gun.dat",
-    "PAL_SOL_A.dat",
-    "TWS_Sband.dat",
-    "pal_photo2.ini",
-]
 
 DEFAULT_TEMPLATE_IN = "astra.in"
 
@@ -123,7 +116,7 @@ class AstraWorkDirManager:
         self,
         run_id: str,
         eval_id: Union[int, str],
-        static_files: Optional[List[str]] = None,
+        static_files: Sequence[str] = (),
         template_in: str = DEFAULT_TEMPLATE_IN,
         use_symlinks: bool = False,
         attempt_id: Optional[str] = None,
@@ -134,7 +127,7 @@ class AstraWorkDirManager:
         Args:
             run_id: Unique identifier for the run.
             eval_id: Identifier for the evaluation.
-            static_files: List of static dependency files to copy/symlink.
+            static_files: Static dependency files (``simulation.static_files``) to copy/symlink.
             template_in: Name or relative path of template ASTRA input file.
             use_symlinks: If True, create symlinks for static files. astra.in is ALWAYS copied.
             attempt_id: Optional attempt directory beneath the logical evaluation directory.
@@ -148,7 +141,7 @@ class AstraWorkDirManager:
             eval_dir = eval_dir / attempt_id
         eval_dir.mkdir(parents=True, exist_ok=False)
 
-        files_to_copy = static_files if static_files is not None else DEFAULT_STATIC_FILES
+        files_to_copy = list(static_files)
 
         # Copy static dependencies (field maps, initial distribution, etc.)
         for file_name in files_to_copy:

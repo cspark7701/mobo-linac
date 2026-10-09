@@ -31,7 +31,7 @@ def evaluate_candidates(candidates, run_id, max_workers, base_results_dir, templ
         return evaluator.evaluate(requests_for(candidates, eval_ids), run_id=run_id, on_complete=on_complete)
 
 
-def worker_task(parameters, run_id, eval_id, base_results_dir, template_dir, retries=0, config=None,
+def worker_task(parameters, run_id, eval_id, base_results_dir, template_dir, retries=0, config=TEST_CONFIG,
                 clean_on_success=False):
     return WorkerTask(candidate_idx=0, request=EvaluationRequest(eval_id, list(parameters)).to_dict(),
                       run_id=run_id, base_results_dir=str(base_results_dir), template_dir=str(template_dir),

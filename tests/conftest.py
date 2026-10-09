@@ -120,14 +120,13 @@ def recording_astra_project(tmp_path, monkeypatch):
     """A recording simulator with the real template and disposable fake field files."""
     import json
     import os
-    from mobo_linac.astra.workdir import DEFAULT_STATIC_FILES
     from mobo_linac.config import load_config
 
     project = tmp_path / 'template'
     project.mkdir()
     template = Path(__file__).resolve().parents[1] / 'astra.in'
     (project / 'astra.in').write_bytes(template.read_bytes())
-    for name in DEFAULT_STATIC_FILES:
+    for name in load_config('configs/mobo_200MeV.yaml').simulation.static_files:
         (project / name).write_text('fixed input bytes')
     executable = project / 'stub_astra'
     executable.write_bytes(b'recording executable')
@@ -161,7 +160,7 @@ def recording_astra_project(tmp_path, monkeypatch):
     config.design_variables[0].astra_key = 'solenoid:maxb(2)'
     config.design_variables[4].coupled_targets = ['cavity:phi(2)', 'cavity:phi(6)']
     config.execution.clean_on_success = True
-    config.execution.template_dir = str(project)  # inputs come from configuration, not the cwd
+    config.simulation.template_dir = str(project)  # inputs come from configuration, not the cwd
     return project, config
 
 
