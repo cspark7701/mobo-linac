@@ -63,8 +63,7 @@ def parse_args():
         "--case",
         type=str,
         default=None,
-        choices=["all", "balanced", "high_brightness", "low_energy_spread", "x_dominant", "y_dominant"],
-        help="Option 2 case to run ('all' runs entire suite)",
+        help="Configured scalarized case id ('all' runs every configured case)",
     )
     parser.add_argument(
         "--resume",

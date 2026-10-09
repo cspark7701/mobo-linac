@@ -1,20 +1,13 @@
 """
 Scalarized Multi-Weight Suite Module for mobo_linac.
 
-Implements Option 2: Representative Operational Linac Archetypes for Phase 1 Scalarized BO:
-1. Balanced Linac Operation (equal weighting across transverse and longitudinal)
-2. High-Brightness FEL Injector Mode (transverse emittance priority)
-3. Low Energy Spread Mode (longitudinal energy spread priority)
-4. Horizontal-Dominant Optics (quadrupole doublet horizontal waist focus)
-5. Vertical-Dominant Optics (quadrupole doublet vertical waist focus)
-
-Provides suite execution, per-case orchestration, multi-case result aggregation,
-and publication LaTeX table generation.
+Runs the configured Phase 1 weighted-sum cases (``scalarized_cases`` in the
+configuration), aggregates their measured histories, and exports the case table.
+Each case's seed is the base seed plus its configured ``seed_offset``, so a case gives
+the same result whether it runs alone or within the full suite.
 """
 
-from collections import OrderedDict
 import json
-import os
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -23,9 +16,9 @@ import pandas as pd
 import torch
 
 from mobo_linac.campaigns.runner import MoboCampaignRunner
-from mobo_linac.config import config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
-from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
-from mobo_linac.io.results import load_evaluation_results, get_train_tensors, results_to_dataframe
+from mobo_linac.config import MoboConfig, config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
+from mobo_linac.io.artifacts import RunArtifactWriter, atomic_json, validate_run_completion
+from mobo_linac.io.results import get_train_tensors, load_evaluation_results, load_run_checkpoint, results_to_dataframe
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
 from mobo_linac.metrics.reporting import validate_campaign_compatibility
 
@@ -33,72 +26,33 @@ from mobo_linac.utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Canonical Option 2 Weight Cases
-OPTION_2_CASES: OrderedDict[str, Dict[str, Any]] = OrderedDict([
-    (
-        "balanced",
-        {
-            "name": "Balanced Linac Operation",
-            "weights": [0.33333333, 0.33333333, 0.33333334],
-            "description": "Equal compromise across transverse emittance and energy spread",
-            "symbol": r"w_{\mathrm{bal}} = [\frac{1}{3},\,\frac{1}{3},\,\frac{1}{3}]",
-        },
-    ),
-    (
-        "high_brightness",
-        {
-            "name": "High-Brightness FEL Mode",
-            "weights": [0.45, 0.45, 0.10],
-            "description": "Transverse-dominant emittance minimization for maximum FEL peak brightness",
-            "symbol": r"w_{\mathrm{FEL}} = [0.45,\,0.45,\,0.10]",
-        },
-    ),
-    (
-        "low_energy_spread",
-        {
-            "name": "Low Energy Spread Mode",
-            "weights": [0.10, 0.10, 0.80],
-            "description": "Longitudinal-dominant energy spread minimization for spectrometer transport",
-            "symbol": r"w_{\sigma_E} = [0.10,\,0.10,\,0.80]",
-        },
-    ),
-    (
-        "x_dominant",
-        {
-            "name": "Horizontal-Dominant Optics",
-            "weights": [0.60, 0.20, 0.20],
-            "description": "Quadrupole doublet asymmetry prioritizing horizontal emittance waist",
-            "symbol": r"w_{x} = [0.60,\,0.20,\,0.20]",
-        },
-    ),
-    (
-        "y_dominant",
-        {
-            "name": "Vertical-Dominant Optics",
-            "weights": [0.20, 0.60, 0.20],
-            "description": "Quadrupole doublet asymmetry prioritizing vertical emittance waist",
-            "symbol": r"w_{y} = [0.20,\,0.60,\,0.20]",
-        },
-    ),
-])
+SEED_POLICIES = ("case_offset", "legacy_subset_index")
 
 
-def get_option2_cases() -> Dict[str, Dict[str, Any]]:
-    """Returns dictionary of all Option 2 weight cases."""
-    return dict(OPTION_2_CASES)
+def get_scalarized_case(config: MoboConfig, case_id: str):
+    """Configured scalarization case by id."""
+    if case_id not in config.scalarized_cases:
+        raise ValueError(f"Unknown scalarized case '{case_id}'. Configured cases: {list(config.scalarized_cases)}")
+    case = config.scalarized_cases[case_id]
+    normalize_scalar_weights(case.weights, len(config.objectives))
+    return case
 
 
-def get_option2_case(case_name: str) -> Dict[str, Any]:
-    """
-    Returns specific Option 2 case configuration by key.
-    
-    Raises:
-        ValueError: If case_name is not recognised.
-    """
-    if case_name not in OPTION_2_CASES:
-        valid_keys = list(OPTION_2_CASES.keys())
-        raise ValueError(f"Unknown Option 2 case '{case_name}'. Valid cases: {valid_keys}")
-    return OPTION_2_CASES[case_name]
+def case_seed(config: MoboConfig, case_id: str, base_seed: int, position: int, policy: str = "case_offset") -> int:
+    """Seed for a case: stable configured offset, or the archived subset-position rule."""
+    if policy not in SEED_POLICIES:
+        raise ValueError(f"Unsupported suite seed policy: {policy}")
+    if policy == "legacy_subset_index":
+        return base_seed + 100 * position
+    return base_seed + get_scalarized_case(config, case_id).seed_offset
+
+
+def _recorded_case(path: Path) -> Tuple[List[float], int]:
+    """Weights and seed recorded by the case's own campaign checkpoint."""
+    checkpoint = load_run_checkpoint(path)
+    if checkpoint is None or checkpoint.scalar_weights is None or checkpoint.seed is None:
+        raise ValueError(f"Scalarized case {path} lacks recorded weights/seed; it cannot be aggregated.")
+    return [float(w) for w in checkpoint.scalar_weights], int(checkpoint.seed)
 
 
 def aggregate_scalarized_cases(
@@ -106,54 +60,27 @@ def aggregate_scalarized_cases(
     case_dirs: Optional[Sequence[Union[str, Path]]] = None,
 ) -> Dict[str, Any]:
     """
-    Aggregates results from multiple scalarized BO cases into a unified dataset.
-    
-    Produces in base_dir:
-      - cases_summary.csv / cases_summary.json (per-case summary statistics)
-      - evaluations.csv / candidate_history.csv (merged evaluations across cases)
-      - train_X.csv / train_Y.csv (merged training matrices)
-      - pareto.csv / pareto_all.csv / pareto_feasible.csv (global Pareto front across all cases)
-      - hypervolume.csv (cumulative hypervolume trajectory)
+    Aggregate completed scalarized cases into one dataset.
 
-    Args:
-        base_dir: Root directory for the Phase 1 scalarized suite.
-        case_dirs: Optional list of explicit case directories. If None, auto-discovers
-                   child directories corresponding to OPTION_2_CASES or containing evaluations.csv.
-
-    Returns:
-        Dict containing aggregated summary statistics and record counts.
+    Produces in base_dir: ``cases_summary.csv/json`` (weights and seeds read from each
+    case's checkpoint), merged histories, Pareto fronts, and ``hypervolume.csv`` with one
+    row per case boundary: the union of all cases' observations up to and including that
+    case, against the shared recorded reporting reference.
     """
     base_path = Path(base_dir)
     base_path.mkdir(parents=True, exist_ok=True)
 
-    # 1. Discover subdirectories to aggregate
-    discovered_dirs: List[Tuple[str, Path]] = []
     if case_dirs is not None:
-        for p in case_dirs:
-            p_path = Path(p)
-            if p_path.is_dir():
-                discovered_dirs.append((p_path.name, p_path))
+        discovered = [(Path(p).name, Path(p)) for p in case_dirs if Path(p).is_dir()]
     else:
-        # Check canonical Option 2 case names first
-        for case_key in OPTION_2_CASES.keys():
-            candidate = base_path / case_key
-            if candidate.is_dir() and (candidate / "evaluations.csv").exists():
-                discovered_dirs.append((case_key, candidate))
-
-        # Check for any other subdirectories containing evaluations.csv
-        for sub in sorted(base_path.iterdir()):
-            if sub.is_dir() and sub.name not in [k for k, _ in discovered_dirs]:
-                if (sub / "evaluations.csv").exists():
-                    discovered_dirs.append((sub.name, sub))
-
-    if not discovered_dirs:
-        # If no subdirectories found but base_dir itself has evaluations.csv, treat base_dir as a single case
-        if (base_path / "evaluations.csv").exists():
-            discovered_dirs.append(("balanced", base_path))
+        discovered = [(sub.name, sub) for sub in sorted(base_path.iterdir())
+                      if sub.is_dir() and (sub / "evaluations.csv").exists()]
+        if not discovered and (base_path / "evaluations.csv").exists():
+            discovered = [(base_path.name, base_path)]
 
     convention = None
     aggregate_config = None
-    for _, path in discovered_dirs:
+    for _, path in discovered:
         meta_path = path / "reporting_metadata.json"
         if not meta_path.exists():
             raise ValueError("Scalarized aggregation requires explicit reporting metadata; archived runs are not inferred.")
@@ -166,94 +93,67 @@ def aggregate_scalarized_cases(
         convention = meta
         if aggregate_config is None:
             aggregate_config = config_from_dict(json.loads((path / "config.json").read_text()))
+    if aggregate_config is not None:
+        # Configured case order first, then any additional recorded cases.
+        order = {case_id: index for index, case_id in enumerate(aggregate_config.scalarized_cases)}
+        discovered.sort(key=lambda item: (order.get(item[0], len(order)), item[0]))
 
+    from mobo_linac.io.run_data import read_run_data
+    from mobo_linac.metrics.publication import scalarized_case_statistics
     summary_rows = []
-    all_eval_dfs = []
-
-    for case_key, case_path in discovered_dirs:
-        eval_csv = case_path / "evaluations.csv"
-        hv_csv = case_path / "hypervolume.csv"
-
-        if not eval_csv.exists():
-            continue
-
-        from mobo_linac.io.run_data import read_run_data
-        from mobo_linac.metrics.publication import scalarized_case_statistics
+    for case_key, case_path in discovered:
         run = read_run_data(case_path)
-        df_eval = results_to_dataframe(run.results, run.config)
-        df_eval["case"] = case_key
-        all_eval_dfs.append(df_eval)
         stats = scalarized_case_statistics(run)
-        n_eval, n_valid, n_feas = stats["n_eval"], stats["n_valid"], stats["n_feas"]
-        feas_pct = stats["feas_pct"]
-        min_ex_um, min_ey_um, min_se_mev = stats["min_ex_um"], stats["min_ey_um"], stats["min_se_mev"]
-        min_ex_feas_um, min_ey_feas_um, min_se_feas_mev = stats["min_ex_feas_um"], stats["min_ey_feas_um"], stats["min_se_feas_mev"]
-        final_hv = stats["final_hv"]
-
-        case_meta = OPTION_2_CASES.get(case_key, {
-            "name": case_key.replace("_", " ").title(),
-            "weights": [1.0 / 3.0, 1.0 / 3.0, 1.0 / 3.0],
-            "description": f"Custom scalarized case: {case_key}",
-            "symbol": case_key,
-        })
-
+        weights, seed = _recorded_case(case_path)
+        case = run.config.scalarized_cases.get(case_key)
         summary_rows.append({
             "case_id": case_key,
-            "name": case_meta["name"],
-            "description": case_meta["description"],
-            "w_emit_x": float(case_meta["weights"][0]),
-            "w_emit_y": float(case_meta["weights"][1]),
-            "w_energy_spread": float(case_meta["weights"][2]),
-            "num_evaluations": n_eval,
-            "num_valid": n_valid,
-            "num_feasible": n_feas,
-            "feasible_fraction_pct": round(feas_pct, 2),
-            "min_norm_emit_x_um": round(min_ex_um, 4),
-            "min_norm_emit_y_um": round(min_ey_um, 4),
-            "min_sigma_energy_MeV": round(min_se_mev, 4),
-            "min_norm_emit_x_feas_um": round(min_ex_feas_um, 4) if not np.isnan(min_ex_feas_um) else None,
-            "min_norm_emit_y_feas_um": round(min_ey_feas_um, 4) if not np.isnan(min_ey_feas_um) else None,
-            "min_sigma_energy_feas_MeV": round(min_se_feas_mev, 4) if not np.isnan(min_se_feas_mev) else None,
-            "final_feasible_hv": round(final_hv, 6),
+            "name": case.label if case else case_key,
+            "description": case.description if case else "",
+            "weights": json.dumps(weights),
+            "seed": seed,
+            **{f"w_{obj.name}": weight for obj, weight in zip(run.config.objectives, weights)},
+            "num_evaluations": stats["n_eval"],
+            "num_valid": stats["n_valid"],
+            "num_feasible": stats["n_feas"],
+            "feasible_fraction_pct": round(stats["feas_pct"], 2),
+            "min_norm_emit_x_um": round(stats["min_ex_um"], 4),
+            "min_norm_emit_y_um": round(stats["min_ey_um"], 4),
+            "min_sigma_energy_MeV": round(stats["min_se_mev"], 4),
+            "min_norm_emit_x_feas_um": None if np.isnan(stats["min_ex_feas_um"]) else round(stats["min_ex_feas_um"], 4),
+            "min_norm_emit_y_feas_um": None if np.isnan(stats["min_ey_feas_um"]) else round(stats["min_ey_feas_um"], 4),
+            "min_sigma_energy_feas_MeV": None if np.isnan(stats["min_se_feas_mev"]) else round(stats["min_se_feas_mev"], 4),
+            "final_feasible_hv": round(stats["final_hv"], 6),
         })
 
-    # Save summary
-    df_summary = pd.DataFrame(summary_rows)
-    df_summary.to_csv(base_path / "cases_summary.csv", index=False)
-    with open(base_path / "cases_summary.json", "w", encoding="utf-8") as f:
-        json.dump(summary_rows, f, indent=2)
+    pd.DataFrame(summary_rows).to_csv(base_path / "cases_summary.csv", index=False)
+    atomic_json(base_path / "cases_summary.json", summary_rows)
 
-    # 2. Merge all evaluations
-    if all_eval_dfs:
-        records = []
-        case_labels = []
-        for case, path in discovered_dirs:
+    if discovered:
+        records, case_labels = [], []
+        tracker = HypervolumeTracker(convention["reporting_ref_point"], aggregate_config)
+        for case, path in discovered:
             loaded = load_evaluation_results(path / "evaluations.csv", aggregate_config)
             records.extend(loaded)
             case_labels.extend([case] * len(loaded))
-        tracker = HypervolumeTracker(convention["reporting_ref_point"], aggregate_config)
-        for count in range(8, len(records), 8):
-            _, y, feasible = get_train_tensors(records[:count], config=aggregate_config)
+            _, y, feasible = get_train_tensors(records, config=aggregate_config)
             tracker.track_iteration(len(tracker.history), y, feasible)
-        _, y, feasible = get_train_tensors(records, config=aggregate_config)
-        tracker.track_iteration(len(tracker.history), y, feasible)
         writer = RunArtifactWriter(base_path, aggregate_config)
         writer.write(records, tracker, reference_policy="shared_suite_reference", timing_scope="unknown_aggregate_wall_time", extra_columns={"case": case_labels})
         aggregate_config.save_json(base_path / "config.json")
         aggregate_config.save_yaml(base_path / "config.yaml")
         writer.complete(len(records), None, ["config.json", "config.yaml", "cases_summary.csv", "cases_summary.json"])
 
-    agg_meta = {
+    return {
         "num_cases": len(summary_rows),
         "cases": [r["case_id"] for r in summary_rows],
         "total_evaluations": sum(r["num_evaluations"] for r in summary_rows),
         "total_feasible": sum(r["num_feasible"] for r in summary_rows),
     }
-    return agg_meta
 
 
 def export_phase1_cases_latex_table(cases_summary_path, output_path):
-    """Compatibility adapter for the shared Option 2 renderer."""
+    """Compatibility adapter for the shared case-table renderer."""
     from mobo_linac.metrics.latex import generate_phase1_cases_latex_table
     return generate_phase1_cases_latex_table(cases_summary_path, output_path)
 
@@ -272,36 +172,41 @@ def run_scalarized_suite(
     evaluator: Optional[Any] = None,
     export_paper_table_dir: Optional[Union[str, Path]] = None,
     reporting_ref_point: Optional[Sequence[float]] = None,
+    seed_policy: str = "case_offset",
 ) -> Dict[str, Any]:
     """
-    Executes the Option 2 multi-weight Phase 1 Scalarized BO suite.
+    Execute the configured scalarized cases and aggregate them.
 
     Args:
-        config: Path to ASTRA/MOBO configuration YAML.
+        config: Path to the configuration (its ``scalarized_cases`` define the suite).
         n_iterations: BO iterations per case.
         batch_size: Candidate proposal batch size q per iteration.
         num_initial_samples: Sobol initialization points per case.
         num_workers: Parallel workers for ASTRA.
-        seed: Random seed base (each case receives seed + case_index).
+        seed: Base seed; a case uses ``seed + seed_offset`` (``case_offset`` policy).
+            ``legacy_subset_index`` reproduces archived runs that used ``seed + 100 * position``.
         output_dir: Base output directory (cases saved under subdirectories).
         device: PyTorch device ('auto', 'cuda', 'cpu').
-        cases_to_run: List of case keys to run. Defaults to all keys in OPTION_2_CASES.
+        cases_to_run: Case ids to run; defaults to every configured case.
         resume: Whether to resume existing case runs from checkpoints.
-        evaluator: Optional custom evaluator (e.g. CliMockEvaluator for testing).
+        evaluator: Optional custom evaluator (e.g. a mock evaluator for testing).
         export_paper_table_dir: Optional directory to copy phase1_cases_table.tex to.
         reporting_ref_point: Optional fixed model-space reference shared by all cases.
 
     Returns:
         Aggregation metadata dictionary.
     """
-    config = load_config(config)
+    config = load_config(config) if not isinstance(config, MoboConfig) else config
     validate_campaign_options(num_initial_samples=num_initial_samples, num_batches=n_iterations,
                               batch_size=batch_size, num_workers=num_workers, seed=seed)
-    if cases_to_run and any(case not in OPTION_2_CASES for case in cases_to_run):
-        raise ValueError("Unknown scalarized suite case.")
-    for case in (cases_to_run or OPTION_2_CASES):
-        normalize_scalar_weights(OPTION_2_CASES[case]["weights"], len(config.objectives))
-    if seed + (len(cases_to_run or OPTION_2_CASES) - 1) * 100 >= 2**32:
+    if not config.scalarized_cases:
+        raise ValueError("The configuration defines no scalarized_cases.")
+    target_cases = list(cases_to_run) if cases_to_run else list(config.scalarized_cases)
+    for case_id in target_cases:
+        get_scalarized_case(config, case_id)
+    seeds = {case_id: case_seed(config, case_id, seed, position, seed_policy)
+             for position, case_id in enumerate(target_cases)}
+    if max(seeds.values()) >= 2**32:
         raise ValueError("Suite case seeds must be less than 2**32.")
     if reporting_ref_point is not None:
         ref = torch.as_tensor(reporting_ref_point, dtype=torch.double)
@@ -310,43 +215,24 @@ def run_scalarized_suite(
     base_out = Path(output_dir)
     base_out.mkdir(parents=True, exist_ok=True)
 
-    if cases_to_run is None or len(cases_to_run) == 0:
-        target_cases = list(OPTION_2_CASES.keys())
-    else:
-        target_cases = [c for c in cases_to_run if c in OPTION_2_CASES]
-        if not target_cases:
-            target_cases = list(OPTION_2_CASES.keys())
-
-    logger.info("======================================================================")
-    logger.info("  Phase 1 Option 2: Multi-Case Scalarized BO Suite")
-    logger.info("======================================================================")
-    logger.info(f"  Target Cases: {target_cases}")
-    logger.info(f"  Iterations per Case: {n_iterations} (Batch size q={batch_size})")
-    logger.info(f"  Initial Samples: {num_initial_samples}")
-    logger.info(f"  Base Output Directory: {base_out}")
-    logger.info("======================================================================\n")
+    logger.info(f"Scalarized suite cases: {target_cases} (seed policy {seed_policy}); "
+                f"{n_iterations} iterations of q={batch_size} after {num_initial_samples} initial samples; output {base_out}")
 
     shared_reference = list(reporting_ref_point) if reporting_ref_point is not None else None
-    for idx, case_key in enumerate(target_cases):
-        case_info = OPTION_2_CASES[case_key]
-        case_dir = base_out / case_key
-        case_seed = seed + idx * 100
-
-        logger.info(f"\n[{idx + 1}/{len(target_cases)}] Executing Case '{case_key}': {case_info['name']}")
-        logger.info(f"  - Weights [wx, wy, wE]: {case_info['weights']}")
-        logger.info(f"  - Output Dir: {case_dir}")
-
+    for index, case_id in enumerate(target_cases):
+        case = config.scalarized_cases[case_id]
+        logger.info(f"[{index + 1}/{len(target_cases)}] Case '{case_id}' ({case.label}): weights {case.weights}, seed {seeds[case_id]}")
         runner = MoboCampaignRunner(
             config=config,
-            run_name=f"scalarized_{case_key}",
-            output_dir=case_dir,
+            run_name=f"scalarized_{case_id}",
+            output_dir=base_out / case_id,
             num_initial_samples=num_initial_samples,
             num_batches=n_iterations,
             batch_size=batch_size,
             num_workers=num_workers,
-            seed=case_seed,
+            seed=seeds[case_id],
             optimization_mode="scalarized_bo",
-            scalar_weights=case_info["weights"],
+            scalar_weights=case.weights,
             reporting_ref_point=shared_reference,
             resume=resume,
             export_plots=True,
@@ -357,18 +243,11 @@ def run_scalarized_suite(
         if shared_reference is None:
             shared_reference = tracker.reporting_ref_point.tolist()
 
-    # Aggregate all completed cases into root base_out
-    logger.info("\n[Aggregating Option 2 Results across all cases...]")
     agg_meta = aggregate_scalarized_cases(base_out)
-    logger.info(f"  ✓ Aggregated {agg_meta['num_cases']} cases -> Total {agg_meta['total_evaluations']} evaluations")
-
-    # Export local LaTeX table within base_out run directory
-    local_tab = base_out / "phase1_cases_table.tex"
-    export_phase1_cases_latex_table(base_out / "cases_summary.csv", local_tab)
-
+    logger.info(f"Aggregated {agg_meta['num_cases']} cases -> {agg_meta['total_evaluations']} evaluations")
+    export_phase1_cases_latex_table(base_out / "cases_summary.csv", base_out / "phase1_cases_table.tex")
     if export_paper_table_dir is not None:
         paper_tab = Path(export_paper_table_dir) / "phase1_cases_table.tex"
         export_phase1_cases_latex_table(base_out / "cases_summary.csv", paper_tab)
-        logger.info(f"  ✓ Exported LaTeX summary table to {paper_tab}")
-
+        logger.info(f"Exported LaTeX summary table to {paper_tab}")
     return agg_meta

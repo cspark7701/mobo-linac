@@ -93,3 +93,37 @@ execution:
   acqf_num_restarts: 10
   acqf_maxiter: 200
   acqf_batch_limit: 5
+
+# Phase 1 weighted-sum cases (weights in objective order: emit_x, emit_y, sigma_E).
+# seed_offset keeps each case's seed stable regardless of which cases are run.
+scalarized_cases:
+  balanced:
+    label: "Balanced Linac Operation"
+    weights: [0.33333333, 0.33333333, 0.33333334]
+    seed_offset: 0
+    description: "Equal compromise across transverse emittance and energy spread"
+    symbol: "w_{\\mathrm{bal}} = [\\frac{1}{3},\\,\\frac{1}{3},\\,\\frac{1}{3}]"
+  high_brightness:
+    label: "High-Brightness FEL Mode"
+    weights: [0.45, 0.45, 0.10]
+    seed_offset: 100
+    description: "Transverse-dominant emittance minimization for maximum FEL peak brightness"
+    symbol: "w_{\\mathrm{FEL}} = [0.45,\\,0.45,\\,0.10]"
+  low_energy_spread:
+    label: "Low Energy Spread Mode"
+    weights: [0.10, 0.10, 0.80]
+    seed_offset: 200
+    description: "Longitudinal-dominant energy spread minimization for spectrometer transport"
+    symbol: "w_{\\sigma_E} = [0.10,\\,0.10,\\,0.80]"
+  x_dominant:
+    label: "Horizontal-Dominant Optics"
+    weights: [0.60, 0.20, 0.20]
+    seed_offset: 300
+    description: "Quadrupole doublet asymmetry prioritizing horizontal emittance waist"
+    symbol: "w_{x} = [0.60,\\,0.20,\\,0.20]"
+  y_dominant:
+    label: "Vertical-Dominant Optics"
+    weights: [0.20, 0.60, 0.20]
+    seed_offset: 400
+    description: "Quadrupole doublet asymmetry prioritizing vertical emittance waist"
+    symbol: "w_{y} = [0.20,\\,0.60,\\,0.20]"

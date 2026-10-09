@@ -1,23 +1,19 @@
 #!/usr/bin/env python3
 """
-Phase 1: Option 2 Multi-Case Scalarized BO Suite Runner.
+Phase 1: Multi-Case Scalarized BO Suite Runner.
 
-Executes representative operational linac archetypes for the 200 MeV electron injector linac:
-  1. balanced:          [1/3, 1/3, 1/3]
-  2. high_brightness:   [0.45, 0.45, 0.10]
-  3. low_energy_spread: [0.10, 0.10, 0.80]
-  4. x_dominant:        [0.60, 0.20, 0.20]
-  5. y_dominant:        [0.20, 0.60, 0.20]
-
-Aggregates individual case runs into unified candidate history, non-dominated Pareto front,
-and cumulative hypervolume progression, exporting publication LaTeX summary tables.
+Runs the weighted-sum cases defined under ``scalarized_cases`` in the configuration
+(for the 200 MeV configs: balanced, high_brightness, low_energy_spread, x_dominant,
+y_dominant). Each case uses ``seed + seed_offset``, so its result does not depend on
+which other cases are selected. Aggregates the cases into a unified history, Pareto
+front and per-case hypervolume progression, and exports the LaTeX summary table.
 """
 
 import argparse
 from pathlib import Path
 import sys
 
-from mobo_linac.campaigns.scalarized_suite import OPTION_2_CASES, run_scalarized_suite
+from mobo_linac.campaigns.scalarized_suite import run_scalarized_suite
 
 
 def parse_args():
@@ -59,8 +55,7 @@ def parse_args():
         "--cases",
         nargs="*",
         default=None,
-        choices=list(OPTION_2_CASES.keys()) + ["all"],
-        help="Subset of Option 2 cases to run (default: all)",
+        help="Subset of configured scalarized case ids to run, or 'all' (default: all)",
     )
     parser.add_argument(
         "--seed",

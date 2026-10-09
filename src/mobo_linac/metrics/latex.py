@@ -7,6 +7,7 @@ Provides standard publication-grade LaTeX table generators for:
   - Robustness and Sensitivity Summary (Feasibility probability, robust scores)
 """
 
+import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
 import numpy as np
@@ -347,10 +348,11 @@ def generate_phase1_cases_latex_table(
         case_id = str(row["case_id"])
         case_id_tex = escape_latex(case_id)
         name = escape_latex(row["name"])
-        wx = float(row["w_emit_x"])
-        wy = float(row["w_emit_y"])
-        we = float(row["w_energy_spread"])
-        w_str = f"$[{wx:.2f}, {wy:.2f}, {we:.2f}]$"
+        if "weights" in row and isinstance(row["weights"], str):
+            weights = [float(w) for w in json.loads(row["weights"])]  # recorded per case
+        else:
+            weights = [float(row[name]) for name in ("w_emit_x", "w_emit_y", "w_energy_spread")]  # archived summaries
+        w_str = "$[" + ", ".join(f"{w:.2f}" for w in weights) + "]$"
         n_eval = int(row["num_evaluations"])
         feas_str = f"{int(row['num_feasible'])} ({float(row['feasible_fraction_pct']):.1f}\\%)"
         min_ex = f"{float(row['min_norm_emit_x_um']):.4f}" if pd.notna(row['min_norm_emit_x_um']) else "-"

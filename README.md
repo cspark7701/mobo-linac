@@ -367,7 +367,9 @@ iterations and retries can be zero. Exit-plane distance must be positive and its
 tolerance nonnegative. Scalar weights follow configured objective order and must be
 finite, nonnegative, have matching dimensions, and contain a positive value; normalization
 handles very large finite weights without overflow. The scalarized CLI accepts any
-configured objective count; the predefined Option 2 suite still requires three objectives.
+configured objective count. Suite cases are configuration data (`scalarized_cases`: label,
+weights in objective order, stable `seed_offset`); a case's seed is `seed + seed_offset`, so it is
+identical whether the case runs alone or in the full suite.
 `qLogNEI` belongs to scalarized BO; scalarized BO does not support `constrained=True`.
 
 Runner and CLI preflight rejects invalid settings before creating campaign output or

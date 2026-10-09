@@ -253,6 +253,20 @@ class BenchmarkConfig:
 
 
 @dataclass
+class ScalarizedCaseConfig:
+    """One weighted-sum scalarization case of the Phase 1 suite."""
+
+    label: str
+    weights: List[float]
+    seed_offset: int
+    description: str = ""
+    symbol: Optional[str] = None
+
+    def validate(self) -> None:
+        _validate_fields(self)
+
+
+@dataclass
 class MoboConfig:
     """Master configuration container for linac optimization."""
 
@@ -265,6 +279,9 @@ class MoboConfig:
     sensitivity_profiles: Dict[str, ConstraintsConfig] = field(default_factory=dict)
     execution: ExecutionConfig = field(default_factory=ExecutionConfig)
     model: GpModelConfig = field(default_factory=GpModelConfig)
+    # Named scalarization cases (weights in configured objective order); the suite seed of a
+    # case is the base seed plus its stable seed_offset, independent of the cases selected.
+    scalarized_cases: Dict[str, ScalarizedCaseConfig] = field(default_factory=dict)
 
     def validate(self) -> None:
         """Validate entire configuration system."""
@@ -302,6 +319,14 @@ class MoboConfig:
         self.model.validate()
         if self.model.objective_noise_variances is not None and len(self.model.objective_noise_variances) != len(self.objectives):
             raise ValueError("objective_noise_variances must match the configured objective count.")
+        offsets = set()
+        for case_id, case in self.scalarized_cases.items():
+            if not re.fullmatch(_IDENTIFIER, case_id):
+                raise ValueError(f"Scalarized case id '{case_id}' must be an identifier.")
+            case.validate()  # weight count is checked against objectives when a case is used
+            if case.seed_offset in offsets:
+                raise ValueError(f"Scalarized case '{case_id}' reuses a seed_offset.")
+            offsets.add(case.seed_offset)
         _validate_fields(self)
 
     def get_constraint_profile(self, profile_name: str = "nominal") -> ConstraintsConfig:
@@ -386,6 +411,10 @@ FIELD_RULES = {
         **{name: {"minimum": 1} for name in ("total_eval_budget", "n_sobol_init", "batch_size")},
         "reporting_ref_point": {"minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}},
         "constraint_profile": {"minLength": 1}, "output_dir": {"minLength": 1},
+    },
+    "ScalarizedCaseConfig": {
+        "label": {"minLength": 1}, "seed_offset": {"minimum": 0},
+        "weights": {"minItems": 1, "items": {"type": "number", "minimum": 0}},
     },
     "MoboConfig": {"version": {"minLength": 1}, "design_variables": {"minItems": 1}, "objectives": {"minItems": 1}},
 }
@@ -618,6 +647,7 @@ def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") ->
         for pname, pdata in data["sensitivity_profiles"].items():
             sens_profiles[pname] = ConstraintsConfig(**pdata)
 
+    cases = {case_id: ScalarizedCaseConfig(**case) for case_id, case in (data.get("scalarized_cases") or {}).items()}
     execution = ExecutionConfig(**data.get("execution", {}))
     model_cfg = GpModelConfig(**data.get("model", {}))
 
@@ -631,6 +661,7 @@ def config_from_dict(data: Dict[str, Any], default_name: str = "mobo_200MeV") ->
         sensitivity_profiles=sens_profiles,
         execution=execution,
         model=model_cfg,
+        scalarized_cases=cases,
     )
     config.validate()
     return config

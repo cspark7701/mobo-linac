@@ -118,14 +118,14 @@ def run_scalarized(args: argparse.Namespace) -> None:
         return run_scalarized_suite_cmd(args)
 
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.campaigns.scalarized_suite import OPTION_2_CASES
+    from mobo_linac.campaigns.scalarized_suite import get_scalarized_case
 
     config = _validated_config(args, optimization_mode="scalarized_bo")
     config_path = config.resolved_path
 
-    weights = getattr(args, "weights", [1.0, 1.0, 1.0])
-    if case and case in OPTION_2_CASES:
-        weights = OPTION_2_CASES[case]["weights"]
+    weights = getattr(args, "weights", None)
+    if case:
+        weights = get_scalarized_case(config, case).weights
 
     normalize_scalar_weights(weights, len(config.objectives))
 
@@ -167,7 +167,7 @@ def run_scalarized(args: argparse.Namespace) -> None:
 
 def run_scalarized_suite_cmd(args: argparse.Namespace) -> None:
     """Executes the Option 2 Phase 1 multi-case Scalarized BO suite."""
-    from mobo_linac.campaigns.scalarized_suite import run_scalarized_suite, OPTION_2_CASES
+    from mobo_linac.campaigns.scalarized_suite import get_scalarized_case, run_scalarized_suite
 
     config = _validated_config(args, optimization_mode="scalarized_bo")
     config_path = config.resolved_path
@@ -176,10 +176,8 @@ def run_scalarized_suite_cmd(args: argparse.Namespace) -> None:
     if cases is None and getattr(args, "case", None) not in [None, "all"]:
         cases = [args.case]
 
-    for case in (cases or OPTION_2_CASES):
-        if case not in OPTION_2_CASES:
-            raise ValueError(f"Unknown scalarized suite case: {case}")
-        normalize_scalar_weights(OPTION_2_CASES[case]["weights"], len(config.objectives))
+    for case in (cases or config.scalarized_cases):
+        get_scalarized_case(config, case)
     output_dir = getattr(args, "output_dir", None) or "results/full_production/phase1_scalarized"
 
     if getattr(args, "dry_run", False):
@@ -284,8 +282,7 @@ def register_run_commands(subparsers: argparse._SubParsersAction) -> None:
         "--case",
         type=str,
         default=None,
-        choices=["all", "balanced", "high_brightness", "low_energy_spread", "x_dominant", "y_dominant"],
-        help="Option 2 case to run ('all' runs entire suite)",
+        help="Configured scalarized case id ('all' runs every configured case)",
     )
     run_sc_parser.set_defaults(handler=run_scalarized)
 
@@ -298,7 +295,7 @@ def register_run_commands(subparsers: argparse._SubParsersAction) -> None:
         "--cases",
         nargs="*",
         default=None,
-        help="Subset of cases to run (default: all Option 2 cases)",
+        help="Subset of configured scalarized cases to run (default: all)",
     )
     run_sc_suite_parser.set_defaults(handler=run_scalarized_suite_cmd)
 
