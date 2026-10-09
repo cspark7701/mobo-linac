@@ -32,16 +32,7 @@ from mobo_linac.acquisition.mobo import (
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
-from mobo_linac.io.results import (
-    DESIGN_VAR_COLUMNS,
-    MODEL_OBJ_COLUMNS,
-    PHYSICAL_OBJ_COLUMNS,
-    get_train_tensors,
-    load_run_checkpoint,
-    results_to_dataframe,
-    save_evaluation_results,
-    save_run_checkpoint,
-)
+from mobo_linac.io.results import results_to_dataframe
 from mobo_linac.metrics.hypervolume import (
     HypervolumeTracker,
     compute_reference_point,
@@ -67,10 +58,10 @@ def export_environment_info(target_path: Path) -> None:
     target_path.write_text("\n".join(lines) + "\n")
 
 
-def generate_validation_plots(results, tracker, figures_dir: Path) -> None:
+def generate_validation_plots(results, tracker, figures_dir: Path, config) -> None:
     """Generates all required validation campaign plots."""
     figures_dir.mkdir(parents=True, exist_ok=True)
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, config)
     history_df = tracker.to_dataframe()
 
     # 1. Hypervolume progress (all-point vs feasible)
@@ -197,7 +188,7 @@ def run_campaign(
     results, tracker, run_dir = runner.run()
 
     # Generate custom validation plots for campaign report
-    generate_validation_plots(results, tracker, run_dir / "figures")
+    generate_validation_plots(results, tracker, run_dir / "figures", runner.config)
 
     return run_dir
 

@@ -130,7 +130,7 @@ def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acq
             )
             raw = MockBatchEvaluator(tmp_path).evaluate_batch(candidates.tolist())
             results = [create_evaluation_result(r, captured["config"]) for r in raw]
-            save_evaluation_results(results, captured["output_dir"])
+            save_evaluation_results(results, captured["output_dir"], config=captured["config"])
             return results, None, captured["output_dir"]
 
     monkeypatch.setattr(campaign_module, "MoboCampaignRunner", RecordingRunner)

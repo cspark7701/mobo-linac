@@ -9,13 +9,15 @@ import torch
 
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
 from mobo_linac.metrics.reporting import (
-    DEFAULT_REPORTING_REF_POINT_MODEL_NORM,
     compute_campaign_metrics_history,
     compute_normalized_hypervolume,
     normalize_objectives_model,
     normalize_objectives_physical,
     validate_campaign_compatibility,
 )
+
+SCALES = [1.0e-6, 1.0e-6, 1.0e6]
+REFERENCE = [-10.0, -10.0, -10.0]
 
 
 def test_known_answer_hypervolume_single_point_3d():
@@ -88,7 +90,7 @@ def test_campaign_metrics_history_computation():
         ),
     ]
 
-    df = compute_campaign_metrics_history(results, elapsed_wall_times=[1.0, 2.0, 3.0])
+    df = compute_campaign_metrics_history(results, SCALES, REFERENCE, elapsed_wall_times=[1.0, 2.0, 3.0])
     assert len(df) == 3
     assert list(df["cumulative_astra_evaluations"]) == [1, 2, 3]
     assert df["invalid_run_count"].iloc[-1] == 1
@@ -150,10 +152,10 @@ def test_reporting_comparison_has_no_implicit_defaults_or_micro_scale_tolerance(
 
 def test_worker_runtime_does_not_supply_unknown_wall_time():
     record = EvaluationResult(evaluation_id="e", run_id="r", x_physical=[0.0] * 6, runtime_s=8.0)
-    frame = compute_campaign_metrics_history([record])
+    frame = compute_campaign_metrics_history([record], SCALES, REFERENCE)
     assert pd.isna(frame.total_wallclock_s.iloc[0])
     assert frame.total_simulation_runtime_s.iloc[0] == 8.0
-    assert compute_campaign_metrics_history([]).shape == (0, 9)
+    assert compute_campaign_metrics_history([], SCALES, REFERENCE).shape == (0, 9)
 
 
 @pytest.mark.parametrize("device", ["cpu", "cuda:0"])
@@ -163,7 +165,7 @@ def test_normalization_and_hypervolume_use_input_placement(device, dtype):
         pytest.skip("CUDA unavailable")
     values = torch.tensor([[1e-6, 2e-6, 3e5]], device=device, dtype=dtype)
     for normalize in (normalize_objectives_physical, normalize_objectives_model):
-        normalized = normalize(values)
+        normalized = normalize(values, SCALES)
         assert normalized.device == values.device
         assert normalized.dtype == values.dtype
         torch.testing.assert_close(normalized, values.new_tensor([[1.0, 2.0, 0.3]]))
@@ -175,6 +177,6 @@ def test_normalization_and_hypervolume_use_input_placement(device, dtype):
 
 def test_integer_objectives_retain_floating_normalization():
     values = torch.tensor([[1, 2, 3]], dtype=torch.int64)
-    result = normalize_objectives_physical(values)
+    result = normalize_objectives_physical(values, SCALES)
     assert result.dtype == torch.double
     torch.testing.assert_close(result, torch.tensor([[1e6, 2e6, 3e-6]], dtype=torch.double))

@@ -42,7 +42,7 @@ def discover_candidate_source(source=None, root="results"):
     return next(directory / name for name in HISTORY_NAMES if (directory / name).is_file())
 
 
-def load_candidates(source=None, config=None, root="results"):
+def load_candidates(source, config, root="results"):
     """Join explicit Pareto rows to sibling history; bare legacy CSV statuses stay unknown."""
     path = discover_candidate_source(source, root)
     if path is None:

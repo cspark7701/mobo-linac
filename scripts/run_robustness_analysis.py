@@ -72,7 +72,7 @@ def run_robustness_analysis(args: argparse.Namespace) -> Path:
     results = load_candidates(pareto_path, config=config) if pareto_path is not None else []
     mock = getattr(args, "mock_evaluator", None)
     if mock is True:
-        mock = MockBatchEvaluator(args.output_dir)
+        mock = MockBatchEvaluator(args.output_dir, config=config)
     elif mock is False:
         mock = None
     return run_robustness_workflow(

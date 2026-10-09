@@ -6,7 +6,6 @@ HypervolumeTracker to ensure hypervolume curves are strictly comparable across
 iterations and optimization runs.
 """
 
-import json
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 import numpy as np
@@ -15,7 +14,7 @@ import torch
 from botorch.utils.multi_objective.hypervolume import Hypervolume
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
-from mobo_linac.config import MoboConfig, load_config
+from mobo_linac.config import MoboConfig
 from mobo_linac.objectives import transform_to_physical_space
 
 
@@ -34,7 +33,8 @@ def compute_reference_point(
     Args:
         train_Y: (N, D) PyTorch double tensor of model-space objectives.
         offset_ratio: Fraction of objective range to subtract as safety offset.
-        default_ref_point: Fallback reference point if train_Y is empty.
+        default_ref_point: Explicit reference point; returned unchanged when supplied.
+        config: MoboConfig or ResultSchema; required when no observation is available.
 
     Returns:
         1D PyTorch double tensor of reference point values in model space.
@@ -43,15 +43,11 @@ def compute_reference_point(
         return torch.tensor(default_ref_point, dtype=torch.double)
 
     if train_Y is None or train_Y.shape[0] == 0:
-        # Default fallback for 3D linac objectives (-emit_x, -emit_y, -sigma_energy)
-        if config is not None:
-            from mobo_linac.result_schema import ResultSchema
-            schema = ResultSchema.from_config(config)
-            legacy = {"norm_emit_x": -1e-4, "norm_emit_y": -1e-4, "sigma_energy": -1e7}
-            return torch.tensor([legacy.get(obj.name, -10 * scale) for obj, scale in zip(config.objectives, schema.scales)], dtype=torch.double)
-        if train_Y is not None and train_Y.shape[-1] != 3:
-            raise ValueError("An empty noncanonical objective tensor requires a configured reference point.")
-        return torch.tensor([-1.0e-4, -1.0e-4, -1.0e7], dtype=torch.double)
+        # The configured schema defines the empty-data reference; there is no implicit layout.
+        if config is None:
+            raise ValueError("An empty objective tensor requires a configuration or explicit reference point.")
+        from mobo_linac.result_schema import ResultSchema
+        return torch.tensor(ResultSchema.from_config(config).empty_reference, dtype=torch.double)
 
     train_Y_double = train_Y.to(dtype=torch.double)
     min_vals = train_Y_double.min(dim=0).values
@@ -146,13 +142,17 @@ class HypervolumeTracker:
     def __init__(
         self,
         reporting_ref_point: Union[Sequence[float], torch.Tensor],
-        config: Optional[MoboConfig] = None,
+        config: MoboConfig,
     ):
         if not isinstance(reporting_ref_point, torch.Tensor):
             self._reporting_ref_point = torch.tensor(reporting_ref_point, dtype=torch.double)
         else:
             self._reporting_ref_point = reporting_ref_point.to(dtype=torch.double)
 
+        from mobo_linac.result_schema import ResultSchema
+        self.schema = ResultSchema.from_config(config)
+        if self._reporting_ref_point.shape != (len(self.schema.signs),):
+            raise ValueError("Reporting reference must match configured objectives.")
         self.config = config
         self.history: List[Dict[str, Any]] = []
 
@@ -212,7 +212,7 @@ class HypervolumeTracker:
         record = {
             "iteration": iteration,
             "reporting_ref_point_model": self._reporting_ref_point.tolist(),
-            "reporting_ref_point_physical": transform_to_physical_space(self._reporting_ref_point, self.config).tolist(),
+            "reporting_ref_point_physical": transform_to_physical_space(self._reporting_ref_point, self.schema).tolist(),
             "acquisition_ref_point_model": acq_ref_list,
             "all_point_hypervolume": all_hv,
             "feasible_hypervolume": feas_hv,

@@ -14,6 +14,8 @@ from mobo_linac.config import ConstraintsConfig
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.io.results import results_to_dataframe
 from mobo_linac.plotting.common import (
+    LEGACY_DESIGN_COLUMNS,
+    LEGACY_SCHEMA,
     DESIGN_VAR_LABELS,
     ENERGY_SCALE,
     OBJ_LABELS,
@@ -30,7 +32,7 @@ def plot_feasibility_rate(
     Cumulative and rolling feasibility rate (fraction of valid, feasible
     evaluations) as BO progresses.
     """
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     valid = df[df["simulation_valid"]].reset_index(drop=True)
     feasible_flag = valid["physically_feasible"].astype(float)
     idx = range(1, len(valid) + 1)
@@ -64,7 +66,7 @@ def plot_constraint_diagnostics(
     2×2 grid of constraint-diagnostic time-series with limit reference lines:
     beam sizes, divergences, bunch length, and mean kinetic energy.
     """
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     valid = df[df["simulation_valid"]].reset_index(drop=True)
     idx = range(1, len(valid) + 1)
 
@@ -124,7 +126,7 @@ def plot_constraint_violins(
     Violin plots of each constraint diagnostic split by feasibility status,
     making the margin and tail behaviour immediately visible.
     """
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     valid = df[df["simulation_valid"]].copy()
 
     diag_cols = {

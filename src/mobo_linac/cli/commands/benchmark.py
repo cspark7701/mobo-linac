@@ -28,7 +28,7 @@ def run_benchmark(args: argparse.Namespace) -> None:
         num_workers=getattr(args, "num_workers", None),
     )
     mock_eval = (
-        CliMockEvaluator(Path(args.output_dir))
+        CliMockEvaluator(Path(args.output_dir), config=config)
         if getattr(args, "mock_evaluator", False)
         else None
     )

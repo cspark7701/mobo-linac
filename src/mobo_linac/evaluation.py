@@ -11,7 +11,7 @@ from numbers import Real
 from typing import Any, Dict, List, Optional, Sequence, Union
 import torch
 
-from mobo_linac.config import MoboConfig, load_config
+from mobo_linac.config import MoboConfig
 from mobo_linac.constraints import ConstraintEvaluator
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, finite_measurement, normalize_diagnostics
 from mobo_linac.result_schema import ResultSchema
@@ -67,7 +67,7 @@ class EvaluationResult:
 
 def create_evaluation_result(
     raw_res: Dict[str, Any],
-    config: Optional[MoboConfig] = None,
+    config: MoboConfig,
     constraint_evaluator: Optional[ConstraintEvaluator] = None,
 ) -> EvaluationResult:
     """
@@ -75,14 +75,14 @@ def create_evaluation_result(
 
     Args:
         raw_res: Result dictionary returned by run_astra_eval or worker task.
-        config: Optional MoboConfig instance.
+        config: The campaign's MoboConfig; never loaded implicitly.
         constraint_evaluator: Optional ConstraintEvaluator instance.
 
     Returns:
         Populated EvaluationResult object.
     """
-    if config is None:
-        config = load_config()
+    if not isinstance(config, MoboConfig):
+        raise TypeError("create_evaluation_result requires the campaign MoboConfig.")
 
     if constraint_evaluator is None:
         constraint_evaluator = ConstraintEvaluator(config.constraints)

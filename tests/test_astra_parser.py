@@ -14,6 +14,9 @@ from mobo_linac.astra.parser import (
 )
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 def nominal_stats():
     return {"norm_emit_x": [1e-6], "norm_emit_y": [1e-6], "sigma_energy": [0.5e6],
@@ -26,7 +29,7 @@ def nominal_stats():
 def test_parser_missing_channels_are_not_observed_zeroes(channel):
     stats = nominal_stats()
     del stats[channel.aliases[0]]
-    result = AstraOutputParser().parse_astra_simulation(MockAstraSim(stats))
+    result = AstraOutputParser(config=TEST_CONFIG).parse_astra_simulation(MockAstraSim(stats))
     assert result.status == SimulationStatus.OUTPUT_MISSING
     assert not result.simulation_valid
     assert channel.name not in result.diagnostics
@@ -37,7 +40,7 @@ def test_parser_missing_channels_are_not_observed_zeroes(channel):
 def test_parser_empty_measurement_arrays_remain_unobserved(alias):
     stats = nominal_stats()
     stats[alias] = []
-    result = AstraOutputParser().parse_astra_simulation(MockAstraSim(stats))
+    result = AstraOutputParser(config=TEST_CONFIG).parse_astra_simulation(MockAstraSim(stats))
     assert not result.simulation_valid
     assert result.status == SimulationStatus.OUTPUT_MISSING
 
@@ -46,7 +49,7 @@ def test_parser_empty_measurement_arrays_remain_unobserved(alias):
 def test_parser_nonfinite_transmission_is_numerically_invalid(value):
     stats = nominal_stats()
     stats["transmission"] = [value]
-    result = AstraOutputParser().parse_astra_simulation(MockAstraSim(stats))
+    result = AstraOutputParser(config=TEST_CONFIG).parse_astra_simulation(MockAstraSim(stats))
     assert not result.simulation_valid
     assert result.status == SimulationStatus.NUMERICAL_ERROR
 
@@ -55,7 +58,7 @@ def test_parser_canonical_units_and_conflicting_aliases():
     stats = nominal_stats()
     for channel in DIAGNOSTIC_CHANNELS:
         stats[channel.name] = stats.pop(channel.aliases[0])
-    parser = AstraOutputParser()
+    parser = AstraOutputParser(config=TEST_CONFIG)
     result = parser.parse_astra_simulation(MockAstraSim(stats))
     assert result.simulation_valid
     assert result.diagnostics["mean_kinetic_energy_eV"] == 200e6
@@ -68,7 +71,7 @@ def test_parser_canonical_units_and_conflicting_aliases():
 def test_parser_invalid_particle_counts_are_classified_without_crashing():
     stats = nominal_stats()
     stats["landf_n_particles"] = [float("nan"), 100]
-    result = AstraOutputParser().parse_astra_simulation(MockAstraSim(stats))
+    result = AstraOutputParser(config=TEST_CONFIG).parse_astra_simulation(MockAstraSim(stats))
     assert result.status == SimulationStatus.NUMERICAL_ERROR
     assert not result.simulation_valid
 
@@ -92,7 +95,7 @@ class MockAstraSim:
 
 def test_parser_healthy_simulation():
     """Tests parsing a standard, successful ASTRA run."""
-    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1)
+    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1, config=TEST_CONFIG)
     stats = {
         "norm_emit_x": [4.0e-6, 3.5e-6],
         "norm_emit_y": [4.1e-6, 3.6e-6],
@@ -121,7 +124,7 @@ def test_parser_healthy_simulation():
 
 def test_parser_premature_beam_loss():
     """Tests premature tracking termination detection (e.g., lost at collimator)."""
-    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1)
+    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1, config=TEST_CONFIG)
     stats = {
         "norm_emit_x": [4.0e-6, 3.5e-6],
         "norm_emit_y": [4.1e-6, 3.6e-6],
@@ -141,7 +144,7 @@ def test_parser_premature_beam_loss():
 
 def test_parser_charge_zero():
     """Tests beam loss with zero transmission at exit."""
-    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1)
+    parser = AstraOutputParser(target_z_stop=16.2, z_loss_tolerance=0.1, config=TEST_CONFIG)
     stats = {
         "norm_emit_x": [4.0e-6, 3.5e-6],
         "norm_emit_y": [4.1e-6, 3.6e-6],
@@ -161,7 +164,7 @@ def test_parser_charge_zero():
 
 def test_parser_timeout_and_exceptions():
     """Tests timeout error handling."""
-    parser = AstraOutputParser(target_z_stop=16.2)
+    parser = AstraOutputParser(target_z_stop=16.2, config=TEST_CONFIG)
     res_timeout = parser.parse_astra_simulation(None, error_context="ASTRA process timed out after 30s")
     assert res_timeout.status == SimulationStatus.TIMEOUT
     assert res_timeout.simulation_valid is False
@@ -173,7 +176,7 @@ def test_parser_timeout_and_exceptions():
 
 def test_parser_missing_and_corrupted_output(tmp_path):
     """Tests handling when output stats dictionary is missing or has NaNs."""
-    parser = AstraOutputParser(target_z_stop=16.2)
+    parser = AstraOutputParser(target_z_stop=16.2, config=TEST_CONFIG)
     sim_empty = MockAstraSim(stats=None)
     res_empty = parser.parse_astra_simulation(sim_empty, eval_dir=tmp_path)
     assert res_empty.status == SimulationStatus.OUTPUT_MISSING

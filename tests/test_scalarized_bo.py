@@ -65,8 +65,18 @@ def test_scalarized_bo_execution(tmp_path, monkeypatch):
             })
         return results
 
+    def mock_evaluate_requests(self, requests, run_id="default_run", on_evaluation_complete=None):
+        results = mock_evaluate_batch(self, [r.parameters for r in requests], run_id,
+                                      [r.eval_id for r in requests])
+        for result in results:
+            if on_evaluation_complete is not None:
+                on_evaluation_complete(result)
+        return results
+
     from mobo_linac.execution.parallel import BatchEvaluator
+    # Campaigns submit complete requests; never launch the real simulator in this unit test.
     monkeypatch.setattr(BatchEvaluator, "evaluate_batch", mock_evaluate_batch)
+    monkeypatch.setattr(BatchEvaluator, "evaluate_requests", mock_evaluate_requests)
 
     args = DummyArgs()
     run_scalarized(args)

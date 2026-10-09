@@ -12,6 +12,9 @@ from mobo_linac.campaigns.runner import MoboCampaignRunner
 from mobo_linac.execution import MockBatchEvaluator
 from mobo_linac.io.results import load_run_checkpoint, get_train_tensors
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 @pytest.fixture(autouse=True)
 def fast_resume_proposals(monkeypatch):
@@ -108,8 +111,8 @@ def test_uninterrupted_vs_resumed_campaign(tmp_path):
     assert len(res_resumed) == 14
 
     # Verify candidate parameter agreement
-    X_full, Y_full, _ = get_train_tensors(res_full)
-    X_res, Y_res, _ = get_train_tensors(res_resumed)
+    X_full, Y_full, _ = get_train_tensors(res_full, config=TEST_CONFIG)
+    X_res, Y_res, _ = get_train_tensors(res_resumed, config=TEST_CONFIG)
 
     assert torch.allclose(X_full, X_res, atol=1e-8)
     assert torch.allclose(Y_full, Y_res, atol=1e-8)
@@ -171,9 +174,9 @@ def test_intra_batch_streaming_persistence_and_resume(tmp_path):
         physically_feasible=True,
     )
 
-    csv_path = append_streaming_evaluation(test_dir, res1, batch_idx=0)
+    csv_path = append_streaming_evaluation(test_dir, res1, batch_idx=0, config=TEST_CONFIG)
     assert csv_path.exists()
-    append_streaming_evaluation(test_dir, res2, batch_idx=0)
+    append_streaming_evaluation(test_dir, res2, batch_idx=0, config=TEST_CONFIG)
 
     loaded = load_streaming_evaluations(test_dir)
     assert len(loaded) == 2

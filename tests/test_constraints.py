@@ -18,7 +18,7 @@ def complete_diagnostics():
 def test_unobserved_or_nonfinite_channels_never_pass_feasibility(channel, value):
     diagnostics = complete_diagnostics()
     diagnostics[channel.name] = value
-    evaluator = ConstraintEvaluator()
+    evaluator = ConstraintEvaluator(ConstraintsConfig())
     assert evaluator.check_feasibility(diagnostics) is False
     violations = evaluator.compute_violations(diagnostics)
     for name in (channel.lower_violation, channel.upper_violation):
@@ -30,7 +30,7 @@ def test_unobserved_or_nonfinite_channels_never_pass_feasibility(channel, value)
 def test_missing_channels_remain_missing_and_aliases_are_measured(channel):
     diagnostics = complete_diagnostics()
     measured = diagnostics.pop(channel.name)
-    evaluator = ConstraintEvaluator()
+    evaluator = ConstraintEvaluator(ConstraintsConfig())
     assert channel.name not in normalize_diagnostics(diagnostics)
     assert not evaluator.check_feasibility(diagnostics)
     diagnostics[channel.aliases[0]] = measured
@@ -111,7 +111,7 @@ def test_feasibility_boundary_conditions():
 
 def test_compute_constraint_violations():
     """Test computation of constraint violation magnitudes."""
-    evaluator = ConstraintEvaluator()
+    evaluator = ConstraintEvaluator(ConstraintsConfig())
 
     diags = {
         "sigma_x": 1.2e-3,  # Violated by 0.2e-3
@@ -135,7 +135,7 @@ def test_get_botorch_constraint_functions():
     import torch
     from mobo_linac.constraints import get_botorch_constraint_functions
 
-    c_funcs = get_botorch_constraint_functions()
+    c_funcs = get_botorch_constraint_functions(ConstraintsConfig(), num_objectives=3)
     assert len(c_funcs) == 8
 
     # Dummy outcome tensor Y (batch size 1, 10 outcome metrics)

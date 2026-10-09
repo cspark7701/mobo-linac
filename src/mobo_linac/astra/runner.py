@@ -96,20 +96,10 @@ from mobo_linac.astra.parser import (
 )
 from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id, file_sha256, write_once_json
 
-PARAMETER_NAMES = [
-    "solenoid:maxb(1)",
-    "quadrupole:q_grad(1)",
-    "quadrupole:q_grad(2)",
-    "cavity:phi(1)",
-    "cavity:phi(2,3)",
-    "cavity:phi(4,5)",
-]
-
-
 def apply_parameters_to_astra(
     astra_sim: Any,
     parameters: Sequence[float],
-    config: Optional[Union[Any, Dict[str, Any]]] = None,
+    config: Union[Any, Dict[str, Any]],
     namelist_overrides: Optional[Dict[str, Any]] = None,
     applied_values: Optional[Dict[str, Any]] = None,
 ) -> List[str]:
@@ -119,7 +109,7 @@ def apply_parameters_to_astra(
     Args:
         astra_sim: Astra instance or dict-like object representing ASTRA namelists.
         parameters: Sequence of floating-point values matching the design variables.
-        config: Optional MoboConfig or config dictionary containing design_variables definitions.
+        config: MoboConfig or config dictionary containing design_variables definitions.
         namelist_overrides: Optional dict mapping ASTRA keys (e.g. 'charge:lspch') to override values.
 
     Returns:
@@ -131,59 +121,39 @@ def apply_parameters_to_astra(
         if applied_values is not None:
             applied_values[key] = value
 
-    applied_names: List[str] = []
-    if config is not None:
-        if hasattr(config, "design_variables"):
-            design_vars = config.design_variables
-        elif isinstance(config, dict) and "design_variables" in config:
-            design_vars = config["design_variables"]
-        else:
-            design_vars = None
-
-        if design_vars is not None:
-            if len(parameters) != len(design_vars):
-                raise ValueError(
-                    f"Parameter vector length ({len(parameters)}) does not match "
-                    f"configured design variables count ({len(design_vars)})"
-                )
-
-            param_names = []
-            for idx, dv in enumerate(design_vars):
-                val = float(parameters[idx])
-                if hasattr(dv, "name"):
-                    name = dv.name
-                    astra_key = dv.astra_key
-                    is_coupled = getattr(dv, "is_coupled", False)
-                    coupled_targets = getattr(dv, "coupled_targets", []) or []
-                else:
-                    name = dv.get("name", f"param_{idx}")
-                    astra_key = dv.get("astra_key", "")
-                    is_coupled = dv.get("is_coupled", False)
-                    coupled_targets = dv.get("coupled_targets", []) or []
-
-                param_names.append(name)
-
-                if is_coupled and coupled_targets:
-                    for target_key in coupled_targets:
-                        assign(target_key, val)
-                elif astra_key:
-                    assign(astra_key, val)
-
-            applied_names = param_names
+    if hasattr(config, "design_variables"):
+        design_vars = config.design_variables
+    elif isinstance(config, dict) and "design_variables" in config:
+        design_vars = config["design_variables"]
     else:
-        # Default 6-parameter mapping for backward compatibility
-        if len(parameters) != 6:
-            raise ValueError(f"Expected 6 design parameters for default mapping, got {len(parameters)}")
+        raise TypeError("Parameter mapping requires a configuration defining design_variables.")
+    if len(parameters) != len(design_vars):
+        raise ValueError(
+            f"Parameter vector length ({len(parameters)}) does not match "
+            f"configured design variables count ({len(design_vars)})"
+        )
 
-        assign("solenoid:maxb(1)", float(parameters[0]))
-        assign("quadrupole:q_grad(1)", float(parameters[1]))
-        assign("quadrupole:q_grad(2)", float(parameters[2]))
-        assign("cavity:phi(1)", float(parameters[3]))
-        assign("cavity:phi(2)", float(parameters[4]))
-        assign("cavity:phi(3)", float(parameters[4]))
-        assign("cavity:phi(4)", float(parameters[5]))
-        assign("cavity:phi(5)", float(parameters[5]))
-        applied_names = list(PARAMETER_NAMES)
+    applied_names: List[str] = []
+    for idx, dv in enumerate(design_vars):
+        val = float(parameters[idx])
+        if hasattr(dv, "name"):
+            name = dv.name
+            astra_key = dv.astra_key
+            is_coupled = getattr(dv, "is_coupled", False)
+            coupled_targets = getattr(dv, "coupled_targets", []) or []
+        else:
+            name = dv.get("name", f"param_{idx}")
+            astra_key = dv.get("astra_key", "")
+            is_coupled = dv.get("is_coupled", False)
+            coupled_targets = dv.get("coupled_targets", []) or []
+
+        applied_names.append(name)
+
+        if is_coupled and coupled_targets:
+            for target_key in coupled_targets:
+                assign(target_key, val)
+        elif astra_key:
+            assign(astra_key, val)
 
     if namelist_overrides:
         for override_key, override_val in namelist_overrides.items():
@@ -203,17 +173,13 @@ def applied_lattice_perturbations(parameters, config, assigned_values, requested
         ("acc3_acc4_phase_deg", "cavity_phase_acc34_error_deg", ["cavity:phi(4)", "cavity:phi(5)"]),
     ]
     by_name = {name: (channel, targets) for name, channel, targets in channels}
-    if config is None:
-        targets_and_values = [(channel, targets, value)
-                              for (_, channel, targets), value in zip(channels, parameters)]
-    else:
-        targets_and_values = []
-        for variable, value in zip(config.design_variables, parameters):
-            if variable.name not in by_name:
-                continue
-            channel, _ = by_name[variable.name]
-            targets = variable.coupled_targets if variable.is_coupled else [variable.astra_key]
-            targets_and_values.append((channel, targets, value))
+    targets_and_values = []
+    for variable, value in zip(config.design_variables, parameters):
+        if variable.name not in by_name:
+            continue
+        channel, _ = by_name[variable.name]
+        targets = variable.coupled_targets if variable.is_coupled else [variable.astra_key]
+        targets_and_values.append((channel, targets, value))
     return {channel: requested_deltas[channel] for channel, targets, value in targets_and_values
             if channel in requested_deltas and targets
             and all(assigned_values.get(target) == float(value) for target in targets)}
@@ -265,8 +231,9 @@ def run_astra_eval(
     from mobo_linac.config import MoboConfig, config_from_dict, validate_evaluation_settings, ExecutionConfig
     if isinstance(config, dict):
         config = config_from_dict(config)
-    if isinstance(config, MoboConfig):
-        config.validate()
+    if not isinstance(config, MoboConfig):
+        raise TypeError("run_astra_eval requires the campaign configuration.")
+    config.validate()
     ExecutionConfig(timeout_sec=timeout, clean_on_success=clean_on_success).validate()
     validate_evaluation_settings(parameters, config, namelist_overrides, source_settings)
     if workdir_manager is None:
@@ -288,7 +255,7 @@ def run_astra_eval(
     stats: Optional[Dict[str, Any]] = None
     objectives: Optional[Dict[str, float]] = None
     diagnostics: Optional[Dict[str, float]] = None
-    applied_param_names: List[str] = list(PARAMETER_NAMES)
+    applied_param_names: List[str] = [dv.name for dv in config.design_variables]
     astra_cmd: str = os.environ.get("ASTRA_BIN", "")
 
     request_metadata = request_metadata or {}
@@ -384,7 +351,7 @@ def run_astra_eval(
 
     except Exception as e:
         error_msg = str(e)
-        parsed_result = AstraOutputParser().parse_astra_simulation(
+        parsed_result = AstraOutputParser(config=config).parse_astra_simulation(
             astra_sim=None,
             eval_dir=eval_dir,
             error_context=error_msg,
@@ -486,8 +453,10 @@ class AstraRunner:
         timeout: int = 30,
         clean_on_success: bool = False,
         use_symlinks: bool = False,
-        config: Optional[Union[Any, Dict[str, Any]]] = None,
+        config: Union[Any, Dict[str, Any]] = None,
     ):
+        if config is None:
+            raise TypeError("AstraRunner requires the campaign configuration.")
         self.run_id = run_id
         self.timeout = timeout
         self.clean_on_success = clean_on_success

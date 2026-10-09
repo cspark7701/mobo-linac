@@ -6,7 +6,7 @@ from mobo_linac.diagnostics import diagnostic_observations
 from mobo_linac.astra.workdir import file_sha256, read_evaluation_manifest
 
 
-def audit_attempt(result, required=False, config=None):
+def audit_attempt(result, required=False, *, config):
     record = {"run_id": result.run_id, "evaluation_id": result.evaluation_id,
               "attempt_id": result.attempt_id, "manifest_path": result.manifest_path,
               "input_sha256": None, "input_hashes": {}, "executable_sha256": None,

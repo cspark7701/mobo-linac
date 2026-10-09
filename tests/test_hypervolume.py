@@ -50,7 +50,8 @@ def test_hypervolume_nonnegative_and_empty():
 def test_fixed_reporting_ref_point_immutability():
     """Verify reporting reference point remains fixed throughout tracking iterations."""
     ref_point = torch.tensor([-1.0e-4, -1.0e-4, -1.0e7], dtype=torch.double)
-    tracker = HypervolumeTracker(reporting_ref_point=ref_point)
+    from mobo_linac.config import load_config
+    tracker = HypervolumeTracker(reporting_ref_point=ref_point, config=load_config("configs/mobo_200MeV.yaml"))
 
     # Initial samples
     train_Y_iter1 = torch.tensor([[-1.0e-6, -1.0e-6, -1.0e5]], dtype=torch.double)
@@ -105,6 +106,16 @@ def test_compute_reference_point_generation():
 
     # All initial samples must strictly dominate the generated reference point in model space
     assert (train_Y > ref_point).all()
+
+
+def test_empty_reference_requires_configuration():
+    """Empty observations never fall back to an implicit objective layout."""
+    from mobo_linac.config import load_config
+    with pytest.raises(ValueError, match="configuration"):
+        compute_reference_point(torch.empty(0, 3, dtype=torch.double))
+    config = load_config("configs/mobo_200MeV.yaml")
+    reference = compute_reference_point(torch.empty(0, 3, dtype=torch.double), config=config)
+    assert reference.tolist() == [-1e-4, -1e-4, -1e7]
 
 
 def test_raw_and_normalized_reporting_share_the_recorded_reference():

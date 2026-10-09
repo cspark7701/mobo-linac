@@ -51,7 +51,9 @@ class AstraOutputParser:
     from ASTRA simulation objects and working directories.
     """
 
-    def __init__(self, target_z_stop: float = 16.2, z_loss_tolerance: float = 0.1, config=None):
+    def __init__(self, target_z_stop: float = 16.2, z_loss_tolerance: float = 0.1, *, config):
+        from mobo_linac.result_schema import ResultSchema
+        self.schema = ResultSchema.from_config(config)
         self.config = config
         self.target_z_stop = float(target_z_stop)
         self.z_loss_tolerance = float(z_loss_tolerance)
@@ -92,7 +94,8 @@ class AstraOutputParser:
             )
 
         raw_stats = astra_sim.output.get("stats")
-        if not raw_stats or not isinstance(raw_stats, dict) or "norm_emit_x" not in raw_stats:
+        objective_keys = {name for names in self.schema.objective_aliases for name in names}
+        if not raw_stats or not isinstance(raw_stats, dict) or not objective_keys & set(raw_stats):
             # Attempt to parse log file from eval_dir if available
             log_diag = self.parse_log_dir(eval_dir) if eval_dir else {}
             return ParsedAstraResult(
@@ -102,17 +105,17 @@ class AstraOutputParser:
                 raw_log_summary=log_diag.get("log_summary"),
             )
 
-        # Extract last-slice metrics
+        # Extract last-slice configured objective statistics.
         try:
-            norm_emit_x = float(raw_stats["norm_emit_x"][-1])
-            norm_emit_y = float(raw_stats["norm_emit_y"][-1])
-            sigma_energy = float(raw_stats["sigma_energy"][-1])
+            for key in objective_keys & set(raw_stats):
+                float(raw_stats[key][-1])
         except (IndexError, KeyError, TypeError, ValueError) as e:
             return ParsedAstraResult(
                 status=SimulationStatus.FILE_CORRUPTED,
                 simulation_valid=False,
                 error_message=f"Corrupted or incomplete stats arrays: {e}",
             )
+        objective_values = {key: float(raw_stats[key][-1]) for key in objective_keys & set(raw_stats)}
 
         # Check for NaN / Inf values
         def last_measurement(key):
@@ -135,7 +138,7 @@ class AstraOutputParser:
                     if value is not None:
                         measured[key] = value
         diagnostics = normalize_diagnostics(measured)
-        scalars = [norm_emit_x, norm_emit_y, sigma_energy] + list(diagnostics.values())
+        scalars = list(objective_values.values()) + list(diagnostics.values())
         if any(math.isnan(s) or math.isinf(s) for s in scalars):
             return ParsedAstraResult(
                 status=SimulationStatus.NUMERICAL_ERROR,
@@ -202,26 +205,22 @@ class AstraOutputParser:
                 f"(expected >= {self.target_z_stop - self.z_loss_tolerance:.3f} m)"
             )
 
-        objectives = {
-            "norm_emit_x": norm_emit_x,
-            "norm_emit_y": norm_emit_y,
-            "sigma_energy": sigma_energy,
-        }
+        from mobo_linac.objectives import extract_physical_objectives
+        try:
+            objectives = extract_physical_objectives(raw_stats, self.schema)
+            if status == SimulationStatus.SUCCESS and not all(math.isfinite(value) for value in objectives.values()):
+                status = SimulationStatus.NUMERICAL_ERROR
+                error_message = "Configured objectives contain invalid or conflicting observations"
+        except KeyError:
+            objectives = None
+            status = SimulationStatus.OUTPUT_MISSING
+            error_message = "Configured objective statistics missing"
 
-        if self.config is not None:
-            from mobo_linac.objectives import extract_physical_objectives
-            try:
-                objectives = extract_physical_objectives(raw_stats, self.config)
-                if status == SimulationStatus.SUCCESS and not all(math.isfinite(value) for value in objectives.values()):
-                    status = SimulationStatus.NUMERICAL_ERROR
-                    error_message = "Configured objectives contain invalid or conflicting observations"
-            except KeyError:
-                objectives = None
-                status = SimulationStatus.OUTPUT_MISSING
-                error_message = "Configured objective statistics missing"
-
-        diagnostics.update({"emit_x": norm_emit_x, "emit_y": norm_emit_y,
-                            "sigma_energy": sigma_energy, "sigma_energy_eV": sigma_energy})
+        # Archived diagnostics also carried copies of the historical objective statistics.
+        for legacy_name, stat_key in (("emit_x", "norm_emit_x"), ("emit_y", "norm_emit_y"),
+                                      ("sigma_energy", "sigma_energy"), ("sigma_energy_eV", "sigma_energy")):
+            if stat_key in objective_values:
+                diagnostics[legacy_name] = objective_values[stat_key]
 
         if z_final is not None:
             diagnostics["z_final_m"] = z_final

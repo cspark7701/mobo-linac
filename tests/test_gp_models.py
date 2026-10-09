@@ -123,11 +123,13 @@ def test_repeatability_utility():
         ),
     ]
 
-    var_dict = compute_measured_noise_variance(results, min_variance=1.0e-10)
+    from mobo_linac.config import load_config
+    config = load_config("configs/mobo_200MeV.yaml")
+    var_dict = compute_measured_noise_variance(results, config, min_variance=1.0e-10)
     assert "norm_emit_x_m_rad" in var_dict
     assert var_dict["norm_emit_x_m_rad"] > 0
 
-    yvar_tensor = create_measured_yvar_tensor(num_samples=5, variances=var_dict)
+    yvar_tensor = create_measured_yvar_tensor(num_samples=5, variances=var_dict, config=config)
     assert yvar_tensor.shape == (5, 3)
     assert yvar_tensor.dtype == torch.double
 

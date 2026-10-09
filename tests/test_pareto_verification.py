@@ -16,6 +16,9 @@ from mobo_linac.verification.verifier import (
     select_verification_candidates,
 )
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 @pytest.fixture
 def sample_pareto_results():
@@ -71,7 +74,7 @@ def test_crowding_distance_calculation():
 
 def test_select_verification_candidates(sample_pareto_results):
     """Verify selection of 7 distinct candidate roles."""
-    candidates = select_verification_candidates(sample_pareto_results)
+    candidates = select_verification_candidates(sample_pareto_results, TEST_CONFIG)
 
     for role in [
         "min_emit_x",
@@ -191,7 +194,7 @@ def test_repeated_verification_retains_records_and_reports(sample_pareto_results
     assert first['record_path'] != second['record_path']
     assert Path(first['record_path']).read_bytes() == first_bytes
     assert json.loads(Path(second['record_path']).read_text())['verification_run_id'] == second['verification_run_id']
-    roles = select_verification_candidates([candidate])
+    roles = select_verification_candidates([candidate], config)
     mocks = {role: mock for role in roles}
     _, first_manifest, first_tex = run_verification_pipeline([candidate], config, tmp_path, mocks)
     saved = first_manifest.read_bytes()

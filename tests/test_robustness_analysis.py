@@ -17,6 +17,9 @@ from mobo_linac.robustness.evaluator import (
     select_representative_pareto_candidates,
 )
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 @pytest.fixture
 def sample_pareto_results():
@@ -144,7 +147,7 @@ def test_apply_parameters_with_namelist_overrides():
     params = [0.194, 1.28, -2.88, 35.6, -39.5, 310.0]
     overrides = {"charge:q_total": 0.202, "charge:lspch": True}
 
-    applied = apply_parameters_to_astra(dummy_sim, params, namelist_overrides=overrides)
+    applied = apply_parameters_to_astra(dummy_sim, params, TEST_CONFIG, namelist_overrides=overrides)
     assert len(applied) == 6
     assert dummy_sim["charge:q_total"] == 0.202
     assert dummy_sim["charge:lspch"] is True
@@ -216,7 +219,7 @@ def test_reports_never_claim_unapplied_source_or_mock_jitter(sample_pareto_resul
     from mobo_linac.execution.mock import MockBatchEvaluator
     from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_CHANNELS
 
-    evaluator = RobustnessEvaluator(base_output_dir=tmp_path)
+    evaluator = RobustnessEvaluator(TEST_CONFIG, base_output_dir=tmp_path)
     mock = MockBatchEvaluator(tmp_path)
     summary = evaluator.evaluate_candidates(sample_pareto_results[:1], 3, seed=31, batch_evaluator=mock)[0]
     assert summary['unsupported_channels'] == sorted(SOURCE_CHANNELS)

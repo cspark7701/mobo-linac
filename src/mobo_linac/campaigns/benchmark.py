@@ -99,8 +99,7 @@ class BenchmarkCampaignRunner:
             output_dir=str(output_dir),
         )
         self.benchmark_config.validate()
-        if len(self.benchmark_config.reporting_ref_point) != len(config.objectives):
-            raise ValueError("Benchmark reporting reference must match configured objectives.")
+        self.benchmark_config.resolved_reporting_ref_point(len(config.objectives))
         self.config = replace(
             config, constraints=config.get_constraint_profile(self.benchmark_config.constraint_profile)
         )
@@ -114,6 +113,11 @@ class BenchmarkCampaignRunner:
         self.batch_size = self.benchmark_config.batch_size
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.manifest_rows: List[Dict[str, Any]] = []
+
+    @property
+    def reporting_ref_point_norm(self) -> List[float]:
+        """Normalized physical reporting reference for the configured objectives."""
+        return self.benchmark_config.resolved_reporting_ref_point(len(self.config.objectives))
 
     @property
     def n_batches(self) -> int:
@@ -135,7 +139,7 @@ class BenchmarkCampaignRunner:
             "n_sobol_init": self.n_sobol_init,
             "batch_size": self.batch_size,
             "reporting_scales": list(ResultSchema.from_config(self.config).scales),
-            "reporting_ref_point_physical_norm": self.benchmark_config.reporting_ref_point,
+            "reporting_ref_point_physical_norm": self.reporting_ref_point_norm,
         }
         return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()
 
@@ -187,7 +191,7 @@ class BenchmarkCampaignRunner:
             "effective_budget": self.total_eval_budget,
             "evaluation_count": evaluation_count,
             "reporting_scales": list(ResultSchema.from_config(self.config).scales),
-            "reporting_ref_point_physical_norm": self.benchmark_config.reporting_ref_point,
+            "reporting_ref_point_physical_norm": self.reporting_ref_point_norm,
         }
         temporary_path = None
         try:
@@ -342,7 +346,7 @@ class BenchmarkCampaignRunner:
                     num_workers=self.num_workers,
                     total_eval_budget=self.total_eval_budget,
                     evaluator=mock_evaluator,
-                    reporting_ref_point=[value * sign * scale for value, sign, scale in zip(self.benchmark_config.reporting_ref_point, ResultSchema.from_config(self.config).signs, ResultSchema.from_config(self.config).scales)],
+                    reporting_ref_point=[value * sign * scale for value, sign, scale in zip(self.reporting_ref_point_norm, ResultSchema.from_config(self.config).signs, ResultSchema.from_config(self.config).scales)],
                     device=self.device,
                 )
                 results, _, _ = runner.run()
@@ -354,14 +358,14 @@ class BenchmarkCampaignRunner:
                 # Alternate/test runners may return records without derived artifacts.
                 if not metric_path.exists():
                     schema = ResultSchema.from_config(self.config)
-                    norm_ref = [value * sign for value, sign in zip(self.benchmark_config.reporting_ref_point, schema.signs)]
+                    norm_ref = [value * sign for value, sign in zip(self.reporting_ref_point_norm, schema.signs)]
                     metrics_df = compute_campaign_metrics_history(results=results, scales=list(schema.scales), reporting_ref_point_norm=norm_ref)
                     metrics_df.to_csv(metric_path, index=False)
                     atomic_json(run_dir / "reporting_metadata.json", reporting_metadata(self.config, [value * scale for value, scale in zip(norm_ref, schema.scales)], "explicit"))
                 else:
                     meta = json.loads((run_dir / "reporting_metadata.json").read_text())
                     schema = ResultSchema.from_config(self.config)
-                    expected = reporting_metadata(self.config, [value * sign * scale for value, sign, scale in zip(self.benchmark_config.reporting_ref_point, schema.signs, schema.scales)], "explicit")
+                    expected = reporting_metadata(self.config, [value * sign * scale for value, sign, scale in zip(self.reporting_ref_point_norm, schema.signs, schema.scales)], "explicit")
                     validate_campaign_compatibility(meta, expected)
                 if not (run_dir / "run_complete.json").exists() and (run_dir / "candidate_history.csv").exists():
                     # Record-returning backend adapters must also publish a concrete artifact marker.

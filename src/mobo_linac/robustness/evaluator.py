@@ -16,8 +16,8 @@ import torch
 import yaml
 
 from mobo_linac.astra.workdir import validate_component, write_once_json
-from mobo_linac.io.results import DESIGN_VAR_COLUMNS
-from mobo_linac.config import MoboConfig, load_config, resolve_config_path
+from mobo_linac.result_schema import legacy_200MeV_schema
+from mobo_linac.config import MoboConfig, resolve_config_path
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.candidate_evaluator import (
     CandidateEvaluatorBase,
@@ -336,7 +336,7 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
 
     def __init__(
         self,
-        config: Optional[MoboConfig] = None,
+        config: MoboConfig,
         base_output_dir: Union[str, Path] = "results/robustness",
         num_workers: int = 1,
         timeout: int = 30,
@@ -359,7 +359,9 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
     ) -> List[EvaluationTask]:
         """Generates perturbed machine state evaluation tasks for each candidate."""
         design_names = [dv.name for dv in self.config.design_variables]
-        if len(design_names) != 6 or set(design_names) != set(DESIGN_VAR_COLUMNS):
+        # The established jitter model is defined for the archived 200 MeV channel layout.
+        canonical_names = list(legacy_200MeV_schema().design_columns)
+        if set(design_names) != set(canonical_names):
             raise ValueError("Robustness jitter requires the six canonical design-variable names")
         if roles is not None and len(roles) != len(candidates):
             raise ValueError("roles must match candidates")
@@ -376,7 +378,7 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
             validate_component(c_label)
             nominal_by_name = dict(zip(design_names, cand.x_physical))
             p_states = generate_perturbed_machine_states(
-                nominal_x=[nominal_by_name[name] for name in DESIGN_VAR_COLUMNS],
+                nominal_x=[nominal_by_name[name] for name in canonical_names],
                 num_perturbations=num_perturbations,
                 seed=seed + c_idx * 100,
                 spec=self.spec,
@@ -385,7 +387,7 @@ class RobustnessEvaluator(CandidateEvaluatorBase):
                 task = EvaluationTask(
                     task_id=f"pert_{c_label}_sample_{p_idx+1:03d}",
                     role=f"{c_label}_pert_{p_idx+1:03d}",
-                    parameters=[p_state.parameters[DESIGN_VAR_COLUMNS.index(name)] for name in design_names],
+                    parameters=[p_state.parameters[canonical_names.index(name)] for name in design_names],
                     source_settings={name: getattr(p_state, name) for name in SOURCE_CHANNELS.values()},
                     nominal_result=cand,
                     metadata={

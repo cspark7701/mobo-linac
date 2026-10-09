@@ -14,37 +14,20 @@ import torch
 
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, diagnostic_observations, finite_measurement, normalize_diagnostics
+from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, diagnostic_observations, finite_measurement, normalize_diagnostics
 
-DESIGN_VAR_COLUMNS = [
-    "solenoid_field_T",
-    "quad_1_gradient_T_m",
-    "quad_2_gradient_T_m",
-    "gun_phase_deg",
-    "acc1_acc2_phase_deg",
-    "acc3_acc4_phase_deg",
-]
-
-PHYSICAL_OBJ_COLUMNS = [
-    "norm_emit_x_m_rad",
-    "norm_emit_y_m_rad",
-    "sigma_energy_eV",
-]
-
-MODEL_OBJ_COLUMNS = [
-    "model_emit_x_neg",
-    "model_emit_y_neg",
-    "model_sigma_energy_neg",
-]
+METADATA_COLUMNS = ["evaluation_id", "run_id", "simulation_valid", "physically_feasible", "failure_category",
+                    "failure_reason", "runtime_s", "work_dir", "attempt_id", "manifest_path", "attempt_history"]
+TELEMETRY_COLUMNS = ["n_particles_initial", "n_particles_final"]
 
 
 def results_to_dataframe(
     results: List[EvaluationResult],
-    config: Optional[Any] = None,
+    config: Any,
 ) -> pd.DataFrame:
     """
     Converts a list of EvaluationResult objects into a structured Pandas DataFrame.
-    Dynamically binds column headers from config if provided, falling back to canonical linac defaults.
+    Column headers come from the configuration (or an explicit ResultSchema).
     """
     schema = ResultSchema.from_config(config)
     design_var_cols = list(schema.design_columns)
@@ -87,26 +70,15 @@ def results_to_dataframe(
             else:
                 row[col] = np.nan
 
-        # Add diagnostics if available
+        # Canonical diagnostic channels and particle-count telemetry; absent values stay NaN.
         diags = normalize_diagnostics(res.diagnostics)
-        sigma_energy_val = diags.get("sigma_energy_eV", diags.get("sigma_energy", np.nan))
-        if pd.isna(sigma_energy_val) and "sigma_energy_eV" in row:
-            sigma_energy_val = row["sigma_energy_eV"]
-
-        row["sigma_x_m"] = diags.get("sigma_x_m", np.nan)
-        row["sigma_y_m"] = diags.get("sigma_y_m", np.nan)
-        row["sigma_xp_rad"] = diags.get("sigma_xp_rad", np.nan)
-        row["sigma_yp_rad"] = diags.get("sigma_yp_rad", np.nan)
-        row["sigma_z_m"] = diags.get("sigma_z_m", np.nan)
-        row["mean_kinetic_energy_eV"] = diags.get("mean_kinetic_energy_eV", np.nan)
-        row.setdefault("sigma_energy_eV", sigma_energy_val)
-        row["n_particles_initial"] = diags.get("n_particles_initial", np.nan)
-        row["n_particles_final"] = diags.get("n_particles_final", np.nan)
-        row["transmission_fraction"] = diags.get("transmission_fraction", np.nan)
+        for name in list(DIAGNOSTIC_NAMES) + TELEMETRY_COLUMNS:
+            row.setdefault(name, diags.get(name, np.nan))
 
         rows.append(row)
 
-    columns = list(dict.fromkeys(["evaluation_id", "run_id", "simulation_valid", "physically_feasible", "failure_category", "failure_reason", "runtime_s", "work_dir", "attempt_id", "manifest_path", "attempt_history"] + design_var_cols + physical_obj_cols + model_obj_cols + ["sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m", "mean_kinetic_energy_eV", "sigma_energy_eV", "n_particles_initial", "n_particles_final", "transmission_fraction"]))
+    columns = list(dict.fromkeys(METADATA_COLUMNS + design_var_cols + physical_obj_cols + model_obj_cols
+                                 + list(DIAGNOSTIC_NAMES) + TELEMETRY_COLUMNS))
     return pd.DataFrame(rows, columns=columns)
 
 
@@ -125,7 +97,8 @@ def get_training_observations(
     results: List[EvaluationResult],
     exclude_invalid: bool = True,
     require_diagnostics: bool = False,
-    config=None,
+    *,
+    config,
 ) -> TrainingObservations:
     """Select observed finite rows without fabricating missing diagnostic values.
 
@@ -170,7 +143,8 @@ def get_training_observations(
 def get_train_tensors(
     results: List[EvaluationResult],
     exclude_invalid: bool = True,
-    config=None,
+    *,
+    config,
 ) -> Tuple[torch.Tensor, torch.Tensor, torch.Tensor]:
     """Return finite objective observations; constrained callers use the shared selector."""
     observed = get_training_observations(results, exclude_invalid, config=config)
@@ -180,7 +154,8 @@ def get_train_tensors(
 def get_constraint_tensors(
     results: List[EvaluationResult],
     exclude_invalid: bool = True,
-    config=None,
+    *,
+    config,
 ) -> torch.Tensor:
     """Return complete measured diagnostics in canonical order, without imputation.
 
@@ -195,7 +170,8 @@ def save_evaluation_results(
     results: List[EvaluationResult],
     run_dir: Union[str, Path],
     hypervolumes: Optional[List[float]] = None,
-    config: Optional[Any] = None,
+    *,
+    config: Any,
 ) -> Dict[str, Path]:
     """
     Saves candidate history JSON, CSV, Pareto front, and hypervolume history into run directory.
@@ -206,11 +182,11 @@ def save_evaluation_results(
 
 def load_evaluation_results(
     history_path: Union[str, Path],
-    config: Optional[Any] = None,
+    config: Any,
 ) -> List[EvaluationResult]:
     """
     Loads list of EvaluationResult objects from a JSON or CSV file.
-    Dynamically binds variable and objective schemas if config is provided.
+    CSV columns are bound through the configured (or explicit legacy) ResultSchema.
     """
     path = Path(history_path)
     if not path.exists():
@@ -221,7 +197,6 @@ def load_evaluation_results(
     physical_obj_cols = list(schema.physical_columns)
     model_obj_cols = list(schema.model_columns)
 
-    n_vars = len(design_var_cols)
     n_objs = len(physical_obj_cols)
 
     if path.suffix == ".json":
@@ -250,15 +225,7 @@ def load_evaluation_results(
                 objs_phys = schema.transform(objs_model).tolist()
 
             diags = {}
-            for diag_col in [
-                "sigma_x_m",
-                "sigma_y_m",
-                "sigma_xp_rad",
-                "sigma_yp_rad",
-                "sigma_z_m",
-                "mean_kinetic_energy_eV",
-                "transmission_fraction",
-            ]:
+            for diag_col in DIAGNOSTIC_NAMES:
                 if diag_col in row and not pd.isna(row[diag_col]):
                     diags[diag_col] = float(row[diag_col])
 
@@ -277,7 +244,7 @@ def load_evaluation_results(
             res = EvaluationResult(
                 evaluation_id=str(row.get("evaluation_id", f"legacy_row_{row_index:06d}")),
                 run_id=str(row.get("run_id", "default_run")),
-                x_physical=x_phys if len(x_phys) == n_vars else x_phys,
+                x_physical=x_phys,
                 objectives_physical=objs_phys if objs_phys is not None and len(objs_phys) == n_objs else None,
                 objectives_model=objs_model if objs_model is not None and len(objs_model) == n_objs else None,
                 diagnostics=diags,
@@ -585,7 +552,8 @@ def append_streaming_evaluation(
     result: EvaluationResult,
     batch_idx: Optional[int] = None,
     candidate_idx: Optional[int] = None,
-    config=None,
+    *,
+    config,
 ) -> Path:
     """Durably append JSONL first, then derive the CSV view; write errors propagate."""
     from mobo_linac.io.journal import append_record

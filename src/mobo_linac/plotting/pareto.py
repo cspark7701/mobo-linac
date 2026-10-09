@@ -12,6 +12,8 @@ import pandas as pd
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.io.results import results_to_dataframe
 from mobo_linac.plotting.common import (
+    LEGACY_DESIGN_COLUMNS,
+    LEGACY_SCHEMA,
     EMIT_SCALE,
     ENERGY_SCALE,
     OBJ_LABELS,
@@ -43,7 +45,7 @@ def plot_pareto_front(
         fig.tight_layout()
         save_fig(fig, output_path)
         return fig
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     valid = df[df["simulation_valid"]]
     feas = valid[valid["physically_feasible"]]
 
@@ -85,7 +87,7 @@ def plot_pareto_front_3d(
     azim: float = 45.0,
 ) -> plt.Figure:
     """3D scatter of the feasible Pareto front across all three objectives."""
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     valid = df[df["simulation_valid"]]
     feas = valid[valid["physically_feasible"]]
     infeas = valid[~valid["physically_feasible"]]
@@ -154,7 +156,7 @@ def plot_pareto_front_comparison(
     markers = ["o", "^", "s", "D", "v"]
 
     for i, (label, res_list) in enumerate(results_dict.items()):
-        df = results_to_dataframe(res_list)
+        df = results_to_dataframe(res_list, LEGACY_SCHEMA)
         feas = df[df["simulation_valid"] & df["physically_feasible"]]
         color = colors[i % len(colors)]
         marker = markers[i % len(markers)]

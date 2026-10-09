@@ -128,7 +128,7 @@ def repair_journal_tail(output_dir: Union[str, Path]) -> None:
                 os.fsync(stream.fileno())
 
 
-def write_streaming_csv(output_dir: Union[str, Path], records=None, config=None) -> Path:
+def write_streaming_csv(output_dir: Union[str, Path], records=None, *, config) -> Path:
     """Atomically rebuild the CSV view from validated, deduplicated JSONL records."""
     out_dir = Path(output_dir)
     records = load_streaming_records(out_dir) if records is None else records
@@ -153,7 +153,7 @@ def write_streaming_csv(output_dir: Union[str, Path], records=None, config=None)
     return path
 
 
-def append_record(output_dir, result, batch_idx=None, candidate_idx=None, config=None) -> Path:
+def append_record(output_dir, result, batch_idx=None, candidate_idx=None, *, config) -> Path:
     out_dir = Path(output_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     records = load_streaming_records(out_dir)

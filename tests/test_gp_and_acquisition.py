@@ -8,6 +8,7 @@ import gpytorch
 from gpytorch.kernels import MaternKernel, RBFKernel, ScaleKernel
 from gpytorch.likelihoods import GaussianLikelihood
 
+from mobo_linac.config import ConstraintsConfig
 from mobo_linac.models.gp import build_gp_models, fit_gp_models
 from mobo_linac.models.diagnostics import compute_predictive_diagnostics
 from mobo_linac.acquisition.mobo import build_acquisition_function, generate_next_candidates
@@ -133,7 +134,7 @@ def test_constrained_acquisition_construction():
     ref_point = torch.tensor([-1.0, -1.0, -1.0], dtype=torch.double)
 
     joint_model = build_gp_models(train_X, train_Y, bounds)
-    c_funcs = get_botorch_constraint_functions()
+    c_funcs = get_botorch_constraint_functions(ConstraintsConfig(), num_objectives=3)
     slice_obj = SliceObjective(num_objectives=3)
 
     acq_func = build_acquisition_function(

@@ -20,11 +20,10 @@ class ConstraintEvaluator:
     Evaluates beam quality constraints against configurable thresholds.
     """
 
-    def __init__(self, constraints_config: Optional[ConstraintsConfig] = None):
-        if constraints_config is None:
-            self.config = ConstraintsConfig()
-        else:
-            self.config = constraints_config
+    def __init__(self, constraints_config: ConstraintsConfig):
+        if not isinstance(constraints_config, ConstraintsConfig):
+            raise TypeError("ConstraintEvaluator requires the active ConstraintsConfig.")
+        self.config = constraints_config
         self.config.validate()
 
     def check_feasibility(self, diagnostics: Dict[str, float]) -> bool:
@@ -70,7 +69,7 @@ class ConstraintEvaluator:
 
 
 def get_botorch_constraint_functions(
-    config: Optional[Union[ConstraintsConfig, MoboConfig]] = None,
+    config: Union[ConstraintsConfig, MoboConfig],
     num_objectives: Optional[int] = None,
 ) -> list:
     """
@@ -80,7 +79,7 @@ def get_botorch_constraint_functions(
     Args:
         config: MoboConfig or ConstraintsConfig instance.
         num_objectives: Actual objective output count; defaults to the configured count
-            or the canonical three-objective compatibility layout.
+            and is required with a bare ConstraintsConfig.
 
     Returns:
         List of callable constraint functions returning Tensors where <= 0 indicates feasibility.
@@ -90,12 +89,13 @@ def get_botorch_constraint_functions(
     elif isinstance(config, ConstraintsConfig):
         c_config = config
     else:
-        c_config = ConstraintsConfig()
+        raise TypeError("Constraint functions require a MoboConfig or ConstraintsConfig.")
 
     c_config.validate()
-    offset = len(config.objectives) if isinstance(config, MoboConfig) else 3
-    if num_objectives is not None:
-        offset = num_objectives
+    offset = num_objectives if num_objectives is not None else (
+        len(config.objectives) if isinstance(config, MoboConfig) else None)
+    if offset is None:
+        raise ValueError("num_objectives is required when only constraint thresholds are supplied.")
     if type(offset) is not int or offset < 1:
         raise ValueError("num_objectives must be a positive integer.")
 

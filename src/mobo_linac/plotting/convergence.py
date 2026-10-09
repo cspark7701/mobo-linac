@@ -12,6 +12,8 @@ import pandas as pd
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.io.results import results_to_dataframe
 from mobo_linac.plotting.common import (
+    LEGACY_DESIGN_COLUMNS,
+    LEGACY_SCHEMA,
     EMIT_SCALE,
     ENERGY_SCALE,
     OBJ_LABELS,
@@ -73,12 +75,11 @@ def plot_objective_evolution(
     config=None,
 ) -> plt.Figure:
     """Three-panel time-series of each physical objective across evaluations."""
-    df = results_to_dataframe(results, config)
+    from mobo_linac.result_schema import ResultSchema
+    schema = ResultSchema.from_config(config if config is not None else LEGACY_SCHEMA)
+    df = results_to_dataframe(results, schema)
     valid = df[df["simulation_valid"]].reset_index(drop=True)
     idx = range(1, len(valid) + 1)
-
-    from mobo_linac.result_schema import ResultSchema
-    schema = ResultSchema.from_config(config)
     fig, axes = plt.subplots(len(schema.signs), 1, figsize=(11, 3 * len(schema.signs)), sharex=True, squeeze=False)
     axes = axes[:, 0]
     colors = ["steelblue", "darkorange", "seagreen"]
@@ -116,7 +117,7 @@ def plot_best_so_far(
     Running best (feasible) value for each objective vs evaluation index.
     Only improves when a new feasible evaluation beats the previous best.
     """
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     feas = df[df["simulation_valid"] & df["physically_feasible"]].reset_index(drop=True)
 
     fig, axes = plt.subplots(3, 1, figsize=(11, 8), sharex=True)
@@ -151,7 +152,7 @@ def plot_scalarized_objective_trace(
     f(x) = w1*ε_nx + w2*ε_ny + w3*σ_E (normalised by first value) and the
     individual objective contributions, over evaluation history.
     """
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     valid = df[df["simulation_valid"]].reset_index(drop=True)
     w = np.array(weights, dtype=float)
 

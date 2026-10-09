@@ -16,35 +16,21 @@ from botorch.utils.multi_objective.pareto import is_non_dominated
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.evaluation import EvaluationResult
 
-# Default Fixed Engineering Normalization Scales
-DEFAULT_ENGINEERING_SCALES = {
-    "norm_emit_x_m_rad": 1.0e-6,   # 1 um.rad
-    "norm_emit_y_m_rad": 1.0e-6,   # 1 um.rad
-    "sigma_energy_eV": 1.0e6,       # 1 MeV
-}
-DEFAULT_REPORTING_SCALES = [1.0e-6, 1.0e-6, 1.0e6]
-
-# Default Fixed Reporting Reference Point in Normalized Model Space
-# (Physical space: [10.0, 10.0, 10.0] normalized; Model space: [-10.0, -10.0, -10.0])
-DEFAULT_REPORTING_REF_POINT_MODEL_NORM = [-10.0, -10.0, -10.0]
-
 
 def normalize_objectives_physical(
     physical_objs: Union[Sequence[float], np.ndarray, torch.Tensor],
-    scales: Optional[Sequence[float]] = None,
+    scales: Sequence[float],
 ) -> torch.Tensor:
     """
-    Normalizes physical objective values by fixed engineering scales.
+    Normalizes physical objective values by configured reporting scales.
 
     Args:
-        physical_objs: Physical objective values (minimization).
-        scales: Scale factors per objective. Defaults to [1e-6, 1e-6, 1e6].
+        physical_objs: Physical objective values.
+        scales: Scale factors per objective (``ResultSchema.scales``).
 
     Returns:
         PyTorch double tensor of normalized physical objective values.
     """
-    if scales is None:
-        scales = [1.0e-6, 1.0e-6, 1.0e6]
 
     if not isinstance(physical_objs, torch.Tensor):
         obj_tensor = torch.tensor(physical_objs, dtype=torch.double)
@@ -57,20 +43,18 @@ def normalize_objectives_physical(
 
 def normalize_objectives_model(
     model_objs: Union[Sequence[float], np.ndarray, torch.Tensor],
-    scales: Optional[Sequence[float]] = None,
+    scales: Sequence[float],
 ) -> torch.Tensor:
     """
-    Normalizes model-space objective values (-1 * physical) by fixed engineering scales.
+    Normalizes model-space objective values by configured reporting scales.
 
     Args:
         model_objs: Model-space objective values (maximization).
-        scales: Scale factors per objective. Defaults to [1e-6, 1e-6, 1e6].
+        scales: Scale factors per objective (``ResultSchema.scales``).
 
     Returns:
         PyTorch double tensor of normalized model-space objective values.
     """
-    if scales is None:
-        scales = [1.0e-6, 1.0e-6, 1.0e6]
 
     if not isinstance(model_objs, torch.Tensor):
         obj_tensor = torch.tensor(model_objs, dtype=torch.double)
@@ -83,8 +67,8 @@ def normalize_objectives_model(
 
 def compute_normalized_hypervolume(
     train_Y_model: torch.Tensor,
-    ref_point_model_norm: Union[Sequence[float], torch.Tensor] = DEFAULT_REPORTING_REF_POINT_MODEL_NORM,
-    scales: Optional[Sequence[float]] = None,
+    ref_point_model_norm: Union[Sequence[float], torch.Tensor],
+    scales: Sequence[float],
 ) -> float:
     """
     Computes dimensionless hypervolume in normalized objective space w.r.t a fixed reporting reference point.
@@ -178,8 +162,8 @@ def validate_campaign_compatibility(meta_a, meta_b, atol=0.0, raise_on_incompati
 
 def compute_campaign_metrics_history(
     results: List[EvaluationResult],
-    scales: Optional[Sequence[float]] = None,
-    reporting_ref_point_norm: Sequence[float] = DEFAULT_REPORTING_REF_POINT_MODEL_NORM,
+    scales: Sequence[float],
+    reporting_ref_point_norm: Sequence[float],
     elapsed_wall_times: Optional[Sequence[Optional[float]]] = None,
 ) -> pd.DataFrame:
     """

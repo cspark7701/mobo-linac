@@ -22,10 +22,13 @@ import json
 from mobo_linac.io.journal import load_streaming_records, write_streaming_csv
 from mobo_linac.io.results import append_streaming_evaluation, load_streaming_evaluations
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 def test_versioned_journal_round_trip_preserves_metadata(tmp_path, sample_results):
-    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=2, candidate_idx=1)
-    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=2, candidate_idx=0)
+    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=2, candidate_idx=1, config=TEST_CONFIG)
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=2, candidate_idx=0, config=TEST_CONFIG)
     (tmp_path / "evaluations_stream.csv").write_text("corrupt csv")
     records = load_streaming_records(tmp_path)
     assert [r.result.to_dict() for r in records] == [r.to_dict() for r in reversed(sample_results)]
@@ -33,7 +36,7 @@ def test_versioned_journal_round_trip_preserves_metadata(tmp_path, sample_result
     payload = json.loads((tmp_path / "evaluations_stream.jsonl").read_text().splitlines()[0])
     assert payload["version"] == "1.0"
     assert "batch_idx" not in payload["evaluation"]
-    csv_path = write_streaming_csv(tmp_path)
+    csv_path = write_streaming_csv(tmp_path, config=TEST_CONFIG)
     assert pd.read_csv(csv_path)["evaluation_id"].tolist() == [r.evaluation_id for r in sample_results]
 
 
@@ -50,36 +53,36 @@ def test_legacy_flat_journal_round_trip_without_csv(tmp_path, sample_results):
                                     b'{"evaluation": {"runtime_s": 1e',
                                     b'{"evaluation": {"work_dir": "\\u00'])
 def test_truncated_trailing_record_repaired_before_append(tmp_path, sample_results, suffix):
-    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0, candidate_idx=0)
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0, candidate_idx=0, config=TEST_CONFIG)
     journal = tmp_path / "evaluations_stream.jsonl"
     with journal.open("ab") as stream:
         stream.write(suffix)
     with pytest.warns(RuntimeWarning, match="truncated trailing"):
         assert len(load_streaming_records(tmp_path)) == 1
-    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0, candidate_idx=1)
+    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0, candidate_idx=1, config=TEST_CONFIG)
     assert len(load_streaming_records(tmp_path)) == 2
     assert len(journal.read_text().splitlines()) == 2
 
 
 @pytest.mark.parametrize("bad_record", ['not json\n', 'not json', '{bad}\n', '{bad}', '{"version": "99", "evaluation": {}}\n', '{}\n'])
 def test_malformed_or_invalid_journal_is_not_hidden_by_csv(tmp_path, sample_results, bad_record):
-    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0)
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0, config=TEST_CONFIG)
     journal = tmp_path / "evaluations_stream.jsonl"
     journal.write_text(journal.read_text() + bad_record)
     before = journal.read_bytes()
     with pytest.raises(ValueError, match="journal"):
         load_streaming_evaluations(tmp_path)
     with pytest.raises(ValueError, match="journal"):
-        append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0)
+        append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0, config=TEST_CONFIG)
     assert journal.read_bytes() == before
 
 
 def test_duplicate_journal_records_are_idempotent_and_conflicts_rejected(tmp_path, sample_results):
     first = sample_results[0]
-    append_streaming_evaluation(tmp_path, first, batch_idx=0, candidate_idx=0)
+    append_streaming_evaluation(tmp_path, first, batch_idx=0, candidate_idx=0, config=TEST_CONFIG)
     journal = tmp_path / "evaluations_stream.jsonl"
     original_line = journal.read_text()
-    append_streaming_evaluation(tmp_path, first, batch_idx=0, candidate_idx=0)
+    append_streaming_evaluation(tmp_path, first, batch_idx=0, candidate_idx=0, config=TEST_CONFIG)
     assert journal.read_text() == original_line
     journal.write_text(original_line + original_line)
     assert len(load_streaming_records(tmp_path)) == 1
@@ -91,11 +94,11 @@ def test_duplicate_journal_records_are_idempotent_and_conflicts_rejected(tmp_pat
 
 
 def test_valid_unterminated_journal_record_gets_delimited_on_append(tmp_path, sample_results):
-    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0)
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0, config=TEST_CONFIG)
     journal = tmp_path / "evaluations_stream.jsonl"
     journal.write_text(journal.read_text().rstrip("\n"))
     assert len(load_streaming_records(tmp_path)) == 1
-    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0)
+    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0, config=TEST_CONFIG)
     assert len(load_streaming_records(tmp_path)) == 2
 
 
@@ -105,9 +108,9 @@ def test_csv_write_failure_preserves_authoritative_journal(tmp_path, sample_resu
     with monkeypatch.context() as patch:
         patch.setattr("mobo_linac.io.journal.write_streaming_csv", fail_csv)
         with pytest.raises(OSError, match="CSV view unavailable"):
-            append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0)
+            append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0, config=TEST_CONFIG)
     assert len(load_streaming_records(tmp_path)) == 1
-    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0)
+    append_streaming_evaluation(tmp_path, sample_results[0], batch_idx=0, config=TEST_CONFIG)
     assert len(load_streaming_records(tmp_path)) == 1
     assert len(pd.read_csv(tmp_path / "evaluations_stream.csv")) == 1
 
@@ -146,7 +149,7 @@ def sample_results():
 
 def test_results_to_dataframe(sample_results):
     """Test converting EvaluationResult list to Pandas DataFrame."""
-    df = results_to_dataframe(sample_results)
+    df = results_to_dataframe(sample_results, config=TEST_CONFIG)
     assert isinstance(df, pd.DataFrame)
     assert len(df) == 2
     assert "evaluation_id" in df.columns
@@ -159,17 +162,17 @@ def test_results_to_dataframe(sample_results):
 
 def test_save_and_load_evaluation_results(sample_results, tmp_path):
     """Test saving and restoring evaluation results to/from JSON and CSV."""
-    paths = save_evaluation_results(sample_results, tmp_path)
+    paths = save_evaluation_results(sample_results, tmp_path, config=TEST_CONFIG)
     assert paths["json"].exists()
     assert paths["csv"].exists()
 
-    loaded_json = load_evaluation_results(paths["json"])
+    loaded_json = load_evaluation_results(paths["json"], config=TEST_CONFIG)
     assert len(loaded_json) == 2
     assert loaded_json[0].evaluation_id == "eval_000001"
     assert loaded_json[0].simulation_valid is True
     assert loaded_json[1].physically_feasible is False
 
-    loaded_csv = load_evaluation_results(paths["csv"])
+    loaded_csv = load_evaluation_results(paths["csv"], config=TEST_CONFIG)
     assert len(loaded_csv) == 2
     assert loaded_csv[0].evaluation_id == "eval_000001"
     assert loaded_csv[0].simulation_valid is True
@@ -341,11 +344,11 @@ def test_named_legacy_model_headers_and_unknown_status_are_preserved(tmp_path):
     path = tmp_path / "pareto.csv"
     columns = ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg", "model_norm_emit_x_neg", "model_norm_emit_y_neg", "model_sigma_energy_neg"]
     pd.DataFrame([[0.1] * 6 + [-1e-6, -2e-6, -3e5]], columns=columns).to_csv(path, index=False)
-    result = load_evaluation_results(path)[0]
+    result = load_evaluation_results(path, config=TEST_CONFIG)[0]
     assert result.objectives_physical == [1e-6, 2e-6, 3e5]
     assert result.physically_feasible is None and result.simulation_valid is None
-    assert get_train_tensors([result])[0].shape == (0, 6)
-    assert get_train_tensors([result], exclude_invalid=False)[2].tolist() == [False]
+    assert get_train_tensors([result], config=TEST_CONFIG)[0].shape == (0, 6)
+    assert get_train_tensors([result], exclude_invalid=False, config=TEST_CONFIG)[2].tolist() == [False]
 
 
 def test_artifact_writer_keeps_pareto_semantics_and_clears_stale_rows(tmp_path, sample_results):
@@ -379,7 +382,7 @@ def test_artifact_writer_keeps_pareto_semantics_and_clears_stale_rows(tmp_path, 
 
 def test_export_failure_cannot_leave_completion_marker(tmp_path, sample_results, monkeypatch):
     from mobo_linac.io.artifacts import RunArtifactWriter
-    writer = RunArtifactWriter(tmp_path)
+    writer = RunArtifactWriter(tmp_path, TEST_CONFIG)
     writer.write(sample_results)
     writer.complete(2, 1.0)
     def fail_csv(*args, **kwargs):

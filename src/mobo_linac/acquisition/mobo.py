@@ -36,8 +36,10 @@ class SliceObjective(IdentityMCMultiOutputObjective):
     Slices the first num_objectives outputs from posterior samples for multi-objective evaluation.
     """
 
-    def __init__(self, num_objectives: int = 3):
+    def __init__(self, num_objectives: int):
         super().__init__()
+        if type(num_objectives) is not int or num_objectives < 1:
+            raise ValueError("num_objectives must be a positive integer.")
         self.num_objectives = num_objectives
 
     def forward(self, samples: torch.Tensor, X: Optional[torch.Tensor] = None) -> torch.Tensor:

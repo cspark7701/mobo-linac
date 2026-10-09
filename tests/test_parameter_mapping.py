@@ -5,25 +5,13 @@ Unit tests for Config-Driven Dynamic Parameter Mapping & Beamline Element Decoup
 import pytest
 from pathlib import Path
 from mobo_linac.config import DesignVariableConfig, MoboConfig, load_config
-from mobo_linac.astra.runner import apply_parameters_to_astra, PARAMETER_NAMES, AstraRunner, run_astra_eval
+from mobo_linac.astra.runner import apply_parameters_to_astra, AstraRunner, run_astra_eval
 
 
-def test_apply_parameters_default_fallback():
-    """Verify default fallback parameter mapping for standard 6 parameters."""
-    mock_sim = {}
-    params = [0.28, 5.0, -4.5, 30.0, -15.0, 10.0]
-
-    applied = apply_parameters_to_astra(mock_sim, params, config=None)
-
-    assert applied == PARAMETER_NAMES
-    assert mock_sim["solenoid:maxb(1)"] == 0.28
-    assert mock_sim["quadrupole:q_grad(1)"] == 5.0
-    assert mock_sim["quadrupole:q_grad(2)"] == -4.5
-    assert mock_sim["cavity:phi(1)"] == 30.0
-    assert mock_sim["cavity:phi(2)"] == -15.0
-    assert mock_sim["cavity:phi(3)"] == -15.0  # Coupled ACC1/ACC2
-    assert mock_sim["cavity:phi(4)"] == 10.0
-    assert mock_sim["cavity:phi(5)"] == 10.0   # Coupled ACC3/ACC4
+def test_apply_parameters_requires_configuration():
+    """There is no implicit six-parameter namelist mapping."""
+    with pytest.raises(TypeError, match="design_variables"):
+        apply_parameters_to_astra({}, [0.28, 5.0, -4.5, 30.0, -15.0, 10.0], config=None)
 
 
 def test_apply_parameters_from_loaded_config():
@@ -78,10 +66,6 @@ def test_apply_parameters_custom_decoupled_cavities():
 def test_parameter_length_mismatch_raises():
     """Verify ValueError is raised when parameter count does not match config or default."""
     mock_sim = {}
-
-    # Default expects 6
-    with pytest.raises(ValueError, match="Expected 6"):
-        apply_parameters_to_astra(mock_sim, [0.1, 0.2, 0.3], config=None)
 
     # Config with 6 variables expects 6
     config = load_config("configs/mobo_200MeV.yaml")

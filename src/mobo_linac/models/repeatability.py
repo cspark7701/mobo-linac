@@ -1,69 +1,67 @@
 """
-Repeatability and Measured Noise Variance Utility for Linac Optimizations (Task 07).
+Repeatability and Measured Noise Variance Utility for Linac Optimizations.
 
 Provides tools for evaluating observation noise variance from repeated ASTRA evaluations
 or sensitivity profiling around a nominal candidate vector.
 """
 
-from typing import Dict, List, Optional, Sequence, Union
+from typing import Dict, List, Sequence, Union
 import numpy as np
 import torch
 
 from mobo_linac.evaluation import EvaluationResult
+from mobo_linac.result_schema import ResultSchema
 
 
 def compute_measured_noise_variance(
     results: List[EvaluationResult],
+    config,
     min_variance: float = 1.0e-8,
 ) -> Dict[str, float]:
     """
-    Computes measured variance across objective columns from repeated evaluation runs.
+    Computes measured variance across configured objective columns from repeated runs.
 
     Args:
-        results: List of EvaluationResult instances evaluated at identical or near-identical inputs.
+        results: EvaluationResult instances evaluated at identical or near-identical inputs.
+        config: MoboConfig or ResultSchema defining the objective order and names.
         min_variance: Floor for calculated variance.
 
     Returns:
-        Dict mapping objective name -> measured variance value.
+        Dict mapping configured physical objective column -> measured variance value.
     """
+    schema = ResultSchema.from_config(config)
     valid_objs = [r.objectives_physical for r in results if r.simulation_valid and r.objectives_physical]
     if len(valid_objs) < 2:
-        return {
-            "norm_emit_x_m_rad": min_variance,
-            "norm_emit_y_m_rad": min_variance,
-            "sigma_energy_eV": min_variance,
-        }
+        return {name: min_variance for name in schema.physical_columns}
 
-    arr = np.array(valid_objs)
-    variances = np.var(arr, axis=0, ddof=1)
-
-    return {
-        "norm_emit_x_m_rad": float(max(variances[0], min_variance)),
-        "norm_emit_y_m_rad": float(max(variances[1], min_variance)),
-        "sigma_energy_eV": float(max(variances[2], min_variance)),
-    }
+    variances = np.var(np.array(valid_objs), axis=0, ddof=1)
+    return {name: float(max(value, min_variance)) for name, value in zip(schema.physical_columns, variances)}
 
 
 def create_measured_yvar_tensor(
     num_samples: int,
     variances: Union[Sequence[float], Dict[str, float]],
+    config=None,
 ) -> torch.Tensor:
     """
     Creates an (N, M) PyTorch double tensor of observation variances.
 
     Args:
         num_samples: Number of sample evaluations (N).
-        variances: List or dict of objective variances.
+        variances: Ordered variances, or a mapping keyed by configured objective columns
+            (which then requires ``config``).
 
     Returns:
         (N, M) PyTorch double tensor.
     """
     if isinstance(variances, dict):
-        var_list = [
-            variances.get("norm_emit_x_m_rad", 1e-8),
-            variances.get("norm_emit_y_m_rad", 1e-8),
-            variances.get("sigma_energy_eV", 1e-8),
-        ]
+        if config is None:
+            raise TypeError("A configuration is required to order variance mappings.")
+        columns = ResultSchema.from_config(config).physical_columns
+        missing = [name for name in columns if name not in variances]
+        if missing:
+            raise ValueError(f"Missing measured variances: {missing}")
+        var_list = [variances[name] for name in columns]
     else:
         var_list = list(variances)
 

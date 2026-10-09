@@ -17,6 +17,9 @@ from mobo_linac.evaluation import (
 from mobo_linac.io.results import results_to_dataframe
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 @pytest.mark.parametrize("channel", DIAGNOSTIC_CHANNELS, ids=lambda c: c.name)
 def test_missing_diagnostic_invalidates_new_evaluation_without_imputation(channel):
@@ -28,8 +31,8 @@ def test_missing_diagnostic_invalidates_new_evaluation_without_imputation(channe
     assert not result.simulation_valid
     assert result.failure_category == FailureCategory.MISSING_OUTPUT.value
     assert channel.name not in result.diagnostics
-    assert get_constraint_tensors([result]).shape == (0, 7)
-    assert get_train_tensors([result])[0].shape[0] == 0
+    assert get_constraint_tensors([result], config=TEST_CONFIG).shape == (0, 7)
+    assert get_train_tensors([result], config=TEST_CONFIG)[0].shape[0] == 0
 
 
 @pytest.mark.parametrize("value", [None, "unmeasured", float("nan"), float("inf")])
@@ -79,14 +82,14 @@ def test_filtered_constraint_rows_retain_design_objective_identity():
     del records[1].diagnostics["sigma_y_m"]
     records[2].diagnostics["mean_kinetic_energy_eV"] = float("inf")
     records[4].objectives_model[0] = float("nan")
-    observed = get_training_observations(records, require_diagnostics=True)
+    observed = get_training_observations(records, require_diagnostics=True, config=TEST_CONFIG)
     assert observed.evaluation_ids == (("test_run", "eval_000001"), ("test_run", "eval_000004"))
     assert observed.train_X.tolist() == [records[i].x_physical for i in (0, 3)]
     assert observed.train_Y.tolist() == [records[i].objectives_model for i in (0, 3)]
     assert observed.constraints[:, 0].tolist() == [0.5e-3, 1.2e-3]
     assert observed.feasible.tolist() == [True, False]
-    assert get_constraint_tensors(records).tolist() == observed.constraints.tolist()
-    objective_only = get_training_observations(records)
+    assert get_constraint_tensors(records, config=TEST_CONFIG).tolist() == observed.constraints.tolist()
+    objective_only = get_training_observations(records, config=TEST_CONFIG)
     assert len(objective_only.evaluation_ids) == 4
 
 
@@ -188,7 +191,7 @@ def test_diagnostic_units():
     assert "n_particles_final" in diags
     assert "transmission_fraction" in diags
 
-    df = results_to_dataframe([res])
+    df = results_to_dataframe([res], config=TEST_CONFIG)
     for col in [
         "sigma_x_m",
         "sigma_y_m",

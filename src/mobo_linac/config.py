@@ -208,9 +208,17 @@ class BenchmarkConfig:
     total_eval_budget: int = 40
     n_sobol_init: int = 10
     batch_size: int = 4
-    reporting_ref_point: List[float] = field(default_factory=lambda: [1.5, 1.5, 1.5])
+    # Normalized physical reference per configured objective; None means 1.5 for each objective.
+    reporting_ref_point: Optional[List[float]] = None
     constraint_profile: str = "nominal"
     output_dir: str = "results/publication_benchmark"
+
+    def resolved_reporting_ref_point(self, objective_count: int) -> List[float]:
+        """Normalized physical reference matching the configured objective count."""
+        reference = [1.5] * objective_count if self.reporting_ref_point is None else list(self.reporting_ref_point)
+        if len(reference) != objective_count:
+            raise ValueError("Benchmark reporting reference must match configured objectives.")
+        return reference
 
     def validate(self) -> None:
         """Validates benchmark configuration fields."""
@@ -227,11 +235,11 @@ class BenchmarkConfig:
             raise ValueError("batch_size must be >= 1.")
         if not self.seeds or len(set(self.seeds)) != len(self.seeds):
             raise ValueError("Benchmark seeds must be non-empty and unique.")
-        if len(self.reporting_ref_point) != 3 or not all(
+        if self.reporting_ref_point is not None and (not self.reporting_ref_point or not all(
             isinstance(v, (int, float)) and math.isfinite(v) and v > 0
             for v in self.reporting_ref_point
-        ):
-            raise ValueError("reporting_ref_point must contain three finite positive normalized physical values.")
+        )):
+            raise ValueError("reporting_ref_point must contain finite positive normalized physical values.")
         _validate_fields(self)
 
 
@@ -363,7 +371,7 @@ FIELD_RULES = {
         "algorithms": {"minItems": 1, "uniqueItems": True, "items": {"type": "string", "enum": list(SUPPORTED_BENCHMARK_ALGORITHMS)}},
         "seeds": {"minItems": 1, "uniqueItems": True, "items": {"type": "integer", "minimum": 0, "maximum": 2**32 - 1}},
         **{name: {"minimum": 1} for name in ("total_eval_budget", "n_sobol_init", "batch_size")},
-        "reporting_ref_point": {"minItems": 3, "maxItems": 3, "items": {"type": "number", "exclusiveMinimum": 0}},
+        "reporting_ref_point": {"minItems": 1, "items": {"type": "number", "exclusiveMinimum": 0}},
         "constraint_profile": {"minLength": 1}, "output_dir": {"minLength": 1},
     },
     "MoboConfig": {"version": {"minLength": 1}, "design_variables": {"minItems": 1}, "objectives": {"minItems": 1}},
@@ -656,9 +664,14 @@ def validate_campaign_options(*, num_initial_samples, num_batches, batch_size, n
         raise ValueError("qLogNEI requires scalarized_bo optimization mode.")
 
 
-def validate_evaluation_settings(parameters, config=None, namelist_overrides=None, source_settings=None):
+def validate_evaluation_settings(parameters, config, namelist_overrides=None, source_settings=None):
     """Validate finite machine/source requests before reserving simulation attempts."""
-    count = len(config.design_variables) if isinstance(config, MoboConfig) else len(config["design_variables"]) if isinstance(config, dict) else 6
+    if isinstance(config, MoboConfig):
+        count = len(config.design_variables)
+    elif isinstance(config, dict) and "design_variables" in config:
+        count = len(config["design_variables"])
+    else:
+        raise TypeError("A configuration defining design_variables is required.")
     if len(parameters) != count:
         raise ValueError("Parameter vector length must match configured design variables.")
     if any(isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value) for value in parameters):

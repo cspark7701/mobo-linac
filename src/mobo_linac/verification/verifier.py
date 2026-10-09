@@ -14,7 +14,6 @@ import torch
 from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from mobo_linac.astra.workdir import file_sha256, format_eval_id, validate_component, write_once_json
-from mobo_linac.config import load_config
 from mobo_linac.diagnostics import diagnostic_observations, normalize_diagnostics
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask, compute_metric_deltas
@@ -28,8 +27,7 @@ def compute_file_sha256(file_path):
     return file_sha256(file_path) if Path(file_path).is_file() else None
 
 
-def select_verification_candidates(results, config=None):
-    config = config or load_config()
+def select_verification_candidates(results, config):
     schema = ResultSchema.from_config(config)
     candidates, objectives = [], []
     for result in results:
@@ -78,10 +76,11 @@ def comparison_status(original, rerun, deltas, tol_verified, tol_conditional):
 
 
 class ParetoVerifier(CandidateEvaluatorBase):
-    def __init__(self, config=None, base_output_dir='results/verification', num_workers=None,
+    def __init__(self, config, base_output_dir='results/verification', num_workers=None,
                  timeout=None, tol_verified=1e-3, tol_conditional=0.10,
                  template_dir='.', template_in='astra.in'):
-        config = config or load_config()
+        if config is None:
+            raise TypeError("Verification requires the campaign MoboConfig.")
         super().__init__(config=config, base_output_dir=base_output_dir,
                          num_workers=config.execution.max_workers if num_workers is None else num_workers,
                          timeout=config.execution.timeout_sec if timeout is None else timeout,
@@ -207,9 +206,8 @@ def run_independent_verification_rerun(role, candidate, config, output_dir='resu
     return records[0]
 
 
-def run_verification_pipeline(results, config=None, output_dir='results/verification',
+def run_verification_pipeline(results, config, output_dir='results/verification',
                               mock_rerun_data_map=None, mock_evaluator=None, **settings):
-    config = config or load_config()
     verifier = ParetoVerifier(config=config, base_output_dir=output_dir, **settings)
     return verifier.verify_candidates(select_verification_candidates(results, config),
                mock_evaluator=mock_evaluator, mock_rerun_data_map=mock_rerun_data_map)

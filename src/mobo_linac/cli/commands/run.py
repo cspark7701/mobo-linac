@@ -44,7 +44,7 @@ def run_unconstrained(args: argparse.Namespace) -> None:
         return
 
     evaluator = (
-        CliMockEvaluator(Path(args.output_dir or "results"))
+        CliMockEvaluator(Path(args.output_dir or "results"), config=config)
         if getattr(args, "mock_evaluator", False)
         else None
     )
@@ -85,7 +85,7 @@ def run_constrained(args: argparse.Namespace) -> None:
         return
 
     evaluator = (
-        CliMockEvaluator(Path(args.output_dir or "results"))
+        CliMockEvaluator(Path(args.output_dir or "results"), config=config)
         if getattr(args, "mock_evaluator", False)
         else None
     )
@@ -140,7 +140,7 @@ def run_scalarized(args: argparse.Namespace) -> None:
         return
 
     evaluator = (
-        CliMockEvaluator(Path(args.output_dir or "results"))
+        CliMockEvaluator(Path(args.output_dir or "results"), config=config)
         if getattr(args, "mock_evaluator", False)
         else None
     )
@@ -192,7 +192,7 @@ def run_scalarized_suite_cmd(args: argparse.Namespace) -> None:
         return
 
     evaluator = (
-        CliMockEvaluator(Path(output_dir))
+        CliMockEvaluator(Path(output_dir), config=config)
         if getattr(args, "mock_evaluator", False)
         else None
     )

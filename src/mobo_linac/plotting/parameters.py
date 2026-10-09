@@ -13,10 +13,11 @@ import pandas as pd
 
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.io.results import (
-    DESIGN_VAR_COLUMNS,
     results_to_dataframe,
 )
 from mobo_linac.plotting.common import (
+    LEGACY_DESIGN_COLUMNS,
+    LEGACY_SCHEMA,
     DESIGN_VAR_LABELS,
     DESIGN_VAR_SHORT_LABELS,
     save_fig,
@@ -32,12 +33,12 @@ def plot_design_variable_heatmap(
     Pearson correlation heatmap between all 6 design variables.
     Optionally restricted to feasible evaluations only.
     """
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     subset = df[df["simulation_valid"]]
     if feasible_only:
         subset = subset[subset["physically_feasible"]]
 
-    corr = subset[DESIGN_VAR_COLUMNS].dropna().corr()
+    corr = subset[LEGACY_DESIGN_COLUMNS].dropna().corr()
 
     fig, ax = plt.subplots(figsize=(7, 6))
     im = ax.imshow(corr.values, vmin=-1, vmax=1, cmap="RdBu_r", aspect="auto")
@@ -73,17 +74,17 @@ def plot_parallel_coordinates(
     Parallel coordinates plot of the 6 design variables, coloured by one
     physical objective (default: ε_nx).
     """
-    df = results_to_dataframe(results)
+    df = results_to_dataframe(results, LEGACY_SCHEMA)
     subset = df[df["simulation_valid"]]
     if feasible_only:
         subset = subset[subset["physically_feasible"]]
-    subset = subset.dropna(subset=DESIGN_VAR_COLUMNS + [color_by])
+    subset = subset.dropna(subset=LEGACY_DESIGN_COLUMNS + [color_by])
     if len(subset) > n_lines:
         subset = subset.sample(n_lines, random_state=0)
 
     # normalise each axis to [0, 1] for plotting
-    norm_df = subset[DESIGN_VAR_COLUMNS].copy()
-    for col in DESIGN_VAR_COLUMNS:
+    norm_df = subset[LEGACY_DESIGN_COLUMNS].copy()
+    for col in LEGACY_DESIGN_COLUMNS:
         lo, hi = norm_df[col].min(), norm_df[col].max()
         norm_df[col] = (norm_df[col] - lo) / (hi - lo + 1e-30)
 
@@ -93,7 +94,7 @@ def plot_parallel_coordinates(
     sm = cm.ScalarMappable(cmap=cmap, norm=c_norm)
 
     fig, ax = plt.subplots(figsize=(12, 6))
-    n_vars = len(DESIGN_VAR_COLUMNS)
+    n_vars = len(LEGACY_DESIGN_COLUMNS)
     xs = np.arange(n_vars)
 
     for _, row in norm_df.iterrows():

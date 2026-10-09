@@ -9,6 +9,9 @@ import shutil
 import pytest
 import numpy as np
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 @pytest.mark.parametrize("max_workers", [1, 2])
 def test_callback_persistence_errors_propagate_in_serial_and_parallel(tmp_path, monkeypatch, max_workers):
@@ -28,6 +31,7 @@ def test_callback_persistence_errors_propagate_in_serial_and_parallel(tmp_path, 
             run_id="durable_run", eval_ids=["eval_000009", "eval_000010"],
             max_workers=max_workers, base_results_dir=tmp_path,
             on_evaluation_complete=callback,
+            config=TEST_CONFIG,
         )
 
 from mobo_linac.execution.parallel import (
@@ -139,6 +143,7 @@ def test_parallel_deterministic_order_and_alignment(temp_project, monkeypatch):
         max_workers=4,
         base_results_dir=temp_project["results_dir"],
         template_dir=temp_project["template_dir"],
+        config=TEST_CONFIG,
     )
 
     assert len(results) == 4
@@ -183,6 +188,7 @@ def test_partial_failure_resilience(temp_project, monkeypatch):
         max_workers=2,
         base_results_dir=temp_project["results_dir"],
         template_dir=temp_project["template_dir"],
+        config=TEST_CONFIG,
     )
 
     assert len(results) == 3
@@ -217,6 +223,7 @@ def test_serial_and_parallel_agreement(temp_project, monkeypatch):
         max_workers=1,
         base_results_dir=temp_project["results_dir"],
         template_dir=temp_project["template_dir"],
+        config=TEST_CONFIG,
     )
 
     parallel_res = evaluate_candidates_parallel(
@@ -225,6 +232,7 @@ def test_serial_and_parallel_agreement(temp_project, monkeypatch):
         max_workers=2,
         base_results_dir=temp_project["results_dir"],
         template_dir=temp_project["template_dir"],
+        config=TEST_CONFIG,
     )
 
     assert len(serial_res) == len(parallel_res)
@@ -241,6 +249,7 @@ def test_batch_evaluator_class(temp_project, monkeypatch):
         template_dir=temp_project["template_dir"],
         max_workers=2,
         timeout=15,
+        config=TEST_CONFIG,
     )
 
     def mock_run_astra_eval(parameters, **kwargs):
@@ -284,6 +293,7 @@ def test_real_parallel_astra_evaluations():
         template_dir=root_dir,
         max_workers=2,
         timeout=300,
+        config=TEST_CONFIG,
     )
 
     results = evaluator.evaluate_batch(candidates, run_id="integration_parallel_run")
@@ -364,7 +374,7 @@ def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monke
     assert accepted.attempt_id == history[-1]['attempt_id']
     assert accepted.manifest_path == history[-1]['manifest_path']
     record_dir = temp_project['base_dir'] / 'records'
-    append_streaming_evaluation(record_dir, accepted, batch_idx=0)
+    append_streaming_evaluation(record_dir, accepted, batch_idx=0, config=TEST_CONFIG)
     assert load_streaming_evaluations(record_dir)[0].to_dict() == accepted.to_dict()
     save_evaluation_results([accepted], record_dir, config=config)
     for name in ['candidate_history.json', 'candidate_history.csv']:
@@ -395,7 +405,7 @@ def test_worker_crash_retains_serializable_request_and_order(tmp_path, monkeypat
     monkeypatch.setattr(parallel, 'ProcessPoolExecutor', Pool)
     requests = [EvaluationRequest(f'candidate_{i}', [0.2, 1, -1, 0, 0, 0],
                                  {'charge:nrad': i + 1}, metadata={'index': i}) for i in range(2)]
-    out = BatchEvaluator(base_results_dir=tmp_path, max_workers=2).evaluate_requests(requests, run_id='crash')
+    out = BatchEvaluator(base_results_dir=tmp_path, max_workers=2, config=TEST_CONFIG).evaluate_requests(requests, run_id='crash')
     assert [row['eval_id'] for row in out] == [request.eval_id for request in requests]
     assert all(row['status'] == 'failed' and 'Worker process crashed' in row['error'] for row in out)
     assert [row['request'] for row in out] == [request.to_dict() for request in requests]

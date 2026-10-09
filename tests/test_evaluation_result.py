@@ -14,6 +14,9 @@ from mobo_linac.evaluation import (
 )
 from mobo_linac.io.results import get_train_tensors
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 @pytest.fixture
 def sample_config():
@@ -187,7 +190,7 @@ def test_exclude_invalid_from_gp_train_tensors():
 
     results = [valid_feasible, valid_infeasible, invalid_timeout, invalid_premature]
 
-    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True)
+    train_X, train_Y, train_feas_mask = get_train_tensors(results, exclude_invalid=True, config=TEST_CONFIG)
 
     # Only 2 valid samples should be in GP training tensors (invalid and premature beam loss excluded)
     assert train_X.shape[0] == 2
@@ -208,10 +211,16 @@ def test_missing_or_conflicting_objectives_never_train(objectives, category):
     from mobo_linac.io.results import get_train_tensors
     raw = MockBatchEvaluator()([0.0] * 6)
     raw["objectives"] = objectives
-    result = create_evaluation_result(raw)
+    result = create_evaluation_result(raw, TEST_CONFIG)
     assert not result.simulation_valid
     assert result.failure_category == category
-    assert get_train_tensors([result])[0].shape == (0, 6)
+    assert get_train_tensors([result], config=TEST_CONFIG)[0].shape == (0, 6)
     if category == "MISSING_OUTPUT":
         assert result.objectives_physical is None
         assert result.objectives_model is None
+
+
+def test_evaluation_result_requires_campaign_configuration():
+    from mobo_linac.execution import MockBatchEvaluator
+    with pytest.raises(TypeError, match="MoboConfig"):
+        create_evaluation_result(MockBatchEvaluator()([0.0] * 6), None)

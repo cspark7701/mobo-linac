@@ -25,12 +25,18 @@ class MockBatchEvaluator:
         fail_eval_ids: Optional[Sequence[Union[int, str]]] = None,
         delay_sec: float = 0.0,
         noise_std: float = 0.0,
+        config: Optional[Any] = None,
     ):
+        """``config`` selects the synthetic objective names; omitted, the evaluator
+        reports the archived 200 MeV statistic names, which configured campaigns
+        resolve through their objective aliases."""
         self.run_dir = Path(run_dir) if run_dir is not None else Path("results/mock_eval")
         self.failure_rate = float(failure_rate)
         self.fail_eval_ids = set(str(eid) for eid in fail_eval_ids) if fail_eval_ids else set()
         self.delay_sec = float(delay_sec)
         self.noise_std = float(noise_std)
+        self.objective_names = ([obj.name for obj in config.objectives] if config is not None
+                                else ["norm_emit_x", "norm_emit_y", "sigma_energy"])
 
     def _generate_candidate_result(
         self,
@@ -57,22 +63,20 @@ class MockBatchEvaluator:
                 "timestamps": {"duration_sec": 0.01},
             }
 
-        # Deterministic physical beam response
+        # Deterministic synthetic response; historical statistic names keep their values.
         sum_cand = sum(cand_list) if cand_list else 0.0
-        ex = float(0.1e-6 + 0.01e-6 * (sum_cand % 5))
-        ey = float(0.1e-6 + 0.01e-6 * (sum_cand % 7))
-        se = float(0.5e6 + 0.05e6 * (sum_cand % 3))
+        legacy = {"norm_emit_x": float(0.1e-6 + 0.01e-6 * (sum_cand % 5)),
+                  "norm_emit_y": float(0.1e-6 + 0.01e-6 * (sum_cand % 7)),
+                  "sigma_energy": float(0.5e6 + 0.05e6 * (sum_cand % 3))}
+        objectives = {name: legacy.get(name, float(1.0 + 0.1 * (sum_cand % (index + 3))))
+                      for index, name in enumerate(self.objective_names)}
 
         return {
             "status": "success",
             "eval_id": eval_id_str,
             "run_id": run_id,
             "parameters": cand_list,
-            "objectives": {
-                "norm_emit_x": ex,
-                "norm_emit_y": ey,
-                "sigma_energy": se,
-            },
+            "objectives": objectives,
             "diagnostics": {
                 "sigma_x_m": 0.5e-3,
                 "sigma_y_m": 0.5e-3,

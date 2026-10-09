@@ -47,7 +47,7 @@ def run_robustness(args: argparse.Namespace) -> None:
 
     results = load_candidates(input_path, config=config)
 
-    mock = CliMockEvaluator(output_dir) if getattr(args, "mock_evaluator", False) else None
+    mock = CliMockEvaluator(output_dir, config=config) if getattr(args, "mock_evaluator", False) else None
     run_robustness_workflow(
         results, config, output_dir,
         num_perturbations=getattr(args, "num_perturbations", 20),
@@ -75,7 +75,7 @@ def run_verification(args: argparse.Namespace) -> None:
         raise ValueError("Verification requires measured candidate history; no input data found")
     mock_evaluator = None
     if mock:
-        evaluator = CliMockEvaluator(output_dir)
+        evaluator = CliMockEvaluator(output_dir, config=config)
         mock_evaluator = evaluator
         if not results:
             nominal = [variable.nominal_value for variable in config.design_variables]

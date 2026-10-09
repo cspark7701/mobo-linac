@@ -16,6 +16,9 @@ from mobo_linac.execution.candidate_evaluator import (
 from mobo_linac.robustness.evaluator import RobustnessEvaluator
 from mobo_linac.verification.verifier import ParetoVerifier
 
+from mobo_linac.config import load_config as _load_test_config
+TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
+
 
 @pytest.fixture
 def sample_candidate():
@@ -41,7 +44,7 @@ def sample_candidate():
 
 def test_compute_metric_deltas_identical(sample_candidate):
     """Verifies that identical nominal and rerun results yield 0% deltas."""
-    deltas = compute_metric_deltas(sample_candidate, sample_candidate)
+    deltas = compute_metric_deltas(sample_candidate, sample_candidate, TEST_CONFIG)
     assert deltas["diff_emit_x_pct"] == 0.0
     assert deltas["diff_emit_y_pct"] == 0.0
     assert deltas["diff_sigma_energy_pct"] == 0.0
@@ -60,7 +63,7 @@ def test_compute_metric_deltas_perturbed(sample_candidate):
         simulation_valid=True,
         physically_feasible=True,
     )
-    deltas = compute_metric_deltas(sample_candidate, perturbed)
+    deltas = compute_metric_deltas(sample_candidate, perturbed, TEST_CONFIG)
     assert pytest.approx(deltas["diff_emit_x_pct"], 1e-4) == 10.0
     assert pytest.approx(deltas["diff_emit_y_pct"], 1e-4) == 0.0
     assert pytest.approx(deltas["diff_sigma_energy_pct"], 1e-4) == 10.0
@@ -70,7 +73,7 @@ def test_compute_metric_deltas_perturbed(sample_candidate):
 
 def test_robustness_evaluator_plan_and_execution(sample_candidate, tmp_path):
     """Verifies RobustnessEvaluator task plan generation and custom evaluator execution."""
-    robust_eval = RobustnessEvaluator(base_output_dir=tmp_path / "robustness")
+    robust_eval = RobustnessEvaluator(TEST_CONFIG, base_output_dir=tmp_path / "robustness")
     tasks = robust_eval.generate_evaluation_plan([sample_candidate], num_perturbations=5, seed=42)
     assert len(tasks) == 5
     assert tasks[0].nominal_result == sample_candidate
@@ -107,7 +110,7 @@ def test_robustness_evaluator_plan_and_execution(sample_candidate, tmp_path):
 
 def test_pareto_verifier_plan_and_execution(sample_candidate, tmp_path):
     """Verifies ParetoVerifier task plan generation and verification pipeline."""
-    verifier = ParetoVerifier(base_output_dir=tmp_path / "verification")
+    verifier = ParetoVerifier(TEST_CONFIG, base_output_dir=tmp_path / "verification")
     tasks = verifier.generate_evaluation_plan([sample_candidate], roles=["knee_point"])
     assert len(tasks) == 1
     assert tasks[0].role == "knee_point"

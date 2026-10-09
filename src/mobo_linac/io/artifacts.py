@@ -36,7 +36,7 @@ def atomic_json(path, data):
 
 class RunArtifactWriter:
     """pareto.csv always aliases all-valid points; feasibility has its own file."""
-    def __init__(self, run_dir, config=None):
+    def __init__(self, run_dir, config):
         self.run_dir = Path(run_dir)
         self.run_dir.mkdir(parents=True, exist_ok=True)
         self.config = config

@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 import numpy as np
 
-from mobo_linac.config import MoboConfig, load_config, ExecutionConfig
+from mobo_linac.config import MoboConfig, ExecutionConfig
 from mobo_linac.evaluation import EvaluationResult, create_evaluation_result
 from mobo_linac.execution.parallel import BatchEvaluator
 from mobo_linac.execution.requests import EvaluationRequest
@@ -49,7 +49,7 @@ class EvaluationOutcome:
 
 def compute_metric_deltas(
     nominal_result: Optional[EvaluationResult], evaluated_result: EvaluationResult,
-    config: Optional[MoboConfig] = None,
+    config: MoboConfig,
 ) -> Dict[str, Any]:
     """Compare configured physical objectives and measured transmission, without defaults.
 
@@ -103,14 +103,16 @@ class CandidateEvaluatorBase(ABC):
 
     def __init__(
         self,
-        config: Optional[MoboConfig] = None,
+        config: MoboConfig,
         base_output_dir: Union[str, Path] = "results",
         num_workers: int = 1,
         timeout: int = 30,
         template_dir: Union[str, Path] = ".",
         template_in: str = "astra.in",
     ):
-        self.config = config or load_config()
+        if not isinstance(config, MoboConfig):
+            raise TypeError("Candidate evaluation requires the campaign MoboConfig.")
+        self.config = config
         self.config.validate()
         ExecutionConfig(timeout_sec=timeout, max_workers=num_workers).validate()
         self.base_output_dir = Path(base_output_dir)

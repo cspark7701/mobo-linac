@@ -359,7 +359,7 @@ def test_invalid_source_scales_fail_before_attempt_creation(tmp_path, setting):
     output = tmp_path / "invalid"
     with pytest.raises(ValueError):
         run_astra_eval([0.2, 1, -1, 0, 0, 0], base_results_dir=output,
-                       source_settings={"bunch_charge_scale": setting})
+                       source_settings={"bunch_charge_scale": setting}, config=load_config('configs/mobo_200MeV.yaml'))
     assert not output.exists()
 
 
@@ -368,7 +368,7 @@ def test_nonfinite_namelist_override_fails_before_attempt_creation(tmp_path):
     output = tmp_path / "invalid"
     with pytest.raises(ValueError, match="finite"):
         run_astra_eval([0.2, 1, -1, 0, 0, 0], base_results_dir=output,
-                       namelist_overrides={"charge:nrad": float("nan")})
+                       namelist_overrides={"charge:nrad": float("nan")}, config=load_config('configs/mobo_200MeV.yaml'))
     assert not output.exists()
 
 
@@ -393,7 +393,7 @@ def test_nonfinite_design_request_is_rejected_before_directory(tmp_path):
     from mobo_linac.astra.runner import run_astra_eval
     output = tmp_path / "invalid"
     with pytest.raises(ValueError, match="finite"):
-        run_astra_eval([float("nan"), 1, -1, 0, 0, 0], base_results_dir=output)
+        run_astra_eval([float("nan"), 1, -1, 0, 0, 0], base_results_dir=output, config=load_config('configs/mobo_200MeV.yaml'))
     assert not output.exists()
 
 
@@ -427,11 +427,13 @@ def test_nullable_fields_and_required_defaults_match_schema():
 
 def test_benchmark_reference_dimension_fails_before_output(tmp_path):
     from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
+    from mobo_linac.config import BenchmarkConfig
     config = load_config("configs/mobo_200MeV.yaml")
     config.objectives = config.objectives[:2]
     output = tmp_path / "invalid"
     with pytest.raises(ValueError, match="reporting reference"):
-        BenchmarkCampaignRunner(config, output_dir=output)
+        BenchmarkCampaignRunner(config, benchmark_config=BenchmarkConfig(
+            output_dir=str(output), reporting_ref_point=[1.5, 1.5, 1.5]))
     assert not output.exists()
 
 
@@ -449,5 +451,5 @@ def test_invalid_batch_parameters_are_not_coerced_before_validation(tmp_path, mo
     monkeypatch.setattr("mobo_linac.execution.parallel._worker_eval_task", forbid)
     output = tmp_path / "invalid"
     with pytest.raises(ValueError, match="finite numbers"):
-        evaluate_candidates_parallel([[True, 1, -1, 0, 0, 0]], max_workers=1, base_results_dir=output)
+        evaluate_candidates_parallel([[True, 1, -1, 0, 0, 0]], max_workers=1, base_results_dir=output, config=load_config('configs/mobo_200MeV.yaml'))
     assert not output.exists()

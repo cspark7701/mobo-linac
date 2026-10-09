@@ -12,6 +12,9 @@ from mobo_linac.objectives import (
     transform_to_model_space,
     transform_to_physical_space,
 )
+from mobo_linac.result_schema import ResultSchema, legacy_200MeV_schema
+
+CONFIG = load_config("configs/mobo_200MeV.yaml")
 
 
 def test_transform_to_model_space_and_back():
@@ -34,9 +37,9 @@ def test_transform_input_types():
     phys_np = np.array(phys_list)
     phys_torch = torch.tensor(phys_list, dtype=torch.double)
 
-    res_list = transform_to_model_space(phys_list)
-    res_np = transform_to_model_space(phys_np)
-    res_torch = transform_to_model_space(phys_torch)
+    res_list = transform_to_model_space(phys_list, CONFIG)
+    res_np = transform_to_model_space(phys_np, CONFIG)
+    res_torch = transform_to_model_space(phys_torch, CONFIG)
 
     assert torch.allclose(res_list, res_np)
     assert torch.allclose(res_np, res_torch)
@@ -50,7 +53,7 @@ def test_extract_physical_objectives():
         "sigma_energy": [10.0, 50.0],
     }
 
-    objs = extract_physical_objectives(mock_stats)
+    objs = extract_physical_objectives(mock_stats, CONFIG)
     assert objs["norm_emit_x"] == 1.2e-6
     assert objs["norm_emit_y_m_rad"] == 2.2e-6
     assert objs["sigma_energy_eV"] == 50.0
@@ -93,8 +96,17 @@ def test_transforms_preserve_tensor_placement_and_dtype(device, dtype):
     if device.startswith("cuda") and not torch.cuda.is_available():
         pytest.skip("CUDA unavailable")
     values = torch.tensor([[1e-6, 2e-6, 3e5]], device=device, dtype=dtype)
-    model = transform_to_model_space(values)
-    restored = transform_to_physical_space(model)
+    model = transform_to_model_space(values, CONFIG)
+    restored = transform_to_physical_space(model, CONFIG)
     assert model.device == restored.device == values.device
     assert model.dtype == restored.dtype == dtype
     torch.testing.assert_close(restored, values)
+
+
+def test_schema_requires_explicit_configuration_or_legacy_factory():
+    with pytest.raises(TypeError, match="required"):
+        ResultSchema.from_config(None)
+    with pytest.raises(TypeError):
+        transform_to_model_space([1.0, 2.0, 3.0], None)
+    legacy = legacy_200MeV_schema()
+    assert legacy == ResultSchema.from_config(CONFIG)

@@ -8,6 +8,13 @@ from typing import Generator, Optional, Union
 
 import matplotlib.pyplot as plt
 
+from mobo_linac.result_schema import legacy_200MeV_schema
+
+# Figures below are still drawn for the archived 200 MeV layout; they bind columns
+# through this explicit compatibility schema rather than an implicit default.
+LEGACY_SCHEMA = legacy_200MeV_schema()
+LEGACY_DESIGN_COLUMNS = list(LEGACY_SCHEMA.design_columns)
+
 # Shared unit conversion constants
 EMIT_SCALE = 1e6      # m·rad -> mm·mrad (or um·rad)
 ENERGY_SCALE = 1e-6   # eV -> MeV
