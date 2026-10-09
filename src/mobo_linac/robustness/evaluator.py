@@ -16,7 +16,8 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple, Union
 import numpy as np
 import yaml
 
-from mobo_linac.astra.workdir import validate_component, write_once_json
+from mobo_linac.astra.workdir import validate_component
+from mobo_linac.io.durable import write_once_json
 from mobo_linac.config import MoboConfig, resolve_config_path
 from mobo_linac.constraints import ConstraintEvaluator
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, constraint_sides, normalize_diagnostics, valid_channel_measurement

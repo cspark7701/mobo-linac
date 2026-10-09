@@ -197,7 +197,8 @@ class HypervolumeTracker:
         path = Path(output_path)
         path.parent.mkdir(parents=True, exist_ok=True)
         df = self.to_dataframe()
-        df.to_csv(path, index=False)
+        from mobo_linac.io.durable import atomic_csv
+        atomic_csv(path, df)
         return path
 
     @classmethod

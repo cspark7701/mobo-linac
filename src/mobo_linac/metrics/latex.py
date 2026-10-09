@@ -75,9 +75,8 @@ def verification_records(records):
 
 def _write_table(content, output_path):
     if output_path is not None:
-        path = Path(output_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(content, encoding="utf-8")
+        from mobo_linac.io.durable import atomic_write_text
+        atomic_write_text(output_path, content)
     return content
 
 
@@ -124,11 +123,7 @@ def generate_verification_latex_table(
             tex.append(" & ".join(cells) + r" \\")
         tex.extend([r"\bottomrule", r"\end{tabular}}", r"\end{table}"])
         content = "\n".join(tex) + "\n"
-        if output_path is not None:
-            path = Path(output_path)
-            path.parent.mkdir(parents=True, exist_ok=True)
-            path.write_text(content, encoding="utf-8")
-        return content
+        return _write_table(content, output_path)
 
     tex = [
         r"\begin{table}[htbp]",
@@ -171,12 +166,7 @@ def generate_verification_latex_table(
 
     content = "\n".join(tex) + "\n"
 
-    if output_path is not None:
-        p = Path(output_path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
-
-    return content
+    return _write_table(content, output_path)
 
 
 def generate_results_summary_latex_table(
@@ -225,12 +215,7 @@ def generate_results_summary_latex_table(
 
     content = "\n".join(tex) + "\n"
 
-    if output_path is not None:
-        p = Path(output_path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
-
-    return content
+    return _write_table(content, output_path)
 
 
 def generate_robustness_summary_latex_table(
@@ -308,12 +293,7 @@ def generate_robustness_summary_latex_table(
 
     content = "\n".join(tex) + "\n"
 
-    if output_path is not None:
-        p = Path(output_path)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        p.write_text(content, encoding="utf-8")
-
-    return content
+    return _write_table(content, output_path)
 
 
 def generate_phase1_cases_latex_table(

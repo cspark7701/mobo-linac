@@ -6,7 +6,7 @@ from pathlib import Path
 import torch
 from botorch.models import ModelListGP, SingleTaskGP
 
-from mobo_linac.io.results import _atomic_torch_save
+from mobo_linac.io.durable import atomic_torch_save, safe_torch_load
 from mobo_linac.models.gp import FitOutcome, build_scalarized_gp_model
 
 ARTIFACT_VERSION = 1
@@ -48,14 +48,14 @@ def save_model_artifact(model, path, *, training_ids=(), metadata=None):
     channels = [model] if isinstance(model, SingleTaskGP) else model.models
     if ids and len(ids) != channels[0].artifact_metadata["train_X"].shape[0]:
         raise ValueError("training_ids must align with observation rows.")
-    _atomic_torch_save({
+    atomic_torch_save({
         "version": ARTIFACT_VERSION, "kind": "gp", "model": model_payload(model),
         "training_ids": ids, "metadata": metadata or {},
     }, Path(path))
 
 
 def read_artifact(path):
-    artifact = torch.load(path, map_location="cpu", weights_only=True)
+    artifact = safe_torch_load(path)
     if artifact.get("version") != ARTIFACT_VERSION:
         raise ValueError("Unsupported surrogate artifact version.")
     return artifact

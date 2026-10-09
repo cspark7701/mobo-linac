@@ -3,35 +3,15 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import tempfile
 import numpy as np
 import pandas as pd
 import torch
 from mobo_linac.metrics.front import pareto_mask
 from mobo_linac.diagnostics import DIAGNOSTIC_NAMES
+from mobo_linac.io.durable import atomic_csv, atomic_json
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.io.results import get_training_observations, results_to_dataframe
 from mobo_linac.metrics.reporting import compute_campaign_metrics_history, reporting_metadata
-
-
-def atomic_json(path, data):
-    path = Path(path)
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", dir=path.parent, delete=False, encoding="utf-8") as stream:
-            temporary = Path(stream.name)
-            json.dump(data, stream, indent=2, allow_nan=False)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-        directory = os.open(path.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory)
-        finally:
-            os.close(directory)
-    finally:
-        if temporary is not None and temporary.exists():
-            temporary.unlink()
 
 
 class RunArtifactWriter:
@@ -55,7 +35,7 @@ class RunArtifactWriter:
         self.invalidate_completion()
         self.required = []
         def csv(name, frame):
-            frame.to_csv(self.run_dir / name, index=False)
+            atomic_csv(self.run_dir / name, frame)
             self.required.append(name)
         frame = results_to_dataframe(results, self.schema)
         for name, values in (extra_columns or {}).items():
@@ -63,7 +43,8 @@ class RunArtifactWriter:
                 raise ValueError("Extra artifact columns must be distinct and align with records.")
             frame[name] = values
         history = self.run_dir / "candidate_history.json"
-        history.write_text(json.dumps([r.to_dict() for r in results], indent=2), encoding="utf-8")
+        # Failure records may hold NaN diagnostics; JSON history records them as NaN.
+        atomic_json(history, [r.to_dict() for r in results], allow_nan=True)
         self.required.append(history.name)
         csv("candidate_history.csv", frame)
         csv("evaluations.csv", frame)

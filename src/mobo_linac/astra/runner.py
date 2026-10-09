@@ -94,7 +94,8 @@ from mobo_linac.astra.parser import (
     ParsedAstraResult,
     SimulationStatus,
 )
-from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id, file_sha256, write_once_json
+from mobo_linac.astra.workdir import AstraWorkDirManager, format_eval_id, file_sha256
+from mobo_linac.io.durable import write_once_json
 
 def apply_parameters_to_astra(
     astra_sim: Any,

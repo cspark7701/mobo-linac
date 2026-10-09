@@ -2,8 +2,6 @@
 from dataclasses import asdict, replace
 import math
 import json
-import os
-import shutil
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
@@ -12,7 +10,8 @@ import numpy as np
 import pandas as pd
 import torch
 
-from mobo_linac.astra.workdir import file_sha256, format_eval_id, validate_component, write_once_json
+from mobo_linac.astra.workdir import file_sha256, format_eval_id, validate_component
+from mobo_linac.io.durable import atomic_csv, atomic_write_bytes, write_once_json
 from mobo_linac.diagnostics import diagnostic_observations, normalize_diagnostics
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask, compute_metric_deltas
@@ -197,15 +196,16 @@ def create_verification_session(out_path):
 def save_verification_reports(records, session_path, out_path, settings=None):
     rows = [{key: json.dumps(value, sort_keys=True) if isinstance(value, (dict, list)) else value
              for key, value in record.items()} for record in records]
-    pd.DataFrame(rows).to_csv(session_path / 'verification_summary.csv', index=False, mode='x')
+    if (session_path / 'verification_summary.csv').exists():
+        raise FileExistsError("Verification session summary already exists.")
+    atomic_csv(session_path / 'verification_summary.csv', pd.DataFrame(rows))
     manifest = write_once_json(session_path / 'verification_manifest.json', {
         'timestamp': pd.Timestamp.now().isoformat(), 'verification_run_id': session_path.name,
         'total_candidates_verified': len(records), 'settings': settings or {}, 'records': records})
     table = export_verification_latex_table(records, session_path / 'verification_table.tex')
     for name in ('verification_summary.csv', 'verification_manifest.json', 'verification_table.tex'):
-        temporary = Path(out_path) / ('.' + name + '.' + uuid.uuid4().hex)
-        shutil.copyfile(session_path / name, temporary)
-        os.replace(temporary, Path(out_path) / name)
+        # Root files are atomic "latest report" views of the archived session.
+        atomic_write_bytes(Path(out_path) / name, (session_path / name).read_bytes())
     return manifest, table
 
 

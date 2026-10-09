@@ -1,8 +1,7 @@
 """Durable campaign model and checkpoint commits shared by all strategies."""
 import hashlib
-import os
 from uuid import uuid4
-from mobo_linac.io.artifacts import atomic_json
+from mobo_linac.io.durable import atomic_json, unlink_durable
 
 
 def persist_model(run_dir, model, iteration, training_ids, metadata, *, pipeline, save_model):
@@ -18,11 +17,6 @@ def persist_model(run_dir, model, iteration, training_ids, metadata, *, pipeline
 def commit_checkpoint(run_dir, proposal_history, pending_path, pending, *, save_checkpoint, **snapshot):
     """Commit the authoritative snapshot before removing a recovered pending batch."""
     save_checkpoint(**snapshot)
-    if pending is None and pending_path.exists():
-        pending_path.unlink()
-        directory_fd = os.open(pending_path.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+    if pending is None:
+        unlink_durable(pending_path)
     atomic_json(run_dir / "proposal_history.json", proposal_history)

@@ -24,7 +24,8 @@ from mobo_linac.metrics.reporting import (
     reporting_metadata, validate_campaign_compatibility,
 )
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.io.artifacts import atomic_json, validate_run_completion
+from mobo_linac.io.artifacts import validate_run_completion
+from mobo_linac.io.durable import atomic_csv, atomic_json
 from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics, feasible_objective_extrema
 from mobo_linac.io.run_data import read_run_data
 
@@ -235,7 +236,7 @@ class BenchmarkCampaignRunner:
                     "status": status,
                 })
         manifest_df = pd.DataFrame(self.manifest_rows)
-        manifest_df.to_csv(self.output_dir / "campaign_manifest.csv", index=False)
+        atomic_csv(self.output_dir / "campaign_manifest.csv", manifest_df)
         return manifest_df
 
     def analyze_completed_results(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
@@ -285,8 +286,8 @@ class BenchmarkCampaignRunner:
         figures_dir = self.output_dir / "figures"
         figures_dir.mkdir(parents=True, exist_ok=True)
 
-        agg_df.to_csv(self.output_dir / "aggregate_metrics.csv", index=False)
-        summary_df.to_csv(tables_dir / "benchmark_summary_table.csv", index=False)
+        atomic_csv(self.output_dir / "aggregate_metrics.csv", agg_df)
+        atomic_csv(tables_dir / "benchmark_summary_table.csv", summary_df)
 
         if not agg_df.empty:
             plot_benchmark_comparison(agg_df, output_path=figures_dir / "benchmark_hv_comparison.pdf")

@@ -139,7 +139,7 @@ For successful simulations, measured values are then classified:
 - **Analytical Feasibility ($P_{\text{feas}}$)**: Exact multi-channel Normal CDF formulation in `SurrogatePipeline`:
   $$P_{\text{feas}}(\mathbf{x}) = \prod_{i=1}^5 \Phi\left(\frac{\text{max}_i - \mu_i}{\sigma_i}\right) \cdot \left[\Phi\left(\frac{E_{\text{max}} - \mu_E}{\sigma_E}\right) - \Phi\left(\frac{E_{\text{min}} - \mu_E}{\sigma_E}\right)\right] \cdot \Phi\left(\frac{\mu_T - T_{\text{min}}}{\sigma_T}\right)$$
 - **Resilient Acquisition Optimization**: Configurable multi-restart L-BFGS budget with automatic adaptive retry and quasi-random Sobol fallback on numerical singularities.
-- **Atomic Checkpoint Serialization**: Atomic POSIX replace (`_atomic_torch_save`) preventing checkpoint corruption from process termination.
+- **Atomic Checkpoint Serialization**: Atomic POSIX replace (`mobo_linac.io.durable`) preventing checkpoint corruption from process termination.
 
 #### Diagnostic Observation Policy
 

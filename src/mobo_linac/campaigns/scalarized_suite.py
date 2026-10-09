@@ -17,7 +17,8 @@ import torch
 
 from mobo_linac.campaigns.runner import MoboCampaignRunner
 from mobo_linac.config import MoboConfig, config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
-from mobo_linac.io.artifacts import RunArtifactWriter, atomic_json, validate_run_completion
+from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+from mobo_linac.io.durable import atomic_csv, atomic_json
 from mobo_linac.io.results import get_train_tensors, load_evaluation_results, load_run_checkpoint, results_to_dataframe
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
 from mobo_linac.metrics.reporting import validate_campaign_compatibility
@@ -126,7 +127,7 @@ def aggregate_scalarized_cases(
             "final_feasible_hv": round(stats["final_hv"], 6),
         })
 
-    pd.DataFrame(summary_rows).to_csv(base_path / "cases_summary.csv", index=False)
+    atomic_csv(base_path / "cases_summary.csv", pd.DataFrame(summary_rows))
     atomic_json(base_path / "cases_summary.json", summary_rows)
 
     if discovered:

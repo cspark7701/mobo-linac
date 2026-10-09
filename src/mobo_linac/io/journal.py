@@ -6,14 +6,13 @@ derived view and must never be used to recover typed campaign state.
 
 from dataclasses import dataclass
 import json
-import os
 from pathlib import Path
 import re
-import tempfile
 from typing import List, Optional, Union
 import warnings
 
 from mobo_linac.evaluation import EvaluationResult
+from mobo_linac.io.durable import append_line_durable, atomic_csv, ensure_trailing_newline, truncate_durable
 from mobo_linac.io.results import results_to_dataframe
 
 
@@ -114,18 +113,9 @@ def repair_journal_tail(output_dir: Union[str, Path]) -> None:
     _, offset, truncated = _read(output_dir)
     path = Path(output_dir) / "evaluations_stream.jsonl"
     if truncated:
-        with path.open("r+b") as stream:
-            stream.truncate(offset)
-            stream.flush()
-            os.fsync(stream.fileno())
-    elif path.exists() and path.stat().st_size:
-        with path.open("r+b") as stream:
-            stream.seek(-1, os.SEEK_END)
-            if stream.read(1) != b"\n":
-                stream.seek(0, os.SEEK_END)
-                stream.write(b"\n")
-                stream.flush()
-                os.fsync(stream.fileno())
+        truncate_durable(path, offset)
+    else:
+        ensure_trailing_newline(path)
 
 
 def write_streaming_csv(output_dir: Union[str, Path], records=None, *, config) -> Path:
@@ -138,19 +128,7 @@ def write_streaming_csv(output_dir: Union[str, Path], records=None, *, config) -
     frame = results_to_dataframe([r.result for r in records], config=config)
     frame["batch_idx"] = [r.batch_idx for r in records]
     frame["candidate_idx"] = [r.candidate_idx for r in records]
-    path = out_dir / "evaluations_stream.csv"
-    temporary = None
-    try:
-        with tempfile.NamedTemporaryFile(mode="w", dir=out_dir, delete=False) as stream:
-            temporary = Path(stream.name)
-            frame.to_csv(stream, index=False)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(temporary, path)
-    finally:
-        if temporary is not None and temporary.exists():
-            temporary.unlink()
-    return path
+    return atomic_csv(out_dir / "evaluations_stream.csv", frame)
 
 
 def append_record(output_dir, result, batch_idx=None, candidate_idx=None, *, config) -> Path:
@@ -166,14 +144,6 @@ def append_record(output_dir, result, batch_idx=None, candidate_idx=None, *, con
             raise ValueError("Conflicting duplicate journal completion.")
     else:
         repair_journal_tail(out_dir)
-        with (out_dir / "evaluations_stream.jsonl").open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(record.to_dict()) + "\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        directory_fd = os.open(out_dir, os.O_RDONLY)
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
+        append_line_durable(out_dir / "evaluations_stream.jsonl", json.dumps(record.to_dict()))
         records.append(record)
     return write_streaming_csv(out_dir, records, config=config)

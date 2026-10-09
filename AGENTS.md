@@ -177,7 +177,7 @@ Current implementation
 - Fixed-reference hypervolume tracking: ordinary campaigns freeze the reference derived from initial observations; benchmark defaults use $\mathbf{r} = [1.5\,\mu\text{m}\cdot\text{rad}, 1.5\,\mu\text{m}\cdot\text{rad}, 1.5\text{ MeV}]$, recorded with scales and units in `reporting_metadata.json`.
 - Candidate history, SHA-256 evaluation checksums, and Pareto visualization
 - Full-chain photocathode & laser jitter robustness modeling (7 physical noise channels)
-- Atomic POSIX crash-proof checkpoint serialization (`_atomic_torch_save`)
+- Atomic POSIX crash-proof checkpoint serialization (`mobo_linac.io.durable`)
 - Centralized publication-grade LaTeX reporting module (`mobo_linac.metrics.latex`)
 - Automated environment fallback resolution for integrated ASTRA executables (`./bin/astra`)
 
@@ -237,7 +237,7 @@ Implemented:
 - Longitudinal exit-plane verification & premature beam loss / core collimation trapping
 - Robustness evaluation under engineering tolerances ($\pm 0.1^\circ$ RF phase, $\pm 0.1\%$ magnet fields) and full-chain photocathode/laser jitter
 - Multi-tier resilient acquisition optimization with adaptive retry and Sobol fallback
-- Atomic POSIX crash-proof checkpoint writes (`_atomic_torch_save`)
+- Atomic POSIX crash-proof checkpoint writes (`mobo_linac.io.durable`)
 - Centralized publication-ready LaTeX table reporting module (`mobo_linac.metrics.latex`)
 - Automated Pareto candidate verification protocol with SHA-256 checksum audit
 - Archived publication artifacts (`release/publication_artifact_manifest.json`, tag `v1.0.0`)

@@ -7,11 +7,12 @@ to prevent file collisions during concurrent evaluations.
 
 import hashlib
 import json
-import os
 import shutil
 import uuid
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Union
+
+from mobo_linac.io.durable import fsync_dir, snapshot_file, write_once_json  # noqa: F401  (re-exported)
 
 
 DEFAULT_STATIC_FILES = [
@@ -58,21 +59,6 @@ def file_sha256(path: Union[str, Path]) -> str:
         for chunk in iter(lambda: stream.read(65536), b""):
             hasher.update(chunk)
     return hasher.hexdigest()
-
-
-def write_once_json(path: Union[str, Path], data: Dict[str, Any]) -> Path:
-    """Exclusive, durable write: an existing attempt record is never replaced."""
-    path = Path(path)
-    with path.open("x", encoding="utf-8") as stream:
-        json.dump(data, stream, indent=2)
-        stream.flush()
-        os.fsync(stream.fileno())
-    descriptor = os.open(path.parent, os.O_RDONLY)
-    try:
-        os.fsync(descriptor)
-    finally:
-        os.close(descriptor)
-    return path
 
 
 def read_evaluation_manifest(path: Union[str, Path]) -> Dict[str, Any]:
@@ -231,16 +217,10 @@ class AstraWorkDirManager:
             name = str(path.relative_to(source))
             destination = target / name
             destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(path, destination)
-            with destination.open("rb") as stream:
-                os.fsync(stream.fileno())
+            snapshot_file(path, destination)
             hashes[name] = file_sha256(destination)
         for directory in [target] + sorted(p for p in target.rglob("*") if p.is_dir()):
-            descriptor = os.open(directory, os.O_RDONLY)
-            try:
-                os.fsync(descriptor)
-            finally:
-                os.close(descriptor)
+            fsync_dir(directory)
         return hashes
 
     def cleanup_eval_dir(self, eval_dir):

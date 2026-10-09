@@ -379,20 +379,14 @@ class MoboConfig:
     def save_json(self, output_path: Union[str, Path]) -> Path:
         """Save configuration to JSON file."""
         self.validate()
-        path = Path(output_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            json.dump(asdict(self), f, indent=2, allow_nan=False)
-        return path
+        from mobo_linac.io.durable import atomic_json
+        return atomic_json(output_path, asdict(self))
 
     def save_yaml(self, output_path: Union[str, Path]) -> Path:
         """Save configuration to YAML file."""
         self.validate()
-        path = Path(output_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as f:
-            yaml.dump(asdict(self), f, default_flow_style=False)
-        return path
+        from mobo_linac.io.durable import atomic_write_text
+        return atomic_write_text(output_path, yaml.dump(asdict(self), default_flow_style=False))
 
 
 # The dataclass annotations/defaults and these constraints define both runtime
@@ -542,9 +536,8 @@ def export_config_schema(output_path: Optional[Union[str, Path]] = None) -> Dict
               "description": "Finite values; validate() also checks ordered nondegenerate bounds, objective signs/aliases, and noise-vector dimensions.",
               **_dataclass_schema(MoboConfig), "definitions": {"BenchmarkConfig": _dataclass_schema(BenchmarkConfig)}}
     if output_path is not None:
-        path = Path(output_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(schema, indent=2, allow_nan=False), encoding="utf-8")
+        from mobo_linac.io.durable import atomic_json
+        atomic_json(output_path, schema)
     return schema
 
 

@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
+from mobo_linac.io.durable import atomic_csv
 from mobo_linac.metrics.latex import generate_robustness_summary_latex_table
 from mobo_linac.metrics.selection import select_representatives
 from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_MAPPING_REASON, load_perturbation_spec
@@ -47,7 +48,7 @@ def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
     rows = [{key: json.dumps(value, sort_keys=True) if isinstance(value, (dict, list)) else value
              for key, value in summary.items()} for summary in summaries]
     frame = pd.DataFrame(rows)
-    frame.to_csv(output_dir / "robustness_summary.csv", index=False)
+    atomic_csv(output_dir / "robustness_summary.csv", frame)
     caption = "Machine tolerance robustness with lattice jitter."
     unsupported = sorted({channel for summary in summaries for channel in summary["unsupported_channels"]})
     if unsupported:

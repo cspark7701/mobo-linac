@@ -201,8 +201,7 @@ def validate_config(args: argparse.Namespace) -> None:
 
     if getattr(args, "export_docs", None):
         docs_str = generate_config_markdown_docs(cfg)
-        out_docs = Path(args.export_docs)
-        out_docs.parent.mkdir(parents=True, exist_ok=True)
-        out_docs.write_text(docs_str, encoding="utf-8")
+        from mobo_linac.io.durable import atomic_write_text
+        out_docs = atomic_write_text(args.export_docs, docs_str)
         print(f"✓ Markdown documentation exported to: {out_docs}")
 

@@ -99,7 +99,7 @@ A candidate is physically feasible if and only if all 7 diagnostics satisfy oper
    - Every ASTRA simulation runs in an isolated scratch workdir managed by [`AstraWorkDirManager`](../src/mobo_linac/astra/workdir.py), preventing parallel collision.
    - Premature exit-plane beam loss ($z_{\text{final}} < 16.0\text{ m}$), core collimation trapping, and simulation timeouts are categorized explicitly via [`FailureCategory`](../src/mobo_linac/evaluation.py).
 2. **Crash-Proof State Persistence**:
-   - Checkpoint state serialization utilizes POSIX atomic file writes (`_atomic_torch_save`), enabling uninterrupted resumption via `mobo-linac resume --run-dir <dir>`.
+   - Checkpoint state serialization utilizes POSIX atomic file writes (`mobo_linac.io.durable`), enabling uninterrupted resumption via `mobo-linac resume --run-dir <dir>`.
 3. **Clean Simulation Verbose Output**:
    - Clean blank line separators and structured step headers (`Step 0: Initial Design`, `Iteration ii/N`, `HV summary`, `Campaign Complete`) provide clear console tracking.
 4. **Hardware & GPU Acceleration**:

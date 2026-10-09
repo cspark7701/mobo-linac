@@ -86,7 +86,7 @@ class RepresentativeSet:
         }
 
     def write(self, path: Union[str, Path]) -> Path:
-        from mobo_linac.io.artifacts import atomic_json
+        from mobo_linac.io.durable import atomic_json
         path = Path(path)
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_json(path, self.to_dict())

@@ -49,7 +49,8 @@ from mobo_linac.metrics.hypervolume import (
     compute_reference_point,
 )
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion, atomic_json
+from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
+from mobo_linac.io.durable import atomic_json, atomic_write_text
 from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
 import time
 from mobo_linac.models.pipeline import SurrogatePipeline
@@ -315,7 +316,7 @@ class MoboCampaignRunner:
             f"Platform: {platform.platform()}",
             f"Timestamp: {datetime.now().isoformat()}",
         ]
-        target_path.write_text("\n".join(lines) + "\n")
+        atomic_write_text(target_path, "\n".join(lines) + "\n")
 
     def run(self) -> Tuple[List[EvaluationResult], HypervolumeTracker, Path]:
         """
@@ -373,7 +374,8 @@ class MoboCampaignRunner:
                 self.export_environment_info(self.run_dir / "environment.txt")
             self.config.save_yaml(self.run_dir / "config.yaml")
             self.config.save_json(self.run_dir / "config.json")
-            (self.run_dir / "config_source.json").write_text(json.dumps({"resolved_path": str(self.config_path) if self.config_path else None, "source": "file" if self.config_path else "in_memory"}, indent=2))
+            atomic_json(self.run_dir / "config_source.json", {"resolved_path": str(self.config_path) if self.config_path else None,
+                                                             "source": "file" if self.config_path else "in_memory"})
 
         bounds = self.config.get_parameter_bounds_tensor()
 

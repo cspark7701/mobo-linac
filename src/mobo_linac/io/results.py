@@ -13,6 +13,7 @@ import pandas as pd
 import torch
 
 from mobo_linac.evaluation import EvaluationResult
+from mobo_linac.io.durable import atomic_torch_save, safe_torch_load
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, DIAGNOSTIC_NAMES, diagnostic_observations, finite_measurement, normalize_diagnostics
 
@@ -426,34 +427,6 @@ class CheckpointState:
         return default
 
 
-def _atomic_torch_save(data: Any, target_path: Path) -> None:
-    """
-    Saves torch data to a temporary file first, then atomically replaces the target file.
-    Prevents corrupt or half-written checkpoint files during unexpected interruptions.
-    """
-    target_path = Path(target_path)
-    target_path.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = target_path.with_name(f"{target_path.name}.tmp.{os.getpid()}")
-    try:
-        with tmp_path.open("wb") as stream:
-            torch.save(data, stream)
-            stream.flush()
-            os.fsync(stream.fileno())
-        os.replace(tmp_path, target_path)
-        directory_fd = os.open(target_path.parent, os.O_RDONLY)
-        try:
-            os.fsync(directory_fd)
-        finally:
-            os.close(directory_fd)
-    except Exception:
-        if tmp_path.exists():
-            try:
-                tmp_path.unlink()
-            except OSError:
-                pass
-        raise
-
-
 def save_run_checkpoint(
     iteration: int,
     results: List[EvaluationResult],
@@ -503,20 +476,22 @@ def save_run_checkpoint(
     )
 
     checkpoint_data = state.to_dict()
-    _atomic_torch_save(checkpoint_data, path)
+    atomic_torch_save(checkpoint_data, path)
 
     # If saving an iteration checkpoint, also update latest checkpoint link/copy
     if path.name.startswith("checkpoint_iter_"):
         latest_path = path.parent / "checkpoint.pt"
-        _atomic_torch_save(checkpoint_data, latest_path)
+        atomic_torch_save(checkpoint_data, latest_path)
 
     return path
 
 
-def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[CheckpointState]:
+def load_run_checkpoint(checkpoint_path: Union[str, Path], allow_unsafe_pickle: bool = False) -> Optional[CheckpointState]:
     """
     Loads stateful checkpoint, validates schema, and returns a CheckpointState.
-    Auto-detects directory vs file input.
+    Auto-detects directory vs file input. Loading uses ``weights_only=True`` with only the
+    NumPy array allow-list; ``allow_unsafe_pickle`` is an explicit opt-in for trusted
+    archived checkpoints that stored arbitrary Python objects.
     """
     path = Path(checkpoint_path)
     target_file: Optional[Path] = None
@@ -547,9 +522,9 @@ def load_run_checkpoint(checkpoint_path: Union[str, Path]) -> Optional[Checkpoin
         return None
 
     try:
-        checkpoint_data = torch.load(target_file, weights_only=False, map_location="cpu")
+        checkpoint_data = safe_torch_load(target_file, allow_unsafe_pickle=allow_unsafe_pickle)
     except Exception as e:
-        raise ValueError(f"Corrupted or unreadable checkpoint file at {target_file}: {e}")
+        raise ValueError(f"Corrupted, unreadable or unsafe checkpoint file at {target_file}: {e}") from e
 
     if not isinstance(checkpoint_data, dict) or "iteration" not in checkpoint_data:
         raise ValueError(f"Invalid checkpoint structure at {target_file}")

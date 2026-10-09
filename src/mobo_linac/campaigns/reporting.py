@@ -1,5 +1,5 @@
 """Final artifact publication, separated from proposal and backend execution."""
-from mobo_linac.io.artifacts import atomic_json
+from mobo_linac.io.durable import atomic_json
 
 
 def finalize_campaign(writer, results, tracker, run_dir, config, proposal_history,

@@ -270,7 +270,7 @@ Legacy version 1 checkpoints require an explicit `--n-iterations` target and, fo
   - Longitudinal exit-plane loss detection & premature beam loss trapping (`PREMATURE_BEAM_LOSS`)
   - Full-chain photocathode & laser jitter robustness modeling (7 physical noise channels)
   - Multi-tier resilient acquisition proposal engine with adaptive retry & Sobol fallback
-  - Atomic POSIX crash-proof checkpoint serialization (`_atomic_torch_save`)
+  - Atomic POSIX crash-proof checkpoint serialization (`mobo_linac.io.durable`)
   - Centralized publication-grade LaTeX reporting module (`mobo_linac.metrics.latex`)
 - [ ] **Phase 4: Distributed High-Performance Optimization**
   - Distributed ASTRA evaluations via Ray / Dask / MPI on multi-node clusters

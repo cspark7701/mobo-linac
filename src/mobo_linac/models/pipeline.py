@@ -168,7 +168,7 @@ class SurrogatePipeline:
 
     def save_artifact(self, path, *, training_ids=None, metadata=None):
         """Persist predictions, transforms, effective noise and fitting evidence."""
-        from mobo_linac.io.results import _atomic_torch_save
+        from mobo_linac.io.durable import atomic_torch_save
         from mobo_linac.models.artifacts import ARTIFACT_VERSION, model_payload
         if not self.is_fitted:
             raise RuntimeError("Cannot save an unfitted pipeline.")
@@ -176,7 +176,7 @@ class SurrogatePipeline:
         rows = self.objective_model.models[0].artifact_metadata["train_X"].shape[0]
         if ids and len(ids) != rows:
             raise ValueError("training_ids must align with observation rows.")
-        _atomic_torch_save({
+        atomic_torch_save({
             "version": ARTIFACT_VERSION, "kind": "pipeline",
             "settings": {
                 "bounds": self.bounds.detach().cpu(), "covar_type": self.covar_type,
