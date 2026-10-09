@@ -68,7 +68,7 @@ def test_verify_pareto_candidates_mock(tmp_path, monkeypatch):
 
     records = verify_pareto_candidates(mock_results, config, tmp_path, mock_evaluator=evaluator)
 
-    assert len(records) == 7
+    assert len(records) == 6
     for rec in records:
         assert rec["status"] == "MOCK_VERIFIED"
         assert rec["max_diff_pct"] < 1.0e-3

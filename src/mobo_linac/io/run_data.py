@@ -54,12 +54,22 @@ def load_candidates(source, config, root="results"):
     if history is None:
         return rows
     recorded = load_evaluation_results(history, config=config)
-    def key(result):
-        return tuple(result.x_physical), tuple(result.objectives_physical or [])
+    identified = "evaluation_id" in pd.read_csv(path, nrows=0).columns
+    if identified:
+        def key(result):
+            return result.run_id, result.evaluation_id
+    else:
+        # Archived Pareto exports lack identities; fall back to exact recorded values.
+        def key(result):
+            return tuple(result.x_physical), tuple(result.objectives_physical or [])
     wanted = {key(row) for row in rows}
     matched = [result for result in recorded if key(result) in wanted]
     if {key(result) for result in matched} != wanted:
         raise ValueError("Pareto rows do not match recorded candidate history.")
+    if identified:
+        by_key = {key(result): result for result in matched}
+        if any(by_key[key(row)].x_physical != row.x_physical for row in rows):
+            raise ValueError("Pareto rows do not match recorded candidate history.")
     if path.name == "pareto_feasible.csv" and any(
         result.simulation_valid is not True or result.physically_feasible is not True for result in matched
     ):

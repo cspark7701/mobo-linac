@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from mobo_linac.metrics.latex import generate_robustness_summary_latex_table
-from mobo_linac.metrics.pareto import select_representative_pareto_candidates
+from mobo_linac.metrics.selection import select_representatives
 from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_MAPPING_REASON
 
 
@@ -28,7 +28,9 @@ def run_robustness_workflow(results, config, output_dir, num_perturbations=20,
         return output_dir
     if not results:
         raise ValueError("Robustness analysis requires measured candidate history; no candidates found")
-    candidates = select_representative_pareto_candidates(results)
+    selection = select_representatives(results, config)
+    selection.write(output_dir / "representatives.json")
+    candidates = dict(selection.roles)
     evaluator = RobustnessEvaluator(config=config, base_output_dir=output_dir,
                                      num_workers=num_workers, timeout=config.execution.timeout_sec)
     summaries = []

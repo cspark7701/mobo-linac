@@ -13,6 +13,11 @@ def finalize_campaign(writer, results, tracker, run_dir, config, proposal_histor
         plotters[2](results, figures_dir / f"{names[2]}.png", config=config)
         plotters[3](results, figures_dir / f"{names[3]}.png")
     atomic_json(run_dir / "proposal_history.json", proposal_history)
+    from mobo_linac.metrics.selection import select_representatives
+    try:
+        select_representatives(results, config).write(run_dir / "representatives.json")
+    except ValueError as error:  # no measured feasible point: record that explicitly
+        atomic_json(run_dir / "representatives.json", {"schema_version": 1, "roles": {}, "reason": str(error)})
     required = ["config.json", "config.yaml", "checkpoints/checkpoint.pt", "proposal_history.json"]
     if export_plots:
         required += [f"figures/{name}.png" for name in names]

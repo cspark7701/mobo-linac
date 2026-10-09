@@ -10,6 +10,12 @@ _LEGACY = {"norm_emit_x": ("emit_x", "model_emit_x_neg", 1e-6, -1e-4),
            "norm_emit_y": ("emit_y", "model_emit_y_neg", 1e-6, -1e-4),
            "sigma_energy": (None, "model_sigma_energy_neg", 1e6, -1e7)}
 
+def legacy_objective_alias(name: str):
+    """Archived short alias of a historical objective name (e.g. ``emit_x``), or None."""
+    legacy = _LEGACY.get(name)
+    return legacy[0] if legacy else None
+
+
 RESERVED_COLUMNS = frozenset({
     "evaluation_id", "run_id", "simulation_valid", "physically_feasible", "failure_category",
     "failure_reason", "runtime_s", "work_dir", "batch_idx", "candidate_idx", "attempt_id",

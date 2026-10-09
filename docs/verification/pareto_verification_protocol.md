@@ -6,17 +6,18 @@ This document formalizes the procedure for independent verification of reported 
 
 ---
 
-## 2. Candidate Selection (7 Distinct Roles)
+## 2. Candidate Selection (Shared Representative Roles)
 
-Representative candidate solutions are selected from the feasible non-dominated Pareto set:
+Representative candidates are selected by `mobo_linac.metrics.selection.select_representatives`, the single service shared by verification, robustness analysis and publication summaries, strictly from the measured feasible non-dominated Pareto set. Selection fails if that set is empty; infeasible points are never substituted. For the 200 MeV configuration the roles are:
 
 1. **Horizontal Emittance Extreme** (`min_emit_x`): Candidate minimizing $\varepsilon_{n,x}$.
 2. **Vertical Emittance Extreme** (`min_emit_y`): Candidate minimizing $\varepsilon_{n,y}$.
 3. **Energy Spread Extreme** (`min_sigma_energy`): Candidate minimizing $\sigma_E$.
-4. **Normalized Knee Point** (`knee_point`): Candidate closest to origin in normalized objective space.
-5. **Maximum Crowding Distance** (`crowding_distance_max`): Candidate in sparse Pareto region maximizing crowding distance.
-6. **Balanced Feasible Solution** (`balanced_feasible`): Candidate nearest the centroid of the non-dominated set.
-7. **Robust Recommended Solution** (`robust_recommended`): Recommended operational solution.
+4. **Knee Point** (`knee_point`): Candidate closest to the ideal corner after direction-aware min–max normalization over the feasible Pareto set (policy `ideal_distance`, see `docs/methods/metric_definitions.md`).
+5. **Maximum Crowding Distance** (`crowding_distance_max`): Interior candidate with the largest finite crowding distance in normalized cost space (the knee if all are boundary points).
+6. **Balanced Solution** (`balanced`): Candidate nearest the centroid of the normalized feasible Pareto set.
+
+Other configurations use `min_<name>`/`max_<name>` extremes for each configured objective plus the three shared roles. The selected identities and policy are written to `representatives.json` in the campaign, verification and robustness output directories. The former `balanced_feasible` and `robust_recommended` roles were removed: the first is `balanced`, and the second only repeated the knee without robustness evidence.
 
 ---
 

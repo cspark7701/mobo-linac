@@ -643,7 +643,7 @@ def test_new_run_artifacts_have_publication_headers_even_when_empty(tmp_path):
     writer = RunArtifactWriter(tmp_path, config)
     writer.write([], HypervolumeTracker([-1e-5, -1e-5, -1e6], config))
     assert list(pd.read_csv(tmp_path / "train_X.csv").columns) == [v.name for v in config.design_variables]
-    assert list(pd.read_csv(tmp_path / "pareto.csv").columns) == [v.name for v in config.design_variables] + [o.explicit_name for o in config.objectives]
+    assert list(pd.read_csv(tmp_path / "pareto.csv").columns) == ["run_id", "evaluation_id"] + [v.name for v in config.design_variables] + [o.explicit_name for o in config.objectives]
     assert HYPERVOLUME_REQUIRED_COLS <= set(pd.read_csv(tmp_path / "hypervolume.csv").columns)
     assert not (tmp_path / "train_X.csv").read_text().startswith("#")
 

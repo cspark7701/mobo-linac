@@ -14,8 +14,8 @@ from mobo_linac.robustness.evaluator import (
     generate_perturbed_machine_states,
     generate_perturbed_parameters,
     load_perturbation_spec,
-    select_representative_pareto_candidates,
 )
+from mobo_linac.metrics.pareto import select_representative_pareto_candidates
 
 from mobo_linac.config import load_config as _load_test_config
 TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
@@ -50,7 +50,7 @@ def sample_pareto_results():
 
 def test_select_representative_pareto_candidates(sample_pareto_results):
     """Verify representative Pareto candidate selection."""
-    candidates = select_representative_pareto_candidates(sample_pareto_results)
+    candidates = select_representative_pareto_candidates(sample_pareto_results, TEST_CONFIG)
 
     assert "min_emit_x" in candidates
     assert "min_emit_y" in candidates

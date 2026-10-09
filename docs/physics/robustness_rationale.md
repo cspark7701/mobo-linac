@@ -24,13 +24,14 @@ Operating points identified by Multi-Objective Bayesian Optimization must remain
 
 ## 3. Representative Candidate Selection & Metrics
 
-Robustness evaluations examine five representative candidate solutions from the non-dominated Pareto front:
+Robustness evaluations examine the representative candidates selected by the shared selection service (`mobo_linac.metrics.selection`) from the measured feasible non-dominated Pareto front, the same roles used by verification:
 
 1. **Horizontal Emittance Extreme** ($\min \varepsilon_{n,x}$): Solution optimized aggressively for transverse X emittance.
 2. **Vertical Emittance Extreme** ($\min \varepsilon_{n,y}$): Solution optimized aggressively for transverse Y emittance.
 3. **Energy Spread Extreme** ($\min \sigma_E$): Solution optimized aggressively for longitudinal energy spread.
-4. **Knee Point**: Solution exhibiting optimal compromise closest to the ideal non-dominated boundary.
-5. **Balanced Solution**: Solution nearest the centroid of the Pareto non-dominated set.
+4. **Knee Point**: Solution nearest the ideal corner after direction-aware min–max normalization of the feasible Pareto set.
+5. **Balanced Solution**: Solution nearest the centroid of the normalized feasible Pareto set.
+6. **Maximum Crowding Distance**: Interior solution in the sparsest region of the front.
 
 ### Evaluated Robustness Metrics
 - **Probability of Feasibility ($P_{\text{feas}}$)**: Fraction of perturbed ASTRA evaluations satisfying all six beam quality constraints.

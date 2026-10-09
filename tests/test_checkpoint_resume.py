@@ -849,7 +849,7 @@ def test_configured_all_failed_campaign_exports_empty_headers(tmp_path):
     results, _, _ = runner.run()
     assert not results[0].simulation_valid
     assert pd.read_csv(tmp_path / "objectives_model.csv").shape == (0, 2)
-    assert pd.read_csv(tmp_path / "pareto_feasible.csv").shape == (0, 4)
+    assert pd.read_csv(tmp_path / "pareto_feasible.csv").shape == (0, 6)  # identity + design + objectives
 
 
 @pytest.mark.parametrize("weights", [[1.0], [0.0, 0.0], [1.0, -1.0], [float("nan"), 1.0]])

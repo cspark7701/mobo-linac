@@ -6,6 +6,7 @@ from mobo_linac.io.run_data import RunData, read_comparable_runs, read_run_data
 from mobo_linac.io.journal import same_evaluation
 from mobo_linac.metrics.latex import escape_latex, format_measured, format_scientific, measured, verification_records, _write_table
 from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
+from mobo_linac.metrics.selection import select_representatives
 from mobo_linac.result_schema import ResultSchema
 
 TARGET_EMIT_X_M_RAD = 3.9236e-6
@@ -32,10 +33,8 @@ def campaign_summary(run):
     distance = float("nan")
     canonical_units = dict(zip(schema.physical_columns, [obj.unit for obj in run.config.objectives]))
     if feasible:
-        values = np.asarray([r.objectives_physical for r in feasible])
-        costs = values * -np.asarray(schema.signs)
-        normalized = (costs - costs.min(0)) / (costs.max(0) - costs.min(0) + 1e-12)
-        knee = feasible[int(np.argmin((normalized ** 2).sum(1)))]
+        # The same knee definition used by robustness and verification.
+        knee = select_representatives(feasible, run.config).roles["knee_point"]
         if (canonical_units == {"norm_emit_x_m_rad": "m*rad", "norm_emit_y_m_rad": "m*rad", "sigma_energy_eV": "eV"}
                 and list(schema.physical_columns) == ["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]
                 and all(sign == -1 for sign in schema.signs)):

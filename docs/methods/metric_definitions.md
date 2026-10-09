@@ -50,6 +50,16 @@ Every optimization run exports a machine-readable history DataFrame with cumulat
 
 ---
 
+## 4.1 Representative Candidates and Knee Definition
+
+Representative candidates come from one service, `mobo_linac.metrics.selection.select_representatives`, applied to the measured feasible non-dominated set $P$. With direction-aware costs $c_{ij} = -s_j y_{ij}$ (minimized objectives unchanged, maximized ones negated), each objective is normalized over $P$:
+
+$$\tilde c_{ij} = \frac{c_{ij} - \min_k c_{kj}}{\max_k c_{kj} - \min_k c_{kj}}$$
+
+(a zero range leaves the column at zero). The **knee** minimizes $\lVert \tilde{\mathbf c}_i \rVert_2$, the distance to the ideal corner (policy `ideal_distance`); **balanced** minimizes the distance to the centroid of $\tilde{\mathbf c}$; **crowding_distance_max** maximizes the finite NSGA-II crowding distance of $\tilde{\mathbf c}$. The policy and selected identities are recorded in `representatives.json`.
+
+---
+
 ## 5. Cross-Run Compatibility Verification
 
 Comparison functions enforce strict validation before comparing metrics between runs:

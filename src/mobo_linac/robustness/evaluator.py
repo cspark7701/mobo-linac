@@ -24,11 +24,6 @@ from mobo_linac.execution.candidate_evaluator import (
     EvaluationOutcome,
     EvaluationTask,
 )
-from mobo_linac.metrics.pareto import (
-    select_representative_pareto_candidates,
-    extract_pareto_sets,
-    detect_and_report_candidate_duplicates,
-)
 from mobo_linac.metrics.reporting import normalize_objectives_physical
 
 

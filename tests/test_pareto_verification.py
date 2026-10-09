@@ -8,8 +8,8 @@ import torch
 
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
+from mobo_linac.metrics.selection import compute_crowding_distances
 from mobo_linac.verification.verifier import (
-    compute_crowding_distances,
     compute_file_sha256,
     export_verification_latex_table,
     run_independent_verification_rerun,
@@ -73,20 +73,12 @@ def test_crowding_distance_calculation():
 
 
 def test_select_verification_candidates(sample_pareto_results):
-    """Verify selection of 7 distinct candidate roles."""
+    """Verify the shared representative roles."""
     candidates = select_verification_candidates(sample_pareto_results, TEST_CONFIG)
 
-    for role in [
-        "min_emit_x",
-        "min_emit_y",
-        "min_sigma_energy",
-        "knee_point",
-        "crowding_distance_max",
-        "balanced_feasible",
-        "robust_recommended",
-    ]:
-        assert role in candidates
-        assert candidates[role] is not None
+    assert set(candidates) == {"min_emit_x", "min_emit_y", "min_sigma_energy",
+                               "knee_point", "crowding_distance_max", "balanced"}
+    assert all(candidate is not None for candidate in candidates.values())
 
 
 def test_independent_verification_rerun(sample_pareto_results, tmp_path):
@@ -172,7 +164,7 @@ def test_run_verification_pipeline(sample_pareto_results, tmp_path):
         mock_evaluator=mock_eval,
     )
 
-    assert len(records) == 7
+    assert len(records) == 6
     assert manifest_path.exists()
     assert tex_path.exists()
     assert (tmp_path / "pipeline_verify" / "verification_summary.csv").exists()

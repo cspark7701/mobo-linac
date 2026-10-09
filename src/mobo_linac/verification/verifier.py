@@ -11,13 +11,12 @@ from typing import Any, Dict, List, Optional, Sequence, Union
 import numpy as np
 import pandas as pd
 import torch
-from botorch.utils.multi_objective.pareto import is_non_dominated
 
 from mobo_linac.astra.workdir import file_sha256, format_eval_id, validate_component, write_once_json
 from mobo_linac.diagnostics import diagnostic_observations, normalize_diagnostics
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask, compute_metric_deltas
-from mobo_linac.metrics.pareto import compute_crowding_distances
+from mobo_linac.metrics.selection import select_representatives
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.verification.audit import audit_attempt
 
@@ -28,34 +27,8 @@ def compute_file_sha256(file_path):
 
 
 def select_verification_candidates(results, config):
-    schema = ResultSchema.from_config(config)
-    candidates, objectives = [], []
-    for result in results:
-        values = schema.extract(result.objectives_physical)
-        if (result.simulation_valid is True and result.physically_feasible is True
-                and len(result.x_physical) == len(schema.design_columns)
-                and np.isfinite(result.x_physical).all()
-                and values is not None and np.isfinite(values).all()):
-            candidates.append(result)
-            objectives.append(values)
-    if not candidates:
-        raise ValueError("No measured valid, feasible candidates available for verification")
-    values = np.asarray(objectives)
-    mask = is_non_dominated(schema.transform(values)).numpy()
-    candidates = [candidate for candidate, keep in zip(candidates, mask) if keep]
-    values = values[mask]
-    costs = values * -np.asarray(schema.signs) / np.asarray(schema.scales)
-    legacy = list(schema.physical_columns) == ['norm_emit_x_m_rad', 'norm_emit_y_m_rad', 'sigma_energy_eV'] and all(sign == -1 for sign in schema.signs)
-    ideal = np.zeros(values.shape[1]) if legacy else costs.min(axis=0)
-    knee = candidates[int(np.argmin(np.linalg.norm(costs - ideal, axis=1)))]
-    balanced = candidates[int(np.argmin(np.linalg.norm(costs - costs.mean(axis=0), axis=1)))]
-    distances = compute_crowding_distances(costs)
-    finite = np.isfinite(distances)
-    crowd = candidates[int(np.argmax(np.where(finite, distances, -1)))] if finite.any() else knee
-    roles = ['min_emit_x', 'min_emit_y', 'min_sigma_energy'] if legacy else [f'{obj.physical_direction[:3]}_{obj.name}' if obj.physical_direction == 'minimize' else f'max_{obj.name}' for obj in config.objectives]
-    selected = {role: candidates[int(np.argmin(costs[:, index]))] for index, role in enumerate(roles)}
-    selected.update(knee_point=knee, crowding_distance_max=crowd, balanced_feasible=balanced, robust_recommended=knee)
-    return selected
+    """Representative feasible-Pareto roles from the shared selection service."""
+    return dict(select_representatives(results, config).roles)
 
 
 def comparison_status(original, rerun, deltas, tol_verified, tol_conditional):
@@ -209,7 +182,9 @@ def run_independent_verification_rerun(role, candidate, config, output_dir='resu
 def run_verification_pipeline(results, config, output_dir='results/verification',
                               mock_rerun_data_map=None, mock_evaluator=None, **settings):
     verifier = ParetoVerifier(config=config, base_output_dir=output_dir, **settings)
-    return verifier.verify_candidates(select_verification_candidates(results, config),
+    selection = select_representatives(results, config)
+    selection.write(Path(output_dir) / "representatives.json")
+    return verifier.verify_candidates(dict(selection.roles),
                mock_evaluator=mock_evaluator, mock_rerun_data_map=mock_rerun_data_map)
 
 

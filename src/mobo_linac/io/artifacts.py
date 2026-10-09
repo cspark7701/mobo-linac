@@ -10,7 +10,7 @@ import torch
 from botorch.utils.multi_objective.pareto import is_non_dominated
 from mobo_linac.diagnostics import DIAGNOSTIC_NAMES
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.io.results import get_train_tensors, results_to_dataframe
+from mobo_linac.io.results import get_training_observations, results_to_dataframe
 from mobo_linac.metrics.reporting import compute_campaign_metrics_history, reporting_metadata
 
 
@@ -63,7 +63,9 @@ class RunArtifactWriter:
         self.required.append(history.name)
         csv("candidate_history.csv", frame)
         csv("evaluations.csv", frame)
-        x, y, feasible = get_train_tensors(results, config=self.schema)
+        observed = get_training_observations(results, config=self.schema)
+        x, y, feasible = observed.train_X, observed.train_Y, observed.feasible
+        identities = observed.evaluation_ids
         csv("train_X.csv", pd.DataFrame(x.numpy(), columns=self.schema.design_columns))
         csv("train_Y.csv", pd.DataFrame(y.numpy(), columns=self.schema.model_columns))
         valid = frame[frame.simulation_valid == True]
@@ -71,14 +73,20 @@ class RunArtifactWriter:
         csv("objectives_model.csv", valid[list(self.schema.model_columns)])
         csv("constraints.csv", frame[["evaluation_id", "run_id", *DIAGNOSTIC_NAMES, "physically_feasible"]])
         csv("failures.csv", frame[(frame.simulation_valid != True) | (frame.physically_feasible != True)])
-        def pareto(xs, ys):
+        def pareto(rows):
+            xs, ys = x[rows], y[rows]
             mask = is_non_dominated(ys) if len(ys) else torch.zeros(0, dtype=torch.bool)
             data = np.hstack([xs[mask].numpy(), self.schema.transform(ys[mask]).numpy()])
-            return pd.DataFrame(data, columns=self.schema.design_columns + self.schema.physical_columns)
-        all_points = pareto(x, y)
+            frame = pd.DataFrame(data, columns=self.schema.design_columns + self.schema.physical_columns)
+            kept = [identities[index] for index, keep in zip(rows.nonzero().flatten().tolist(), mask.tolist()) if keep]
+            # Rows carry their evaluation identity so readers join exactly to the history.
+            frame.insert(0, "evaluation_id", [evaluation_id for _, evaluation_id in kept])
+            frame.insert(0, "run_id", [run_id for run_id, _ in kept])
+            return frame
+        all_points = pareto(torch.ones(len(identities), dtype=torch.bool))
         csv("pareto.csv", all_points)
         csv("pareto_all.csv", all_points)
-        csv("pareto_feasible.csv", pareto(x[feasible], y[feasible]))
+        csv("pareto_feasible.csv", pareto(feasible))
         if tracker is not None:
             csv("hypervolume.csv", tracker.to_dataframe())
             meta = reporting_metadata(self.config, tracker.reporting_ref_point.tolist(), reference_policy)
