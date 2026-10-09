@@ -25,7 +25,7 @@ import torch
 from mobo_linac.campaigns.runner import MoboCampaignRunner
 from mobo_linac.config import config_from_dict, load_config, validate_campaign_options, normalize_scalar_weights
 from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
-from mobo_linac.io.results import load_evaluation_results, get_train_tensors
+from mobo_linac.io.results import load_evaluation_results, get_train_tensors, results_to_dataframe
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
 from mobo_linac.metrics.reporting import validate_campaign_compatibility
 
@@ -177,32 +177,18 @@ def aggregate_scalarized_cases(
         if not eval_csv.exists():
             continue
 
-        df_eval = pd.read_csv(eval_csv)
+        from mobo_linac.io.run_data import read_run_data
+        from mobo_linac.metrics.publication import scalarized_case_statistics
+        run = read_run_data(case_path)
+        df_eval = results_to_dataframe(run.results, run.config)
         df_eval["case"] = case_key
         all_eval_dfs.append(df_eval)
-
-
-        # Per-case statistics
-        n_eval = len(df_eval)
-        n_valid = int(df_eval["simulation_valid"].sum()) if "simulation_valid" in df_eval.columns else n_eval
-        n_feas = int(df_eval["physically_feasible"].sum()) if "physically_feasible" in df_eval.columns else 0
-        feas_pct = (n_feas / n_valid * 100.0) if n_valid > 0 else 0.0
-
-        min_ex_um = float(df_eval["norm_emit_x_m_rad"].min() * 1e6) if "norm_emit_x_m_rad" in df_eval.columns else np.nan
-        min_ey_um = float(df_eval["norm_emit_y_m_rad"].min() * 1e6) if "norm_emit_y_m_rad" in df_eval.columns else np.nan
-        min_se_mev = float(df_eval["sigma_energy_eV"].min() / 1e6) if "sigma_energy_eV" in df_eval.columns else np.nan
-
-        # Feasible minimums
-        df_feas = df_eval[df_eval["physically_feasible"] == True] if "physically_feasible" in df_eval.columns else pd.DataFrame()
-        min_ex_feas_um = float(df_feas["norm_emit_x_m_rad"].min() * 1e6) if not df_feas.empty and "norm_emit_x_m_rad" in df_feas.columns else np.nan
-        min_ey_feas_um = float(df_feas["norm_emit_y_m_rad"].min() * 1e6) if not df_feas.empty and "norm_emit_y_m_rad" in df_feas.columns else np.nan
-        min_se_feas_mev = float(df_feas["sigma_energy_eV"].min() / 1e6) if not df_feas.empty and "sigma_energy_eV" in df_feas.columns else np.nan
-
-        final_hv = 0.0
-        if hv_csv.exists():
-            df_hv = pd.read_csv(hv_csv)
-            if "feasible_hypervolume" in df_hv.columns and not df_hv.empty:
-                final_hv = float(df_hv["feasible_hypervolume"].iloc[-1])
+        stats = scalarized_case_statistics(run)
+        n_eval, n_valid, n_feas = stats["n_eval"], stats["n_valid"], stats["n_feas"]
+        feas_pct = stats["feas_pct"]
+        min_ex_um, min_ey_um, min_se_mev = stats["min_ex_um"], stats["min_ey_um"], stats["min_se_mev"]
+        min_ex_feas_um, min_ey_feas_um, min_se_feas_mev = stats["min_ex_feas_um"], stats["min_ey_feas_um"], stats["min_se_feas_mev"]
+        final_hv = stats["final_hv"]
 
         case_meta = OPTION_2_CASES.get(case_key, {
             "name": case_key.replace("_", " ").title(),
@@ -266,59 +252,10 @@ def aggregate_scalarized_cases(
     return agg_meta
 
 
-def export_phase1_cases_latex_table(
-    cases_summary_path: Union[str, Path],
-    output_path: Union[str, Path],
-) -> None:
-    """
-    Exports publication-grade LaTeX table of Phase 1 Option 2 cases.
-    """
-    summary_path = Path(cases_summary_path)
-    out_path = Path(output_path)
-    out_path.parent.mkdir(parents=True, exist_ok=True)
-
-    if not summary_path.exists():
-        return
-
-    df = pd.read_csv(summary_path)
-
-    lines = [
-        r"\begin{table}[htbp]",
-        r"\centering",
-        r"\caption{Phase 1 Scalarized BO multi-case campaign summary across representative operational linac archetypes (Option 2). The shared fixed reporting reference point and objective units are recorded in reporting metadata.}",
-        r"\label{tab:phase1_cases}",
-        r"\resizebox{\textwidth}{!}{%",
-        r"\begin{tabular}{llcccccc}",
-        r"\toprule",
-        r"\textbf{Case} & \textbf{Operating Mode} & $\mathbf{w} = [w_x, w_y, w_E]$ & \textbf{Evals} & \textbf{Feas. (\%)} & \textbf{Min} $\varepsilon_{n,x}$ [$\mu$m] & \textbf{Min} $\varepsilon_{n,y}$ [$\mu$m] & \textbf{Min} $\sigma_E$ [MeV] \\",
-        r"\midrule",
-    ]
-
-    for _, row in df.iterrows():
-        case_id = str(row["case_id"])
-        case_id_tex = case_id.replace("_", r"\_")
-        name = str(row["name"]).replace("_", r"\_")
-        wx = float(row["w_emit_x"])
-        wy = float(row["w_emit_y"])
-        we = float(row["w_energy_spread"])
-        w_str = f"$[{wx:.2f}, {wy:.2f}, {we:.2f}]$"
-        n_eval = int(row["num_evaluations"])
-        feas_str = f"{int(row['num_feasible'])} ({float(row['feasible_fraction_pct']):.1f}\\%)"
-        min_ex = f"{float(row['min_norm_emit_x_um']):.4f}" if pd.notna(row['min_norm_emit_x_um']) else "-"
-        min_ey = f"{float(row['min_norm_emit_y_um']):.4f}" if pd.notna(row['min_norm_emit_y_um']) else "-"
-        min_se = f"{float(row['min_sigma_energy_MeV']):.4f}" if pd.notna(row['min_sigma_energy_MeV']) else "-"
-
-        lines.append(
-            f"\\texttt{{{case_id_tex}}} & {name} & {w_str} & {n_eval} & {feas_str} & {min_ex} & {min_ey} & {min_se} \\\\"
-        )
-
-    lines.extend([
-        r"\bottomrule",
-        r"\end{tabular}}",
-        r"\end{table}",
-    ])
-
-    out_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+def export_phase1_cases_latex_table(cases_summary_path, output_path):
+    """Compatibility adapter for the shared Option 2 renderer."""
+    from mobo_linac.metrics.latex import generate_phase1_cases_latex_table
+    return generate_phase1_cases_latex_table(cases_summary_path, output_path)
 
 
 def run_scalarized_suite(

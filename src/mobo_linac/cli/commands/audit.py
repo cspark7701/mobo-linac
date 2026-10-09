@@ -36,7 +36,7 @@ def analyze_run(args: argparse.Namespace) -> None:
 
 def run_robustness(args: argparse.Namespace) -> None:
     """Executes robustness analysis over Pareto candidates."""
-    from mobo_linac.io.results import load_evaluation_results
+    from mobo_linac.io.run_data import load_candidates
     from mobo_linac.robustness.workflow import run_robustness_workflow
 
     config = load_config(getattr(args, "config", None))
@@ -45,25 +45,7 @@ def run_robustness(args: argparse.Namespace) -> None:
 
     input_path = getattr(args, "history_path", None) or getattr(args, "pareto_csv", None)
 
-    results = []
-    if input_path and Path(input_path).exists():
-        p = Path(input_path)
-        if p.is_dir():
-            target = p / "candidate_history.json"
-            if not target.exists():
-                target = p / "candidate_history.csv"
-            if not target.exists():
-                target = p / "pareto.csv"
-            results = load_evaluation_results(target, config=config)
-        else:
-            results = load_evaluation_results(p, config=config)
-    else:
-        results_dir = Path("results")
-        cand_files = list(results_dir.glob("**/pareto.csv")) + list(results_dir.glob("**/candidate_history.json"))
-        if cand_files:
-            latest = max(cand_files, key=lambda f: f.stat().st_mtime)
-            print(f"Loading Pareto candidates from {latest} for robustness analysis...")
-            results = load_evaluation_results(latest, config=config)
+    results = load_candidates(input_path, config=config)
 
     mock = CliMockEvaluator(output_dir) if getattr(args, "mock_evaluator", False) else None
     run_robustness_workflow(
@@ -76,25 +58,13 @@ def run_robustness(args: argparse.Namespace) -> None:
 
 def run_verification(args: argparse.Namespace) -> None:
     """Load measured candidates and run the configured verification service."""
-    from mobo_linac.io.results import load_evaluation_results
+    from mobo_linac.io.run_data import load_candidates
     from mobo_linac.verification.verifier import run_verification_pipeline
 
     config = load_config(getattr(args, "config", None))
     output_dir = Path(getattr(args, "output_dir", "results/verification"))
     input_path = getattr(args, "history_path", None) or getattr(args, "pareto_csv", None) or getattr(args, "input", None)
-    results = []
-    if input_path:
-        path = Path(input_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Verification input not found: {path}")
-        if path.is_dir():
-            path = next((path / name for name in ("candidate_history.json", "candidate_history.csv", "pareto.csv")
-                         if (path / name).is_file()), path / "candidate_history.json")
-        results = load_evaluation_results(path, config=config)
-    else:
-        candidates = list(Path("results").glob("**/candidate_history.json")) + list(Path("results").glob("**/candidate_history.csv"))
-        if candidates:
-            results = load_evaluation_results(max(candidates, key=lambda path: path.stat().st_mtime), config=config)
+    results = load_candidates(input_path, config=config)
     if getattr(args, "dry_run", False):
         print("[DRY-RUN] Pareto Verification Plan:")
         print(f"  - Input Candidates: {len(results)}")

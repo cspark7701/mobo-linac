@@ -41,6 +41,16 @@ def _auto_detect_phase_dir(results_dir: Path, phase_name: str, prefix: str) -> P
     return None
 
 
+@pytest.fixture(autouse=True)
+def preserve_manuscript_artifacts():
+    """Every publication test must leave existing manuscript sources/figures unchanged."""
+    root = Path(__file__).resolve().parents[1] / "docs" / "paper"
+    before = {path: path.read_bytes() for path in root.rglob("*") if path.is_file() and path.suffix in (".tex", ".png", ".pdf")}
+    yield
+    after = {path: path.read_bytes() for path in root.rglob("*") if path.is_file() and path.suffix in (".tex", ".png", ".pdf")}
+    assert before == after
+
+
 @pytest.fixture(scope="session")
 def project_root() -> Path:
     return Path(__file__).resolve().parent.parent
@@ -294,16 +304,19 @@ REQUIRED_TABLES = [
 ]
 
 
-def test_generate_paper_figures_runs(tmp_path, phase2_dir, phase3_dir, project_root):
+def test_generate_paper_figures_runs(tmp_path, project_root, publication_runs):
     """generate_paper_figures.py must run without error."""
+    phase1_dir, phase2_dir, phase3_dir, verification_csv = publication_runs
     fig_out = tmp_path / "figures"
     tab_out = tmp_path
     result = subprocess.run(
         [
             sys.executable,
             "scripts/generate_paper_figures.py",
+            "--phase1-dir", str(phase1_dir),
             "--phase2-dir", str(phase2_dir),
             "--phase3-dir", str(phase3_dir),
+            "--verification-csv", str(verification_csv),
             "--output-dir", str(fig_out),
             "--tables-dir", str(tab_out),
         ],
@@ -318,16 +331,19 @@ def test_generate_paper_figures_runs(tmp_path, phase2_dir, phase3_dir, project_r
 
 
 @pytest.mark.parametrize("fname", REQUIRED_FIGURES)
-def test_required_figures_produced(tmp_path, phase2_dir, phase3_dir, project_root, fname):
+def test_required_figures_produced(tmp_path, project_root, publication_runs, fname):
     """generate_paper_figures.py must produce each required figure PNG."""
+    phase1_dir, phase2_dir, phase3_dir, verification_csv = publication_runs
     fig_out = tmp_path / "figures"
     tab_out = tmp_path
     subprocess.run(
         [
             sys.executable,
             "scripts/generate_paper_figures.py",
+            "--phase1-dir", str(phase1_dir),
             "--phase2-dir", str(phase2_dir),
             "--phase3-dir", str(phase3_dir),
+            "--verification-csv", str(verification_csv),
             "--output-dir", str(fig_out),
             "--tables-dir", str(tab_out),
         ],
@@ -340,16 +356,19 @@ def test_required_figures_produced(tmp_path, phase2_dir, phase3_dir, project_roo
 
 
 @pytest.mark.parametrize("fname", REQUIRED_TABLES)
-def test_required_tables_produced(tmp_path, phase2_dir, phase3_dir, project_root, fname):
+def test_required_tables_produced(tmp_path, project_root, publication_runs, fname):
     """generate_paper_figures.py must produce each required LaTeX table file."""
+    phase1_dir, phase2_dir, phase3_dir, verification_csv = publication_runs
     fig_out = tmp_path / "figures"
     tab_out = tmp_path
     subprocess.run(
         [
             sys.executable,
             "scripts/generate_paper_figures.py",
+            "--phase1-dir", str(phase1_dir),
             "--phase2-dir", str(phase2_dir),
             "--phase3-dir", str(phase3_dir),
+            "--verification-csv", str(verification_csv),
             "--output-dir", str(fig_out),
             "--tables-dir", str(tab_out),
         ],
@@ -364,8 +383,9 @@ def test_required_tables_produced(tmp_path, phase2_dir, phase3_dir, project_root
         assert "Phase 1 (Scalarized)" in content, "results_table.tex missing Phase 1 (Scalarized) column."
 
 
-def test_verification_table_produced_from_csv(tmp_path, phase2_dir, phase3_dir, verification_csv, project_root):
+def test_verification_table_produced_from_csv(tmp_path, project_root, publication_runs):
     """verification_table.tex must be generated from verification_summary.csv (not hard-coded)."""
+    phase1_dir, phase2_dir, phase3_dir, verification_csv = publication_runs
     if not verification_csv.exists():
         pytest.skip(f"Verification CSV not found: {verification_csv}")
     fig_out = tmp_path / "figures"
@@ -374,6 +394,7 @@ def test_verification_table_produced_from_csv(tmp_path, phase2_dir, phase3_dir, 
         [
             sys.executable,
             "scripts/generate_paper_figures.py",
+            "--phase1-dir", str(phase1_dir),
             "--phase2-dir", str(phase2_dir),
             "--phase3-dir", str(phase3_dir),
             "--verification-csv", str(verification_csv),
@@ -625,3 +646,74 @@ def test_new_run_artifacts_have_publication_headers_even_when_empty(tmp_path):
     assert list(pd.read_csv(tmp_path / "pareto.csv").columns) == [v.name for v in config.design_variables] + [o.explicit_name for o in config.objectives]
     assert HYPERVOLUME_REQUIRED_COLS <= set(pd.read_csv(tmp_path / "hypervolume.csv").columns)
     assert not (tmp_path / "train_X.csv").read_text().startswith("#")
+
+
+def test_script_and_package_campaign_tables_agree(publication_runs, tmp_path):
+    from scripts.generate_paper_figures import export_results_summary_latex_table
+    from mobo_linac.metrics.publication import generate_campaign_summary_latex_table
+    p1, p2, p3, _ = publication_runs
+    path = tmp_path / 'tables' / 'results.tex'
+    script = export_results_summary_latex_table(p2, p3, path, phase1_dir=p1)
+    package = generate_campaign_summary_latex_table([p1, p2, p3], phase_names=[
+        'Phase 1 (Scalarized)', 'Phase 2 (Unconstrained)', 'Phase 3 (Constrained)'])
+    assert script == package == path.read_text()
+    assert 'Total ASTRA Evaluations & 3 & 3 & 3' in script
+    assert 'Feasibility Rate, All Evaluations' in script
+    assert '33.3' in script and '1.0000' in script
+    assert '6.65' not in script
+
+
+def test_publication_plots_reject_conventions_before_creating_output(publication_runs, tmp_path):
+    import json
+    import matplotlib.pyplot as plt
+    from scripts.generate_paper_figures import plot_pareto_front_comparison
+    p1, p2, p3, _ = publication_runs
+    metadata = p3 / 'reporting_metadata.json'
+    data = json.loads(metadata.read_text())
+    data['reporting_ref_point'][0] *= 2
+    data['reporting_ref_point_normalized'][0] *= 2
+    metadata.write_text(json.dumps(data))
+    output = tmp_path / 'new' / 'plot.png'
+    before = plt.get_fignums()
+    with pytest.raises(ValueError, match='Incompatible reporting|Hypervolume reference'):
+        plot_pareto_front_comparison(p2, p3, output)
+    assert not output.exists() and plt.get_fignums() == before
+
+
+def test_custom_objective_figures_keep_recorded_units_and_close_figures(tmp_path):
+    import torch
+    from mobo_linac.config import load_config, ObjectiveConfig
+    from mobo_linac.evaluation import EvaluationResult
+    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.hypervolume import HypervolumeTracker
+    from mobo_linac.metrics.publication import generate_campaign_summary_latex_table
+    from mobo_linac.plotting.publication import plot_pareto_front_comparison, plot_verification_comparison
+    import matplotlib.pyplot as plt
+    config = load_config('configs/mobo_200MeV.yaml')
+    config.objectives = [ObjectiveConfig('power', 'power_W', 'W', 'maximize', 1, reporting_scale=1.)]
+    directories = []
+    for name in ('first', 'second'):
+        path = tmp_path / name
+        path.mkdir()
+        config.save_json(path / 'config.json')
+        result = EvaluationResult(evaluation_id='eval_000001', run_id=name,
+            x_physical=[v.nominal_value for v in config.design_variables],
+            objectives_physical=[3.], objectives_model=[3.], diagnostics={},
+            simulation_valid=True, physically_feasible=True, failure_category='SUCCESS')
+        tracker = HypervolumeTracker([0.], config)
+        tracker.track_iteration(0, torch.tensor([[3.]], dtype=torch.double), torch.tensor([True]))
+        RunArtifactWriter(path, config).write([result], tracker)
+        directories.append(path)
+    before = plt.get_fignums()
+    plot_pareto_front_comparison(*directories, tmp_path / 'pareto.png')
+    source = tmp_path / 'verification.csv'
+    import json
+    pd.DataFrame([{'role': 'power_50%&', 'objective_order': json.dumps(['power_W']),
+                  'objective_units': json.dumps({'power_W': 'W'}),
+                  'stored_objectives': json.dumps({'power_W': 3.}),
+                  'rerun_objectives': json.dumps({'power_W': None}), 'verification_status': 'RERUN_FAILED'}]).to_csv(source, index=False)
+    plot_verification_comparison(source, tmp_path / 'verification.png')
+    assert plt.get_fignums() == before
+    assert (tmp_path / 'pareto.png').exists() and (tmp_path / 'verification.png').exists()
+    content = generate_campaign_summary_latex_table(directories)
+    assert r'power\_W (W)' in content and '3.0000' in content

@@ -137,3 +137,20 @@ def test_scalarized_aggregation_rejects_different_reporting_references(tmp_path)
     with pytest.raises(ValueError, match="Incompatible reporting"):
         aggregate_scalarized_cases(tmp_path)
     assert not (tmp_path / "cases_summary.csv").exists()
+
+
+def test_scalarized_case_export_uses_shared_escaping_and_preserves_source(tmp_path):
+    import pandas as pd
+    from mobo_linac.metrics.latex import generate_phase1_cases_latex_table, escape_latex
+    source = tmp_path / 'cases.csv'
+    name = r'special_50% & {case} #1 $x$ ~ ^ \path'
+    pd.DataFrame([{'case_id': name, 'name': name, 'w_emit_x': .3, 'w_emit_y': .3,
+        'w_energy_spread': .4, 'num_evaluations': 3, 'num_feasible': 1, 'feasible_fraction_pct': 100/3,
+        'min_norm_emit_x_um': 1., 'min_norm_emit_y_um': 2., 'min_sigma_energy_MeV': .5}]).to_csv(source, index=False)
+    before = source.read_bytes()
+    script_path, package_path = tmp_path / 'adapter.tex', tmp_path / 'package.tex'
+    export_phase1_cases_latex_table(source, script_path)
+    generate_phase1_cases_latex_table(source, package_path)
+    assert script_path.read_bytes() == package_path.read_bytes()
+    assert escape_latex(name) in script_path.read_text()
+    assert source.read_bytes() == before

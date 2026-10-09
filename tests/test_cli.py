@@ -216,7 +216,7 @@ def test_verification_absent_input_requires_explicit_mock(tmp_path, monkeypatch)
         run_verification(args)
     assert not (tmp_path / 'verification').exists()
     args.history_path = str(tmp_path / 'does_not_exist.json')
-    with pytest.raises(FileNotFoundError, match='Verification input not found'):
+    with pytest.raises(FileNotFoundError, match='Candidate input not found'):
         run_verification(args)
     args.history_path = None
     args.mock_evaluator = True

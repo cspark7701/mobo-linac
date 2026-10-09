@@ -162,3 +162,40 @@ def recording_astra_project(tmp_path, monkeypatch):
     config.design_variables[4].coupled_targets = ['cavity:phi(2)', 'cavity:phi(6)']
     config.execution.clean_on_success = True
     return project, config
+
+
+@pytest.fixture
+def publication_runs(tmp_path):
+    """Temporary explicit-contract runs with feasible, infeasible, and failed evaluations."""
+    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.hypervolume import HypervolumeTracker
+    from mobo_linac.io.results import get_train_tensors
+    import pandas as pd
+    config = load_config('configs/mobo_200MeV.yaml')
+    directories = []
+    for phase in ('phase1', 'phase2', 'phase3'):
+        directory = tmp_path / phase
+        directory.mkdir()
+        config.save_json(directory / 'config.json')
+        config.save_yaml(directory / 'config.yaml')
+        parameters = [v.nominal_value for v in config.design_variables]
+        records = []
+        for index, (objectives, valid, feasible) in enumerate([
+            ([1e-6, 1.2e-6, .5e6], True, True),
+            ([.5e-6, .6e-6, .2e6], True, False), (None, False, False)]):
+            records.append(EvaluationResult(evaluation_id=f'eval_{index+1:06d}', run_id=phase,
+                x_physical=parameters, objectives_physical=objectives,
+                objectives_model=[-v for v in objectives] if objectives else None,
+                diagnostics={}, simulation_valid=valid, physically_feasible=feasible,
+                failure_category='SUCCESS' if valid else 'ASTRA_EXECUTION_FAILED'))
+        tracker = HypervolumeTracker([-3e-6, -3e-6, -2e6], config)
+        _, y, feasibility = get_train_tensors(records, config=config)
+        tracker.track_iteration(0, y, feasibility)
+        writer = RunArtifactWriter(directory, config)
+        writer.write(records, tracker)
+        directories.append(directory)
+    verification = tmp_path / 'verification_summary.csv'
+    pd.DataFrame([{'role': 'knee_point', 'stored_emit_x_m_rad': 1e-6,
+        'rerun_emit_x_m_rad': 1e-6, 'stored_sigma_energy_eV': .5e6,
+        'rerun_sigma_energy_eV': .5e6, 'max_diff_pct': 0., 'verification_status': 'MOCK_VERIFIED'}]).to_csv(verification, index=False)
+    return (*directories, verification)

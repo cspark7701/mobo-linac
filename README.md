@@ -424,3 +424,51 @@ Campaign/suite progress, device warnings, and GP/acquisition fallback messages u
 the shared logger. `configure_logging(quiet=True)` suppresses progress and debug
 messages while retaining warnings/errors; debug mode reports successful proposal
 tiers. CLI verbosity flags configure the same logger.
+
+### Publication reports and recorded run data
+
+`mobo_linac.io.run_data.read_run_data()` loads configuration, measured candidate
+history, `reporting_metadata.json`, and `hypervolume.csv`. JSON history takes
+precedence over candidate-history CSV, then evaluations CSV. Reports preserve
+recorded `(run_id, evaluation_id)` identities and feasibility; they do not infer
+successful or feasible beams from `train_X.csv`, `train_Y.csv`, or a Pareto filename.
+Existing completion markers are checked against their artifact checksums. Recorded
+hypervolume references/counts must agree with metadata and measured history.
+
+`RunData.pareto()` reconstructs the all-valid front; `RunData.pareto(feasible=True)`
+reconstructs the feasible front. Paper Pareto plots consistently use the feasible
+front and tables identify both cardinalities. `campaign_summary()` uses all history
+for evaluation counts and feasibility percentages, and feasible observations for
+objective extrema and knee solutions. It also exposes the fraction of valid
+observations that are feasible. The feasible-fraction plot retains that latter
+quantity and labels its denominator and valid-observation axis explicitly.
+Option 2 case summaries retain separate all-valid and feasible extrema, with
+feasibility percentages calculated over all evaluations.
+
+`read_comparable_runs()` rejects differing reference points, scales, objective
+names/order/signs/units, design columns, and constraint profiles before generating
+comparison artifacts. Older campaigns without reporting metadata require a complete
+convention supplied explicitly to `read_run_data(..., legacy_reporting_metadata=...)`;
+pass the resulting `RunData` objects to package campaign-table services. Archived
+outputs are never automatically migrated. The paper CLI requires recorded metadata,
+and includes Phase 1 only when `--phase1-dir` is supplied.
+
+Shared publication statistics and Markdown/campaign tables live in
+`mobo_linac.metrics.publication`; verification, robustness, and Option 2 LaTeX
+renderers live in `mobo_linac.metrics.latex`. Script exporters delegate to these
+services and retain manuscript labels and filenames. Hypervolume is formatted in
+scientific notation; absent measurements render as `--`. Canonical SI measurements
+use explicit emittance/energy conversions; custom objectives retain recorded units.
+Dynamic LaTeX text uses `escape_latex()`. Captions with deliberate math/commands can
+use the explicit trusted `RawLatex` wrapper; role, case, and status strings are
+escaped as text. Verification records retain failed, unknown, and `MOCK_*` statuses
+without automatic reproducibility claims.
+
+Robustness and verification entry points share candidate discovery: explicit missing
+inputs fail; omitted inputs select the newest measured run history with the same
+JSON/CSV preference. Explicit Pareto CSV inputs join sibling history to recover
+identities and statuses. Bare legacy Pareto CSVs retain unknown validity/feasibility
+and are not silently promoted to measured feasible candidates. The comparison script
+uses the existing audited verification service. Report generation does not modify
+source campaigns or aggregate missing case files into archived directories; tests
+generate manuscript artifacts under temporary paths.

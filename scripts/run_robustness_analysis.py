@@ -11,7 +11,7 @@ from typing import Optional
 
 from mobo_linac.config import load_config
 from mobo_linac.execution.mock import MockBatchEvaluator
-from mobo_linac.io.results import load_evaluation_results
+from mobo_linac.io.run_data import discover_candidate_source, load_candidates
 from mobo_linac.robustness.workflow import run_robustness_workflow
 
 
@@ -62,41 +62,14 @@ def parse_args():
 
 
 def find_pareto_csv(user_path_str: Optional[str]) -> Optional[Path]:
-    """Finds pareto.csv supporting files, directories, and subdirectories."""
-    search_paths = []
-    if user_path_str:
-        p = Path(user_path_str)
-        search_paths.append(p)
-        if p.is_dir():
-            search_paths.append(p / "pareto.csv")
-            search_paths.extend(list(p.rglob("pareto.csv")))
-            search_paths.extend(list(p.rglob("pareto_feasible.csv")))
-
-    fallbacks = [
-        Path("results/full_production/phase3_constrained/pareto.csv"),
-        Path("results/full_production/phase3_constrained"),
-        Path("results/phase3_constrained"),
-        Path("results/pareto.csv"),
-        Path("results"),
-    ]
-    for fb in fallbacks:
-        search_paths.append(fb)
-        if fb.is_dir():
-            search_paths.append(fb / "pareto.csv")
-            search_paths.extend(list(fb.rglob("pareto.csv")))
-            search_paths.extend(list(fb.rglob("pareto_feasible.csv")))
-
-    for candidate in search_paths:
-        if candidate.is_file() and candidate.exists() and candidate.stat().st_size > 0:
-            return candidate
-
-    return None
+    """Compatibility name for shared measured-history discovery."""
+    return discover_candidate_source(user_path_str)
 
 
 def run_robustness_analysis(args: argparse.Namespace) -> Path:
     config = load_config(args.config)
     pareto_path = find_pareto_csv(args.pareto_csv)
-    results = load_evaluation_results(pareto_path, config=config) if pareto_path is not None else []
+    results = load_candidates(pareto_path, config=config) if pareto_path is not None else []
     mock = getattr(args, "mock_evaluator", None)
     if mock is True:
         mock = MockBatchEvaluator(args.output_dir)

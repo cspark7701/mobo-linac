@@ -126,3 +126,70 @@ def test_generate_robustness_summary_latex_table(sample_robustness_records, tmp_
     assert r"0.95" in tex_content
     assert r"0.9200" in tex_content
     assert tex_path.exists()
+
+
+def test_script_and_package_verification_exports_agree_with_failed_reruns(tmp_path):
+    import copy
+    from scripts.generate_paper_figures import export_verification_latex_table
+    from mobo_linac.metrics.latex import escape_latex, RawLatex
+    role = r'case_50% & #1 {a} $b$ ~ ^ \path'
+    records = [{'role': role, 'stored_emit_x_m_rad': 1e-6, 'rerun_emit_x_m_rad': None,
+                'stored_sigma_energy_eV': .5e6, 'rerun_sigma_energy_eV': None,
+                'max_diff_pct': None, 'verification_status': 'RERUN_FAILED'}]
+    before = copy.deepcopy(records)
+    source = tmp_path / 'verification.csv'
+    pd.DataFrame(records).to_csv(source, index=False)
+    output = tmp_path / 'table.tex'
+    assert export_verification_latex_table(source, output) == generate_verification_latex_table(records)
+    content = output.read_text()
+    assert escape_latex(role) in content
+    assert r'RERUN\_FAILED' in content
+    assert 'nan' not in content and '--' in content
+    assert records == before
+    content = generate_verification_latex_table(records, caption=RawLatex(r'Test $\sigma_E$ \& text'))
+    assert r'\caption{Test $\sigma_E$ \& text}' in content
+    assert r'\caption{Test \$x\$ \& text}' in generate_verification_latex_table(records, caption='Test $x$ & text')
+
+
+def test_custom_objective_units_and_order_are_consistent(tmp_path):
+    import json
+    records = [{'role': 'unusual&role', 'stored_objectives': {'cost_1': 2.}, 'rerun_objectives': {'cost_1': None},
+                'objective_order': ['cost_1'], 'objective_units': {'cost_1': 'J/s & unit'},
+                'max_diff_pct': None, 'verification_status': 'COMPARISON_UNKNOWN'}]
+    direct = generate_verification_latex_table(records)
+    csv_records = [{key: json.dumps(value) if isinstance(value, (dict, list)) else value
+                    for key, value in record.items()} for record in records]
+    path = tmp_path / 'nested.csv'
+    pd.DataFrame(csv_records).to_csv(path, index=False)
+    assert generate_verification_latex_table(path) == direct
+    assert r'cost\_1' in direct and r'J/s \& unit' in direct
+    bad = dict(records[0], objective_units={'cost_1': 'eV'})
+    with pytest.raises(ValueError, match='order/units disagree'):
+        generate_verification_latex_table([*records, bad])
+
+
+def test_small_energy_spread_uses_explicit_si_units():
+    records = [{'role': 'small', 'stored_emit_x_m_rad': .1, 'rerun_emit_x_m_rad': .1,
+                'stored_sigma_energy_eV': 10., 'rerun_sigma_energy_eV': 10.,
+                'max_diff_pct': 0., 'verification_status': 'VERIFIED'}]
+    content = generate_verification_latex_table(records)
+    assert '100000.0000' in content
+    assert '10.0000' not in content
+
+
+def test_unusual_names_compile_as_latex(tmp_path):
+    import shutil
+    import subprocess
+    compiler = shutil.which('pdflatex')
+    if compiler is None:
+        pytest.skip('pdflatex unavailable')
+    records = [{'role': r'case_50% & #1 {a} $b$ ~ ^ \path', 'stored_emit_x_m_rad': 1e-6,
+                'rerun_emit_x_m_rad': None, 'stored_sigma_energy_eV': .5e6,
+                'rerun_sigma_energy_eV': None, 'max_diff_pct': None, 'verification_status': 'RERUN_FAILED'}]
+    content = generate_verification_latex_table(records)
+    source = tmp_path / 'table.tex'
+    source.write_text(r'\documentclass{article}\usepackage{booktabs,graphicx}\begin{document}' + content + r'\end{document}')
+    result = subprocess.run([compiler, '-interaction=nonstopmode', '-halt-on-error', source.name],
+                            cwd=tmp_path, capture_output=True, text=True)
+    assert result.returncode == 0, result.stdout[-4000:]
+    assert (tmp_path / 'table.pdf').exists()

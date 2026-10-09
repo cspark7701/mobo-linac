@@ -36,7 +36,7 @@ def test_compute_target_distance():
 
 
 def test_verify_pareto_candidates_mock(tmp_path, monkeypatch):
-    """Test Pareto candidate selection and relative difference verification with mocked run_astra_eval."""
+    """Test shared Pareto selection and audited verification with an explicit mock evaluator."""
     config = load_config("configs/mobo_200MeV.yaml")
 
     mock_results = []
@@ -62,24 +62,15 @@ def test_verify_pareto_candidates_mock(tmp_path, monkeypatch):
         )
         mock_results.append(res)
 
-    def mock_run_astra_eval(parameters, **kwargs):
+    def evaluator(parameters, **kwargs):
         i = round((parameters[0] - 0.20) / 0.01)
-        return {
-            "status": "success",
-            "objectives": {"norm_emit_x": 1e-6 * i, "norm_emit_y": 1e-6 * i, "sigma_energy": 0.1e6 * i},
-            "diagnostics": {},
-            "eval_dir": str(tmp_path / "mock_workdir"),
-            "manifest_path": None,
-            "error": None,
-        }
+        return mock_results[i - 1]
 
-    monkeypatch.setattr("scripts.run_comparison_and_verification.run_astra_eval", mock_run_astra_eval)
+    records = verify_pareto_candidates(mock_results, config, tmp_path, mock_evaluator=evaluator)
 
-    records = verify_pareto_candidates(mock_results, config, tmp_path)
-
-    assert len(records) == 5
+    assert len(records) == 7
     for rec in records:
-        assert rec["status"] == "VERIFIED"
+        assert rec["status"] == "MOCK_VERIFIED"
         assert rec["max_diff_pct"] < 1.0e-3
 
 
@@ -155,3 +146,43 @@ def test_generate_comparison_report(tmp_path):
     assert "Phase 2 (Unconstrained MOBO)" in content
     assert "Phase 3 (Constrained MOBO)" in content
     assert "VERIFIED" in content
+
+
+def test_comparison_report_is_data_driven_with_failed_evaluations(publication_runs, tmp_path):
+    from mobo_linac.io.run_data import read_run_data
+    from mobo_linac.io.results import get_train_tensors
+    from mobo_linac.metrics.publication import generate_comparison_report as package_report
+    p1, p2, p3, _ = publication_runs
+    runs = [read_run_data(path) for path in (p2, p3)]
+    trackers = []
+    for run in runs:
+        tracker = HypervolumeTracker(run.metadata['reporting_ref_point'], run.config)
+        _, y, feasible = get_train_tensors(run.results, config=run.config)
+        tracker.track_iteration(0, y, feasible)
+        trackers.append(tracker)
+    records = [{'role': 'failed|case', 'stored_emit_x_m_rad': 1e-6, 'rerun_emit_x_m_rad': None,
+                'stored_sigma_energy_eV': .5e6, 'rerun_sigma_energy_eV': None,
+                'max_diff_pct': None, 'status': 'RERUN_FAILED'}]
+    arguments = dict(run_dir_p2=p2, results_p2=runs[0].results, tracker_p2=trackers[0], wall_sec_p2=1.,
+                     run_dir_p3=p3, results_p3=runs[1].results, tracker_p3=trackers[1], wall_sec_p3=2.,
+                     verification_records=records)
+    adapter_path, package_path = tmp_path / 'adapter.md', tmp_path / 'package.md'
+    generate_comparison_report(**arguments, report_path=adapter_path)
+    package_report(**arguments, report_path=package_path)
+    content = adapter_path.read_text()
+    assert content == package_path.read_text()
+    assert '| Numerical Valid Simulations | 2 | 2 |' in content
+    assert '| Physically Feasible Beams | 1 | 1 |' in content
+    assert '33.333333' in content
+    assert 'RERUN_FAILED' in content and r'failed\|case' in content
+    assert 'All candidates achieved' not in content and 'zero numerical discrepancy' not in content
+
+
+def test_comparison_report_rejects_mismatched_references(tmp_path):
+    config = load_config('configs/mobo_200MeV.yaml')
+    first = HypervolumeTracker([-3e-6, -3e-6, -2e6], config)
+    second = HypervolumeTracker([-4e-6, -3e-6, -2e6], config)
+    path = tmp_path / 'new' / 'report.md'
+    with pytest.raises(ValueError, match='Incompatible reporting'):
+        generate_comparison_report(tmp_path / 'first', [], first, 0., tmp_path / 'second', [], second, 0., [], path)
+    assert not path.parent.exists()
