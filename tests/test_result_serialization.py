@@ -21,7 +21,7 @@ import torch
 import json
 
 from mobo_linac.io.journal import load_streaming_records, write_streaming_csv
-from mobo_linac.io.results import append_streaming_evaluation, load_streaming_evaluations
+from mobo_linac.io.journal import append_streaming_evaluation, load_streaming_evaluations
 
 from mobo_linac.config import load_config as _load_test_config
 TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
@@ -394,3 +394,54 @@ def test_export_failure_cannot_leave_completion_marker(tmp_path, sample_results,
     with pytest.raises(OSError, match="Injected"):
         writer.write(sample_results, tracker)
     assert not (tmp_path / "run_complete.json").exists()
+
+
+def _synthetic_results(count):
+    return [EvaluationResult(evaluation_id=f"eval_{i + 1:06d}", run_id="synthetic",
+                             x_physical=[0.1 * i, 1.0, -1.0, 0.0, 2.0, 3.0],
+                             objectives_physical=[1e-6 + 1e-9 * (i % 7), 2e-6 - 1e-9 * (i % 5), 1e5 + i],
+                             objectives_model=[-(1e-6 + 1e-9 * (i % 7)), -(2e-6 - 1e-9 * (i % 5)), -(1e5 + i)],
+                             diagnostics={}, simulation_valid=True, physically_feasible=i % 3 != 0,
+                             failure_category="SUCCESS", failure_reason=None, runtime_s=1.0, work_dir="")
+            for i in range(count)]
+
+
+def test_journal_appends_are_constant_time_without_rereading(tmp_path, monkeypatch):
+    """5,000 appends never re-read the journal; the identity index replaces the scan."""
+    import time
+    import mobo_linac.io.journal as journal_module
+    from mobo_linac.io.journal import EvaluationJournal
+    journal = EvaluationJournal(tmp_path, TEST_CONFIG)
+    reads = []
+    original = journal_module._read
+    monkeypatch.setattr(journal_module, "_read", lambda *a: reads.append(1) or original(*a))
+    monkeypatch.setattr(journal_module, "append_line_durable",  # isolate CPU cost from disk fsync
+                        lambda path, line: Path(path).open("a").write(line + "\n"))
+    records = _synthetic_results(5000)
+    start = time.perf_counter()
+    for index, result in enumerate(records):
+        journal.append(result, batch_idx=index // 8, candidate_idx=index % 8)
+    assert time.perf_counter() - start < 30.0
+    assert reads == []
+    assert journal.append(records[0], batch_idx=0, candidate_idx=0) is False  # idempotent duplicate
+    with pytest.raises(ValueError, match="Conflicting"):
+        journal.append(records[0], batch_idx=1, candidate_idx=0)
+    monkeypatch.setattr(journal_module, "_read", original)
+    assert len(EvaluationJournal(tmp_path, TEST_CONFIG)) == 5000
+
+
+def test_incremental_artifact_export_matches_full_rebuild(tmp_path):
+    """Exports reusing cached conversions are byte-identical to a fresh full rebuild."""
+    from mobo_linac.io.artifacts import RunArtifactWriter
+    from mobo_linac.metrics.hypervolume import HypervolumeTracker
+    results = _synthetic_results(30)
+    tracker = HypervolumeTracker([-3e-6, -3e-6, -2e5], TEST_CONFIG)
+    incremental = RunArtifactWriter(tmp_path / "incremental", TEST_CONFIG)
+    for end in (5, 17, 30):
+        incremental.write(results[:end], tracker)
+    full = RunArtifactWriter(tmp_path / "full", TEST_CONFIG)
+    full.write(results, tracker)
+    assert incremental.required == full.required
+    for name in full.required:
+        assert (tmp_path / "incremental" / name).read_bytes() == (tmp_path / "full" / name).read_bytes(), name
+    assert (tmp_path / "full" / "pareto.csv").read_bytes() == (tmp_path / "full" / "pareto_all.csv").read_bytes()

@@ -22,6 +22,40 @@ METADATA_COLUMNS = ["evaluation_id", "run_id", "simulation_valid", "physically_f
 TELEMETRY_COLUMNS = ["n_particles_initial", "n_particles_final"]
 
 
+def result_row(res: EvaluationResult, schema: ResultSchema) -> Dict[str, Any]:
+    """One flat record (CSV row) for an evaluation; absent values are NaN."""
+    row: Dict[str, Any] = {
+        "evaluation_id": res.evaluation_id,
+        "run_id": res.run_id,
+        "simulation_valid": res.simulation_valid,
+        "physically_feasible": res.physically_feasible,
+        "failure_category": res.failure_category,
+        "failure_reason": res.failure_reason or "",
+        "runtime_s": res.runtime_s,
+        "work_dir": res.work_dir,
+        "attempt_id": res.attempt_id, "manifest_path": res.manifest_path,
+        "attempt_history": json.dumps(res.attempt_history),
+    }
+    for values, columns in ((res.x_physical, schema.design_columns),
+                            (res.objectives_physical, schema.physical_columns),
+                            (res.objectives_model, schema.model_columns)):
+        for idx, col in enumerate(columns):
+            row[col] = float(values[idx]) if values and idx < len(values) else np.nan
+    # Canonical diagnostic channels and particle-count telemetry; absent values stay NaN.
+    diags = normalize_diagnostics(res.diagnostics)
+    for name in DIAGNOSTIC_NAMES:
+        row.setdefault(name, diags.get(name, np.nan))
+    for name in TELEMETRY_COLUMNS:  # archived results stored counts with diagnostics
+        row.setdefault(name, res.telemetry.get(name, diags.get(name, np.nan)))
+    return row
+
+
+def rows_to_dataframe(rows: List[Dict[str, Any]], schema: ResultSchema) -> pd.DataFrame:
+    columns = list(dict.fromkeys(METADATA_COLUMNS + list(schema.design_columns) + list(schema.physical_columns)
+                                 + list(schema.model_columns) + list(DIAGNOSTIC_NAMES) + TELEMETRY_COLUMNS))
+    return pd.DataFrame(rows, columns=columns)
+
+
 def results_to_dataframe(
     results: List[EvaluationResult],
     config: Any,
@@ -31,58 +65,7 @@ def results_to_dataframe(
     Column headers come from the configuration (or an explicit ResultSchema).
     """
     schema = ResultSchema.from_config(config)
-    design_var_cols = list(schema.design_columns)
-    physical_obj_cols = list(schema.physical_columns)
-    model_obj_cols = list(schema.model_columns)
-
-    rows = []
-    for res in results:
-        row: Dict[str, Any] = {
-            "evaluation_id": res.evaluation_id,
-            "run_id": res.run_id,
-            "simulation_valid": res.simulation_valid,
-            "physically_feasible": res.physically_feasible,
-            "failure_category": res.failure_category,
-            "failure_reason": res.failure_reason or "",
-            "runtime_s": res.runtime_s,
-            "work_dir": res.work_dir,
-            "attempt_id": res.attempt_id, "manifest_path": res.manifest_path,
-            "attempt_history": json.dumps(res.attempt_history),
-        }
-
-        # Add design variables
-        for idx, col in enumerate(design_var_cols):
-            if res.x_physical and idx < len(res.x_physical):
-                row[col] = float(res.x_physical[idx])
-            else:
-                row[col] = np.nan
-
-        # Add physical objectives
-        for idx, col in enumerate(physical_obj_cols):
-            if res.objectives_physical and idx < len(res.objectives_physical):
-                row[col] = float(res.objectives_physical[idx])
-            else:
-                row[col] = np.nan
-
-        # Add model-space objectives
-        for idx, col in enumerate(model_obj_cols):
-            if res.objectives_model and idx < len(res.objectives_model):
-                row[col] = float(res.objectives_model[idx])
-            else:
-                row[col] = np.nan
-
-        # Canonical diagnostic channels and particle-count telemetry; absent values stay NaN.
-        diags = normalize_diagnostics(res.diagnostics)
-        for name in DIAGNOSTIC_NAMES:
-            row.setdefault(name, diags.get(name, np.nan))
-        for name in TELEMETRY_COLUMNS:  # archived results stored counts with diagnostics
-            row.setdefault(name, res.telemetry.get(name, diags.get(name, np.nan)))
-
-        rows.append(row)
-
-    columns = list(dict.fromkeys(METADATA_COLUMNS + design_var_cols + physical_obj_cols + model_obj_cols
-                                 + list(DIAGNOSTIC_NAMES) + TELEMETRY_COLUMNS))
-    return pd.DataFrame(rows, columns=columns)
+    return rows_to_dataframe([result_row(res, schema) for res in results], schema)
 
 
 @dataclass(frozen=True)
@@ -221,9 +204,10 @@ def load_evaluation_results(
         if not set(design_var_cols).issubset(df.columns):
             raise ValueError("CSV lacks named design columns required by the result schema.")
         results = []
-        for row_index, row in df.iterrows():
+        # Plain row dictionaries avoid constructing one pandas Series per record.
+        for row_index, row in enumerate(df.to_dict("records")):
             x_phys = [float(row.get(col, np.nan)) for col in design_var_cols]
-            objs_phys = schema.extract(row.to_dict())
+            objs_phys = schema.extract(row)
             # Earlier config-bound exports used model_{name}_neg for canonical objectives.
             model_keys = [col if col in row else f"model_{names[0]}_neg" if sign == -1 else col
                           for col, names, sign in zip(model_obj_cols, schema.objective_aliases, schema.signs)]
@@ -530,22 +514,3 @@ def load_run_checkpoint(checkpoint_path: Union[str, Path], allow_unsafe_pickle: 
         raise ValueError(f"Invalid checkpoint structure at {target_file}")
 
     return CheckpointState.from_dict(checkpoint_data, checkpoint_file=str(target_file))
-
-
-def append_streaming_evaluation(
-    output_dir: Union[str, Path],
-    result: EvaluationResult,
-    batch_idx: Optional[int] = None,
-    candidate_idx: Optional[int] = None,
-    *,
-    config,
-) -> Path:
-    """Durably append JSONL first, then derive the CSV view; write errors propagate."""
-    from mobo_linac.io.journal import append_record
-    return append_record(output_dir, result, batch_idx, candidate_idx, config=config)
-
-
-def load_streaming_evaluations(output_dir: Union[str, Path]) -> List[EvaluationResult]:
-    """Load exact typed JSONL records, including legacy batch metadata, without CSV fallback."""
-    from mobo_linac.io.journal import load_streaming_records
-    return [record.result for record in load_streaming_records(output_dir)]

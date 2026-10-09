@@ -9,17 +9,21 @@ from mobo_linac.io.results import (
     TrainingObservations,
     get_training_observations,
     get_constraint_tensors,
-    append_streaming_evaluation,
     get_train_tensors,
     load_evaluation_results,
     load_run_checkpoint,
-    load_streaming_evaluations,
     results_to_dataframe,
     save_evaluation_results,
     save_run_checkpoint,
 )
 from mobo_linac.io.artifacts import RunArtifactWriter, validate_run_completion
-from mobo_linac.io.journal import JournalRecord, load_streaming_records
+from mobo_linac.io.journal import (
+    EvaluationJournal,
+    JournalRecord,
+    append_streaming_evaluation,
+    load_streaming_evaluations,
+    load_streaming_records,
+)
 
 __all__ = [
     "RunArtifactWriter",
@@ -36,6 +40,7 @@ __all__ = [
     "get_train_tensors",
     "append_streaming_evaluation",
     "load_streaming_evaluations",
+    "EvaluationJournal",
     "JournalRecord",
     "load_streaming_records",
 ]

@@ -180,7 +180,8 @@ def test_cli_resume_uses_embedded_config_outside_project_cwd(tmp_path, monkeypat
 def test_cli_recovers_initial_design_before_first_completed_checkpoint(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
     from mobo_linac.execution import MockBatchEvaluator
-    from mobo_linac.io.results import load_run_checkpoint, load_streaming_evaluations
+    from mobo_linac.io.results import load_run_checkpoint
+    from mobo_linac.io.journal import load_streaming_evaluations
 
     class InterruptedEvaluator(MockBatchEvaluator):
         def evaluate_batch(self, candidates, run_id, eval_ids, on_evaluation_complete):

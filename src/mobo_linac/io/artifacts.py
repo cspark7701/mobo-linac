@@ -1,16 +1,15 @@
 """One writer for iteration/final artifacts, scientific metadata and completion."""
 import hashlib
 import json
-import os
 from pathlib import Path
 import numpy as np
 import pandas as pd
 import torch
 from mobo_linac.metrics.front import pareto_mask
 from mobo_linac.diagnostics import DIAGNOSTIC_NAMES
-from mobo_linac.io.durable import atomic_csv, atomic_json
+from mobo_linac.io.durable import atomic_json, atomic_write_text
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.io.results import get_training_observations, results_to_dataframe
+from mobo_linac.io.results import get_training_observations, result_row, rows_to_dataframe
 from mobo_linac.metrics.reporting import compute_campaign_metrics_history, reporting_metadata
 
 
@@ -22,6 +21,17 @@ class RunArtifactWriter:
         self.config = config
         self.schema = ResultSchema.from_config(config)
         self.required = []
+        # Evaluation records are immutable once journaled, so their CSV row and JSON form
+        # are converted once and reused by every later iteration export.
+        self._cache = {}
+
+    def _converted(self, result):
+        key = (result.run_id, result.evaluation_id)
+        cached = self._cache.get(key)
+        if cached is None or cached[0] is not result:
+            cached = (result, result_row(result, self.schema), result.to_dict())
+            self._cache[key] = cached
+        return cached
 
     def invalidate_completion(self):
         (self.run_dir / "run_complete.json").unlink(missing_ok=True)
@@ -34,20 +44,22 @@ class RunArtifactWriter:
             raise TypeError("RunArtifactWriter.write requires the fixed-reference HypervolumeTracker.")
         self.invalidate_completion()
         self.required = []
-        def csv(name, frame):
-            atomic_csv(self.run_dir / name, frame)
-            self.required.append(name)
-        frame = results_to_dataframe(results, self.schema)
+        def csv(names, frame):
+            text = frame.to_csv(index=False)  # aliases share one serialization
+            for name in ([names] if isinstance(names, str) else names):
+                atomic_write_text(self.run_dir / name, text)
+                self.required.append(name)
+        converted = [self._converted(result) for result in results]
+        frame = rows_to_dataframe([row for _, row, _ in converted], self.schema)
         for name, values in (extra_columns or {}).items():
             if name in frame.columns or len(values) != len(results):
                 raise ValueError("Extra artifact columns must be distinct and align with records.")
             frame[name] = values
         history = self.run_dir / "candidate_history.json"
         # Failure records may hold NaN diagnostics; JSON history records them as NaN.
-        atomic_json(history, [r.to_dict() for r in results], allow_nan=True)
+        atomic_json(history, [record for _, _, record in converted], allow_nan=True)
         self.required.append(history.name)
-        csv("candidate_history.csv", frame)
-        csv("evaluations.csv", frame)
+        csv(("candidate_history.csv", "evaluations.csv"), frame)
         observed = get_training_observations(results, config=self.schema)
         x, y, feasible = observed.train_X, observed.train_Y, observed.feasible
         identities = observed.evaluation_ids
@@ -69,8 +81,7 @@ class RunArtifactWriter:
             frame.insert(0, "run_id", [run_id for run_id, _ in kept])
             return frame
         all_points = pareto(torch.ones(len(identities), dtype=torch.bool))
-        csv("pareto.csv", all_points)
-        csv("pareto_all.csv", all_points)
+        csv(("pareto.csv", "pareto_all.csv"), all_points)
         csv("pareto_feasible.csv", pareto(feasible))
         csv("hypervolume.csv", tracker.to_dataframe())
         meta = reporting_metadata(self.config, tracker.reporting_ref_point.tolist(), reference_policy)

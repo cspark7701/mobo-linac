@@ -145,7 +145,7 @@ def test_corrupted_checkpoint_raises(tmp_path):
 
 def test_intra_batch_streaming_persistence_and_resume(tmp_path):
     """Verify that evaluations_stream.csv/jsonl records individual worker completions in real time."""
-    from mobo_linac.io.results import (
+    from mobo_linac.io.journal import (
         append_streaming_evaluation,
         load_streaming_evaluations,
     )
@@ -670,7 +670,7 @@ def test_campaign_callback_persistence_failure_is_observable(tmp_path, monkeypat
 
     evaluator = SwallowingEvaluator(tmp_path) if swallow_callback_error else MockBatchEvaluator(tmp_path)
     with monkeypatch.context() as patch:
-        patch.setattr(runner_module, "append_streaming_evaluation", fail_append)
+        patch.setattr(runner_module.EvaluationJournal, "append", fail_append)
         with pytest.raises(OSError, match="journal disk failure"):
             MoboCampaignRunner(
                 output_dir=tmp_path, num_initial_samples=2, num_batches=0, evaluator=evaluator,

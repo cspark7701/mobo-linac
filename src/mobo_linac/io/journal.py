@@ -131,19 +131,62 @@ def write_streaming_csv(output_dir: Union[str, Path], records=None, *, config) -
     return atomic_csv(out_dir / "evaluations_stream.csv", frame)
 
 
+class EvaluationJournal:
+    """Campaign-owned journal: validated once on open, then constant-time appends.
+
+    The identity index replaces the per-append re-read of the whole JSONL file. The CSV
+    view is rebuilt only on :meth:`write_csv` (batch boundaries), not per evaluation.
+    """
+
+    def __init__(self, output_dir: Union[str, Path], config):
+        self.output_dir = Path(output_dir)
+        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.config = config
+        self.path = self.output_dir / "evaluations_stream.jsonl"
+        repair_journal_tail(self.output_dir)  # validates the full journal exactly once
+        self.records = load_streaming_records(self.output_dir)
+        self._index = {(r.result.run_id, r.result.evaluation_id): r for r in self.records}
+
+    def __len__(self) -> int:
+        return len(self.records)
+
+    @property
+    def results(self) -> List[EvaluationResult]:
+        return [record.result for record in self.records]
+
+    def append(self, result: EvaluationResult, batch_idx=None, candidate_idx=None) -> bool:
+        """Durably append one completion; returns False for an identical duplicate."""
+        record = _decode(JournalRecord(result, batch_idx, candidate_idx).to_dict())
+        previous = self._index.get((result.run_id, result.evaluation_id))
+        if previous is not None:
+            if (not same_evaluation(previous.result, result) or previous.batch_idx != batch_idx
+                    or previous.candidate_idx != candidate_idx):
+                raise ValueError("Conflicting duplicate journal completion.")
+            return False
+        append_line_durable(self.path, json.dumps(record.to_dict()))
+        self._index[(result.run_id, result.evaluation_id)] = record
+        self.records.append(record)
+        return True
+
+    def write_csv(self) -> Path:
+        return write_streaming_csv(self.output_dir, self.records, config=self.config)
+
+
 def append_record(output_dir, result, batch_idx=None, candidate_idx=None, *, config) -> Path:
-    out_dir = Path(output_dir)
-    out_dir.mkdir(parents=True, exist_ok=True)
-    records = load_streaming_records(out_dir)
-    record = _decode(JournalRecord(result, batch_idx, candidate_idx).to_dict())
-    previous = next((r for r in records if (r.result.run_id, r.result.evaluation_id)
-                     == (result.run_id, result.evaluation_id)), None)
-    if previous is not None:
-        if (not same_evaluation(previous.result, result) or previous.batch_idx != batch_idx
-                or previous.candidate_idx != candidate_idx):
-            raise ValueError("Conflicting duplicate journal completion.")
-    else:
-        repair_journal_tail(out_dir)
-        append_line_durable(out_dir / "evaluations_stream.jsonl", json.dumps(record.to_dict()))
-        records.append(record)
-    return write_streaming_csv(out_dir, records, config=config)
+    """Stand-alone append (validates the journal and rebuilds the CSV view on every call).
+
+    Campaigns hold an :class:`EvaluationJournal` instead, which appends in constant time.
+    """
+    journal = EvaluationJournal(output_dir, config)
+    journal.append(result, batch_idx, candidate_idx)
+    return journal.write_csv()
+
+
+def append_streaming_evaluation(output_dir, result, batch_idx=None, candidate_idx=None, *, config) -> Path:
+    """Durably append JSONL first, then derive the CSV view; write errors propagate."""
+    return append_record(output_dir, result, batch_idx, candidate_idx, config=config)
+
+
+def load_streaming_evaluations(output_dir: Union[str, Path]) -> List[EvaluationResult]:
+    """Load exact typed JSONL records, including legacy batch metadata, without CSV fallback."""
+    return [record.result for record in load_streaming_records(output_dir)]

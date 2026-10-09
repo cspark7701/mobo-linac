@@ -36,10 +36,9 @@ from mobo_linac.campaigns.storage import persist_model, commit_checkpoint
 from mobo_linac.campaigns.reporting import finalize_campaign
 from mobo_linac.models.artifacts import save_model_artifact
 from mobo_linac.models.gp import build_scalarized_gp_model, fit_gp_models
-from mobo_linac.io.journal import repair_journal_tail, write_streaming_csv
+from mobo_linac.io.journal import EvaluationJournal
 from mobo_linac.io.results import (
     CheckpointState,
-    append_streaming_evaluation,
     get_training_observations,
     get_train_tensors,
     save_run_checkpoint,
@@ -424,8 +423,7 @@ class MoboCampaignRunner:
                 eval_res = completion.result
                 identity = eval_res.evaluation_id
                 position = identities.index(identity)
-                append_streaming_evaluation(self.run_dir, eval_res, batch_idx=batch_idx,
-                                            candidate_idx=position, config=self.config)
+                journal.append(eval_res, batch_idx=batch_idx, candidate_idx=position)
                 completions[identity] = eval_res
                 elapsed_by_id[identity] = elapsed()
 
@@ -436,6 +434,7 @@ class MoboCampaignRunner:
                     config=self.config, on_complete=_stream_callback)
             if set(completions) != set(identities):
                 raise ValueError("Evaluator did not return every submitted candidate completion.")
+            journal.write_csv()  # derived CSV view refreshed once per batch
             return [completions[identity] for identity in identities]
 
         start_iteration = 1
@@ -497,10 +496,10 @@ class MoboCampaignRunner:
             )
 
 
+        journal = EvaluationJournal(self.run_dir, self.config)  # validated and repaired once per session
         if resume_state is not None:
-            repair_journal_tail(self.run_dir)
-            if (self.run_dir / "evaluations_stream.jsonl").exists():
-                write_streaming_csv(self.run_dir, config=self.config)
+            if len(journal):
+                journal.write_csv()
             if resume_state.pending_proposal is None and pending_path.exists():
                 pending_path.unlink()  # Checkpoint won the durable commit before interruption.
             initial_candidates = deepcopy(resume_state.initial_design)

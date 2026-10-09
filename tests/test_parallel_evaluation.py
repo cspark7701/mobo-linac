@@ -313,10 +313,8 @@ def test_retry_isolates_stale_outputs_and_retains_provenance(temp_project, monke
     from mobo_linac.astra.workdir import file_sha256, read_evaluation_manifest
     from mobo_linac.evaluation import create_evaluation_result
     from mobo_linac.config import load_config
-    from mobo_linac.io.results import (
-        append_streaming_evaluation, load_streaming_evaluations,
-        save_evaluation_results, load_evaluation_results, CheckpointState,
-    )
+    from mobo_linac.io.journal import append_streaming_evaluation, load_streaming_evaluations
+    from mobo_linac.io.results import save_evaluation_results, load_evaluation_results, CheckpointState
 
     executable = temp_project['base_dir'] / 'stub_astra'
     executable.write_bytes(b'stub executable bytes')
