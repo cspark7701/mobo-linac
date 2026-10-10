@@ -23,10 +23,14 @@ from mobo_linac.execution.parallel import (
 from mobo_linac.requests import EvaluationRequest, requests_for
 
 
+# Tests that replace the worker with a local stub need forked workers to inherit the patch.
+PATCHED_WORKER_CONTEXT = "fork"
+
+
 def evaluate_candidates(candidates, run_id, max_workers, base_results_dir, template_dir=None,
                         eval_ids=None, on_complete=None, config=TEST_CONFIG):
     with ProcessPoolEvaluator(config, base_results_dir=base_results_dir, template_dir=template_dir,
-                              max_workers=max_workers) as evaluator:
+                              max_workers=max_workers, mp_context=PATCHED_WORKER_CONTEXT) as evaluator:
         return evaluator.evaluate(requests_for(candidates, eval_ids), run_id=run_id, on_complete=on_complete)
 
 
@@ -231,6 +235,7 @@ def test_batch_evaluator_class(temp_project, monkeypatch):
         template_dir=temp_project["template_dir"],
         max_workers=2,
         timeout=15,
+        mp_context=PATCHED_WORKER_CONTEXT,
     )
 
     def mock_run_astra_eval(parameters, **kwargs):
@@ -430,3 +435,19 @@ def test_single_worker_crash_is_reported_like_a_pooled_crash(tmp_path, monkeypat
         out = evaluate_candidates([[0.2, 1, -1, 0, 0, 0]], f"crash_{workers}", workers, tmp_path)
         assert [row["status"] for row in out] == ["WORKER_CRASH"]
         assert "Worker process crashed" in out[0]["error"]
+
+
+def test_workers_spawn_by_default_and_run_in_a_fresh_interpreter(tmp_path):
+    """Production workers never fork the threaded parent; a spawned pool evaluates normally."""
+    import multiprocessing
+    with ProcessPoolEvaluator(TEST_CONFIG, base_results_dir=tmp_path, max_workers=1) as evaluator:
+        assert evaluator.mp_context == "spawn"
+        assert evaluator._pool()._mp_context.get_start_method() == "spawn"
+        pid = evaluator._pool().submit(os.getpid).result()
+    assert pid != os.getpid()
+    assert "spawn" in multiprocessing.get_all_start_methods()
+
+
+def test_unknown_start_method_is_rejected(tmp_path):
+    with pytest.raises(ValueError, match="mp_context"):
+        ProcessPoolEvaluator(TEST_CONFIG, base_results_dir=tmp_path, mp_context="threads")

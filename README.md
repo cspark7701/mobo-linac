@@ -572,8 +572,8 @@ read-only discovery helper. Evaluators share serializable `EvaluationRequest`
 objects and typed `EvaluationCompletion` records through
 `mobo_linac.execution.contracts.evaluate_requests()`. Every backend implements one
 protocol, `evaluate(requests, run_id, on_complete)`: `ProcessPoolEvaluator` (ASTRA,
-persistent process pool; every worker count is process-isolated, `in_process=True` is
-an explicit debugging opt-in), `MockEvaluator` (deterministic responses for any
+persistent process pool of spawned workers, so the threaded parent is never forked; every worker
+count is process-isolated, `in_process=True` is an explicit debugging opt-in), `MockEvaluator` (deterministic responses for any
 configured objective/diagnostic layout) and `FunctionEvaluator` (adapts a per-request
 callable while preserving submitted identities). Campaigns, robustness and verification
 accept the same evaluator object. The adapter validates candidate identity/parameters,

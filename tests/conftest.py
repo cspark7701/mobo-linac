@@ -162,6 +162,8 @@ def recording_astra_project(tmp_path, monkeypatch):
                 'mean_kinetic_energy': 200e6, 'transmission_fraction': 1.0, 'z': 16.2,
             }.items()}}
     monkeypatch.setattr('mobo_linac.astra.runner.Astra', RecordingAstra)
+    # Pools built inside the workflows must fork so their workers inherit the recording stub.
+    monkeypatch.setattr('mobo_linac.execution.parallel.DEFAULT_START_METHOD', 'fork')
     config = load_config(template.parents[0] / 'configs/publication_200MeV.yaml')
     # Use a different configured key and coupled targets, without changing jitter units.
     config.design_variables[0].astra_key = 'solenoid:maxb(2)'

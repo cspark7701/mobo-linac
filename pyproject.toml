@@ -67,6 +67,7 @@ filterwarnings = [
     # Known third-party notices, matched by message (they do not originate in mobo_linac):
     # deprecations inside torch, lume-astra and openPMD-beamphysics
     "ignore:`torch.jit.script` is deprecated:DeprecationWarning",
+    "ignore:`torch.jit.script` is deprecated:FutureWarning",  # its category in newer torch releases
     "ignore:The 'pmd_beamphysics' package name is deprecated:DeprecationWarning",
     "ignore:unit\\(\\) is deprecated:DeprecationWarning",
     "ignore:The set_under function will be deprecated:PendingDeprecationWarning",
@@ -75,6 +76,10 @@ filterwarnings = [
     # negative posterior variances; both are expected for near-noiseless simulation data.
     "ignore:Very small noise values detected:gpytorch.utils.warnings.NumericalWarning",
     "ignore:Negative variance values detected:gpytorch.utils.warnings.NumericalWarning",
+    # Production worker pools spawn (mobo_linac.execution.parallel.DEFAULT_START_METHOD, asserted
+    # by test_workers_spawn_by_default_and_run_in_a_fresh_interpreter). Only tests whose stub
+    # simulators must be inherited by workers opt into fork; Python >= 3.12 warns about that.
+    "ignore:This process \\(pid=\\d+\\) is multi-threaded, use of fork\\(\\) may lead to deadlocks:DeprecationWarning",
 ]
 
 [tool.ruff]

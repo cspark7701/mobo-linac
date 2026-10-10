@@ -5,6 +5,10 @@ Process-isolated ASTRA evaluation backend.
 candidate in a worker process (also with a single worker), so crashes and environment side
 effects behave the same regardless of the worker count. ``in_process=True`` is an explicit
 opt-in for debugging. Results are returned aligned with the submitted requests.
+
+Workers start with the ``spawn`` method on every platform. Forking the parent, which holds
+PyTorch and BLAS threads, can deadlock a child (Python 3.12 warns about it). Spawned workers
+import the package afresh and receive everything they need in the serialized ``WorkerTask``.
 """
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -120,6 +124,10 @@ def _positive_int(name: str, value) -> int:
     return value
 
 
+# Worker start method; "fork" is only safe for test doubles that never use threaded libraries.
+DEFAULT_START_METHOD = "spawn"
+
+
 class ProcessPoolEvaluator:
     """Process-isolated ASTRA backend with a persistent worker pool."""
 
@@ -151,14 +159,17 @@ class ProcessPoolEvaluator:
             raise ValueError("retries must be a nonnegative integer.")
         self.clean_on_success = execution.clean_on_success if clean_on_success is None else bool(clean_on_success)
         self.use_symlinks = use_symlinks
+        mp_context = DEFAULT_START_METHOD if mp_context is None else mp_context
+        if mp_context not in multiprocessing.get_all_start_methods():
+            raise ValueError(f"mp_context must be one of {multiprocessing.get_all_start_methods()}.")
         self.mp_context = mp_context
         self.in_process = in_process
         self._executor: Optional[ProcessPoolExecutor] = None
 
     def _pool(self) -> ProcessPoolExecutor:
         if self._executor is None:
-            context = multiprocessing.get_context(self.mp_context) if self.mp_context else None
-            self._executor = ProcessPoolExecutor(max_workers=self.max_workers, mp_context=context)
+            self._executor = ProcessPoolExecutor(max_workers=self.max_workers,
+                                                 mp_context=multiprocessing.get_context(self.mp_context))
             weakref.finalize(self, self._executor.shutdown, wait=True)
         return self._executor
 
