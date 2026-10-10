@@ -299,6 +299,7 @@ results/<run>/
     hypervolume.csv, metrics_history.csv
     candidate_history.csv/.json, proposal_history.json
     checkpoints/       # typed v3 campaign checkpoints (checkpoint.pt, checkpoint_iter_NN.pt)
+    gp_checkpoint/     # fitted GP surrogate states
     provenance/        # per-evaluation, per-attempt ASTRA input/output snapshots and manifests
     figures/           # campaign figures (unless plots are disabled)
     environment.txt, run.log

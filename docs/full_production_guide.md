@@ -1,182 +1,85 @@
-# Full Production Simulation & Analysis Pipeline Guide
+# Full Production Pipeline Guide
 
-This document provides complete instructions and architecture documentation for running the consolidated production simulation and analysis script: **[`scripts/run_full_production.sh`](../scripts/run_full_production.sh)**.
+[`scripts/run_full_production.sh`](../scripts/run_full_production.sh) runs the three optimization phases and the audited analysis with one shared configuration and one fixed reporting reference. Every step is a `mobo-linac` CLI command, so the launcher adds no optimization logic of its own. For staged budgets and decision gates, see the [strategic simulation campaign plan](strategic_simulation_campaign_plan.md).
 
----
+## Steps
 
-## 📌 Overview & Design Goals
+| Step | Command | Output |
+|---|---|---|
+| Phase 1 | `run-scalarized-suite --cases …` (the configuration's `scalarized_cases`; each case seed is the base seed plus its `seed_offset`) | `phase1_scalarized/<case>/` plus the aggregate in `phase1_scalarized/` |
+| Phase 2 | `run-unconstrained` (qLogNEHVI) | `phase2_unconstrained/` |
+| Phase 3 | `run-constrained` (constraint-weighted qLogNEHVI) | `phase3_constrained/` |
+| Comparison | `compare`: comparison report, figures and independent nominal reruns of the six representative roles | `analysis/` |
+| Robustness | `run-robustness` on the measured feasible Phase 3 front (six roles × `--perturbations`) | `analysis/robustness/` |
 
-The `run_full_production.sh` script automates the complete 200 MeV electron injector linac optimization and scientific analysis pipeline in a single, robust bash script.
+Before creating any output, the launcher validates the configuration, campaign settings, reference length and finiteness, the requested Phase 1 case, and the ASTRA executable. The executable is resolved from `simulation.executable`, then `$ASTRA_BIN`, then `PATH`. Each launch then writes `logs/launch_<timestamp>.json`, which records the git commit and dirty flag, the configuration path and SHA-256, the executable path and SHA-256, the package and Python versions, and all options.
 
-### Key Capabilities:
-### Key Capabilities:
-1. **Automated 90% CPU Parallelization**: Dynamically detects available CPU cores (`os.cpu_count()`) and allocates 90% capacity to `ProcessPoolExecutor` worker pools for maximum throughput without overloading the host OS. Custom worker counts can be specified via `-w` / `--workers`.
-2. **Screen Verbose Toggle (`-q` / `--quiet`)**: Provides a quiet execution mode that suppresses screen output and redirects progress logs to dedicated files. This prevents token explosion when running under AI agent prompts (e.g. Antigravity / Codex).
-3. **End-to-End Execution**: Automatically runs Phase 1 (Scalarized BO), Phase 2 (Unconstrained MOBO), and Phase 3 (Constraint-Aware MOBO) campaigns, computes hypervolume progression, reruns independent Pareto candidate verifications, and performs engineering tolerance robustness analysis.
-4. **Clean Directory Separation**: Organizes all generated datasets, CSVs, checkpoints, LaTeX tables, and figures into distinct output subdirectories under `results/`.
-
----
-
-## 🛠️ Usage & Options
-
-### Basic Usage
+## Usage
 
 ```bash
-# Execute with default settings and screen verbosity ON
-./scripts/run_full_production.sh
+export PYTHON_BIN=/path/to/linac-env/bin/python      # default: python3
+
+# 1. Preview: validated commands only; no output directory, no ASTRA
+bash scripts/run_full_production.sh --dry-run --output-dir results/production_v1
+
+# 2. Rehearse every step with the mock evaluator (fast, no ASTRA; NOT physical evidence)
+bash scripts/run_full_production.sh --mock-evaluator --quiet --device cpu \
+  --initial-samples 4 --iterations 1 --batch-size 2 --perturbations 2 --output-dir /tmp/rehearsal
+
+# 3. Physical run
+bash scripts/run_full_production.sh --quiet --output-dir results/production_v1
 ```
 
-### Quiet Mode (Recommended for AI Prompts)
+A new run refuses an existing output root. Interrupted runs continue with `--resume`. `--iterations` is the total target. Saved configuration, seed, device topology, initial design, batch size and pending candidates remain authoritative. The selected Phase 1 cases are resumed individually and re-aggregated, and the analysis uses Phase 3's saved configuration:
 
 ```bash
-# Execute silently (redirects stdout/stderr to simulation log files)
-./scripts/run_full_production.sh --quiet
+bash scripts/run_full_production.sh --resume --iterations 30 --output-dir results/production_v1 --quiet
 ```
 
-### Advanced Parameter Scanning
+## Options
 
-```bash
-# Custom worker core count, iteration budget, batch size, and output directory
-./scripts/run_full_production.sh -w 8 --iterations 20 --batch-size 8 --output-dir results/production_campaign_v1
-```
+| Option | Default | Meaning |
+|---|---|---|
+| `--config PATH` | `configs/publication_200MeV.yaml` | Shared configuration (ignored on `--resume`; Phase 3's saved copy is used) |
+| `-o, --output-dir DIR` | `results/full_production` | Pipeline root |
+| `-i, --iterations N` | 20 | BO batches after the initial design (total target on resume) |
+| `-b, --batch-size Q` | 8 | Candidates per batch |
+| `--initial-samples N` | 16 | Sobol initial design |
+| `-w, --workers N` | 4 | ASTRA and audit worker processes |
+| `--seed N` | 42 | Base seed |
+| `-d, --device D` | `auto` | `auto`, `cpu`, `cuda` or `cuda:N` (CPU is the reproducibility baseline) |
+| `--p1-case CASE` | `all` | `all` or one configured `scalarized_cases` id |
+| `--reference RX RY RE` | `-1.5e-6 -1.5e-6 -1.5e6` | Reporting reference in model space and configured objective order (physical 1.5 µm·rad, 1.5 µm·rad, 1.5 MeV) |
+| `--perturbations N` | 50 | Robustness samples per representative role |
+| `-r, --resume` | off | Continue existing runs from their checkpoints |
+| `-q, --quiet` | off | Step names on screen; full output in `logs/<step>.log` |
+| `--dry-run` | off | Print the validated commands only |
+| `--mock-evaluator` | off | Rehearse all steps without ASTRA |
 
----
+With the defaults, each run evaluates 16 + 20 × 8 = 176 candidates: 880 across the five configured scalarized cases and 176 in each MOBO phase. The Phase 1 aggregate is therefore a descriptive operating-point survey, not an equal-budget algorithm comparison. Use `run-benchmark` for paired comparisons.
 
-## ⚙️ Command-Line Arguments Reference
-
-| Flag | Long Option | Default | Description |
-|:---:|:---:|:---:|:---|
-| `-q` | `--quiet` | Off (`VERBOSE=1`) | Suppresses screen output and logs directly to files. |
-| `-i` | `--iterations` | `10` | Total number of Bayesian Optimization iterations ($N$). |
-| `-b` | `--batch-size` | `4` | Number of candidate parameter vectors proposed per iteration ($q$). |
-| `-w` | `--workers` | `90% CPU` | Custom number of parallel worker processes. |
-| `-d` | `--device` | `auto` | Target compute device for PyTorch GP fitting and BoTorch optimization (`auto`, `cuda`, `cpu`). |
-| `-o` | `--output-dir` | `results/full_production` | Base directory for storing all simulation and analysis artifacts. |
-| `-h` | `--help` | N/A | Displays CLI usage help message. |
-
----
-
-## 📂 Output Folder Structure
-
-Each pipeline run populates the specified output directory as follows:
+## Output layout
 
 ```
-results/full_production/
+<root>/
+├── logs/                    # launch_<timestamp>.json and one <step>.log per step
 ├── phase1_scalarized/
-│   ├── simulation.log            # Execution log (quiet mode)
-│   ├── config.json               # Run configuration & parameters
-│   ├── evaluations.csv           # Evaluated design vectors & scalar outcomes
-│   ├── pareto.csv                # Non-dominated front under scalar weights
-│   └── hypervolume.csv           # Hypervolume tracking
-│
-├── phase2_unconstrained/
-│   ├── simulation.log            # Execution log (quiet mode)
-│   ├── config.json               # Run configuration & parameters
-│   ├── train_X.csv               # Evaluated 6D design vectors
-│   ├── train_Y.csv               # Evaluated 3D objective values
-│   ├── pareto.csv                # Extracted non-dominated Pareto set
-│   ├── hypervolume.csv           # Iteration-by-iteration hypervolume growth
-│   └── gp_checkpoint/            # PyTorch GP surrogate model checkpoints
-│
-├── phase3_constrained/
-│   ├── simulation.log            # Execution log (quiet mode)
-│   ├── config.json               # Run configuration & parameters
-│   ├── train_X.csv               # Evaluated 6D design vectors
-│   ├── train_Y.csv               # Evaluated 3D objective values
-│   ├── pareto.csv                # Extracted non-dominated Pareto set
-│   ├── constraints.csv           # 8-diagnostic constraint evaluations
-│   ├── hypervolume.csv           # Feasible hypervolume growth
-│   └── gp_checkpoint/            # PyTorch GP surrogate model checkpoints
-│
+│   ├── <case>/              # one complete campaign run directory per case
+│   ├── cases_summary.csv/.json, phase1_cases_table.tex
+│   └── evaluations.csv, pareto*.csv, hypervolume.csv, ...  # aggregate over cases (shared reference)
+├── phase2_unconstrained/    # campaign run directory
+├── phase3_constrained/      # campaign run directory
 └── analysis/
-    ├── analysis.log              # Post-processing execution log
-    ├── comparison_report.md      # Generated Markdown validation report
-    ├── verification_records.csv  # Independent Pareto candidate rerun audit
-    ├── verification_table.tex    # Formatted LaTeX verification table
-    ├── hypervolume_comparison.png# Comparative hypervolume progression plot
-    ├── pareto_front_comparison.png# 2D physical objective projections
-    └── robustness/               # Sensitivity analysis under perturbed RF phase & magnet fields
+    ├── comparison_report.md
+    ├── figures/             # Pareto-front and verification rerun comparisons
+    ├── verification/        # representatives.json, verification_summary.csv/_table.tex, manifest, reruns
+    └── robustness/          # representatives.json, robustness_summary.csv, robustness_table.tex, runs
 ```
 
+A campaign run directory holds the resolved configuration and its source, `reporting_metadata.json`, the evaluation journal, CSV exports (`evaluations`, `failures`, `constraints`, `train_X/Y`, `pareto`, `pareto_all`, `pareto_feasible`, `hypervolume`, `metrics_history`), `candidate_history`, `proposal_history.json`, `representatives.json`, `checkpoints/`, `gp_checkpoint/`, `provenance/` (ASTRA attempts), `figures/`, `run.log` and the completion marker `run_complete.json`.
 
----
+## Interpreting results
 
-## 🧪 1-to-1 Notebook Mirror
+A zero exit status means the pipeline executed. Scientific acceptance depends on the verification statuses, the measured constraints and the recorded provenance. Mock outputs never support physical claims. Source-jitter channels (charge, laser spot and pulse duration) are sampled and archived but not applied to the fixed `pal_photo2.ini` distribution, so robustness scores describe lattice jitter only.
 
-This shell pipeline is mirrored 1-to-1 in the interactive Jupyter notebook:
-👉 **[`notebooks/full_production_pipeline.ipynb`](../notebooks/full_production_pipeline.ipynb)**
-
-Both the shell script and the notebook utilize identical underlying Python modules from `mobo_linac`, ensuring exact numerical agreement between CLI automation and interactive analysis.
-
-
-+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-
-  To resume your simulation from where it stopped, follow these steps:                                
-  ──────                                                                                              
-  ### Step 1: Identify Which Phase Stopped                                                            
-                                                                                                      
-  Check the latest checkpoints in the 3 production phase directories:                                 
-                                                                                                      
-    ls -lh results/full_production/phase1_scalarized/checkpoints/                                     
-    ls -lh results/full_production/phase2_unconstrained/checkpoints/                                  
-    ls -lh results/full_production/phase3_constrained/checkpoints/                                    
-                                                                                                      
-  • If phase1_scalarized stopped mid-way: Resume Phase 1.                                             
-  • If phase1 finished, but phase2_unconstrained stopped: Resume Phase 2.                             
-  • If phase1 & phase2 finished, but phase3_constrained stopped: Resume Phase 3.                      
-  ──────                                                                                              
-  ### Step 2: Resume the Interrupted Phase                                                            
-                                                                                                      
-  Use the mobo-linac resume command with the exact same parameters (-i 20 -b 8 -w 16 -d cuda):        
-                                                                                                      
-  #### To Resume Phase 1 (Scalarized BO):                                                             
-                                                                                                      
-    mobo-linac resume \                                                                               
-        --run-dir results/full_production/phase1_scalarized \
-        --n-iterations 20 \
-        --batch-size 8 \
-        --num-workers 16 \
-        --device cuda
-  
-  #### To Resume Phase 2 (Unconstrained MOBO):
-  
-    mobo-linac resume \
-        --run-dir results/full_production/phase2_unconstrained \
-        --n-iterations 20 \
-        --batch-size 8 \
-        --num-workers 16 \
-        --device cuda
-  
-  #### To Resume Phase 3 (Constrained MOBO):
-  
-    mobo-linac resume \
-        --run-dir results/full_production/phase3_constrained \
-        --n-iterations 20 \
-        --batch-size 8 \
-        --num-workers 16 \
-        --device cuda
-  ──────
-  ### Step 3: Run the Remaining Pipeline Steps
-  
-  Once all three phases reach 20 iterations, run the comparative analysis and verification scripts to 
-  generate the final plots and reports:
-  
-    # 1. Comparative Analysis & Independent Rerun Verification
-    python3 scripts/run_comparison_and_verification.py \
-        --phase1-dir results/full_production/phase1_scalarized \
-        --phase2-dir results/full_production/phase2_unconstrained \
-        --phase3-dir results/full_production/phase3_constrained \
-        --output-dir results/full_production/analysis
-  
-    # 2. Engineering Tolerance Robustness Analysis
-    python3 scripts/run_robustness_analysis.py \
-        --input results/full_production/phase3_constrained/pareto.csv \
-        --output-dir results/full_production/analysis/robustness \
-        --num-workers 16
-  ──────
-  ### What Happens Automatically When Resuming
-  
-  • The runner detects the latest checkpoint (e.g. checkpoint_iter_11.pt), restores all evaluation    
-  data, restores random states, and resumes computation directly at iteration 12.
-  • All previous simulation outputs and hypervolume history are preserved.
-
+The interactive mirror is [`notebooks/full_production_pipeline.ipynb`](../notebooks/full_production_pipeline.ipynb), which calls the same package functions.

@@ -1,9 +1,11 @@
 # Strategic simulation campaign plan for the 200 MeV injector
 
-Prepared 2026-10-09. This is an execution proposal, not a record of new physical
-results. It uses the current refactored campaign, benchmark, verification and
-robustness services. The [simulation guide](simulation_guide.md) remains the
-reference for artifact formats and physics contracts.
+Prepared 2026-10-09; updated 2026-10-10 for the completed refactor series (tasks
+15–40). This is an execution proposal, not a record of new physical results. It
+uses the current campaign, benchmark, verification and robustness services; the
+[simulation guide](simulation_guide.md) remains the reference for artifact formats
+and physics contracts, and the [full production guide](full_production_guide.md)
+documents the launcher.
 
 ## Scientific objective and frozen protocol
 
@@ -13,8 +15,22 @@ balanced scalarized BO. Separately characterize useful operating points and
 their sensitivity to applied lattice jitter.
 
 Use `configs/publication_200MeV.yaml` as the nominal protocol. Freeze its bytes,
-repository commit, Python environment, ASTRA/generator executable hashes, input
-particle distribution and field-map hashes before the first physical pilot.
+repository commit, Python environment, ASTRA executable hash, input particle
+distribution and field-map hashes before the first physical pilot. The pieces are
+recorded automatically:
+
+- Environment: install with `./install.sh --create-env <name> --publication`. Its pins
+  (`requirements-publication.txt`, Git dependencies at fixed commits) match
+  `docs/environment/package_versions.txt`.
+- Launch inputs: each launcher invocation writes `<root>/logs/launch_<timestamp>.json`
+  with the commit and dirty flag, the configuration SHA-256 and the resolved
+  executable's path and SHA-256.
+- Simulator inputs: every ASTRA attempt snapshots and hashes its input deck, field
+  maps and particle distribution under `provenance/`.
+
+Start physical stages only from a clean working tree (`"dirty": false`). The
+executable is `simulation.executable` (default `bin/astra`), then `$ASTRA_BIN`,
+then `PATH`. The launcher resolves it before creating any output.
 Keep the six configured controls, their bounds/cavity coupling, three objective
 units/signs and all seven constraint channels unchanged across compared runs.
 The nominal requirements include 195–205 MeV mean kinetic energy, transmission
@@ -33,13 +49,13 @@ may evolve independently; they do not define published hypervolume.
 
 | Stage | Campaign allocation | Candidate evaluation budget | Exit gate |
 |---|---|---:|---|
-| 0: software readiness | Command previews, mock workflows and affected regression tests | 0 physical evaluations | Config/reference validation, journals, checkpoint recovery and artifact loading succeed |
+| 0: software readiness | `validate-config`, launcher `--dry-run`, a launcher `--mock-evaluator` rehearsal including `--resume`, mock benchmark, and the unit suite | 0 physical evaluations | Config/reference/executable validation, journals, checkpoint recovery, analysis and artifact loading succeed |
 | 1: physical pilot | Balanced scalarized, unconstrained and constrained; seed 42; 8 initial samples, 2 batches of 4 | 48 | Valid exit-plane measurements and audited attempts; enough observed rows for fitting; feasible candidates available for audits |
 | 2: paired screening | Three algorithms; seeds 42, 43, 44; budget 40 each, 8 initial samples, batch 4 | 360 | Compatible completed runs; failure causes and fallback/fit outcomes understood; no unresolved scientific contract mismatch |
 | 3: primary experiment | Same three algorithms; seeds 42–51; budget 160 each, 16 initial samples, batch 8 | 4,800 | Full per-seed results with uncertainty, matched budgets and feasibility accounting |
 | 4: independent candidate audit | Feasible representatives from selected completed campaigns | Reruns plus `roles × perturbations` | Measured rerun agreement, provenance and lattice-jitter scores documented |
 | Optional: acquisition ablation | Add `qlogehvi` to the primary experiment with ten seeds | 1,600 extra | Apply only after the primary comparison and its cost are assessed |
-| Optional: operational weight survey | Full launcher defaults: five Option 2 cases and two MOBO runs | 1,232 | Descriptive operating-point coverage; keep its unequal algorithm budgets visible |
+| Optional: operational weight survey | Full launcher defaults: the five configured scalarized cases and two MOBO runs | 1,232 | Descriptive operating-point coverage; keep its unequal algorithm budgets visible |
 
 Budgets count initial samples and failed candidate evaluations. Retries create
 additional physical attempts and must be costed separately. Verification and
@@ -50,8 +66,8 @@ its endpoint estimate or choose favorable seeds afterward.
 The full launcher defaults to 16 initial samples plus 20 batches of 8: 176
 candidates per run, or 880 across the five scalarized cases and 176 in each MOBO
 phase. Their common reporting reference permits scientific convention checks,
-but the five-case aggregate has five times the MOBO evaluation budget and case
-seeds offset by 100. Its pooled front is a descriptive survey, not a paired,
+but the five-case aggregate has five times the MOBO evaluation budget, and case
+seeds are the base seed plus each case's configured `seed_offset` (0–400). Its pooled front is a descriptive survey, not a paired,
 equal-budget algorithm comparison. Use the benchmark dispatcher for that claim.
 
 ## Executable sequence
@@ -59,18 +75,30 @@ equal-budget algorithm comparison. Use the benchmark dispatcher for that claim.
 Activate the installed linac environment and run commands from the repository
 root. Use a fresh, descriptive output directory for each experiment. Set
 `PYTHON_BIN` to that environment's interpreter for the shell launcher; its default
-is `python3`. Existing executable environment overrides are respected.
+is `python3`. Commands accept `--quiet`, `--verbose` or `--debug`, and each campaign
+writes its own `run.log`.
 
 ```bash
 python -m mobo_linac.cli validate-config --config configs/publication_200MeV.yaml
 
-# Preview all pipeline commands; creates no run directory and starts no ASTRA.
+# Stage 0: preview all pipeline commands; creates no run directory and starts no ASTRA.
 bash scripts/run_full_production.sh --dry-run --p1-case balanced \
   --initial-samples 8 --iterations 2 --batch-size 4 --workers 4 \
   --perturbations 10 --output-dir results/pilot_200MeV_seed42
 
+# Stage 0: rehearse every step with the mock evaluator, then its resume path.
+bash scripts/run_full_production.sh --mock-evaluator --quiet --device cpu --p1-case balanced \
+  --initial-samples 4 --iterations 1 --batch-size 2 --workers 2 \
+  --perturbations 2 --output-dir results/rehearsal_200MeV
+bash scripts/run_full_production.sh --mock-evaluator --resume --quiet --p1-case balanced \
+  --iterations 2 --workers 2 --perturbations 2 --output-dir results/rehearsal_200MeV
+python -m mobo_linac.cli run-benchmark --mock-evaluator \
+  --algorithms constrained_qlognehvi unconstrained_qlognehvi scalarized_bo \
+  --seeds 42 --budget 6 --n-sobol-init 4 --batch-size 2 --device cpu \
+  --output-dir results/rehearsal_benchmark
+
 # Stage 1: execute the physical pilot only after reviewing the preview.
-bash scripts/run_full_production.sh --p1-case balanced \
+bash scripts/run_full_production.sh --p1-case balanced --device cpu \
   --initial-samples 8 --iterations 2 --batch-size 4 --workers 4 \
   --perturbations 10 --output-dir results/pilot_200MeV_seed42 --quiet
 
@@ -106,13 +134,16 @@ bash scripts/run_full_production.sh --resume --p1-case balanced \
   --iterations 2 --output-dir results/pilot_200MeV_seed42 --quiet
 ```
 
+Each resume adds another `launch_<timestamp>.json` record.
+
 `--iterations` is the total target. The launcher resumes each selected scalarized
 case and both MOBO runs through the saved-state CLI, then regenerates aggregate
 reports. Saved configuration, seed, device, initial design, batch size and pending
 candidate identities remain authoritative. Analysis uses Phase 3's saved
 configuration. The selected cases must already have checkpoints; missing cases
-require separate fresh campaigns. Logs are in `<root>/logs`; runtime outputs are
-in the phase directories, and audits are under `analysis/`.
+require separate fresh campaigns. Step logs and launch records are in `<root>/logs`;
+runtime outputs (each with its own `run.log`) are in the phase directories, and
+audits are under `analysis/`.
 
 The benchmark dispatcher skips only validated complete runs. It does not
 reconcile incomplete benchmark completion markers. Preserve incomplete benchmark
@@ -163,11 +194,11 @@ audited nominal reruns through the shared verification service. Review each
 `VERIFIED`, conditional, failed or unknown status and its hashes/attempt links;
 mock statuses cannot support a physical reproducibility claim.
 
-Robustness currently selects six representative roles (roles may share the same
-physical candidate). Fifty perturbations per role require 300 candidate
-evaluations; nominal verification currently selects seven roles, adding seven
-reruns. The pilot's ten perturbations per role reduce that audit cost to 60 plus
-seven. These counts assume a feasible front exists and no retries. Keep role
+Verification and robustness use the same representative-selection service:
+six roles (one per objective minimum, knee point, balanced and maximum crowding
+distance). Roles may share the same physical candidate. Fifty perturbations per role
+require 300 candidate evaluations, and nominal verification adds six reruns. The
+pilot's ten perturbations per role reduce that audit cost to 60 plus six. These counts assume a feasible front exists and no retries. Keep role
 identities and repeated physical points explicit in analysis.
 
 Evaluate applied lattice jitter at the configured engineering tolerances. Charge,

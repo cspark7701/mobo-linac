@@ -99,3 +99,34 @@ def test_pipeline_resume_uses_saved_config_and_dedicated_command(launcher, tmp_p
         assert '--run-dir' in command and '--n-iterations' in command
         assert '--config' not in command and '--seed' not in command and '--batch-size' not in command
     assert str(saved) in commands[-1] and str(saved) in commands[-2]
+
+
+def test_pipeline_uses_configured_cases_and_records_launch_inputs(launcher, tmp_path):
+    run, _ = launcher
+    root = tmp_path / 'record'
+    result, commands = run('--output-dir', root, '--quiet', '--mock-evaluator')
+    assert result.returncode == 0, result.stderr
+    suite = commands[0]
+    assert suite[suite.index('run-scalarized-suite') + 1] == '--cases'
+    configured = ['balanced', 'high_brightness', 'low_energy_spread', 'x_dominant', 'y_dominant']
+    assert suite[suite.index('--cases') + 1:suite.index('--cases') + 6] == configured
+    assert all('--mock-evaluator' in command for command in commands)  # every step rehearses without ASTRA
+    assert [command[2] for command in commands] == [
+        'run-scalarized-suite', 'run-unconstrained', 'run-constrained', 'compare', 'run-robustness']
+    record = json.loads(next((root / 'logs').glob('launch_*.json')).read_text())
+    assert record['mock_evaluator'] and record['config']['sha256']
+    assert record['reporting_ref_point_model'] == [-1.5e-6, -1.5e-6, -1.5e6]
+
+
+def test_pipeline_rejects_unresolvable_executable_before_creating_output(launcher, tmp_path):
+    run, env = launcher
+    config = tmp_path / 'missing_executable.yaml'
+    text = (ROOT / 'configs/publication_200MeV.yaml').read_text()
+    config.write_text(text.replace('executable: "../bin/astra"', f'executable: "{tmp_path}/absent"')
+                      .replace('template_dir: ".."', f'template_dir: "{ROOT}"'))
+    env['ASTRA_BIN'] = str(tmp_path / 'also absent')
+    env['PATH'] = '/usr/bin:/bin'
+    root = tmp_path / 'no_executable'
+    result, commands = run('--output-dir', root, '--config', config)
+    assert result.returncode != 0 and not root.exists() and not commands
+    assert 'ASTRA executable' in result.stderr
