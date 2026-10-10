@@ -10,6 +10,7 @@ from functools import lru_cache
 import json
 import math
 import re
+import sys
 from copy import deepcopy
 from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Optional, Union, get_args, get_origin, get_type_hints
@@ -639,13 +640,15 @@ DEFAULT_CONFIG_NAMES = ("publication_200MeV.yaml", "mobo_200MeV.yaml")
 
 
 def resolve_config_path(config_path: Optional[Union[str, Path]] = None, *, default_names=DEFAULT_CONFIG_NAMES) -> Path:
-    """Explicit paths never fall back. Omitted defaults search cwd then repository."""
+    """Explicit paths never fall back. Omitted defaults search ``./configs``, the configurations
+    installed with the package (``<prefix>/share/mobo-linac/configs``), then a source checkout."""
     if config_path is not None:
         path = Path(config_path).expanduser().resolve()
         if not path.is_file():
             raise FileNotFoundError(f"Requested configuration file not found: {path}")
         return path
-    roots = (Path.cwd() / "configs", Path(__file__).resolve().parents[2] / "configs")
+    roots = (Path.cwd() / "configs", Path(sys.prefix) / "share" / "mobo-linac" / "configs",
+             Path(__file__).resolve().parents[2] / "configs")  # src/mobo_linac/config.py -> <checkout>/configs
     for root in dict.fromkeys(roots):
         for name in default_names:
             path = root / name

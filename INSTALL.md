@@ -25,12 +25,11 @@ Clone the repository and run the automated installation script:
 git clone https://github.com/cspark7701/mobo-linac.git
 cd mobo-linac
 
-# 2. Run the automated installer (creates 'linac-opt' conda env and runs unit tests)
-./install.sh --create-env
+# 2. Run the installer (creates the 'linac-opt' conda env, installs the package and runs unit tests)
+./install.sh --create-env linac-opt
 
-# 3. Activate environment & load environment variables
+# 3. Activate the environment in new shells
 conda activate linac-opt
-source env_setup.sh
 ```
 
 ---
@@ -87,9 +86,6 @@ pip install -e .
 ```bash
 # Ensure execution permissions on local ASTRA binaries
 chmod +x bin/*
-
-# Source portable environment loader
-source env_setup.sh
 ```
 
 ---
@@ -104,7 +100,7 @@ pytest -v -m "not integration"
 
 Expected output:
 ```text
-====================== 76 passed, 2 deselected in 14s =======================
+(all unit tests pass; integration tests that need the real ASTRA binary are deselected)
 ```
 
 ---
@@ -115,13 +111,9 @@ The framework includes pre-bundled Linux 64-bit ASTRA binaries under `./bin/`:
 - `./bin/astra`: ASTRA particle tracking executable
 - `./bin/generator`: Initial particle distribution generator executable
 
-When `source env_setup.sh` is executed, the following environment variables are set automatically:
-
-```bash
-export ASTRA_BIN="$(pwd)/bin/astra"
-export GENERATOR_BIN="$(pwd)/bin/generator"
-export PATH="$(pwd)/bin:${PATH}"
-```
+No environment script is needed: the configuration's `simulation.executable` (default
+`../bin/astra`, relative to the configuration file) is used, then `$ASTRA_BIN`, then `PATH`.
+`PYTHONPATH` is never modified; the installed package is always the one imported.
 
 ### Using Custom External ASTRA Binaries
 If you have custom compiled ASTRA executables built for your specific cluster architecture:

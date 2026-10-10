@@ -63,5 +63,8 @@ jobs:
         run: |
           cd /tmp
           /tmp/wheel-env/bin/mobo-linac --help
-          /tmp/wheel-env/bin/mobo-linac run-unconstrained --dry-run --config "$GITHUB_WORKSPACE/configs/mobo_200MeV.yaml"
+          # bundled configurations (share/mobo-linac/configs) drive a mock campaign
+          /tmp/wheel-env/bin/mobo-linac run-unconstrained --mock-evaluator --num-initial-samples 2 \
+            --n-iterations 0 --output-dir /tmp/smoke-run --device cpu --quiet
+          test -f /tmp/smoke-run/run_complete.json
           /tmp/wheel-env/bin/python -c "import sys, mobo_linac.campaigns; assert 'matplotlib' not in sys.modules"

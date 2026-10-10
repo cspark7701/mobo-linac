@@ -17,12 +17,9 @@ This guide provides instructions for reproducing all computational benchmarks, P
 git clone https://github.com/cspark7701/mobo-linac.git
 cd mobo-linac
 
-# Create conda environment from lock file
-conda env create -f environment-lock.yml
-conda activate linac-opt-pub
-
-# Install package in editable mode
-pip install -e .
+# Create the exact publication environment (one command; installs the package too)
+./install.sh --create-env linac-opt-pub --publication
+#   equivalently: conda env create -f environment-lock.yml
 ```
 
 ---
@@ -76,14 +73,17 @@ For questions regarding beam dynamics settings, field maps, or algorithm configu
 
 ## 5. Exact Publication Dependency Versions
 
-For exact reproduction of the environment used in the publication, refer to `requirements-publication.txt` and `environment-lock.yml`. Key dependency versions are pinned as follows:
+For exact reproduction of the environment used in the publication, `requirements-publication.txt`
+is the single pin list (environment-lock.yml only wraps it with Python 3.11.10). It matches the
+recorded environment in `docs/environment/package_versions.txt` (checked by the test suite):
 
 - Python: 3.11.10
-- PyTorch: 2.2.1
-- GPyTorch: 1.11
-- BoTorch: 0.10.0
+- PyTorch: 2.5.0
+- GPyTorch: 1.12
+- BoTorch: 0.11.3
 - NumPy: 1.26.4
-- SciPy: 1.12.0
-- pandas: 2.2.1
-- matplotlib: 3.8.3
+- SciPy: 1.17.1
+- pandas: 3.0.3
+- matplotlib: 3.10.9
+- lume-astra: 0.6.1 at commit 0af6c84; distgen at commit d856bc1
 - ASTRA: v3.2

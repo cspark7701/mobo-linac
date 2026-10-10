@@ -218,3 +218,34 @@ def test_campaign_engine_imports_without_matplotlib():
             "assert 'matplotlib' not in sys.modules, sorted(m for m in sys.modules if 'matplotlib' in m)[:3]")
     completed = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True)
     assert completed.returncode == 0, completed.stderr
+
+
+def test_version_is_defined_once():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    assert 'dynamic = ["version"]' in (root / "pyproject.toml").read_text()
+    assert "1.0.0" not in (root / ".github" / "workflows" / "ci.yml").read_text()
+    assert '__version__ = "' in (root / "src" / "mobo_linac" / "__init__.py").read_text()
+
+
+def test_publication_pins_match_the_recorded_environment():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    recorded = dict(line.split("=", 1) for line in (root / "docs/environment/package_versions.txt").read_text().split()
+                    if "=" in line)
+    pins = {}
+    for line in (root / "requirements-publication.txt").read_text().splitlines():
+        line = line.strip()
+        if line and not line.startswith(("#", "-")) and "==" in line:
+            name, version = line.split("==")
+            pins[name] = version
+    assert pins and all(recorded[name] == version for name, version in pins.items()), pins
+    assert "python=3.11.10" in (root / "environment-lock.yml").read_text()
+    assert (root / "docs/environment/python_version.txt").read_text().split()[-1] == "3.11.10"
+
+
+def test_install_script_never_edits_pythonpath():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    assert "PYTHONPATH" not in (root / "install.sh").read_text().split("# ===")[-1]
+    assert not (root / "setup.sh").exists()

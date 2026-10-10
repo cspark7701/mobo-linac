@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "mobo-linac"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac"
 readme = "README.md"
 requires-python = ">=3.10"
@@ -21,8 +21,9 @@ dependencies = [
     "pyyaml>=6.0",
     "matplotlib>=3.5.0",
     "openpmd-beamphysics>=0.8.0",
-    "distgen @ git+https://github.com/ColwynGulliford/distgen.git",
-    "lume-astra @ git+https://github.com/ChristopherMayes/lume-astra.git",
+    # Pinned to the revisions of the reference environment (see requirements-publication.txt).
+    "distgen @ git+https://github.com/ColwynGulliford/distgen.git@d856bc123fc23f188cc2f95f6b6eaa91826abce6",
+    "lume-astra @ git+https://github.com/ChristopherMayes/lume-astra.git@0af6c8454819a1cd22b789db7065ef6f0970dfbf",
 ]
 
 [project.optional-dependencies]
@@ -39,8 +40,15 @@ dev = [
 [project.scripts]
 mobo-linac = "mobo_linac.cli:main"
 
+[tool.setuptools.dynamic]
+version = { attr = "mobo_linac.__version__" }  # the single version source
+
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.data-files]
+# Bundled configurations, found by the default configuration search of installed wheels.
+"share/mobo-linac/configs" = ["configs/*.yaml"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
