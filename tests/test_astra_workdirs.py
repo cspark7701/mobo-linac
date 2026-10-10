@@ -166,7 +166,7 @@ def test_cleanup_eval_dir(temp_project):
 
 
 @pytest.mark.integration
-def test_real_astra_isolated_run():
+def test_real_astra_isolated_run(astra_timeout):
     """
     Integration test running real ASTRA simulation in isolated workdirs.
     Checks that two concurrent evaluations produce separate output files.
@@ -179,20 +179,21 @@ def test_real_astra_isolated_run():
     if not Path(astra_bin).is_file() and not shutil.which("astra"):
         pytest.skip(f"ASTRA executable not available at {astra_bin} or on PATH")
 
+    from mobo_linac.astra.workdir import read_evaluation_manifest
     from mobo_linac.config import load_config
     from mobo_linac.execution import EvaluationRequest, ProcessPoolEvaluator
     params1 = [0.22, 1.0, -1.0, 0.0, 0.0, 0.0]
     params2 = [0.25, 1.2, -1.2, 5.0, 2.0, 2.0]
     with tempfile.TemporaryDirectory() as tmp_results:
         with ProcessPoolEvaluator(load_config("configs/mobo_200MeV.yaml"), base_results_dir=tmp_results,
-                                  template_dir=root_dir, max_workers=2, timeout=300) as evaluator:
+                                  template_dir=root_dir, max_workers=2, timeout=astra_timeout) as evaluator:
             res1, res2 = evaluator.evaluate([EvaluationRequest(1, params1), EvaluationRequest(2, params2)],
                                             run_id="integration_test_run")
+        assert res1["status"] == res2["status"] == "SUCCESS", (res1["error"], res2["error"])
         assert res1["eval_dir"] != res2["eval_dir"]
-        assert Path(res1["manifest_path"]).exists()
-        assert Path(res2["manifest_path"]).exists()
-        assert res1["manifest"]["parameters"] == params1
-        assert res2["manifest"]["parameters"] == params2
+        # Results reference their attempt manifest; the manifest records the applied parameters.
+        assert read_evaluation_manifest(res1["manifest_path"])["parameters"] == params1
+        assert read_evaluation_manifest(res2["manifest_path"])["parameters"] == params2
 
 
 def test_destination_reuse_and_legacy_cleanup_preserve_evidence(temp_project):
@@ -338,3 +339,28 @@ def test_no_user_specific_or_source_tree_paths_in_astra_package():
     assert "/home/" not in text and "~/Work" not in text and "Work/simulation_codes" not in text
     assert not re.search(r"parents\[\d\]", text)
     assert "os.environ[" not in text
+
+
+def test_backend_timeout_is_classified_as_timeout_despite_lume_astra_handler():
+    """lume-astra's execute2 raises TypeError (bytes + str) on TimeoutExpired; it must remain a TIMEOUT."""
+    import sys
+    from astra import tools
+    from mobo_linac.astra.runner import _run_simulation
+    from mobo_linac.status import SimulationStatus, classify_exception
+
+    class SlowBackend:
+        def run_astra(self, timeout=None):
+            result = tools.execute2([sys.executable, "-c", "import time; print('x', flush=True); time.sleep(10)"],
+                                    timeout=timeout)
+            raise AssertionError(f"execute2 returned without raising: {result}")  # pragma: no cover
+
+    with pytest.raises(TimeoutError) as raised:
+        _run_simulation(SlowBackend(), timeout=1)
+    assert classify_exception(raised.value) is SimulationStatus.TIMEOUT
+
+    class FastFailure:
+        def run_astra(self, timeout=None):
+            raise ValueError("Couldn't find finished simulation")
+
+    with pytest.raises(ValueError):  # an early failure keeps its own type
+        _run_simulation(FastFailure(), timeout=60)

@@ -253,7 +253,7 @@ def test_batch_evaluator_class(temp_project, monkeypatch):
 
 
 @pytest.mark.integration
-def test_real_parallel_astra_evaluations():
+def test_real_parallel_astra_evaluations(tmp_path, astra_timeout):
     """
     Integration test executing multiple real ASTRA simulations in parallel processes.
     """
@@ -270,14 +270,14 @@ def test_real_parallel_astra_evaluations():
         [0.24, 1.3, -1.3, 4.0, 1.0, 1.0],
     ]
 
-    with ProcessPoolEvaluator(TEST_CONFIG, base_results_dir="results", template_dir=root_dir,
-                              max_workers=2, timeout=300) as evaluator:
+    with ProcessPoolEvaluator(TEST_CONFIG, base_results_dir=tmp_path, template_dir=root_dir,
+                              max_workers=2, timeout=astra_timeout) as evaluator:
         results = evaluator.evaluate(requests_for(candidates), run_id="integration_parallel_run")
 
     assert len(results) == 2
     for idx, res in enumerate(results):
         assert res["candidate_idx"] == idx
-        assert res["status"] == "success", f"Candidate {idx} failed: {res.get('error')}"
+        assert res["status"] == "SUCCESS", f"Candidate {idx} failed: {res.get('status')} {res.get('error')}"
         assert res["objectives"] is not None
         assert "norm_emit_x" in res["objectives"]
         assert Path(res["manifest_path"]).exists()

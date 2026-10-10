@@ -232,6 +232,28 @@ def _executable_record(command: str, eval_dir: Path) -> Dict[str, Any]:
     return {"command": command, "path": str(path.resolve()), "sha256": file_sha256(path) if path.is_file() else None}
 
 
+def _run_simulation(astra_sim, timeout) -> None:
+    """Run the backend; a failure raised once the time limit has elapsed is a ``TimeoutError``.
+
+    lume-astra's run() ignores the instance timeout, so the limit is passed explicitly when
+    supported. Its timeout handler concatenates the bytes captured by ``TimeoutExpired`` with
+    a string and raises ``TypeError`` before recording ``why_error``; the measured elapsed time
+    keeps such runs classified as timeouts (and retryable) rather than as generic run failures.
+    """
+    started = time.monotonic()
+    try:
+        run_with_timeout = getattr(astra_sim, "run_astra", None)
+        if callable(run_with_timeout):
+            run_with_timeout(timeout=timeout)
+        else:
+            astra_sim.run()
+    except Exception as error:
+        elapsed = time.monotonic() - started
+        if timeout is not None and elapsed >= timeout and not isinstance(error, TimeoutError):
+            raise TimeoutError(f"ASTRA exceeded the {timeout} s limit after {elapsed:.1f} s") from error
+        raise
+
+
 def execute(attempt: _Attempt, workdir_manager, config, *, timeout, verbose, use_symlinks) -> None:
     """Prepare the workdir, run the simulation and parse it; failures become typed statuses."""
     astra_sim = None
@@ -252,12 +274,7 @@ def execute(attempt: _Attempt, workdir_manager, config, *, timeout, verbose, use
             astra_sim.write_input()
         attempt.input_hashes = workdir_manager.snapshot_inputs(attempt.eval_dir, attempt.provenance_dir)
         attempt.executable = _executable_record(attempt.command, attempt.eval_dir)
-        # lume-astra's run() ignores the instance timeout; pass the limit explicitly when supported.
-        run_with_timeout = getattr(astra_sim, "run_astra", None)
-        if callable(run_with_timeout):
-            run_with_timeout(timeout=timeout)
-        else:
-            astra_sim.run()
+        _run_simulation(astra_sim, timeout)
         parsed = AstraOutputParser(config=config).parse_astra_simulation(astra_sim=astra_sim, eval_dir=attempt.eval_dir)
         attempt.objectives, attempt.diagnostics, attempt.telemetry = parsed.objectives, parsed.diagnostics, parsed.telemetry
     except Exception as error:

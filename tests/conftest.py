@@ -23,6 +23,14 @@ def pytest_addoption(parser):
     parser.addoption("--verification-csv", default=None, help="Verification summary CSV (for paper output tests)")
     parser.addoption("--figures-dir", default="docs/paper/figures", help="Figures output dir (for paper output tests)")
     parser.addoption("--tables-dir", default="docs/paper", help="Tables output dir (for paper output tests)")
+    parser.addoption("--astra-timeout", type=int, default=1800,
+                     help="Per-run time limit (s) for integration tests that launch real ASTRA")
+
+
+@pytest.fixture
+def astra_timeout(request) -> int:
+    """Real ASTRA runs take minutes (about 280 s each with two parallel workers on the reference host)."""
+    return request.config.getoption("--astra-timeout")
 
 
 @pytest.fixture
