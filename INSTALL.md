@@ -13,6 +13,7 @@ Before installing, ensure your system meets the following requirements:
 - **Environment Manager**: [Conda / Miniconda](https://docs.conda.io/en/latest/miniconda.html) or `mamba` (recommended)
 - **Git**: Installed and configured
 - **System Libraries**: Standard Linux C/Fortran runtime libraries (`gfortran`, `libgomp`) for running ASTRA binaries
+- **C++ Compiler** (optional, recommended): `g++` or `clang++`. With the `ninja` package (installed as a dependency), BoTorch builds its fused qLogEHVI extension (about 30 s once, then cached); without a compiler it warns and uses its slower pure-Python implementation
 
 ---
 

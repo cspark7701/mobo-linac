@@ -21,6 +21,9 @@ dependencies = [
     "pyyaml>=6.0",
     "matplotlib>=3.5.0",
     "openpmd-beamphysics>=0.8.0",
+    # Lets BoTorch build its fused qLogEHVI C++ extension (needs a C++ compiler); without it
+    # BoTorch warns and uses its slower pure-Python implementation.
+    "ninja>=1.11",
     # Pinned to the revisions of the reference environment (see requirements-publication.txt).
     "distgen @ git+https://github.com/ColwynGulliford/distgen.git@d856bc123fc23f188cc2f95f6b6eaa91826abce6",
     "lume-astra @ git+https://github.com/ChristopherMayes/lume-astra.git@0af6c8454819a1cd22b789db7065ef6f0970dfbf",
