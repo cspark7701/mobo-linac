@@ -33,7 +33,7 @@ CLEAN_DOCS=false
 
 print_usage() {
     cat <<USG
-Usage: ./scripts/cleanup.sh [OPTIONS] [TARGETS...]
+Usage: ./tools/cleanup.sh [OPTIONS] [TARGETS...]
 
 Options:
   -n, --dry-run             Show what would be deleted without actually deleting.
@@ -50,7 +50,7 @@ Target Flags:
 
 Positional Targets:
   You can also specify targets positionally:
-  ./scripts/cleanup.sh cache results results_notebooks img docs all
+  ./tools/cleanup.sh cache results results_notebooks img docs all
 USG
 }
 

@@ -7,10 +7,10 @@ or copies them to a standalone `mobo-linac.github.io` repository directory.
 
 Usage:
     # Sync internal docs/site/ directory:
-    python scripts/sync_site.py
+    python tools/sync_site.py
 
     # Sync and copy to external mobo-linac.github.io repository:
-    python scripts/sync_site.py --target-repo /path/to/mobo-linac.github.io
+    python tools/sync_site.py --target-repo /path/to/mobo-linac.github.io
 """
 
 import argparse

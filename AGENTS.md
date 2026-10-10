@@ -60,6 +60,7 @@ mobo-linac/
 ├── src/mobo_linac/          # Modular core package (astra, execution, models, metrics, io)
 ├── configs/                 # Centralized YAML configuration files
 ├── scripts/                 # Optimization & verification execution scripts
+├── tools/                   # Maintainer tooling (local CI check, cleanup, site sync)
 ├── notebooks/               # Interactive evaluation & analysis notebooks
 ├── tests/                   # Pytest unit test suite
 ├── docs/                    # Simulation guide, paper LaTeX, & task summaries
@@ -167,7 +168,6 @@ Generate next candidate(s)
 Current implementation
 
 - Gaussian Process surrogate (`ModelListGP` with Matérn 5/2 ARD kernel)
-- Gaussian Process surrogate (`ModelListGP` with Matérn 5/2 ARD kernel)
 - Multi-scale relative fixed noise variance scaling ($\sigma_{\text{obs}}^2 = \max(\eta \cdot \text{Var}(Y_m), \sigma_{\text{floor}}^2)$ with $\eta=10^{-6}$)
 - Exact multi-channel analytical Normal CDF feasibility modeling ($P_{\text{feas}}$) across 7 diagnostic channels
 - ProcessPoolExecutor process-safe parallel ASTRA evaluations
@@ -253,8 +253,6 @@ High-performance optimization
 - Ray
 - Dask
 - Multi-node clusters
-- Dask
-- Multi-node clusters
 
 ---
 
@@ -288,30 +286,23 @@ Always
 
 # Output Directory
 
-Each optimization run should create
+Each campaign writes one run directory (default `results/<mode>_<YYYYMMDD_HHMMSS>/`, or `--output-dir`):
 
 ```
-results/
-
-    YYYYMMDD_HHMMSS/
-
-        config.json
-
-        train_X.csv
-
-        train_Y.csv
-
-        pareto.csv
-
-        hypervolume.csv
-
-        candidate_history.csv
-
-        constraints.csv
-
-        gp_checkpoint/
-
-        figures/
+results/<run>/
+    config.json, config.yaml, config_source.json   # resolved configuration and its source
+    reporting_metadata.json                        # fixed reference point, scales and units
+    evaluations_stream.jsonl / .csv                # append-only evaluation journal
+    evaluations.csv, failures.csv, constraints.csv
+    train_X.csv, train_Y.csv, objectives_physical.csv, objectives_model.csv
+    pareto.csv, pareto_all.csv, pareto_feasible.csv, representatives.json
+    hypervolume.csv, metrics_history.csv
+    candidate_history.csv/.json, proposal_history.json
+    checkpoints/       # typed v3 campaign checkpoints (checkpoint.pt, checkpoint_iter_NN.pt)
+    provenance/        # per-evaluation, per-attempt ASTRA input/output snapshots and manifests
+    figures/           # campaign figures (unless plots are disabled)
+    environment.txt, run.log
+    run_complete.json  # completion marker with artifact checksums
 ```
 
 ---

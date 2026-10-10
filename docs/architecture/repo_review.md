@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-`mobo-linac` is a scientific machine learning and beam dynamics optimization framework designed for the multi-objective parameter optimization of a 200 MeV S-band photoinjector linac. The framework seamlessly couples high-fidelity macroparticle tracking simulations ([`ASTRA`](../bin/astra)) with modern Bayesian Optimization surrogates ([`BoTorch`](../pyproject.toml#L17) / [`GPyTorch`](../pyproject.toml#L18) / [`PyTorch`](../pyproject.toml#L16)).
+`mobo-linac` is a scientific machine learning and beam dynamics optimization framework designed for the multi-objective parameter optimization of a 200 MeV S-band photoinjector linac. The framework seamlessly couples high-fidelity macroparticle tracking simulations ([`ASTRA`](../../bin/astra)) with modern Bayesian Optimization surrogates ([`BoTorch`](../../pyproject.toml#L17) / [`GPyTorch`](../../pyproject.toml#L18) / [`PyTorch`](../../pyproject.toml#L16)).
 
 The repository has evolved through three complete development phases:
 1. **Phase 1 (Scalarized BO)**: Single-objective surrogate (`SingleTaskGP` / `qLogNEI`) optimizing weighted sums ($w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$) across multiple weighting vectors.
@@ -37,30 +37,30 @@ graph TD
 
 ## 2. Architecture & Modular Package Layout
 
-The core package [`mobo_linac`](../src/mobo_linac) is structured with strict separation of concerns between beam dynamics simulation, surrogate modeling, acquisition optimization, and evaluation orchestration:
+The core package [`mobo_linac`](../../src/mobo_linac) is structured with strict separation of concerns between beam dynamics simulation, surrogate modeling, acquisition optimization, and evaluation orchestration:
 
 | Subpackage / Module | Role & Core Components | Key Symbols & Reference Files |
 | :--- | :--- | :--- |
-| **`config`** | Centralized dataclass configurations and validation | [`MoboConfig`](../src/mobo_linac/config.py#L187-L257), [`DesignVariableConfig`](../src/mobo_linac/config.py#L17-L48), [`ObjectiveConfig`](../src/mobo_linac/config.py#L50-L68), [`ConstraintsConfig`](../src/mobo_linac/config.py#L70-L101), [`load_config`](../src/mobo_linac/config.py#L259-L299) |
-| **`astra`** | ASTRA execution engine & isolated workdirs | [`AstraRunner`](../src/mobo_linac/astra/runner.py#L25-L120), [`AstraWorkDirManager`](../src/mobo_linac/astra/workdir.py#L20-L110), [`run_astra_eval`](../src/mobo_linac/astra/runner.py#L128-L240) |
-| **`execution`** | ProcessPoolExecutor parallel worker management | [`ProcessPoolEvaluator`](../src/mobo_linac/execution/parallel.py#L25-L95), [`evaluate_candidates_parallel`](../src/mobo_linac/execution/parallel.py#L100-L160) |
-| **`models`** | Gaussian Process surrogates & hyperparameter tuning | [`build_gp_models`](../src/mobo_linac/models/gp.py#L22-L144), [`SurrogatePipeline`](../src/mobo_linac/models/pipeline.py#L25-L160), [`optimize_gp_hyperparameters`](../src/mobo_linac/models/tuning.py#L30-L110) |
-| **`acquisition`** | Multi-objective acquisition functions & proposal engine | [`build_acquisition_function`](../src/mobo_linac/acquisition/mobo.py#L30-L120), [`generate_next_candidates`](../src/mobo_linac/acquisition/mobo.py#L139-L265) |
-| **`campaigns`** | Single-run and paired multi-seed benchmark runners | [`MoboCampaignRunner`](../src/mobo_linac/campaigns/runner.py#L30-L522), [`BenchmarkCampaignRunner`](../src/mobo_linac/campaigns/benchmark.py#L30-L253) |
-| **`constraints`** | Multi-channel feasibility & Normal CDF models | [`ConstraintEvaluator`](../src/mobo_linac/constraints.py#L20-L120), [`compute_probability_of_feasibility`](../src/mobo_linac/constraints.py#L125-L180) |
-| **`evaluation`** | Standardized result schema and failure classification | [`EvaluationResult`](../src/mobo_linac/evaluation.py#L20-L90), [`FailureCategory`](../src/mobo_linac/evaluation.py#L95-L120) |
-| **`metrics`** | Hypervolume, non-dominated sorting, LaTeX exporter | [`HypervolumeTracker`](../src/mobo_linac/metrics/hypervolume.py#L20-L110), [`extract_pareto_front`](../src/mobo_linac/metrics/pareto.py#L25-L90), [`export_latex_table`](../src/mobo_linac/metrics/latex.py#L30-L120) |
-| **`robustness`** | Machine jitter & photocathode laser variations | [`RobustnessEvaluator`](../src/mobo_linac/robustness/evaluator.py#L30-L150), [`load_perturbation_spec`](../src/mobo_linac/robustness/evaluator.py#L155-L210) |
-| **`verification`** | Fresh re-evaluation & SHA-256 candidate audits | [`run_independent_verification_rerun`](../src/mobo_linac/verification/verifier.py#L57-L150), [`file_sha256`](../src/mobo_linac/astra/workdir.py) |
-| **`plotting`** | Visualization utilities & Pareto surface renderers | [`plot_pareto_front`](../src/mobo_linac/plotting/pareto.py), [`plot_hypervolume_progress`](../src/mobo_linac/plotting/convergence.py) |
-| **`cli`** | Unified CLI entrypoint (`mobo-linac`) | [`main`](../src/mobo_linac/cli.py#L1-L614) |
+| **`config`** | Centralized dataclass configurations and validation | [`MoboConfig`](../../src/mobo_linac/config.py#L187-L257), [`DesignVariableConfig`](../../src/mobo_linac/config.py#L17-L48), [`ObjectiveConfig`](../../src/mobo_linac/config.py#L50-L68), [`ConstraintsConfig`](../../src/mobo_linac/config.py#L70-L101), [`load_config`](../../src/mobo_linac/config.py#L259-L299) |
+| **`astra`** | ASTRA execution engine & isolated workdirs | [`AstraRunner`](../../src/mobo_linac/astra/runner.py#L25-L120), [`AstraWorkDirManager`](../../src/mobo_linac/astra/workdir.py#L20-L110), [`run_astra_eval`](../../src/mobo_linac/astra/runner.py#L128-L240) |
+| **`execution`** | ProcessPoolExecutor parallel worker management | [`ProcessPoolEvaluator`](../../src/mobo_linac/execution/parallel.py#L25-L95), [`evaluate_candidates_parallel`](../../src/mobo_linac/execution/parallel.py#L100-L160) |
+| **`models`** | Gaussian Process surrogates & hyperparameter tuning | [`build_gp_models`](../../src/mobo_linac/models/gp.py#L22-L144), [`SurrogatePipeline`](../../src/mobo_linac/models/pipeline.py#L25-L160), [`optimize_gp_hyperparameters`](../../src/mobo_linac/models/tuning.py#L30-L110) |
+| **`acquisition`** | Multi-objective acquisition functions & proposal engine | [`build_acquisition_function`](../../src/mobo_linac/acquisition/mobo.py#L30-L120), [`generate_next_candidates`](../../src/mobo_linac/acquisition/mobo.py#L139-L265) |
+| **`campaigns`** | Single-run and paired multi-seed benchmark runners | [`MoboCampaignRunner`](../../src/mobo_linac/campaigns/runner.py#L30-L522), [`BenchmarkCampaignRunner`](../../src/mobo_linac/campaigns/benchmark.py#L30-L253) |
+| **`constraints`** | Multi-channel feasibility & Normal CDF models | [`ConstraintEvaluator`](../../src/mobo_linac/constraints.py#L20-L120), [`compute_probability_of_feasibility`](../../src/mobo_linac/constraints.py#L125-L180) |
+| **`evaluation`** | Standardized result schema and failure classification | [`EvaluationResult`](../../src/mobo_linac/evaluation.py#L20-L90), [`FailureCategory`](../../src/mobo_linac/evaluation.py#L95-L120) |
+| **`metrics`** | Hypervolume, non-dominated sorting, LaTeX exporter | [`HypervolumeTracker`](../../src/mobo_linac/metrics/hypervolume.py#L20-L110), [`extract_pareto_front`](../../src/mobo_linac/metrics/pareto.py#L25-L90), [`export_latex_table`](../../src/mobo_linac/metrics/latex.py#L30-L120) |
+| **`robustness`** | Machine jitter & photocathode laser variations | [`RobustnessEvaluator`](../../src/mobo_linac/robustness/evaluator.py#L30-L150), [`load_perturbation_spec`](../../src/mobo_linac/robustness/evaluator.py#L155-L210) |
+| **`verification`** | Fresh re-evaluation & SHA-256 candidate audits | [`run_independent_verification_rerun`](../../src/mobo_linac/verification/verifier.py#L57-L150), [`file_sha256`](../../src/mobo_linac/astra/workdir.py) |
+| **`plotting`** | Visualization utilities & Pareto surface renderers | [`plot_pareto_front`](../../src/mobo_linac/plotting/pareto.py), [`plot_hypervolume_progress`](../../src/mobo_linac/plotting/convergence.py) |
+| **`cli`** | Unified CLI entrypoint (`mobo-linac`) | [`main`](../../src/mobo_linac/cli/__init__.py) |
 
 ---
 
 ## 3. Physics & Optimization Formulation
 
 ### 1. Six Design Variables
-The parameter vector $\mathbf{x} \in \mathbb{R}^6$ maps dynamically to [`astra.in`](../astra.in):
+The parameter vector $\mathbf{x} \in \mathbb{R}^6$ maps dynamically to [`astra.in`](../../astra.in):
 1. **Solenoid Peak Field**: $B_z^{\text{max}} \in [0.175, 0.237]\text{ T}$ (`solenoid:maxb(1)`)
 2. **Quadrupole 1 Gradient**: $G_1 \in [1.44, 4.33]\text{ T/m}$ (`quadrupole:q_grad(1)`)
 3. **Quadrupole 2 Gradient**: $G_2 \in [-4.33, -1.44]\text{ T/m}$ (`quadrupole:q_grad(2)`)
@@ -96,8 +96,8 @@ A candidate is physically feasible if and only if all 7 diagnostics satisfy oper
 ## 4. Key Strengths & Operational Features
 
 1. **Robust Execution & Fault Isolation**:
-   - Every ASTRA simulation runs in an isolated scratch workdir managed by [`AstraWorkDirManager`](../src/mobo_linac/astra/workdir.py), preventing parallel collision.
-   - Premature exit-plane beam loss ($z_{\text{final}} < 16.0\text{ m}$), core collimation trapping, and simulation timeouts are categorized explicitly via [`FailureCategory`](../src/mobo_linac/evaluation.py).
+   - Every ASTRA simulation runs in an isolated scratch workdir managed by [`AstraWorkDirManager`](../../src/mobo_linac/astra/workdir.py), preventing parallel collision.
+   - Premature exit-plane beam loss ($z_{\text{final}} < 16.0\text{ m}$), core collimation trapping, and simulation timeouts are categorized explicitly via [`FailureCategory`](../../src/mobo_linac/evaluation.py).
 2. **Crash-Proof State Persistence**:
    - Checkpoint state serialization utilizes POSIX atomic file writes (`mobo_linac.io.durable`), enabling uninterrupted resumption via `mobo-linac resume --run-dir <dir>`.
 3. **Clean Simulation Verbose Output**:
@@ -106,7 +106,7 @@ A candidate is physically feasible if and only if all 7 diagnostics satisfy oper
    - Dynamic device selection (`--device auto`, `cuda`, `cpu`) with automatic tensor placement and CUDA memory management across all CLI commands.
 5. **Scientific Reproducibility & Publication Tooling**:
    - Independent Pareto candidate verification protocol computes SHA-256 input checksums and reruns candidates in isolated workdirs with fresh particle distributions.
-   - Centralized LaTeX table generation ([`latex.py`](../src/mobo_linac/metrics/latex.py)), publication figure generators ([`generate_paper_figures.py`](../scripts/generate_paper_figures.py)), and documentation site.
+   - Centralized LaTeX table generation ([`latex.py`](../../src/mobo_linac/metrics/latex.py)), publication figure generators ([`generate_paper_figures.py`](../../scripts/generate_paper_figures.py)), and documentation site.
 
 ---
 

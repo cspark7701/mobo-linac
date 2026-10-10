@@ -4,7 +4,7 @@
 # Multi-Objective Bayesian Optimization for 200 MeV Electron Injector Linac
 #
 # Usage:
-#   ./scripts/resume_agy_session.sh [OPTIONS] [EXTRA_AGY_ARGS...]
+#   ./tools/resume_agy_session.sh [OPTIONS] [EXTRA_AGY_ARGS...]
 #
 # Options:
 #   -c, --current     Resume the specific session active during script creation:
@@ -48,7 +48,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -h|--help)
             cat << 'HLP'
-Usage: ./scripts/resume_agy_session.sh [OPTIONS] [EXTRA_AGY_ARGS...]
+Usage: ./tools/resume_agy_session.sh [OPTIONS] [EXTRA_AGY_ARGS...]
 
 Resumes an Antigravity (agy) CLI session for the mobo-linac repository.
 Ensures you return directly to this workspace and conversation state after

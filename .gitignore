@@ -62,3 +62,9 @@ img/
 # Local binaries
 bin/*
 !bin/.gitkeep
+
+# Repository backups belong outside the tree; untracked local copies are never committed
+backups/
+# Root-level scratch directories
+/data/
+/mobo_results/

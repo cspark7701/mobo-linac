@@ -8,8 +8,9 @@
 #   2. Package import and version smoke test
 #   3. CLI entry point and argument parsing smoke test
 #   4. Documentation & configuration sync audit (scripts/verify_docs_sync.py)
-#   5. Pytest unit test suite without integration tests (pytest -v -m "not integration")
-#   6. Optional: Full integration test suite (--with-integration)
+#   5. Ruff lint (configured in pyproject.toml)
+#   6. Pytest unit test suite without integration tests (pytest -v -m "not integration")
+#   7. Optional: Full integration test suite (--with-integration)
 # ==============================================================================
 
 set -uo pipefail
@@ -24,7 +25,7 @@ VERBOSE=false
 
 print_usage() {
     cat <<USG
-Usage: ./scripts/check_github_actions.sh [OPTIONS]
+Usage: ./tools/check_github_actions.sh [OPTIONS]
 
 Simulate local GitHub Actions CI steps before pushing commits to remote.
 
@@ -83,9 +84,9 @@ info() {
     echo -e "${COLOR_BLUE}==>${COLOR_RESET} $1"
 }
 
-TOTAL_STEPS=5
+TOTAL_STEPS=6
 if [[ "${WITH_INTEGRATION}" == "true" ]]; then
-    TOTAL_STEPS=6
+    TOTAL_STEPS=7
 fi
 
 CURRENT_STEP=0
@@ -114,8 +115,8 @@ fi
 
 # Step 2: Package import & version smoke test
 step_header "Smoke test: Package import & version check..."
-if python3 -c "import mobo_linac; print('mobo_linac version:', mobo_linac.__version__); assert mobo_linac.__version__ == '1.0.0'" ; then
-    pass "mobo_linac imports successfully and version matches 1.0.0."
+if python3 -c "import importlib.metadata as m, mobo_linac; print('mobo_linac version:', mobo_linac.__version__); assert mobo_linac.__version__ == m.version('mobo-linac')" ; then
+    pass "mobo_linac imports successfully and its version matches the distribution metadata."
 else
     fail "Package import or version assertion failed!"
     STEP_FAILS=$((STEP_FAILS + 1))
@@ -139,7 +140,16 @@ else
     STEP_FAILS=$((STEP_FAILS + 1))
 fi
 
-# Step 5: Run CI Unit Test Suite (excluding integration tests requiring external tracking runs)
+# Step 5: Lint (the CI lint job)
+step_header "Lint: ruff check src scripts tests tools..."
+if ruff check src scripts tests tools ; then
+    pass "Ruff reports no findings."
+else
+    fail "Ruff reported findings (or is not installed: pip install -e .[dev])!"
+    STEP_FAILS=$((STEP_FAILS + 1))
+fi
+
+# Step 6: Run CI Unit Test Suite (excluding integration tests requiring external tracking runs)
 step_header "Pytest: CI Unit Test Suite (pytest -m 'not integration')..."
 PYTEST_ARGS=(-v -m "not integration" --tb=short)
 if [[ "${FAIL_FAST}" == "true" ]]; then
@@ -156,7 +166,7 @@ else
     STEP_FAILS=$((STEP_FAILS + 1))
 fi
 
-# Optional Step 6: Full Integration Test Suite
+# Optional Step 7: Full Integration Test Suite
 if [[ "${WITH_INTEGRATION}" == "true" ]]; then
     step_header "Pytest: Integration Test Suite (pytest -m 'integration')..."
     if pytest -v -m "integration" --tb=short ; then

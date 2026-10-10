@@ -49,19 +49,22 @@ mobo-linac/
 │
 ├── configs/
 │   ├── mobo_200MeV.yaml               # Centralized configuration file
-│   └── publication_200MeV.yaml        # Canonical publication configuration
+│   ├── publication_200MeV.yaml        # Canonical publication configuration
+│   └── perturbation_config.yaml       # Robustness (jitter) specification
 │
 ├── docs/
 │   ├── simulation_guide.md            # Step-by-step execution guide
 │   ├── paper/                         # LaTeX journal manuscript (main.tex, main.pdf)
 │   ├── exec-plans/                    # Active and completed task plans
-│   ├── 04_refactor_tasks/             # Modular refactoring specifications (Tasks 01--11)
+│   ├── 04_refactor_tasks/             # Refactoring specifications (Tasks 01--23; local planning, not versioned)
+│   ├── 05_refactor_tasks/             # Refactoring specifications (Tasks 01--40; local planning, not versioned)
 │   ├── site/                          # Standalone mobo-linac.github.io web portal files
 │   └── index.html                     # Project technical web portal
 │
-├── scripts/                           # Campaign, comparison, & LaTeX export scripts
+├── scripts/                           # Thin campaign, comparison & reporting entry points (CLI wrappers)
+├── tools/                             # Maintainer tooling (local CI check, cleanup, site sync)
 ├── notebooks/                         # Interactive analysis notebooks
-├── tests/                             # Pytest test suite (58+ unit tests)
+├── tests/                             # Pytest suite (unit tests; ASTRA runs are marked `integration`)
 └── results/                           # Optimization run output directories
 ```
 
@@ -123,7 +126,7 @@ Beam quality metrics and physical boundaries determine simulation feasibility:
 * **Longitudinal RMS Bunch Length**: $\sigma_z \le 1.0\text{ mm}$
 * **Mean Kinetic Energy**: $195\text{ MeV} \le E_{\text{kin}} \le 205\text{ MeV}$
 
-In **Phase 2**, feasibility diagnostic violations apply penalties. In **Phase 3**, constraints are explicitly modeled using separate Gaussian Process surrogate models for Probability of Feasibility computation.
+In **Phase 2**, feasibility is recorded and reported (feasible Pareto fronts and hypervolume), but constraint violations add no penalty and are not modeled. In **Phase 3**, constraints are explicitly modeled using separate Gaussian Process surrogate models for Probability of Feasibility computation.
 
 The seven diagnostic channels share one canonical layout for parsing, feasibility, GP training, and acquisition constraints. Missing, conflicting, or nonfinite measurements are never replaced with favorable defaults. Constrained fitting uses complete measured rows with matching design/objective identities; see the [diagnostic observation policy](docs/simulation_guide.md#diagnostic-observation-policy).
 
