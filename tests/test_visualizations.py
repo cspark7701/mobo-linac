@@ -156,8 +156,8 @@ def test_figures_require_configuration(sample_evaluation_results):
 
 
 def test_figure_scope_and_cleanup(sample_evaluation_results, tmp_path):
-    from mobo_linac.plotting import close_all_figures, figure_scope
-    close_all_figures()
+    from mobo_linac.plotting import figure_scope
+    plt.close("all")
     with figure_scope(auto_close=True):
         plot_pareto_front(sample_evaluation_results, config=CONFIG)
         plot_objective_evolution(sample_evaluation_results, config=CONFIG)

@@ -249,3 +249,12 @@ def test_install_script_never_edits_pythonpath():
     root = Path(__file__).resolve().parents[1]
     assert "PYTHONPATH" not in (root / "install.sh").read_text().split("# ===")[-1]
     assert not (root / "setup.sh").exists()
+
+
+def test_package_modules_carry_no_reexport_shims():
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1] / "src" / "mobo_linac"
+    offenders = [str(path.relative_to(root)) for path in root.rglob("*.py")
+                 if path.name != "__init__.py" and "noqa: F401" in path.read_text()]
+    assert offenders == []
+    assert not (root / "plotting" / "visualizations.py").exists()

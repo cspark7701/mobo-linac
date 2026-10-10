@@ -161,7 +161,7 @@ def test_aggregate_metrics_includes_failure_rate_and_objective_extrema():
                 "total_simulation_runtime_s": [8.0, 16.0, 24.0],
             })
 
-    from mobo_linac.metrics.reporting import reporting_metadata
+    from mobo_linac.conventions import reporting_metadata
     convention = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1.5e-6, -1.5e-6, -1.5e6])
     for histories in seed_histories.values():
         for frame in histories.values():
@@ -179,7 +179,7 @@ def test_plot_benchmark_comparison_runs():
     """plot_benchmark_comparison must return a Figure without raising."""
     import matplotlib
     matplotlib.use("Agg")
-    from mobo_linac.plotting.visualizations import plot_benchmark_comparison
+    from mobo_linac.plotting import plot_benchmark_comparison
 
     agg_df = pd.DataFrame({
         "algorithm": ["constrained_qlognehvi"] * 3 + ["sobol"] * 3,
@@ -201,7 +201,7 @@ def test_plot_benchmark_feasibility_comparison_runs():
     """plot_benchmark_feasibility_comparison must return a Figure without raising."""
     import matplotlib
     matplotlib.use("Agg")
-    from mobo_linac.plotting.visualizations import plot_benchmark_feasibility_comparison
+    from mobo_linac.plotting import plot_benchmark_feasibility_comparison
 
     agg_df = pd.DataFrame({
         "algorithm": ["constrained_qlognehvi"] * 3 + ["sobol"] * 3,

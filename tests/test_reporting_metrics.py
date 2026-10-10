@@ -11,10 +11,9 @@ from mobo_linac.evaluation import EvaluationResult, FailureCategory
 from mobo_linac.metrics.reporting import (
     compute_campaign_metrics_history,
     compute_normalized_hypervolume,
-    normalize_objectives_model,
     normalize_objectives_physical,
-    validate_campaign_compatibility,
 )
+from mobo_linac.conventions import validate_campaign_compatibility
 
 SCALES = [1.0e-6, 1.0e-6, 1.0e6]
 REFERENCE = [-10.0, -10.0, -10.0]
@@ -66,7 +65,7 @@ def test_objective_normalization_scales():
     assert norm_phys.tolist() == pytest.approx([1.2, 1.5, 0.4])
 
     model_objs = [-1.2e-6, -1.5e-6, -4.0e5]
-    norm_model = normalize_objectives_model(model_objs, scales)
+    norm_model = normalize_objectives_physical(model_objs, scales)  # sign independent
     assert norm_model.tolist() == pytest.approx([-1.2, -1.5, -0.4])
 
 
@@ -105,7 +104,7 @@ def test_campaign_compatibility_verification():
     """Verify cross-run metrics compatibility checking."""
     from copy import deepcopy
     from mobo_linac.config import load_config
-    from mobo_linac.metrics.reporting import reporting_metadata
+    from mobo_linac.conventions import reporting_metadata
     meta_a = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1e-5, -1e-5, -1e7])
     meta_b = deepcopy(meta_a)
     meta_incompat = deepcopy(meta_a)
@@ -129,7 +128,7 @@ def test_campaign_compatibility_verification():
 def test_reporting_comparison_rejects_different_scientific_conventions(field, value):
     from copy import deepcopy
     from mobo_linac.config import load_config
-    from mobo_linac.metrics.reporting import reporting_metadata
+    from mobo_linac.conventions import reporting_metadata
     meta = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1e-5, -1e-5, -1e6])
     other = deepcopy(meta)
     other[field] = value
@@ -140,7 +139,7 @@ def test_reporting_comparison_rejects_different_scientific_conventions(field, va
 
 def test_reporting_comparison_has_no_implicit_defaults_or_micro_scale_tolerance():
     from mobo_linac.config import load_config
-    from mobo_linac.metrics.reporting import reporting_metadata
+    from mobo_linac.conventions import reporting_metadata
     assert not validate_campaign_compatibility({}, {}, raise_on_incompatible=False)
     config = load_config("configs/mobo_200MeV.yaml")
     meta = reporting_metadata(config, [-1e-5, -1e-5, -1e6])
@@ -163,11 +162,10 @@ def test_normalization_and_hypervolume_use_input_placement(device, dtype):
     if device.startswith("cuda") and not torch.cuda.is_available():
         pytest.skip("CUDA unavailable")
     values = torch.tensor([[1e-6, 2e-6, 3e5]], device=device, dtype=dtype)
-    for normalize in (normalize_objectives_physical, normalize_objectives_model):
-        normalized = normalize(values, SCALES)
-        assert normalized.device == values.device
-        assert normalized.dtype == values.dtype
-        torch.testing.assert_close(normalized, values.new_tensor([[1.0, 2.0, 0.3]]))
+    normalized = normalize_objectives_physical(values, SCALES)
+    assert normalized.device == values.device
+    assert normalized.dtype == values.dtype
+    torch.testing.assert_close(normalized, values.new_tensor([[1.0, 2.0, 0.3]]))
     model = torch.zeros((1, 3), device=device, dtype=dtype)
     # CPU reference tensors must follow GPU observations, too.
     reference = torch.tensor([-2., -2., -2.], dtype=torch.double)
@@ -223,4 +221,3 @@ def test_single_front_implementation_is_shared():
     reference = torch.tensor([-3.0, -3.0], dtype=torch.double)
     assert hv_module.compute_hypervolume(values, reference) == front.hypervolume(values, reference) == pytest.approx(3.0)
     assert front.front_size(values, reference) == 2
-    assert normalize_objectives_model is normalize_objectives_physical

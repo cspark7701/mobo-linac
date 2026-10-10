@@ -51,8 +51,8 @@ The core package [`mobo_linac`](../src/mobo_linac) is structured with strict sep
 | **`evaluation`** | Standardized result schema and failure classification | [`EvaluationResult`](../src/mobo_linac/evaluation.py#L20-L90), [`FailureCategory`](../src/mobo_linac/evaluation.py#L95-L120) |
 | **`metrics`** | Hypervolume, non-dominated sorting, LaTeX exporter | [`HypervolumeTracker`](../src/mobo_linac/metrics/hypervolume.py#L20-L110), [`extract_pareto_front`](../src/mobo_linac/metrics/pareto.py#L25-L90), [`export_latex_table`](../src/mobo_linac/metrics/latex.py#L30-L120) |
 | **`robustness`** | Machine jitter & photocathode laser variations | [`RobustnessEvaluator`](../src/mobo_linac/robustness/evaluator.py#L30-L150), [`load_perturbation_spec`](../src/mobo_linac/robustness/evaluator.py#L155-L210) |
-| **`verification`** | Fresh re-evaluation & SHA-256 candidate audits | [`run_independent_verification_rerun`](../src/mobo_linac/verification/verifier.py#L57-L150), [`compute_file_sha256`](../src/mobo_linac/verification/verifier.py#L18-L30) |
-| **`plotting`** | Visualization utilities & Pareto surface renderers | [`plot_pareto_front`](../src/mobo_linac/plotting/visualizations.py), [`plot_hypervolume_progress`](../src/mobo_linac/plotting/visualizations.py) |
+| **`verification`** | Fresh re-evaluation & SHA-256 candidate audits | [`run_independent_verification_rerun`](../src/mobo_linac/verification/verifier.py#L57-L150), [`file_sha256`](../src/mobo_linac/astra/workdir.py) |
+| **`plotting`** | Visualization utilities & Pareto surface renderers | [`plot_pareto_front`](../src/mobo_linac/plotting/pareto.py), [`plot_hypervolume_progress`](../src/mobo_linac/plotting/convergence.py) |
 | **`cli`** | Unified CLI entrypoint (`mobo-linac`) | [`main`](../src/mobo_linac/cli.py#L1-L614) |
 
 ---

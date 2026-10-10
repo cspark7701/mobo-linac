@@ -1,9 +1,9 @@
 """
-Standardized Reporting Metrics and Fixed Reference Point Module for mobo_linac (Task 05).
+Standardized Reporting Metrics and Fixed Reference Point Module for mobo_linac.
 
 Provides objective normalization using fixed engineering scales, fixed reporting
-reference points in normalized dimensionless space, cross-run compatibility verification,
-and full campaign metrics computation.
+reference points in normalized dimensionless space and full campaign metrics computation.
+Reporting conventions and cross-run compatibility live in ``mobo_linac.conventions``.
 """
 
 from typing import List, Optional, Sequence, Union
@@ -12,7 +12,6 @@ import pandas as pd
 import torch
 from mobo_linac.metrics.front import dominating_front, hypervolume, normalize
 
-from mobo_linac.conventions import reporting_metadata, validate_campaign_compatibility  # noqa: F401
 from mobo_linac.evaluation import EvaluationResult
 
 
@@ -22,10 +21,6 @@ def normalize_objectives_physical(
 ) -> torch.Tensor:
     """Normalize objective values by configured reporting scales (``ResultSchema.scales``)."""
     return normalize(physical_objs, scales)
-
-
-# Normalization is sign independent; model-space values use the same operation.
-normalize_objectives_model = normalize_objectives_physical
 
 
 def compute_normalized_hypervolume(

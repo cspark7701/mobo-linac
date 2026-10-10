@@ -11,7 +11,8 @@ from mobo_linac.utils.logger import get_logger
 logger = get_logger(__name__)
 from mobo_linac.metrics.latex import generate_robustness_summary_latex_table
 from mobo_linac.metrics.selection import select_representatives
-from mobo_linac.robustness.evaluator import RobustnessEvaluator, SOURCE_MAPPING_REASON, configured_perturbation_spec
+from mobo_linac.perturbations import SOURCE_MAPPING_REASON
+from mobo_linac.robustness.evaluator import RobustnessEvaluator, configured_perturbation_spec
 from mobo_linac.campaign_options import validate_campaign_options
 
 

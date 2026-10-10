@@ -10,7 +10,7 @@ from typing import Dict, Optional, Tuple
 
 import numpy as np
 import pandas as pd
-from mobo_linac.metrics.reporting import validate_campaign_compatibility
+from mobo_linac.conventions import validate_campaign_compatibility
 from mobo_linac.metrics.selection import valid_measured
 from mobo_linac.result_schema import ResultSchema
 

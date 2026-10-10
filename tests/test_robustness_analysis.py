@@ -7,8 +7,8 @@ import numpy as np
 
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
 from mobo_linac.astra.runner import apply_parameters_to_astra
+from mobo_linac.perturbations import PerturbationSpecification
 from mobo_linac.robustness.evaluator import (
-    PerturbationSpecification,
     compute_robustness_summary,
     generate_perturbed_machine_states,
     load_perturbation_spec,

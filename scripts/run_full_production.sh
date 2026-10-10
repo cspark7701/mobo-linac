@@ -149,7 +149,7 @@ if ((RESUME)); then
   for case_name in "${CASES[@]}"; do
     execute_step "phase1_$case_name" "${CLI[@]}" resume --run-dir "$P1_DIR/$case_name" --n-iterations "$N_ITERATIONS"
   done
-  execute_step phase1_aggregate "$PYTHON_BIN" -c 'import sys; from mobo_linac.campaigns.scalarized_suite import aggregate_scalarized_cases, export_phase1_cases_latex_table; from pathlib import Path; root=Path(sys.argv[1]); aggregate_scalarized_cases(root); export_phase1_cases_latex_table(root/"cases_summary.csv",root/"phase1_cases_table.tex")' "$P1_DIR"
+  execute_step phase1_aggregate "$PYTHON_BIN" -c 'import sys; from mobo_linac.campaigns.scalarized_suite import aggregate_scalarized_cases; from mobo_linac.metrics.latex import generate_phase1_cases_latex_table; from pathlib import Path; root=Path(sys.argv[1]); aggregate_scalarized_cases(root); generate_phase1_cases_latex_table(root/"cases_summary.csv",root/"phase1_cases_table.tex")' "$P1_DIR"
   execute_step phase2 "${CLI[@]}" resume --run-dir "$P2_DIR" --n-iterations "$N_ITERATIONS"
   execute_step phase3 "${CLI[@]}" resume --run-dir "$P3_DIR" --n-iterations "$N_ITERATIONS"
 else

@@ -19,9 +19,7 @@ from mobo_linac.benchmark_algorithms import (
     get_benchmark_algorithm,
 )
 from mobo_linac.config import BenchmarkConfig, MoboConfig
-from mobo_linac.metrics.reporting import (
-    reporting_metadata, validate_campaign_compatibility,
-)
+from mobo_linac.conventions import reporting_metadata, validate_campaign_compatibility
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.io.artifacts import validate_run_completion
 from mobo_linac.utils.durable import atomic_csv, atomic_json

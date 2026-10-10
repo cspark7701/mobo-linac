@@ -104,7 +104,7 @@ class _DeprecatedInputAlias(argparse.Action):
     """Former spellings of ``--input``: store into ``input`` and warn."""
 
     def __call__(self, parser, namespace, values, option_string=None):
-        message = f"{option_string} is deprecated; use --input."
+        message = f"{option_string} is deprecated and will be removed in 1.1.0; use --input."
         warnings.warn(message, DeprecationWarning, stacklevel=2)
         from mobo_linac.utils.logger import get_logger
         get_logger(__name__).warning(message)

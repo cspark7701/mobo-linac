@@ -8,7 +8,7 @@ from mobo_linac.metrics.publication import compute_target_distance
 from mobo_linac.reporting.comparison import verify_pareto_candidates
 from mobo_linac.io.run_data import RunData
 from mobo_linac.metrics.publication import generate_comparison_report
-from mobo_linac.metrics.reporting import reporting_metadata
+from mobo_linac.conventions import reporting_metadata
 
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import EvaluationResult, FailureCategory

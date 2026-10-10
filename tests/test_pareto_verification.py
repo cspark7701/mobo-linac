@@ -4,7 +4,7 @@ Unit tests for Independent Pareto Candidate Verification.
 
 import pytest
 
-from mobo_linac.astra.workdir import read_evaluation_manifest
+from mobo_linac.astra.workdir import file_sha256, read_evaluation_manifest
 from mobo_linac.execution import FunctionEvaluator
 from tests.evaluators import callable_evaluator, mock_data_evaluator
 import numpy as np
@@ -13,7 +13,6 @@ from mobo_linac.config import load_config
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
 from mobo_linac.metrics.selection import compute_crowding_distances
 from mobo_linac.verification.verifier import (
-    compute_file_sha256,
     export_verification_latex_table,
     run_independent_verification_rerun,
     select_verification_candidates,
@@ -55,7 +54,7 @@ def test_file_sha256_computation(tmp_path):
     test_file = tmp_path / "test_input.in"
     test_file.write_text("SOLENOID: maxb(1) = 0.19477\n", encoding="utf-8")
 
-    sha = compute_file_sha256(test_file)
+    sha = file_sha256(test_file)
     assert isinstance(sha, str)
     assert len(sha) == 64  # SHA-256 hex string length
 

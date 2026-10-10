@@ -78,7 +78,7 @@ def test_aggregate_benchmark_metrics_computation():
         })
         seed_histories["sobol"][seed] = df_sob
 
-    from mobo_linac.metrics.reporting import reporting_metadata
+    from mobo_linac.conventions import reporting_metadata
     convention = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1.5e-6, -1.5e-6, -1.5e6])
     for histories in seed_histories.values():
         for frame in histories.values():
@@ -442,7 +442,7 @@ def _history(steps, convention, extrema=None):
 
 
 def test_aggregation_rejects_unequal_histories_and_reports_feasible_extrema():
-    from mobo_linac.metrics.reporting import reporting_metadata
+    from mobo_linac.conventions import reporting_metadata
     convention = reporting_metadata(load_config("configs/mobo_200MeV.yaml"), [-1.5e-6, -1.5e-6, -1.5e6])
     with pytest.raises(ValueError, match="unequal evaluation steps"):
         compute_aggregate_benchmark_metrics({"a": {1: _history([1, 2, 3], convention), 2: _history([1, 2], convention)}})

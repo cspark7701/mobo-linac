@@ -6,7 +6,6 @@ HypervolumeTracker to ensure hypervolume curves are strictly comparable across
 iterations and optimization runs.
 """
 
-from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 import numpy as np
 import pandas as pd
@@ -16,7 +15,6 @@ from mobo_linac.metrics.front import front_size, hypervolume
 from mobo_linac.config import MoboConfig
 from mobo_linac.objectives import transform_to_physical_space
 from mobo_linac.result_schema import ResultSchema
-from mobo_linac.utils.durable import atomic_csv
 
 
 def compute_reference_point(
@@ -191,19 +189,3 @@ class HypervolumeTracker:
     def to_dataframe(self) -> pd.DataFrame:
         """Returns hypervolume tracking history as a Pandas DataFrame."""
         return pd.DataFrame(self.history, columns=self.CSV_COLUMNS)
-
-    def save_csv(self, output_path: Union[str, Path]) -> Path:
-        """Saves hypervolume history to CSV file."""
-        path = Path(output_path)
-        path.parent.mkdir(parents=True, exist_ok=True)
-        df = self.to_dataframe()
-        atomic_csv(path, df)
-        return path
-
-    @classmethod
-    def load_history(cls, history_path: Union[str, Path]) -> pd.DataFrame:
-        """Loads hypervolume tracking history from CSV."""
-        path = Path(history_path)
-        if not path.exists():
-            raise FileNotFoundError(f"Hypervolume history file not found: {path}")
-        return pd.read_csv(path)

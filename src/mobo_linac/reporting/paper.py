@@ -8,7 +8,7 @@ Outputs: ``hypervolume_comparison.png``, ``pareto_front_comparison.png``,
 from pathlib import Path
 from typing import Optional
 
-from mobo_linac.campaigns.scalarized_suite import export_phase1_cases_latex_table
+from mobo_linac.metrics.latex import generate_phase1_cases_latex_table
 from mobo_linac.io.run_data import read_comparable_runs, read_run_data
 from mobo_linac.metrics.latex import generate_verification_latex_table
 from mobo_linac.metrics.publication import generate_campaign_summary_latex_table
@@ -107,7 +107,7 @@ def generate_paper_artifacts(phase2_dir: Path, phase3_dir: Path, verification_cs
                                                                             "Phase 3 (Constrained)"]
     generate_campaign_summary_latex_table(phases, tables_dir / "results_table.tex", names)
     if phase1_dir is not None and (phase1_dir / "cases_summary.csv").exists():
-        export_phase1_cases_latex_table(phase1_dir / "cases_summary.csv", tables_dir / "phase1_cases_table.tex",
+        generate_phase1_cases_latex_table(phase1_dir / "cases_summary.csv", tables_dir / "phase1_cases_table.tex",
                                         config=config)
     check_manuscript_consistency(phase2_dir, phase3_dir, figures_dir, tables_dir, verification_csv,
                                  phase1_dir=phase1_dir)

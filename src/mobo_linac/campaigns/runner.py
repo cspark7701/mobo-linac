@@ -59,7 +59,7 @@ from mobo_linac.utils.durable import atomic_json, atomic_write_text
 from mobo_linac.io.journal import EvaluationJournal
 from mobo_linac.io.results import get_train_tensors, get_training_observations
 from mobo_linac.metrics.hypervolume import HypervolumeTracker, compute_reference_point
-from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
+from mobo_linac.conventions import reporting_metadata, validate_campaign_compatibility
 from mobo_linac.models.artifacts import save_model_artifact
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.utils import get_device, get_logger, run_log

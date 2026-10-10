@@ -85,7 +85,7 @@ def test_scalarized_bo_execution(tmp_path, monkeypatch):
 def test_mobo_campaign_runner_scalarized_mode(tmp_path):
     """Test MoboCampaignRunner direct execution with optimization_mode='scalarized_bo'."""
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.cli import MockEvaluator
+    from mobo_linac.execution import MockEvaluator
 
     target_dir = tmp_path / "runner_scalarized_test"
     evaluator = MockEvaluator(target_dir)

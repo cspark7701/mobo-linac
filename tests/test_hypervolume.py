@@ -119,7 +119,8 @@ def test_empty_reference_requires_configuration():
 
 def test_raw_and_normalized_reporting_share_the_recorded_reference():
     from mobo_linac.config import load_config
-    from mobo_linac.metrics.reporting import reporting_metadata, compute_normalized_hypervolume
+    from mobo_linac.conventions import reporting_metadata
+    from mobo_linac.metrics.reporting import compute_normalized_hypervolume
     config = load_config("configs/mobo_200MeV.yaml")
     reference = [-1.5e-6, -1.5e-6, -1.5e6]
     values = torch.tensor([[-1e-6, -1e-6, -0.5e6]], dtype=torch.double)

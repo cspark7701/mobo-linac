@@ -86,11 +86,6 @@ def figure_scope(auto_close: bool = True) -> Generator[None, None, None]:
                 plt.close(fignum)
 
 
-def close_all_figures() -> None:
-    """Closes all currently open Matplotlib figures."""
-    plt.close("all")
-
-
 def save_fig(
     fig: plt.Figure,
     output_path: Optional[Union[str, Path]],
@@ -127,5 +122,5 @@ def nondominated_mask(frame, schema: PlotSchema) -> np.ndarray:
     return mask
 
 
-__all__: List[str] = ["AxisSpec", "ConstraintSpec", "PlotSchema", "best_so_far", "close_all_figures",
+__all__: List[str] = ["AxisSpec", "ConstraintSpec", "PlotSchema", "best_so_far",
                       "figure_scope", "grid_shape", "nondominated_mask", "save_fig", "scaled"]

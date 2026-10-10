@@ -8,11 +8,11 @@ import pytest
 from mobo_linac.campaigns.scalarized_suite import (
     aggregate_scalarized_cases,
     case_seed,
-    export_phase1_cases_latex_table,
     get_scalarized_case,
     run_scalarized_suite,
 )
-from mobo_linac.cli.common import MockEvaluator
+from mobo_linac.execution import MockEvaluator
+from mobo_linac.metrics.latex import generate_phase1_cases_latex_table
 from mobo_linac.config import load_config
 
 CONFIG = load_config("configs/mobo_200MeV.yaml")
@@ -110,7 +110,7 @@ def test_scalarized_suite_execution_with_mock_evaluator(tmp_path):
 
     # Verify LaTeX table export inside tmp_path
     out_tex = tmp_path / "test_table.tex"
-    export_phase1_cases_latex_table(suite_dir / "cases_summary.csv", out_tex)
+    generate_phase1_cases_latex_table(suite_dir / "cases_summary.csv", out_tex)
     assert out_tex.exists()
     content = out_tex.read_text(encoding="utf-8")
     assert r"\begin{table}" in content
@@ -167,7 +167,7 @@ def test_scalarized_case_export_uses_shared_escaping_and_preserves_source(tmp_pa
         'min_norm_emit_x_um': 1., 'min_norm_emit_y_um': 2., 'min_sigma_energy_MeV': .5}]).to_csv(source, index=False)
     before = source.read_bytes()
     script_path, package_path = tmp_path / 'adapter.tex', tmp_path / 'package.tex'
-    export_phase1_cases_latex_table(source, script_path)
+    generate_phase1_cases_latex_table(source, script_path)
     generate_phase1_cases_latex_table(source, package_path)
     assert script_path.read_bytes() == package_path.read_bytes()
     assert escape_latex(name) in script_path.read_text()

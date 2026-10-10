@@ -18,9 +18,8 @@ import numpy as np
 from mobo_linac.astra.workdir import read_evaluation_manifest, validate_component
 from mobo_linac.utils.durable import write_once_json
 from mobo_linac.config import MoboConfig, resolve_config_path
-from mobo_linac.perturbations import (  # noqa: F401  (public through the robustness package)
-    DISTRIBUTIONS, KINDS, SEED_POLICIES, SOURCE_MAPPING_REASON, SUPPORTED_SOURCE_SETTINGS,
-    LatticeChannel, PerturbationSpecification, SourceChannel,
+from mobo_linac.perturbations import (
+    SOURCE_MAPPING_REASON, PerturbationSpecification,
 )
 from mobo_linac.constraints import ConstraintEvaluator
 from mobo_linac.diagnostics import DIAGNOSTIC_CHANNELS, constraint_sides, normalize_diagnostics, valid_channel_measurement

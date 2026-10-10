@@ -12,7 +12,6 @@ configuration (``PlotSchema``):
 
 from mobo_linac.plotting.common import (
     PlotSchema,
-    close_all_figures,
     figure_scope,
     save_fig,
 )
@@ -61,7 +60,6 @@ __all__ = [
     "plot_design_variable_heatmap",
     "plot_parallel_coordinates",
     "PlotSchema",
-    "close_all_figures",
     "figure_scope",
     "save_fig",
 ]

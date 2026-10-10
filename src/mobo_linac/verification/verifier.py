@@ -8,7 +8,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from mobo_linac.astra.workdir import file_sha256, format_eval_id, validate_component
+from mobo_linac.astra.workdir import format_eval_id, validate_component
 from mobo_linac.utils.durable import atomic_csv, atomic_write_bytes, write_once_json
 from mobo_linac.diagnostics import diagnostic_observations, normalize_diagnostics
 from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask, compute_metric_deltas
@@ -16,11 +16,6 @@ from mobo_linac.metrics.selection import select_representatives
 from mobo_linac.result_schema import ResultSchema
 from mobo_linac.verification.audit import audit_attempt
 from mobo_linac.metrics.latex import generate_verification_latex_table
-
-
-def compute_file_sha256(file_path):
-    """Compatibility helper; missing files do not receive an invented checksum."""
-    return file_sha256(file_path) if Path(file_path).is_file() else None
 
 
 def select_verification_candidates(results, config):

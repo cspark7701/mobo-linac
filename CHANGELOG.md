@@ -6,6 +6,23 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 
 ---
 
+## [Unreleased]
+
+### Deprecated
+- `--history-path` and `--pareto-csv` (use `--input`) emit a `DeprecationWarning` and will be removed in 1.1.0.
+
+### Removed
+Compatibility layers whose migrations are complete. The canonical replacements:
+- `mobo_linac.plotting.visualizations` → `mobo_linac.plotting`.
+- Re-exports of `reporting_metadata` and `validate_campaign_compatibility` from `mobo_linac.metrics.reporting` → `mobo_linac.conventions`.
+- Perturbation types re-exported from `mobo_linac.robustness.evaluator` → `mobo_linac.perturbations` (the `mobo_linac.robustness` package still exports them).
+- Durable-write helpers re-exported from `mobo_linac.astra.workdir` → `mobo_linac.utils.durable`.
+- `mobo_linac.cli.MockEvaluator` → `mobo_linac.execution.MockEvaluator`.
+- `normalize_objectives_model` → `normalize_objectives_physical` (normalization is sign independent).
+- `compute_file_sha256` → `mobo_linac.astra.workdir.file_sha256`.
+- `export_phase1_cases_latex_table` → `mobo_linac.metrics.latex.generate_phase1_cases_latex_table`.
+- Unused `HypervolumeTracker.save_csv`/`load_history` (superseded by `RunArtifactWriter`) and `close_all_figures`.
+
 ## [v0.2.0] - 2026-08-07
 
 ### Codex Task Series (Tasks 41–50)

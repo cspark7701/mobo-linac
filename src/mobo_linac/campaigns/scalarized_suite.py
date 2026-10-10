@@ -24,7 +24,7 @@ from mobo_linac.utils.durable import atomic_csv, atomic_json
 from mobo_linac.io.checkpoint import load_run_checkpoint
 from mobo_linac.io.results import get_train_tensors, load_evaluation_results
 from mobo_linac.metrics.hypervolume import HypervolumeTracker
-from mobo_linac.metrics.reporting import validate_campaign_compatibility
+from mobo_linac.conventions import validate_campaign_compatibility
 
 from mobo_linac.utils.logger import get_logger
 from mobo_linac.io.run_data import read_run_data
@@ -157,11 +157,6 @@ def aggregate_scalarized_cases(
     }
 
 
-def export_phase1_cases_latex_table(cases_summary_path, output_path, config=None):
-    """Case table with configured objective labels/units when ``config`` is given."""
-    return generate_phase1_cases_latex_table(cases_summary_path, output_path, config=config)
-
-
 def run_scalarized_suite(
     config: Optional[Union[str, Path]] = None,
     n_iterations: int = 20,
@@ -237,9 +232,9 @@ def run_scalarized_suite(
 
     agg_meta = aggregate_scalarized_cases(base_out)
     logger.info(f"Aggregated {agg_meta['num_cases']} cases -> {agg_meta['total_evaluations']} evaluations")
-    export_phase1_cases_latex_table(base_out / "cases_summary.csv", base_out / "phase1_cases_table.tex")
+    generate_phase1_cases_latex_table(base_out / "cases_summary.csv", base_out / "phase1_cases_table.tex")
     if export_paper_table_dir is not None:
         paper_tab = Path(export_paper_table_dir) / "phase1_cases_table.tex"
-        export_phase1_cases_latex_table(base_out / "cases_summary.csv", paper_tab)
+        generate_phase1_cases_latex_table(base_out / "cases_summary.csv", paper_tab)
         logger.info(f"Exported LaTeX summary table to {paper_tab}")
     return agg_meta
