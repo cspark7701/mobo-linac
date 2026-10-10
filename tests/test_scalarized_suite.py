@@ -4,7 +4,6 @@ Unit tests for Phase 1 Option 2 Multi-Case Scalarized BO Suite.
 
 from pathlib import Path
 import pytest
-import torch
 
 from mobo_linac.campaigns.scalarized_suite import (
     aggregate_scalarized_cases,
@@ -143,7 +142,6 @@ def test_cli_suite_arguments():
 
 
 def test_scalarized_aggregation_rejects_different_reporting_references(tmp_path):
-    import json
     from mobo_linac.config import load_config
     from mobo_linac.metrics.exports import RunArtifactWriter
     from mobo_linac.metrics.hypervolume import HypervolumeTracker

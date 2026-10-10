@@ -1,5 +1,5 @@
 """
-Unit tests for Paired Multi-Seed Benchmark Campaigns (Codex Task 09).
+Unit tests for Paired Multi-Seed Benchmark Campaigns.
 
 Tests benchmark configuration, seed pairing, budget equality, dry-run, mock-mode
 execution, aggregate metrics, and publication plot generation.
@@ -7,16 +7,13 @@ execution, aggregate metrics, and publication plot generation.
 
 import pytest
 import sys
-import numpy as np
 import pandas as pd
 import torch
-from pathlib import Path
 
 from mobo_linac.config import BenchmarkConfig, load_config
-from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics, compute_bootstrap_ci
+from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics
 from mobo_linac.campaigns.benchmark import (
     BenchmarkCampaignRunner,
-    SUPPORTED_BENCHMARK_ALGORITHMS,
     generate_seed_paired_sobol_samples,
 )
 
@@ -138,7 +135,7 @@ def test_benchmark_runner_dry_run(tmp_path, capsys):
         n_sobol_init=6,
         batch_size=4,
     )
-    result_df = runner.execute_benchmark_campaigns(dry_run=True)
+    runner.execute_benchmark_campaigns(dry_run=True)
     captured = capsys.readouterr()
     assert "[DRY-RUN]" in captured.out
     assert "constrained_qlognehvi" in captured.out

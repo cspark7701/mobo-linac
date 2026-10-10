@@ -1,10 +1,10 @@
 """
-Unit tests for Publication Physics Specification, Parameter Bounds, and Sensitivity Profiles (Task 03).
+Unit tests for Publication Physics Specification, Parameter Bounds, and Sensitivity Profiles.
 """
 
 import pytest
 import torch
-from mobo_linac.config import load_config, MoboConfig, DesignVariableConfig
+from mobo_linac.config import load_config
 from mobo_linac.objectives import transform_to_model_space, transform_to_physical_space
 
 

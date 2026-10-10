@@ -1,10 +1,9 @@
 """
-Unit tests for Feasible Pareto Extraction and Representative Candidate Selection (Task 08).
+Unit tests for Feasible Pareto Extraction and Representative Candidate Selection.
 """
 
 import pytest
 import numpy as np
-import torch
 
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
 from mobo_linac.metrics.pareto import (

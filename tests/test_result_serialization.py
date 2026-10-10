@@ -1,5 +1,5 @@
 """
-Unit tests for Result Serialization, DataFrame Conversions, and Checkpoint Management (Task 05).
+Unit tests for Result Serialization, DataFrame Conversions, and Checkpoint Management.
 """
 
 from mobo_linac.result_schema import ResultSchema
@@ -65,7 +65,8 @@ def test_truncated_trailing_record_repaired_before_append(tmp_path, sample_resul
         stream.write(suffix)
     with pytest.warns(RuntimeWarning, match="truncated trailing"):
         assert len(load_streaming_records(tmp_path)) == 1
-    append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0, candidate_idx=1, config=TEST_CONFIG)
+    with pytest.warns(RuntimeWarning, match="truncated trailing"):  # reported again by the repairing append
+        append_streaming_evaluation(tmp_path, sample_results[1], batch_idx=0, candidate_idx=1, config=TEST_CONFIG)
     assert len(load_streaming_records(tmp_path)) == 2
     assert len(journal.read_text().splitlines()) == 2
 

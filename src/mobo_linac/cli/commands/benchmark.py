@@ -5,7 +5,6 @@ CLI command handlers for multi-algorithm benchmarking:
 """
 
 import argparse
-from pathlib import Path
 
 from mobo_linac.utils.logger import get_logger
 from mobo_linac.cli.common import add_verbosity_args

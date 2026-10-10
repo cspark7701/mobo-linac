@@ -1,5 +1,5 @@
 """
-Unit tests for Canonical Mock Evaluator Infrastructure (Task 19).
+Unit tests for Canonical Mock Evaluator Infrastructure.
 """
 
 from pathlib import Path
@@ -128,7 +128,6 @@ def test_mock_answers_any_configured_layout():
 
 def test_execution_code_has_no_capability_probing():
     import re
-    from pathlib import Path
     root = Path(__file__).resolve().parents[1] / "src" / "mobo_linac" / "execution"
     offenders = [path.name for path in root.glob("*.py")
                  if re.search(r"(hasattr|getattr)\(\s*(evaluator|backend|self\.evaluator)", path.read_text())]

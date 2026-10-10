@@ -1,6 +1,6 @@
 # Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac
 
-[![Python 3.9+](https://img.shields.io/badge/python-3.9+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-ee4c2c.svg)](https://pytorch.org/)
 [![BoTorch](https://img.shields.io/badge/BoTorch-0.10+-red.svg)](https://botorch.org/)
 [![ASTRA](https://img.shields.io/badge/Simulation-ASTRA-green.svg)](https://www.desy.de/~mprue/Astra/)

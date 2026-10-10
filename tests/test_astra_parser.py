@@ -3,7 +3,6 @@ Unit tests for AstraOutputParser and SimulationStatus diagnostics in mobo_linac.
 """
 
 from dataclasses import dataclass
-from pathlib import Path
 from typing import Any, Dict, List, Optional
 import pytest
 

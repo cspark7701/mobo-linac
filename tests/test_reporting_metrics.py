@@ -1,5 +1,5 @@
 """
-Unit tests for Standardized Reporting Metrics, Objective Normalization, and Known-Answer Hypervolume (Task 05).
+Unit tests for Standardized Reporting Metrics, Objective Normalization, and Known-Answer Hypervolume.
 """
 
 import pytest
@@ -139,7 +139,6 @@ def test_reporting_comparison_rejects_different_scientific_conventions(field, va
 
 
 def test_reporting_comparison_has_no_implicit_defaults_or_micro_scale_tolerance():
-    from copy import deepcopy
     from mobo_linac.config import load_config
     from mobo_linac.metrics.reporting import reporting_metadata
     assert not validate_campaign_compatibility({}, {}, raise_on_incompatible=False)

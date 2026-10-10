@@ -1,5 +1,5 @@
 """
-tests/test_paper_outputs.py — Manuscript Consistency & Paper Output Tests (Task 10)
+tests/test_paper_outputs.py — Manuscript Consistency & Paper Output Tests
 ====================================================================================
 Verifies that:
   1. All required result CSV files exist and have correct columns.
@@ -23,7 +23,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 import pytest
 

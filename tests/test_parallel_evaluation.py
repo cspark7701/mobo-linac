@@ -1,5 +1,5 @@
 """
-Unit and Integration Tests for Process-Safe Parallel ASTRA Evaluation (Task 03).
+Unit and Integration Tests for Process-Safe Parallel ASTRA Evaluation.
 """
 
 from mobo_linac.result_schema import ResultSchema
@@ -8,7 +8,6 @@ import json
 from pathlib import Path
 import shutil
 import pytest
-import numpy as np
 
 from mobo_linac.config import load_config as _load_test_config
 TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")

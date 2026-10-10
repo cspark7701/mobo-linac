@@ -1,5 +1,5 @@
 """
-Unit tests for Machine and Beam Robustness Analysis (Task 07).
+Unit tests for Machine and Beam Robustness Analysis.
 """
 
 import pytest
@@ -9,7 +9,6 @@ from mobo_linac.evaluation import EvaluationResult, FailureCategory
 from mobo_linac.astra.runner import apply_parameters_to_astra
 from mobo_linac.robustness.evaluator import (
     PerturbationSpecification,
-    PerturbedMachineState,
     compute_robustness_summary,
     generate_perturbed_machine_states,
     load_perturbation_spec,

@@ -50,7 +50,6 @@ def test_write_once_and_append_semantics(tmp_path):
 
 
 def test_checkpoints_load_without_unpickling_arbitrary_objects(tmp_path):
-    from mobo_linac.config import load_config
     from mobo_linac.io.checkpoint import load_run_checkpoint, save_run_checkpoint
     from tests.test_result_serialization import make_checkpoint_state
     path = save_run_checkpoint(tmp_path / "checkpoint.pt", make_checkpoint_state(0, [], []))

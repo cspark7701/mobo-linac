@@ -2,12 +2,8 @@
 Unit tests for Phase 1 Scalarized Bayesian Optimization workflow.
 """
 
-import argparse
-import pytest
 from pathlib import Path
-import torch
 
-from mobo_linac.config import load_config
 from mobo_linac.cli import run_scalarized
 
 

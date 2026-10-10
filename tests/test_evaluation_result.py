@@ -1,10 +1,9 @@
 """
-Unit tests for Structured Evaluation Results and Failure Semantics (Task 05).
+Unit tests for Structured Evaluation Results and Failure Semantics.
 """
 
 import math
 import pytest
-import torch
 
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import (
@@ -116,7 +115,7 @@ def test_nan_inf_failure_result(sample_config):
 
 
 def test_premature_beam_loss_detection(sample_config):
-    """Test detection of premature beam loss along the linac (Task 03)."""
+    """Test detection of premature beam loss along the linac."""
     # 1. Premature loss at z = 5.0 m (linac exit plane is 16.2 m)
     raw_premature = {
         "eval_id": "eval_000005",

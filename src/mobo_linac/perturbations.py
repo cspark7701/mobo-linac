@@ -6,9 +6,12 @@ Core data: the configuration's ``perturbations`` section and the robustness stud
 from dataclasses import asdict, dataclass
 import math
 from pathlib import Path
-from typing import Any, Dict, Optional, Tuple, Union
+from typing import TYPE_CHECKING, Any, Dict, Optional, Tuple, Union
 
 import yaml
+
+if TYPE_CHECKING:  # annotation only: the configuration module imports this one
+    from mobo_linac.config import MoboConfig
 
 
 SOURCE_MAPPING_REASON = (

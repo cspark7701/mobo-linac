@@ -1,5 +1,5 @@
 """
-Unit tests for Objectives and Sign Transformations (Task 04).
+Unit tests for Objectives and Sign Transformations.
 """
 
 import numpy as np

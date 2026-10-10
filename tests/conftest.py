@@ -5,11 +5,10 @@ Shared pytest fixtures and mock ASTRA outputs for unit testing without ASTRA bin
 import math
 from pathlib import Path
 import pytest
-import torch
 
 from mobo_linac.config import MoboConfig, load_config
 from mobo_linac.constraints import ConstraintEvaluator
-from mobo_linac.evaluation import EvaluationResult, FailureCategory, create_evaluation_result
+from mobo_linac.evaluation import EvaluationResult
 
 
 # ---------------------------------------------------------------------------

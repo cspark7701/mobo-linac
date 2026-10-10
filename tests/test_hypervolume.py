@@ -1,8 +1,7 @@
 """
-Unit tests for Fixed Reporting Reference Point and Hypervolume Audit (Task 06).
+Unit tests for Fixed Reporting Reference Point and Hypervolume Audit.
 """
 
-import numpy as np
 import pytest
 import torch
 

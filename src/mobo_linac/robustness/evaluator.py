@@ -14,7 +14,6 @@ import uuid
 from typing import Any, Dict, List, Optional, Sequence, Union
 
 import numpy as np
-import yaml
 
 from mobo_linac.astra.workdir import read_evaluation_manifest, validate_component
 from mobo_linac.utils.durable import write_once_json

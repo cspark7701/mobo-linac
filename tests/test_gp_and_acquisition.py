@@ -1,10 +1,9 @@
 """
-Unit tests for GP Kernels, Noise Models, Acquisition Functions, and Predictive Diagnostics (Task 04).
+Unit tests for GP Kernels, Noise Models, Acquisition Functions, and Predictive Diagnostics.
 """
 
 import pytest
 import torch
-import gpytorch
 from gpytorch.kernels import MaternKernel, RBFKernel, ScaleKernel
 from gpytorch.likelihoods import GaussianLikelihood
 
@@ -128,7 +127,6 @@ def test_predictive_diagnostics_calculation():
 
 def test_constrained_acquisition_construction():
     """Verify construction of constrained acquisition functions with SliceObjective and 8 tensor constraints."""
-    from botorch.models import ModelListGP
     from mobo_linac.acquisition.mobo import SliceObjective
     from mobo_linac.constraints import get_botorch_constraint_functions
 

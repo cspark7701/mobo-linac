@@ -1,5 +1,5 @@
 """
-Unit tests for Independent Pareto Candidate Verification (Task 08).
+Unit tests for Independent Pareto Candidate Verification.
 """
 
 import pytest
@@ -8,7 +8,6 @@ from mobo_linac.astra.workdir import read_evaluation_manifest
 from mobo_linac.execution import FunctionEvaluator
 from tests.evaluators import callable_evaluator, mock_data_evaluator
 import numpy as np
-import torch
 
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
@@ -190,7 +189,6 @@ def test_repeated_verification_retains_records_and_reports(sample_pareto_results
     assert first['record_path'] != second['record_path']
     assert Path(first['record_path']).read_bytes() == first_bytes
     assert json.loads(Path(second['record_path']).read_text())['verification_run_id'] == second['verification_run_id']
-    roles = select_verification_candidates([candidate], config)
     mocks = mock_data_evaluator(mock)
     _, first_manifest, first_tex = run_verification_pipeline([candidate], config, tmp_path, mocks)
     saved = first_manifest.read_bytes()

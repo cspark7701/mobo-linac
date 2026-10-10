@@ -1,10 +1,9 @@
 """
-Unit tests for Python Package Layout and CLI Entry Points (Task 07).
+Unit tests for Python Package Layout and CLI Entry Points.
 """
 
 import subprocess
 import sys
-import pytest
 
 import mobo_linac
 import mobo_linac.acquisition
@@ -187,6 +186,10 @@ def _package_imports():
         module = ".".join(("mobo_linac",) + tuple(p for p in parts if p != "__init__"))
         tree = ast.parse(path.read_text())
         top = {id(node) for node in tree.body}
+        # ``if TYPE_CHECKING:`` imports are annotation-only and count as module level.
+        for block in tree.body:
+            if isinstance(block, ast.If) and getattr(block.test, "id", None) == "TYPE_CHECKING":
+                top |= {id(node) for node in block.body}
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom) and node.module and node.module.startswith("mobo_linac"):
                 yield module, node.module, id(node) in top

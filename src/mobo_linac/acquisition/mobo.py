@@ -6,7 +6,7 @@ Constructs and optimizes qLogNEHVI and qEHVI acquisition functions.
 
 from copy import deepcopy
 from dataclasses import asdict, dataclass
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any, Dict, List, Optional, Union
 
 import torch
 from botorch.acquisition.multi_objective.logei import (
@@ -24,7 +24,6 @@ from botorch.utils.multi_objective.box_decompositions.non_dominated import (
 
 from botorch.acquisition.multi_objective.objective import IdentityMCMultiOutputObjective
 from mobo_linac.campaign_options import MULTIOBJECTIVE_ACQUISITIONS, Acquisition, decode_acquisition
-from mobo_linac.metrics.hypervolume import compute_reference_point
 
 from mobo_linac.utils import get_device, get_logger
 from mobo_linac.utils.device import module_device

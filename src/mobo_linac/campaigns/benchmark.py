@@ -16,7 +16,6 @@ import torch
 from torch.quasirandom import SobolEngine
 
 from mobo_linac.benchmark_algorithms import (
-    SUPPORTED_BENCHMARK_ALGORITHMS,
     get_benchmark_algorithm,
 )
 from mobo_linac.config import BenchmarkConfig, MoboConfig
@@ -313,7 +312,7 @@ class BenchmarkCampaignRunner:
         effective_budget = self.total_eval_budget
 
         if dry_run:
-            logger.info(f"[DRY-RUN] Benchmark Campaign Plan:")
+            logger.info("[DRY-RUN] Benchmark Campaign Plan:")
             logger.info(f"  - Output Directory: {self.output_dir.resolve()}")
             logger.info(f"  - Algorithms ({len(self.algorithms)}): {self.algorithms}")
             logger.info(f"  - Seeds ({len(self.seeds)}): {self.seeds}")

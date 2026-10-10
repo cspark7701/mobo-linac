@@ -1,5 +1,5 @@
 """
-Unit tests for CLI Workflow Execution, Dry-Run Mode, and Mock-Evaluator (Task 05).
+Unit tests for CLI Workflow Execution, Dry-Run Mode, and Mock-Evaluator.
 """
 
 import pytest
@@ -16,11 +16,12 @@ def test_cli_help(capsys):
             main()
         assert exc_info.value.code == 0
         captured = capsys.readouterr()
-        assert f"usage: mobo-linac {cmd}" in captured.out or f"usage: mobo-linac" in captured.out
+        assert f"usage: mobo-linac {cmd}" in captured.out or "usage: mobo-linac" in captured.out
 
 
-def test_cli_dry_run(capsys, tmp_path):
-    """Verify --dry-run flag for all workflow subcommands."""
+def test_cli_dry_run(capsys, tmp_path, monkeypatch):
+    """Verify --dry-run flag for all workflow subcommands (no measured runs below the working directory)."""
+    monkeypatch.chdir(tmp_path)
     subcommands = [
         ["run-unconstrained", "--dry-run", "--output-dir", str(tmp_path / "dry_un")],
         ["run-constrained", "--dry-run", "--output-dir", str(tmp_path / "dry_co")],
@@ -71,7 +72,6 @@ def test_cli_mock_evaluator_workflows(tmp_path):
 
 
 def test_benchmark_cli_forwards_workers_and_algorithm_settings(tmp_path, monkeypatch):
-    from mobo_linac.campaigns.benchmark import BenchmarkCampaignRunner
 
     captured = {}
 
@@ -180,20 +180,15 @@ def test_cli_resume_uses_embedded_config_outside_project_cwd(tmp_path, monkeypat
 
 def test_cli_recovers_initial_design_before_first_completed_checkpoint(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
-    from mobo_linac.execution import MockEvaluator
     from mobo_linac.io.checkpoint import load_run_checkpoint
     from mobo_linac.io.journal import load_streaming_evaluations
 
-    class InterruptedEvaluator(MockEvaluator):
-        def evaluate(self, requests, run_id, on_complete=None):
-            on_complete(self.respond(requests[1].parameters, run_id, requests[1].eval_id))
-            raise RuntimeError("before checkpoint zero")
-
+    from tests.evaluators import ScriptedEvaluator
     with pytest.raises(RuntimeError, match="before checkpoint zero"):
         MoboCampaignRunner(
             output_dir=tmp_path, num_initial_samples=3, num_batches=0,
             optimization_mode="scalarized_bo", scalar_weights=[0.6, 0.3, 0.1],
-            evaluator=InterruptedEvaluator(tmp_path), device="cpu", export_plots=False,
+            evaluator=ScriptedEvaluator(tmp_path, interrupt_batch=0, completion_position=1, message="before checkpoint zero"), device="cpu", export_plots=False,
         ).run()
     assert not (tmp_path / "checkpoints" / "checkpoint.pt").exists()
     main(["resume", "--run-dir", str(tmp_path), "--mock-evaluator"])

@@ -1,5 +1,5 @@
 """
-Unit tests for Diagnostic Constraints and Feasibility (Task 04).
+Unit tests for Diagnostic Constraints and Feasibility.
 """
 
 import pytest

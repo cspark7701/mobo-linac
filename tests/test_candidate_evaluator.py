@@ -4,7 +4,6 @@ Unit tests for CandidateEvaluatorBase, RobustnessEvaluator, and ParetoVerifier.
 
 from mobo_linac.result_schema import ResultSchema
 from pathlib import Path
-import numpy as np
 import pytest
 
 from mobo_linac.execution import FunctionEvaluator
@@ -13,7 +12,6 @@ from tests.evaluators import callable_evaluator
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.execution.candidate_evaluator import (
     CandidateEvaluatorBase,
-    EvaluationOutcome,
     EvaluationTask,
     compute_metric_deltas,
 )
@@ -270,7 +268,6 @@ def test_cli_and_script_honor_config_through_shared_workflow(sample_candidate, r
 def test_analysis_streams_typed_results_and_returns_request_order(tmp_path, monkeypatch):
     from mobo_linac.config import load_config
     from mobo_linac.execution.mock import MockEvaluator
-    from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask
     from mobo_linac.evaluation import create_evaluation_result
     config = load_config('configs/publication_200MeV.yaml')
     class Analysis(CandidateEvaluatorBase):

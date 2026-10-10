@@ -1,9 +1,8 @@
 """Publication readers preserve measured identity and explicit reporting conventions."""
 import json
-from pathlib import Path
 import pytest
 
-from mobo_linac.io.run_data import read_run_data, read_comparable_runs, load_candidates, discover_candidate_source
+from mobo_linac.io.run_data import read_run_data, load_candidates, discover_candidate_source
 from mobo_linac.metrics.publication import campaign_summary, generate_campaign_summary_latex_table
 
 

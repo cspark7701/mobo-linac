@@ -4,7 +4,6 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Union
 
-import torch
 from botorch.models import ModelListGP, SingleTaskGP
 
 from mobo_linac.utils.durable import atomic_torch_save, safe_torch_load

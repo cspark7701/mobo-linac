@@ -1,13 +1,11 @@
 """
-Unit tests for Fixed-Noise GP Treatment, Noise Modes, and Repeatability Utilities (Task 07).
+Unit tests for Fixed-Noise GP Treatment, Noise Modes, and Repeatability Utilities.
 """
 
 import pytest
 import numpy as np
 import torch
-from botorch.models import ModelListGP
 
-from mobo_linac.config import GpModelConfig, MoboConfig
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
 from mobo_linac.models.gp import SurrogateSettings, build_gp_models, channel_record, fit_gp_models
 from mobo_linac.models.pipeline import SurrogatePipeline
@@ -122,7 +120,7 @@ def test_repeatability_utility():
 def test_relative_noise_variance_scaling():
     """
     Verify that relative noise scaling assigns observation variance proportional to
-    each objective's empirical scale (Task 01).
+    each objective's empirical scale.
     """
     torch.manual_seed(123)
     N = 15

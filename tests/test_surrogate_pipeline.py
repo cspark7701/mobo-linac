@@ -1,5 +1,5 @@
 """
-Unit tests for SurrogatePipeline (Task 31 refactoring).
+Unit tests for SurrogatePipeline.
 """
 
 import pytest

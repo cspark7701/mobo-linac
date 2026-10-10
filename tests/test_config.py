@@ -1,5 +1,5 @@
 """
-Unit tests for Centralized Configuration System & Strict Schema Validation (Task 17).
+Unit tests for Centralized Configuration System & Strict Schema Validation.
 """
 
 import json

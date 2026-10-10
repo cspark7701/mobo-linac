@@ -8,7 +8,7 @@ from typing import List, Optional, Sequence
 
 from mobo_linac.display import objective_displays
 from mobo_linac.metrics.latex import RawLatex, Table, _markdown_text, _write_table, format_measured, format_scientific, objective_columns, verification_records, verification_table
-from mobo_linac.metrics.reporting import reporting_metadata, validate_campaign_compatibility
+from mobo_linac.metrics.reporting import validate_campaign_compatibility
 from mobo_linac.metrics.selection import select_representatives
 
 def compute_target_distance(values, targets) -> float:

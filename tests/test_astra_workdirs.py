@@ -1,5 +1,5 @@
 """
-Unit and Integration Tests for ASTRA Isolated Working Directories (Task 02).
+Unit and Integration Tests for ASTRA Isolated Working Directories.
 """
 
 import json
@@ -293,7 +293,6 @@ def test_missing_executable_fails_before_any_attempt_is_reserved(tmp_path, monke
 
 def test_second_lattice_runs_through_configuration_only(tmp_path, monkeypatch):
     """A different template directory and static-file set needs no code change."""
-    import json
     import os
     from dataclasses import replace
     from mobo_linac.astra.workdir import read_evaluation_manifest

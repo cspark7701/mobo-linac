@@ -7,7 +7,7 @@ name = "mobo-linac"
 version = "1.0.0"
 description = "Multi-Objective Bayesian Optimization for a 200 MeV Electron Injector Linac"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.10"
 license = { text = "MIT" }
 authors = [
   { name = "Chong Shik Park", email = "kuphy@korea.ac.kr" }
@@ -29,6 +29,11 @@ dependencies = [
 dev = [
     "pytest>=8.0.0",
     "pytest-cov>=4.0.0",
+    "ruff>=0.6",
+    "build>=1.0",
+    "nbformat>=5.9",
+    "nbclient>=0.10",
+    "ipykernel>=6.0",
 ]
 
 [project.scripts]
@@ -40,14 +45,27 @@ where = ["src"]
 [tool.pytest.ini_options]
 pythonpath = ["src", "."]
 testpaths = ["tests"]
-addopts = "-W ignore"
 markers = [
     "integration: mark test as an integration test running real ASTRA simulations.",
 ]
+# Warnings raised by this package fail the suite unless a test asserts them with pytest.warns;
+# third-party warnings are reported but do not fail.
 filterwarnings = [
-    "ignore",
+    "default",
+    "error::SyntaxWarning",
+    "error::DeprecationWarning:mobo_linac.*",
+    "error::RuntimeWarning:mobo_linac.*",
+    "error::UserWarning:mobo_linac.*",
 ]
 
+[tool.ruff]
+line-length = 120
+target-version = "py310"
+extend-exclude = ["notebooks", "release", "results"]
 
+[tool.ruff.lint]
+# pyflakes, syntax errors and invalid escape sequences
+select = ["F", "E9", "W605"]
 
-
+[tool.ruff.lint.per-file-ignores]
+"**/__init__.py" = ["F401"]  # package re-exports

@@ -9,7 +9,7 @@ This document provides complete instructions for setting up the **Multi-Objectiv
 Before installing, ensure your system meets the following requirements:
 
 - **Operating System**: Linux 64-bit (Ubuntu 20.04+, RHEL/CentOS 8+, or WSL2 on Windows)
-- **Python**: Python 3.10 or 3.11 (Python 3.11 recommended)
+- **Python**: Python 3.10, 3.11 or 3.12 (CI-tested; 3.11 recommended)
 - **Environment Manager**: [Conda / Miniconda](https://docs.conda.io/en/latest/miniconda.html) or `mamba` (recommended)
 - **Git**: Installed and configured
 - **System Libraries**: Standard Linux C/Fortran runtime libraries (`gfortran`, `libgomp`) for running ASTRA binaries

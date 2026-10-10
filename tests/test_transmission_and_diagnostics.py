@@ -1,5 +1,5 @@
 """
-Tests for Transmission Computation, Diagnostic Integrity, and Range Validation (Task 02).
+Tests for Transmission Computation, Diagnostic Integrity, and Range Validation.
 """
 
 import math
@@ -8,9 +8,7 @@ import numpy as np
 import pandas as pd
 
 from mobo_linac.config import load_config
-from mobo_linac.constraints import ConstraintEvaluator
 from mobo_linac.evaluation import (
-    EvaluationResult,
     FailureCategory,
     create_evaluation_result,
 )
@@ -276,7 +274,7 @@ def test_invalid_particle_counts():
 
 
 def test_premature_beam_loss_exit_plane_rejection():
-    """Verify rejection of premature beam termination before reaching exit plane (Task 03)."""
+    """Verify rejection of premature beam termination before reaching exit plane."""
     config = load_config()
     raw = get_valid_raw_output()
 

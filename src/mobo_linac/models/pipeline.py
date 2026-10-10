@@ -7,7 +7,7 @@ and constraint feasibility modeling in a clean, unified interface.
 
 from dataclasses import asdict
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+from typing import Optional, Tuple, Union
 import torch
 from torch import Tensor
 from botorch.models import ModelListGP

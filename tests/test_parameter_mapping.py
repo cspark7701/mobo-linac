@@ -1,11 +1,10 @@
 """
-Unit tests for Config-Driven Dynamic Parameter Mapping & Beamline Element Decoupling (Task 02).
+Unit tests for Config-Driven Dynamic Parameter Mapping & Beamline Element Decoupling.
 """
 
 import pytest
-from pathlib import Path
-from mobo_linac.config import DesignVariableConfig, MoboConfig, load_config
-from mobo_linac.astra.runner import apply_parameters_to_astra, run_astra_eval
+from mobo_linac.config import DesignVariableConfig, load_config
+from mobo_linac.astra.runner import apply_parameters_to_astra
 
 
 def test_apply_parameters_requires_configuration():

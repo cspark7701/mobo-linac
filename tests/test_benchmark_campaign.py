@@ -1,8 +1,7 @@
 """
-Unit tests for Statistically Rigorous Benchmark Campaign Orchestration and Analysis (Task 06).
+Unit tests for Statistically Rigorous Benchmark Campaign Orchestration and Analysis.
 """
 
-from mobo_linac.result_schema import ResultSchema
 from mobo_linac.requests import requests_for
 import json
 from pathlib import Path
@@ -117,10 +116,6 @@ def test_benchmark_campaign_manifest_generation(tmp_path):
 def test_explicit_algorithm_dispatch(tmp_path, monkeypatch, algorithm, mode, acquisition, constrained):
     from mobo_linac.execution import MockEvaluator
     from mobo_linac.evaluation import create_evaluation_result
-    from mobo_linac.metrics.exports import save_evaluation_results
-    import mobo_linac.campaigns.runner as campaign_module
-    import mobo_linac.campaigns.strategies as strategies_module
-    import mobo_linac.campaigns.benchmark as benchmark_module
 
     captured = {}
 
@@ -206,21 +201,12 @@ def test_invalid_benchmark_settings(tmp_path, algorithms, seeds, initial, batch)
 
 def test_mock_campaign_exact_budget_pairing_and_completion(tmp_path, monkeypatch):
     import json
-    from mobo_linac.execution import MockEvaluator
     from mobo_linac.benchmark_algorithms import SUPPORTED_BENCHMARK_ALGORITHMS
     from mobo_linac.campaigns.runner import MoboCampaignRunner
 
     # Failed evaluations still count toward the exact budget and bypass expensive GP fitting.
-    class RecordingEvaluator(MockEvaluator):
-        def __init__(self):
-            super().__init__(tmp_path, fail_eval_ids=[f"eval_{i:06d}" for i in range(1, 7)])
-            self.batches = []
-
-        def evaluate(self, requests, run_id, on_complete=None):
-            self.batches.append((run_id, [r.parameters for r in requests]))
-            return super().evaluate(requests, run_id, on_complete)
-
-    evaluator = RecordingEvaluator()
+    from tests.evaluators import ScriptedEvaluator
+    evaluator = ScriptedEvaluator(tmp_path, fail_eval_ids=[f"eval_{i:06d}" for i in range(1, 7)])
     original_init = MoboCampaignRunner.__init__
 
     def no_plot_init(self, **kwargs):
@@ -234,8 +220,8 @@ def test_mock_campaign_exact_budget_pairing_and_completion(tmp_path, monkeypatch
     )
     manifest = runner.execute_benchmark_campaigns(mock_evaluator=evaluator)
     assert manifest["status"].tolist() == ["completed"] * 4
-    assert [len(candidates) for _, candidates in evaluator.batches] == [2, 2, 1] * 4
-    initial_designs = [torch.tensor(evaluator.batches[i][1]) for i in range(0, 12, 3)]
+    assert [len(candidates) for _, candidates, _ in evaluator.submissions] == [2, 2, 1] * 4
+    initial_designs = [torch.tensor(evaluator.submissions[i][1]) for i in range(0, 12, 3)]
     assert all(torch.equal(initial_designs[0], design) for design in initial_designs)
     for algorithm in SUPPORTED_BENCHMARK_ALGORITHMS:
         run_dir = runner.get_run_dir(algorithm, 42)
@@ -397,17 +383,14 @@ def test_mock_interruption_leaves_incomplete_state(tmp_path):
     import json
     from mobo_linac.execution import MockEvaluator
 
-    class InterruptingEvaluator(MockEvaluator):
-        def evaluate(self, requests, run_id, on_complete=None):
-            raise RuntimeError("Injected interruption")
-
+    from tests.evaluators import ScriptedEvaluator
     runner = BenchmarkCampaignRunner(
         config=load_config("configs/publication_200MeV.yaml"), output_dir=tmp_path,
         algorithms=["unconstrained_qlognehvi"], seeds=[42],
         n_sobol_init=1, total_eval_budget=2, batch_size=2, device="cpu",
     )
     with pytest.raises(RuntimeError, match="Injected interruption"):
-        runner.execute_benchmark_campaigns(mock_evaluator=InterruptingEvaluator(tmp_path))
+        runner.execute_benchmark_campaigns(mock_evaluator=ScriptedEvaluator(tmp_path, interrupt_batch=0, message="Injected interruption"))
     run_dir = runner.get_run_dir("unconstrained_qlognehvi", 42)
     state = json.loads((run_dir / "benchmark_state.json").read_text())
     assert state["status"] == "running"
@@ -420,8 +403,6 @@ def test_mock_interruption_leaves_incomplete_state(tmp_path):
 def test_missing_persisted_history_cannot_complete(tmp_path, monkeypatch):
     from mobo_linac.execution import MockEvaluator
     from mobo_linac.evaluation import create_evaluation_result
-    import mobo_linac.campaigns.runner as campaign_module
-    import mobo_linac.campaigns.strategies as strategies_module
 
     class MissingArtifactRunner:
         def __init__(self, **kwargs):

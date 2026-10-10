@@ -1,5 +1,5 @@
 """Configured verification service with legacy function wrappers."""
-from dataclasses import asdict, replace
+from dataclasses import asdict
 import math
 import json
 import uuid

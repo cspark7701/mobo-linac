@@ -1,5 +1,5 @@
 """
-Unit tests for Checkpoint Writing, Resuming, and Deterministic Continuation (Task 04).
+Unit tests for Checkpoint Writing, Resuming, and Deterministic Continuation.
 """
 
 import pytest
@@ -11,6 +11,7 @@ from mobo_linac.config import load_config
 from mobo_linac.campaigns.runner import MoboCampaignRunner
 from mobo_linac.execution import MockEvaluator
 from mobo_linac.io.checkpoint import load_run_checkpoint
+from tests.evaluators import ScriptedEvaluator
 from mobo_linac.io.results import get_train_tensors
 
 
@@ -386,16 +387,10 @@ def test_batch_size_override_keeps_completed_membership(tmp_path):
 
 
 def test_saved_budget_restored_and_replans_for_batch_override(tmp_path):
-    class InterruptedEvaluator(MockEvaluator):
-        def evaluate(self, requests, run_id="mock", on_complete=None):
-            if requests[0].eval_id == "eval_000005":
-                raise RuntimeError("interrupted before second batch")
-            return super().evaluate(requests, run_id, on_complete)
-
     with pytest.raises(RuntimeError, match="interrupted"):
         MoboCampaignRunner(
             output_dir=tmp_path, num_initial_samples=2, num_batches=3, batch_size=2,
-            total_eval_budget=7, evaluator=InterruptedEvaluator(tmp_path), device="cpu", export_plots=False,
+            total_eval_budget=7, evaluator=ScriptedEvaluator(tmp_path, interrupt_at_id="eval_000005", message="interrupted before second batch"), device="cpu", export_plots=False,
         ).run()
     checkpoint = load_run_checkpoint(tmp_path)
     assert checkpoint.iteration == 1
@@ -544,24 +539,6 @@ def test_resume_rejects_explicit_device_change_even_without_cuda(tmp_path):
     assert (tmp_path / "config.yaml").read_bytes() == original_config
 
 
-class InterruptingStreamEvaluator(MockEvaluator):
-    """Complete one chosen candidate out of order, then interrupt the parent."""
-
-    def __init__(self, run_dir, interrupt_batch=None, completion_position=1, **kwargs):
-        super().__init__(run_dir, **kwargs)
-        self.interrupt_batch = interrupt_batch
-        self.completion_position = completion_position
-        self.submissions = []
-
-    def evaluate(self, requests, run_id="mock", on_complete=None):
-        self.submissions.append(([r.eval_id for r in requests], [r.parameters for r in requests]))
-        if len(self.submissions) - 1 == self.interrupt_batch:
-            request = requests[self.completion_position]
-            on_complete(self.respond(request.parameters, run_id, request.eval_id))
-            raise RuntimeError("Injected parent interruption")
-        return super().evaluate(requests, run_id, on_complete)
-
-
 @pytest.mark.parametrize("mode", ["unconstrained_mobo", "constrained_mobo", "scalarized_bo"])
 @pytest.mark.parametrize("interrupted_batch", [0, 1])
 def test_partial_batch_recovery_matches_uninterrupted_campaign(tmp_path, mode, interrupted_batch):
@@ -576,7 +553,7 @@ def test_partial_batch_recovery_matches_uninterrupted_campaign(tmp_path, mode, i
         **options, output_dir=full_dir, evaluator=MockEvaluator(full_dir, fail_eval_ids=failed),
     ).run()
     interrupted_dir = tmp_path / "interrupted"
-    evaluator = InterruptingStreamEvaluator(interrupted_dir, interrupted_batch, fail_eval_ids=failed)
+    evaluator = ScriptedEvaluator(interrupted_dir, interrupt_batch=interrupted_batch, completion_position=1, fail_eval_ids=failed)
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(**options, output_dir=interrupted_dir, evaluator=evaluator).run()
     pending = load_run_checkpoint(interrupted_dir / "checkpoints" / "pending_batch.pt")
@@ -587,7 +564,7 @@ def test_partial_batch_recovery_matches_uninterrupted_campaign(tmp_path, mode, i
         assert not (interrupted_dir / "checkpoints" / "checkpoint.pt").exists()
     # A stale CSV must never override the exact journal.
     (interrupted_dir / "evaluations_stream.csv").write_text("stale,csv\n")
-    resumed_evaluator = InterruptingStreamEvaluator(interrupted_dir, fail_eval_ids=failed)
+    resumed_evaluator = ScriptedEvaluator(interrupted_dir, fail_eval_ids=failed)
     resumed, tracker, _ = MoboCampaignRunner(
         output_dir=interrupted_dir, resume=True, evaluator=resumed_evaluator,
         device="cpu", export_plots=False, export_env_info=False,
@@ -599,7 +576,7 @@ def test_partial_batch_recovery_matches_uninterrupted_campaign(tmp_path, mode, i
     assert tracker.history == full_tracker.history
     assert len(load_streaming_records(interrupted_dir)) == len(full)
     assert not (interrupted_dir / "checkpoints" / "pending_batch.pt").exists()
-    idle_evaluator = InterruptingStreamEvaluator(interrupted_dir)
+    idle_evaluator = ScriptedEvaluator(interrupted_dir)
     again, again_tracker, _ = MoboCampaignRunner(
         output_dir=interrupted_dir, resume=True, evaluator=idle_evaluator, device="cpu",
         export_plots=False, export_env_info=False,
@@ -615,15 +592,15 @@ def test_repeated_initial_batch_interruptions_preserve_completed_work(tmp_path):
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(
             output_dir=tmp_path, num_initial_samples=3, num_batches=0, device="cpu",
-            evaluator=InterruptingStreamEvaluator(tmp_path, 0, completion_position=2),
+            evaluator=ScriptedEvaluator(tmp_path, interrupt_batch=0, completion_position=2),
             export_plots=False, export_env_info=False,
         ).run()
-    evaluator = InterruptingStreamEvaluator(tmp_path, 0, completion_position=1)
+    evaluator = ScriptedEvaluator(tmp_path, interrupt_batch=0, completion_position=1)
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=evaluator, device="cpu",
                            export_plots=False, export_env_info=False).run()
     assert evaluator.submissions[0][0] == ["eval_000001", "eval_000002"]
-    final_evaluator = InterruptingStreamEvaluator(tmp_path)
+    final_evaluator = ScriptedEvaluator(tmp_path)
     results, _, _ = MoboCampaignRunner(
         output_dir=tmp_path, resume=True, evaluator=final_evaluator, device="cpu",
         export_plots=False, export_env_info=False,
@@ -637,7 +614,6 @@ def test_repeated_initial_batch_interruptions_preserve_completed_work(tmp_path):
 @pytest.mark.parametrize("interrupted_iteration", [0, 1])
 def test_checkpoint_commit_interruption_does_not_repeat_completed_batch(tmp_path, monkeypatch, after_commit, interrupted_iteration):
     import mobo_linac.campaigns.runner as runner_module
-    import mobo_linac.campaigns.strategies as strategies_module
 
     original_save = runner_module.save_run_checkpoint
 
@@ -656,7 +632,7 @@ def test_checkpoint_commit_interruption_does_not_repeat_completed_batch(tmp_path
                 output_dir=tmp_path, num_initial_samples=3, num_batches=interrupted_iteration, batch_size=2,
                 evaluator=MockEvaluator(tmp_path), device="cpu", export_plots=False,
             ).run()
-    evaluator = InterruptingStreamEvaluator(tmp_path)
+    evaluator = ScriptedEvaluator(tmp_path)
     results, tracker, _ = MoboCampaignRunner(
         output_dir=tmp_path, resume=True, evaluator=evaluator, device="cpu", export_plots=False,
     ).run()
@@ -669,22 +645,11 @@ def test_checkpoint_commit_interruption_does_not_repeat_completed_batch(tmp_path
 @pytest.mark.parametrize("swallow_callback_error", [False, True])
 def test_campaign_callback_persistence_failure_is_observable(tmp_path, monkeypatch, swallow_callback_error):
     import mobo_linac.campaigns.runner as runner_module
-    import mobo_linac.campaigns.strategies as strategies_module
 
     def fail_append(*args, **kwargs):
         raise OSError("Injected journal disk failure")
 
-    class SwallowingEvaluator(MockEvaluator):
-        def evaluate(self, requests, run_id, on_complete=None):
-            results = super().evaluate(requests, run_id)
-            for result in results:
-                try:
-                    on_complete(result)
-                except OSError:
-                    pass
-            return results
-
-    evaluator = SwallowingEvaluator(tmp_path) if swallow_callback_error else MockEvaluator(tmp_path)
+    evaluator = ScriptedEvaluator(tmp_path, swallow_callback_errors=True) if swallow_callback_error else MockEvaluator(tmp_path)
     with monkeypatch.context() as patch:
         patch.setattr(runner_module.EvaluationJournal, "append", fail_append)
         with pytest.raises(OSError, match="journal disk failure"):
@@ -705,8 +670,8 @@ def test_pending_batch_size_override_applies_after_recovered_batch(tmp_path):
     options = dict(output_dir=tmp_path, num_initial_samples=3, num_batches=3, batch_size=2,
                    total_eval_budget=8, device="cpu", export_plots=False, export_env_info=False)
     with pytest.raises(RuntimeError, match="parent interruption"):
-        MoboCampaignRunner(**options, evaluator=InterruptingStreamEvaluator(tmp_path, 1)).run()
-    evaluator = InterruptingStreamEvaluator(tmp_path)
+        MoboCampaignRunner(**options, evaluator=ScriptedEvaluator(tmp_path, interrupt_batch=1, completion_position=1)).run()
+    evaluator = ScriptedEvaluator(tmp_path)
     runner = MoboCampaignRunner(output_dir=tmp_path, resume=True, batch_size=3, device="cpu",
                                 evaluator=evaluator, export_plots=False, export_env_info=False)
     results, tracker, _ = runner.run()
@@ -736,7 +701,7 @@ def test_inflight_fallback_recovery_restores_post_proposal_rng(tmp_path, monkeyp
     ).run()
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(**options, output_dir=split_dir,
-                           evaluator=InterruptingStreamEvaluator(split_dir, 1)).run()
+                           evaluator=ScriptedEvaluator(split_dir, interrupt_batch=1, completion_position=1)).run()
     pending = load_run_checkpoint(split_dir / "checkpoints" / "pending_batch.pt")
     assert pending.progress.sobol_state["num_generated"] == 5
     assert pending.proposals.pending_proposal["metadata"] == pending.proposals.proposal_history[-1]["metadata"]
@@ -762,7 +727,7 @@ def test_recovery_conflicts_fail_before_writes(tmp_path, corruption):
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(
             output_dir=tmp_path, num_initial_samples=3, num_batches=2, batch_size=2,
-            evaluator=InterruptingStreamEvaluator(tmp_path, 1), device="cpu", export_plots=False,
+            evaluator=ScriptedEvaluator(tmp_path, interrupt_batch=1, completion_position=1), device="cpu", export_plots=False,
         ).run()
     journal = tmp_path / "evaluations_stream.jsonl"
     pending_path = tmp_path / "checkpoints" / "pending_batch.pt"
@@ -789,7 +754,7 @@ def test_recovery_conflicts_fail_before_writes(tmp_path, corruption):
             lines[-1] = json.dumps(record)
         journal.write_text("\n".join(lines) + "\n")
     before = {str(p.relative_to(tmp_path)): p.read_bytes() for p in tmp_path.rglob("*") if p.is_file()}
-    evaluator = InterruptingStreamEvaluator(tmp_path)
+    evaluator = ScriptedEvaluator(tmp_path)
     with pytest.raises(ValueError):
         MoboCampaignRunner(output_dir=tmp_path, resume=True, evaluator=evaluator,
                            device="cpu", export_plots=False).run()
@@ -803,11 +768,11 @@ def test_resume_pending_file_repairs_truncated_tail_and_retains_completed_work(t
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(
             output_dir=tmp_path, num_initial_samples=3, num_batches=0,
-            evaluator=InterruptingStreamEvaluator(tmp_path, 0), device="cpu", export_plots=False,
+            evaluator=ScriptedEvaluator(tmp_path, interrupt_batch=0, completion_position=1), device="cpu", export_plots=False,
         ).run()
     with (tmp_path / "evaluations_stream.jsonl").open("ab") as stream:
         stream.write(b'{"evaluation":')
-    evaluator = InterruptingStreamEvaluator(tmp_path)
+    evaluator = ScriptedEvaluator(tmp_path)
     with pytest.warns(RuntimeWarning, match="truncated trailing"):
         results, _, _ = MoboCampaignRunner(
             resume_from=tmp_path / "checkpoints" / "pending_batch.pt", evaluator=evaluator,
@@ -880,20 +845,13 @@ def test_parallel_batch_elapsed_time_is_distinct_from_sum_of_worker_runtimes(tmp
     import json
     import pandas as pd
     import mobo_linac.campaigns.runner as runner_module
-    import mobo_linac.campaigns.strategies as strategies_module
     clock = [0.0]
     monkeypatch.setattr(runner_module.time, "perf_counter", lambda: clock[0])
-    class ParallelTimingEvaluator(MockEvaluator):
-        def evaluate(self, *args, **kwargs):
-            # Four workers each report five seconds; their batch completes in six seconds.
-            clock[0] += 6.0
-            return super().evaluate(*args, **kwargs)
-        def respond(self, *args, **kwargs):
-            record = super().respond(*args, **kwargs)
-            record["timestamps"]["duration_sec"] = 5.0
-            return record
+    def advance():  # four workers each report five seconds; their batch completes in six seconds
+        clock[0] += 6.0
     runner = MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=4, num_batches=0,
-                                evaluator=ParallelTimingEvaluator(tmp_path), export_plots=False, device="cpu")
+                                evaluator=ScriptedEvaluator(tmp_path, before_batch=advance, duration_sec=5.0),
+                                export_plots=False, device="cpu")
     runner.run()
     metrics = pd.read_csv(tmp_path / "metrics_history.csv")
     assert metrics.total_wallclock_s.iloc[-1] == 6.0
@@ -902,8 +860,6 @@ def test_parallel_batch_elapsed_time_is_distinct_from_sum_of_worker_runtimes(tmp
 
 
 def test_requested_plot_failure_prevents_final_completion(tmp_path, monkeypatch):
-    import mobo_linac.campaigns.runner as runner_module
-    import mobo_linac.campaigns.strategies as strategies_module
     def fail_plot(*args, **kwargs):
         raise OSError("Injected figure failure")
     monkeypatch.setattr("mobo_linac.plotting.plot_hypervolume_progress", fail_plot)
@@ -933,7 +889,7 @@ def test_completed_legacy_metadata_resume_exports_empty_history(tmp_path):
 def test_pending_proposal_history_conflict_fails_before_writes(tmp_path):
     with pytest.raises(RuntimeError, match="parent interruption"):
         MoboCampaignRunner(output_dir=tmp_path, num_initial_samples=3, num_batches=2, batch_size=2,
-                           evaluator=InterruptingStreamEvaluator(tmp_path, 1), device="cpu",
+                           evaluator=ScriptedEvaluator(tmp_path, interrupt_batch=1, completion_position=1), device="cpu",
                            export_plots=False, export_env_info=False).run()
     path = tmp_path / "checkpoints" / "pending_batch.pt"
     payload = load_run_checkpoint(path).to_dict()

@@ -1,13 +1,10 @@
 """
-Unit test for Documentation and Web Page Synchronization (Task 32).
+Unit test for Documentation and Web Page Synchronization.
 """
 
-import sys
 from pathlib import Path
 
 root_dir = Path(__file__).resolve().parent.parent
-if str(root_dir) not in sys.path:
-    sys.path.insert(0, str(root_dir))
 
 from mobo_linac.config import load_config
 from scripts.verify_docs_sync import verify_html_sync, verify_latex_sync

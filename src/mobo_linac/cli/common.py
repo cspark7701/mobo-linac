@@ -5,7 +5,6 @@ Shared argument mixins and mock evaluators for the mobo_linac CLI.
 from mobo_linac.campaign_options import Acquisition
 import warnings
 import argparse
-from pathlib import Path
 
 from mobo_linac.execution.mock import MockEvaluator
 

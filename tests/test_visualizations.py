@@ -2,7 +2,6 @@
 Unit tests for modularized plotting suite in mobo_linac.plotting.
 """
 
-from pathlib import Path
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -12,14 +11,11 @@ import torch
 from mobo_linac.config import load_config
 from mobo_linac.evaluation import EvaluationResult
 from mobo_linac.plotting import (
-    plot_benchmark_comparison,
-    plot_benchmark_feasibility_comparison,
     plot_best_so_far,
     plot_constraint_diagnostics,
     plot_constraint_violins,
     plot_design_variable_heatmap,
     plot_feasibility_rate,
-    plot_gp_surrogate_slice,
     plot_hypervolume_histories,
     plot_hypervolume_progress,
     plot_objective_evolution,
@@ -190,7 +186,6 @@ def test_noncanonical_configuration_figures(tmp_path):
 def test_campaign_finalization_leaves_no_open_figures(tmp_path):
     from mobo_linac.campaigns.runner import MoboCampaignRunner
     from mobo_linac.execution.mock import MockEvaluator
-    from mobo_linac.requests import requests_for
     plt.close("all")
     MoboCampaignRunner(config=CONFIG, output_dir=tmp_path / "run", num_initial_samples=3, num_batches=0,
                        device="cpu", export_plots=True, evaluator=MockEvaluator(tmp_path)).run()

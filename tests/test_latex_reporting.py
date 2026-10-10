@@ -1,5 +1,5 @@
 """
-Unit tests for Centralized LaTeX Table Generators (Refactor C).
+Unit tests for Centralized LaTeX Table Generators.
 """
 
 from pathlib import Path
@@ -175,7 +175,6 @@ def test_verification_table_includes_every_configured_objective():
 
 
 def test_reporting_modules_hold_no_objective_names_or_phase_counts():
-    from pathlib import Path
     root = Path(__file__).resolve().parents[1] / "src" / "mobo_linac" / "metrics"
     text = (root / "publication.py").read_text()
     for literal in ("norm_emit", "sigma_energy", "emit_x", "Phase 2", "Phase 3", "3.9236"):

@@ -8,7 +8,7 @@ opt-in for debugging. Results are returned aligned with the submitted requests.
 """
 
 from concurrent.futures import ProcessPoolExecutor, as_completed
-from dataclasses import asdict, dataclass, field
+from dataclasses import asdict, dataclass
 import multiprocessing
 import os
 from pathlib import Path
