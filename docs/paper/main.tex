@@ -82,47 +82,83 @@ optimization, Gaussian processes, particle accelerators, photoinjector, reproduc
 \section{Introduction}
 \label{sec:introduction}
 
-High-brightness electron injectors determine the beam quality available to free-electron lasers
-and ultrafast electron diffraction. Their performance is set in the first metres of the machine,
-where space charge couples the transverse and longitudinal dynamics, so that the gun phase,
-solenoid focusing, booster phasing and downstream quadrupole optics act jointly on the
-emittances and the energy spread. These goals conflict, and the useful outcome of a design
-study is a set of trade-offs rather than a single optimum. Each candidate must also satisfy
-operational limits on beam size, divergence, bunch length, energy and transmission, and every
-evaluation requires a space-charge tracking simulation that takes minutes.
+The electron injector sets the brightness available to the rest of a linear accelerator. X-ray
+free-electron lasers~\cite{Emma2010,Kang2017} and mega-electron-volt ultrafast electron
+diffraction~\cite{Weathersby2015} need bunches with small transverse emittance and small energy
+spread. Both are fixed largely in the first metres of the machine, where the beam is still
+non-relativistic and space charge dominates. There, the RF fields of the gun and the space-charge
+forces both increase the emittance~\cite{Kim1989}. Solenoid focusing combined with suitably phased
+booster structures can compensate part of this growth~\cite{Carlsten1989,Serafini1997}. As a
+result, the gun phase, the solenoid strength, the booster phasing and the downstream quadrupole
+optics act jointly on the emittances and the energy spread. These goals conflict, so a design
+study should deliver the set of achievable trade-offs, the Pareto front, rather than one optimum.
+Each candidate must also respect operational limits on beam size, divergence, bunch length,
+energy and transmission. Evaluating a candidate requires a space-charge tracking simulation that
+takes minutes.
 
-Genetic algorithms such as NSGA-II~\cite{Deb2002} have long been used to map such trade-offs for
-photoinjectors~\cite{Bazarov2005}, but they typically need tens of thousands of simulations;
-neural-network surrogates reduce this cost once a large training set exists~\cite{Edelen2020}.
-Bayesian optimization (BO)~\cite{Shahriari2016,Snoek2012} instead builds a probabilistic surrogate,
-usually a Gaussian process (GP)~\cite{Rasmussen2006}, from the evaluations made so far and
-selects new evaluations by maximizing an acquisition function. BO has become an established
-tool for online and offline accelerator tuning~\cite{Duris2020,Roussel2021,Roussel2024}.
-Multi-objective BO (MOBO) selects candidates by their expected improvement of the
-hypervolume~\cite{Zitzler1999} of the observed Pareto front; the parallel, noise-aware variant
-qNEHVI~\cite{Daulton2020,Daulton2021} and its numerically robust logarithmic form
-qLogNEHVI~\cite{Ament2023} propose batches of candidates for parallel simulation. Constraints
-can be handled by weighting the acquisition with the modelled probability of
-feasibility~\cite{Gardner2014,Daulton2021}.
+Multi-objective genetic algorithms, in particular NSGA-II~\cite{Deb2002}, are the established tool
+for mapping such trade-offs in photoinjector design~\cite{Bazarov2005,Hofler2013}. They have
+contributed to injectors whose measured emittances approach the simulated
+optimum~\cite{Gulliford2013}. Genetic algorithms, however, typically need tens of thousands of
+simulations. Neural-network surrogates trained on large simulation sets reduce the cost of the
+search itself~\cite{Edelen2020}. A recent study of the LCLS-II photoinjector compared genetic,
+surrogate-based and scalarization methods and found that the outcome depends on the algorithm and
+on its initial sample~\cite{Neveu2022}. Machine-learning methods are now explored throughout
+accelerator design and operation~\cite{Edelen2018}.
 
-Reported comparisons of such methods on accelerator problems often rest on a single run, use
-unequal simulation budgets, or measure hypervolume against reference points that move as the
-search proceeds, which makes the claimed advantages hard to assess. Simulated optima are also
-rarely re-simulated independently, although parallel execution of file-based simulation codes
-can silently mix inputs and outputs. In earlier work we compared weighted-sum BO settings for the
-injector studied here~\cite{Park2025ICABU}. In this paper we make three contributions.
+Bayesian optimization (BO)~\cite{Jones1998,Snoek2012,Shahriari2016} targets problems in which
+each evaluation is expensive. BO fits a probabilistic surrogate, usually a Gaussian process
+(GP)~\cite{Rasmussen2006}, to the evaluations made so far, and chooses the next evaluation by
+maximizing an acquisition function that balances exploitation and exploration. BO is now widely
+used to tune accelerators online:
+\begin{itemize}
+  \item free-electron laser tuning at LCLS~\cite{McIntire2016,Duris2020};
+  \item safe optimization in high dimensions at SwissFEL~\cite{Kirschner2019};
+  \item GP priors derived from physics models~\cite{Hanuka2021};
+  \item multi-objective online tuning~\cite{Roussel2021};
+  \item comparison with optimizers trained by reinforcement learning~\cite{Kaiser2024}.
+\end{itemize}
+A recent review gives an overview of BO for accelerator physics~\cite{Roussel2024}.
+
+Multi-objective BO (MOBO) extends BO to the Pareto front. Early methods either scalarize the
+objectives with random weights, as in ParEGO~\cite{Knowles2006}, or select candidates by their
+expected improvement of the hypervolume dominated by the front~\cite{Zitzler1999,Emmerich2006}.
+The parallel variants qEHVI and qNEHVI~\cite{Daulton2020,Daulton2021} propose batches of
+candidates for simultaneous simulation and account for observation noise. Their logarithmic forms
+avoid the vanishing gradients that hamper acquisition optimization~\cite{Ament2023}. Unknown
+constraints can be handled with separate surrogates for the constrained quantities, which weight
+the acquisition by the modelled probability of feasibility~\cite{Gardner2014,Gelbart2014,Daulton2021}.
+This is the setting of an injector design. Scalarized BO, the simplest alternative, needs the
+weights to be chosen in advance, and each weighting explores only part of the front.
+
+The evidence that such methods outperform simpler alternatives on accelerator problems is often
+thin. Comparisons can rest on a single run, on unequal simulation budgets, or on hypervolumes
+measured against reference points that change during the search. In machine learning more broadly,
+algorithm rankings have been shown to change with the random seed and the data
+sampling~\cite{Henderson2018,Bouthillier2021}. Multiple paired runs and predeclared metrics are
+therefore needed before a performance difference can be claimed. Optima found in simulation are
+also rarely re-simulated independently, although parallel execution of file-based codes can
+silently mix inputs and outputs. Their sensitivity to machine errors is often not reported either,
+although it decides whether a setting is usable.
+
+In earlier work we compared weighted-sum BO settings for the 200~MeV S-band injector studied
+here~\cite{Park2025ICABU}. In this paper we make three contributions.
 \begin{enumerate}
-\item We formulate the injector design as a three-objective, seven-channel constrained problem
-  and solve it with constraint-aware qLogNEHVI, with independent GP surrogates for the objectives
-  and for each constraint diagnostic (section~\ref{sec:methods}).
+\item We formulate the injector design as a problem with three objectives and constraints on
+  seven diagnostic channels. We solve it with constraint-aware qLogNEHVI, using independent GP
+  surrogates for the objectives and for each constraint diagnostic (section~\ref{sec:methods}).
 \item We compare constraint-aware qLogNEHVI, unconstrained qLogNEHVI and weighted-sum BO in a
-  paired, budget-matched experiment over ten seeds, in which every simulation, including failed
-  ones, is charged to the budget and hypervolume is measured over feasible evaluated points
-  against a fixed reference declared before the experiment (section~\ref{sec:design}).
-\item We audit selected Pareto-optimal settings by independent re-simulation with
-  hash-recorded inputs and by their response to lattice jitter, and release the software and all
-  campaign records (sections~\ref{sec:audit} and~\ref{sec:data}).
+  paired, budget-matched experiment over ten seeds. Every simulation, including failed ones,
+  counts against the budget, and hypervolume is measured over feasible evaluated points against
+  a fixed reference declared before the experiment (section~\ref{sec:design}).
+\item We audit selected Pareto-optimal settings by independent re-simulation with recorded input
+  hashes and by their response to lattice jitter. We release the software and all campaign
+  records (sections~\ref{sec:audit} and~\ref{sec:data}).
 \end{enumerate}
+Section~\ref{sec:problem} describes the injector model and the optimization problem, and
+section~\ref{sec:methods} the surrogates, acquisition functions and execution framework.
+Section~\ref{sec:design} defines the experimental protocol, section~\ref{sec:results} reports the
+results, and section~\ref{sec:discussion} discusses them and their limitations.
 
 %==========================================================================================
 \section{Injector model and optimization problem}
