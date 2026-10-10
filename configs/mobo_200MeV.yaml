@@ -113,7 +113,7 @@ simulation:
   executable: "../bin/astra"
 
 execution:
-  timeout_sec: 30
+  timeout_sec: 2000
   max_workers: 4
   retries: 0
   clean_on_success: false

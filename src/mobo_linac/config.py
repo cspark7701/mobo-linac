@@ -170,7 +170,7 @@ class SimulationConfig:
 class ExecutionConfig:
     """Execution runtime configuration."""
 
-    timeout_sec: int = 30
+    timeout_sec: int = 2000  # seconds per ASTRA attempt; one run takes about 280 s on the reference host
     max_workers: int = 4
     retries: int = 0
     clean_on_success: bool = False
