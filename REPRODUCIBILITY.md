@@ -79,9 +79,9 @@ recorded environment in `docs/environment/package_versions.txt` (checked by the 
 
 - Python: 3.11.10
 - PyTorch: 2.5.0
-- GPyTorch: 1.12
-- BoTorch: 0.11.3
-- NumPy: 1.26.4
+- GPyTorch: 1.15.2
+- BoTorch: 0.17.2 (BoTorch 0.11 requires NumPy < 2)
+- NumPy: 2.4.6 (the pinned distgen revision requires NumPy 2)
 - SciPy: 1.17.1
 - pandas: 3.0.3
 - matplotlib: 3.10.9

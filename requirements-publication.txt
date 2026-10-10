@@ -7,9 +7,9 @@
 # unpinned numpy requirement) unnecessary. ASTRA itself is the binary in ./bin/ (not a pip package).
 
 torch==2.5.0
-botorch==0.11.3
-gpytorch==1.12
-numpy==1.26.4
+botorch==0.17.2
+gpytorch==1.15.2
+numpy==2.4.6
 scipy==1.17.1
 pandas==3.0.3
 matplotlib==3.10.9
