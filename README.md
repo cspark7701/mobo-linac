@@ -62,6 +62,7 @@ mobo-linac/
 │   └── index.html                     # Project technical web portal
 │
 ├── scripts/                           # Thin campaign, comparison & reporting entry points (CLI wrappers)
+│   └── production/                    # Step-by-step paper production (01_preflight.sh ... 07_paper_outputs.sh)
 ├── tools/                             # Maintainer tooling (local CI check, cleanup, site sync)
 ├── notebooks/                         # Interactive analysis notebooks
 ├── tests/                             # Pytest suite (unit tests; ASTRA runs are marked `integration`)
@@ -539,7 +540,11 @@ generate manuscript artifacts under temporary paths.
 
 The [strategic simulation campaign plan](docs/strategic_simulation_campaign_plan.md)
 defines pilot gates, paired seed/budget comparisons, candidate audits and resource
-accounting. `scripts/run_full_production.sh` runs the Option 2 suite, unconstrained
+accounting. For the paper campaign, run the
+[step scripts](scripts/production/README.md) `scripts/production/01_preflight.sh` through
+`07_paper_outputs.sh` one at a time. They write logs and outputs to
+`results/paper_production/` and enforce the stage order, a clean tree and free disk space.
+`scripts/run_full_production.sh` runs the Option 2 suite, unconstrained
 and constrained MOBO, comparison/verification, then feasible-candidate robustness.
 It uses one explicit reporting reference and configuration across phases, respects
 custom executable overrides, retains step logs, and accepts `--dry-run` for a

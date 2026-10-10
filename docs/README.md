@@ -5,6 +5,7 @@ Each topic has one home. Run instructions live in the guides; scientific definit
 ## How to run
 - [simulation_guide.md](simulation_guide.md): the reference procedure (campaigns, benchmark, robustness, verification, manuscript reproduction).
 - [full_production_guide.md](full_production_guide.md): the end-to-end launcher `scripts/run_full_production.sh`.
+- [../scripts/production/README.md](../scripts/production/README.md): the step-by-step paper production scripts.
 - [strategic_simulation_campaign_plan.md](strategic_simulation_campaign_plan.md): the proposed production campaign budget and order.
 
 ## Scientific definitions

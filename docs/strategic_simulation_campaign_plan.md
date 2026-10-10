@@ -72,6 +72,13 @@ equal-budget algorithm comparison. Use the benchmark dispatcher for that claim.
 
 ## Executable sequence
 
+The [step scripts](../scripts/production/README.md) `scripts/production/01_preflight.sh`
+through `07_paper_outputs.sh` run this sequence one stage at a time with these parameters.
+They also run the full-launcher survey and the Stage 4 audit, and stage the manuscript outputs.
+They write logs and outputs under `results/paper_production/`. They enforce the stage order,
+a clean tree and free disk space, and record the commit and input hashes. The commands below
+are what those scripts execute.
+
 Activate the installed linac environment and run commands from the repository
 root. Use a fresh, descriptive output directory for each experiment. Set
 `PYTHON_BIN` to that environment's interpreter for the shell launcher; its default
