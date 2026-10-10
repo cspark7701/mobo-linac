@@ -78,6 +78,7 @@ def test_gp_posterior_output_shape():
         assert posterior.variance.shape == (5, 3)
 
 
+@pytest.mark.filterwarnings("ignore::botorch.exceptions.warnings.NumericsWarning")  # exercises legacy qEHVI/qNEHVI
 def test_acquisition_function_construction():
     """Verify construction of qLogNEHVI, qLogEHVI, qEHVI, and qNEHVI acquisition functions."""
     train_X = torch.rand(15, 6, dtype=torch.double)
@@ -226,6 +227,7 @@ def test_resilient_acquisition_sobol_fallback():
     assert acq_values.shape == (batch_size,)
 
 
+@pytest.mark.filterwarnings("ignore::botorch.exceptions.warnings.NumericsWarning")  # exercises legacy qEHVI/qNEHVI
 def test_compare_acquisition_functions():
     """Verify benchmarking and comparison of multiple acquisition function types."""
     from mobo_linac.models.tuning import compare_acquisition_functions
@@ -256,6 +258,7 @@ def test_compare_acquisition_functions():
     assert (summary_df["Status"] == "SUCCESS").all()
 
 
+@pytest.mark.filterwarnings("ignore::botorch.exceptions.warnings.NumericsWarning")  # exercises legacy qEHVI/qNEHVI
 def test_tune_acquisition_hyperparameters():
     """Verify acquisition hyperparameter grid search and ExecutionConfig selection."""
     from mobo_linac.models.tuning import tune_acquisition_hyperparameters
@@ -284,6 +287,7 @@ def test_tune_acquisition_hyperparameters():
     assert not acq_summary.comparison_table.empty
 
 
+@pytest.mark.filterwarnings("ignore::botorch.exceptions.warnings.NumericsWarning")  # exercises legacy qEHVI/qNEHVI
 def test_tune_full_optimization_pipeline():
     """Verify unified joint surrogate and acquisition hyperparameter optimization."""
     from mobo_linac.models.tuning import tune_full_optimization_pipeline

@@ -64,6 +64,17 @@ filterwarnings = [
     "error::DeprecationWarning:mobo_linac.*",
     "error::RuntimeWarning:mobo_linac.*",
     "error::UserWarning:mobo_linac.*",
+    # Known third-party notices, matched by message (they do not originate in mobo_linac):
+    # deprecations inside torch, lume-astra and openPMD-beamphysics
+    "ignore:`torch.jit.script` is deprecated:DeprecationWarning",
+    "ignore:The 'pmd_beamphysics' package name is deprecated:DeprecationWarning",
+    "ignore:unit\\(\\) is deprecated:DeprecationWarning",
+    "ignore:The set_under function will be deprecated:PendingDeprecationWarning",
+    # GPyTorch rounds the deterministic fixed noise (relative 1e-6 of Var(Y), about 1e-6 after
+    # outcome standardization) up to its double-precision floor of 1e-6, and clips round-off
+    # negative posterior variances; both are expected for near-noiseless simulation data.
+    "ignore:Very small noise values detected:gpytorch.utils.warnings.NumericalWarning",
+    "ignore:Negative variance values detected:gpytorch.utils.warnings.NumericalWarning",
 ]
 
 [tool.ruff]

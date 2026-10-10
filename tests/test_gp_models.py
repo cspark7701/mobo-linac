@@ -330,10 +330,13 @@ def test_exact_loo_matches_explicit_leave_one_out_conditioning():
         mean = gp.mean_module(inputs)
     for i in range(9):
         keep = [j for j in range(9) if j != i]
-        k = K[i, keep]
-        solve = torch.linalg.solve(K[keep][:, keep], torch.stack([targets[keep] - mean[keep], k], dim=-1))
-        assert loo["mean_std"][i] == pytest.approx(float(mean[i] + k @ solve[:, 0]), rel=1e-5, abs=1e-8)  # stabilizing jitter
-        assert loo["var_std"][i] == pytest.approx(float(K[i, i] - k @ solve[:, 1]), rel=1e-5, abs=1e-10)
+        with torch.no_grad():  # plain-number comparison; no autograd graph is needed
+            k = K[i, keep]
+            solve = torch.linalg.solve(K[keep][:, keep], torch.stack([targets[keep] - mean[keep], k], dim=-1))
+            expected_mean = (mean[i] + k @ solve[:, 0]).item()
+            expected_var = (K[i, i] - k @ solve[:, 1]).item()
+        assert loo["mean_std"][i].item() == pytest.approx(expected_mean, rel=1e-5, abs=1e-8)  # stabilizing jitter
+        assert loo["var_std"][i].item() == pytest.approx(expected_var, rel=1e-5, abs=1e-10)
 
 
 def test_tuning_records_failures_without_sentinel_scores(monkeypatch):

@@ -437,8 +437,11 @@ def test_journal_appends_are_constant_time_without_rereading(tmp_path, monkeypat
     reads = []
     original = journal_module._read
     monkeypatch.setattr(journal_module, "_read", lambda *a: reads.append(1) or original(*a))
-    monkeypatch.setattr(journal_module, "append_line_durable",  # isolate CPU cost from disk fsync
-                        lambda path, line: Path(path).open("a").write(line + "\n"))
+    def append_without_fsync(path, line):  # isolate CPU cost from disk fsync
+        with Path(path).open("a", encoding="utf-8") as stream:
+            stream.write(line + "\n")
+
+    monkeypatch.setattr(journal_module, "append_line_durable", append_without_fsync)
     records = _synthetic_results(5000)
     start = time.perf_counter()
     for index, result in enumerate(records):
