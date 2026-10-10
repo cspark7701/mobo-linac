@@ -68,7 +68,9 @@ Mock results are not physical evidence. Do not override budgets for the paper ca
 ## Notes
 
 - `production_tools.py` implements the records, summaries, forecasts and inventory used by the steps.
-- Step 7 stages figures and tables in `results/paper_production/07_paper_outputs/`. After review,
-  it prints the `scripts/reproduce_paper.sh` command that copies them into `docs/paper/`.
+- Step 7 stages figures and tables in `results/paper_production/07_paper_outputs/`: the manuscript
+  phases, the primary comparison figures and summary, and the audit tables. After review, it prints
+  the `scripts/reproduce_paper.sh` and copy commands that place them where `docs/paper/main.tex`
+  includes them.
 - `execution.retries` is 0 in `configs/publication_200MeV.yaml`, so a timed-out or failed ASTRA
   run consumes its budget slot and is reported as a failure.
