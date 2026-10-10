@@ -20,7 +20,7 @@ Each topic has one home. Run instructions live in the guides; scientific definit
 - [architecture/current_state.md](architecture/current_state.md): the historical pre-refactor baseline. The package layers are enforced by `tests/test_package_layout.py`.
 
 ## Results, manuscript and website
-- [results/mobo_validation_report.md](results/mobo_validation_report.md), `paper/` (manuscript), `consolidated_report/`.
+- `paper/` (manuscript), `consolidated_report/`. `mobo-linac compare` writes `results/mobo_validation_report.md` here locally; like all results, it is not versioned.
 - Website: the source is `index.html` and `style.css`; `site/` is the generated bundle (`python tools/sync_site.py`).
 
 ## Task records

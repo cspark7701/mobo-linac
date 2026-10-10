@@ -10,7 +10,7 @@
 
 ## 1. Executive Summary
 
-`mobo-linac` is a scientific machine learning and beam dynamics optimization framework designed for the multi-objective parameter optimization of a 200 MeV S-band photoinjector linac. The framework seamlessly couples high-fidelity macroparticle tracking simulations ([`ASTRA`](../../bin/astra)) with modern Bayesian Optimization surrogates ([`BoTorch`](../../pyproject.toml#L17) / [`GPyTorch`](../../pyproject.toml#L18) / [`PyTorch`](../../pyproject.toml#L16)).
+`mobo-linac` is a scientific machine learning and beam dynamics optimization framework designed for the multi-objective parameter optimization of a 200 MeV S-band photoinjector linac. The framework seamlessly couples high-fidelity macroparticle tracking simulations (`ASTRA`, the git-ignored local executable `bin/astra`) with modern Bayesian Optimization surrogates ([`BoTorch`](../../pyproject.toml#L17) / [`GPyTorch`](../../pyproject.toml#L18) / [`PyTorch`](../../pyproject.toml#L16)).
 
 The repository has evolved through three complete development phases:
 1. **Phase 1 (Scalarized BO)**: Single-objective surrogate (`SingleTaskGP` / `qLogNEI`) optimizing weighted sums ($w_1 \varepsilon_{n,x} + w_2 \varepsilon_{n,y} + w_3 \sigma_E$) across multiple weighting vectors.
