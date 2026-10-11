@@ -122,6 +122,25 @@ def mock_nan_output():
     }
 
 
+def write_stub_executable(path: Path) -> Path:
+    """An executable placeholder file, so ASTRA executable resolution succeeds without ASTRA."""
+    path.write_bytes(b'stub executable bytes')
+    path.chmod(0o755)  # resolution accepts only executable files
+    return path
+
+
+@pytest.fixture
+def astra_stub_executable(tmp_path, monkeypatch) -> Path:
+    """A stub ASTRA executable on $ASTRA_BIN for tests that replace the simulator.
+
+    Fresh checkouts (CI) have no bin/astra and no ASTRA on PATH; tests whose simulator is a
+    stub must not depend on a locally installed binary.
+    """
+    executable = write_stub_executable(tmp_path / 'stub_astra_bin')
+    monkeypatch.setenv('ASTRA_BIN', str(executable))
+    return executable
+
+
 @pytest.fixture
 def recording_astra_project(tmp_path, monkeypatch):
     """A recording simulator with the real template and disposable fake field files."""
@@ -135,8 +154,7 @@ def recording_astra_project(tmp_path, monkeypatch):
     (project / 'astra.in').write_bytes(template.read_bytes())
     for name in load_config('configs/mobo_200MeV.yaml').simulation.static_files:
         (project / name).write_text('fixed input bytes')
-    executable = project / 'stub_astra'
-    executable.write_bytes(b'recording executable')
+    executable = write_stub_executable(project / 'stub_astra')
     monkeypatch.setenv('ASTRA_BIN', str(executable))
     monkeypatch.chdir(project)
     class RecordingAstra:

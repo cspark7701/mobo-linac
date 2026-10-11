@@ -18,7 +18,7 @@ TEST_CONFIG = _load_test_config("configs/mobo_200MeV.yaml")
 
 
 @pytest.fixture
-def temp_project(tmp_path):
+def temp_project(tmp_path, astra_stub_executable):
     """
     Creates a temporary project structure with mock template files.
     """

@@ -64,7 +64,7 @@ def test_callback_persistence_errors_propagate_in_serial_and_parallel(tmp_path, 
 
 
 @pytest.fixture
-def temp_project(tmp_path):
+def temp_project(tmp_path, astra_stub_executable):
     """
     Creates a temporary project environment with mock input/field files.
     """

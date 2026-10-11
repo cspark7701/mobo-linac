@@ -2,6 +2,7 @@
 Unit tests for Python Package Layout and CLI Entry Points.
 """
 
+import os
 import subprocess
 import sys
 
@@ -99,7 +100,12 @@ assert 'astra' not in sys.modules and 'distgen' not in sys.modules
 resolve_executable_path('ASTRA_BIN', 'astra')
 assert os.environ.get('ASTRA_BIN') == before.get('ASTRA_BIN')
 '''
-    res = subprocess.run([sys.executable, '-c', code, str(tmp_path)], capture_output=True, text=True)
+    # The final resolution check needs an executable; fresh checkouts have no ASTRA.
+    stub = tmp_path / 'stub_astra'
+    stub.write_bytes(b'stub executable bytes')
+    stub.chmod(0o755)
+    env = dict(os.environ, ASTRA_BIN=str(stub))
+    res = subprocess.run([sys.executable, '-c', code, str(tmp_path)], capture_output=True, text=True, env=env)
     assert res.returncode == 0, res.stderr
 
 
