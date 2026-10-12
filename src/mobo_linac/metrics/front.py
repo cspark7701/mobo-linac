@@ -14,10 +14,10 @@ TensorLike = Union[Sequence[Sequence[float]], torch.Tensor]
 
 
 def as_double(values, like: torch.Tensor = None) -> torch.Tensor:
-    if isinstance(values, torch.Tensor):
-        return values if values.is_floating_point() else values.to(dtype=torch.double)
     if like is not None:
         return torch.as_tensor(values, dtype=like.dtype, device=like.device)
+    if isinstance(values, torch.Tensor):
+        return values if values.is_floating_point() else values.to(dtype=torch.double)
     return torch.as_tensor(values, dtype=torch.double)
 
 

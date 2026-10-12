@@ -113,7 +113,10 @@ def build_acquisition_function(
     else:
         kw_args["partitioning"] = FastNondominatedPartitioning(ref_point=ref_point_dbl, Y=feas_Y)
     acq_func = constructor(model=model, ref_point=ref_point_dbl, sampler=sampler, **kw_args)
-    return acq_func
+    # BoTorch also creates CPU bookkeeping buffers (e.g. cache_pending and
+    # incremental_nehvi). Align the complete acquisition at its construction
+    # boundary, before the proposal engine checks placement.
+    return acq_func.to(device=model_device)
 
 
 

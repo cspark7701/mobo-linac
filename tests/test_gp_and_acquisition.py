@@ -79,14 +79,17 @@ def test_gp_posterior_output_shape():
 
 
 @pytest.mark.filterwarnings("ignore::botorch.exceptions.warnings.NumericsWarning")  # exercises legacy qEHVI/qNEHVI
-def test_acquisition_function_construction():
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+def test_acquisition_function_construction(device):
     """Verify construction of qLogNEHVI, qLogEHVI, qEHVI, and qNEHVI acquisition functions."""
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
     train_X = torch.rand(15, 6, dtype=torch.double)
     train_Y = torch.rand(15, 3, dtype=torch.double)
     bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
     ref_point = torch.tensor([-1.0, -1.0, -1.0], dtype=torch.double)
 
-    gp_model = build_gp_models(train_X, train_Y, bounds)
+    gp_model = build_gp_models(train_X, train_Y, bounds, device=device)
 
     for acq_type in ["qLogNEHVI", "qLogEHVI", "qEHVI", "qNEHVI"]:
         acq_func = build_acquisition_function(
@@ -97,6 +100,11 @@ def test_acquisition_function_construction():
             acq_type=acq_type,
         )
         assert acq_func is not None
+        assert {tensor.device for tensor in (*acq_func.parameters(), *acq_func.buffers())} == {torch.device(device)}
+        with torch.no_grad():
+            value = acq_func(train_X[:1].to(device).unsqueeze(0))
+        assert value.device == torch.device(device)
+        assert torch.isfinite(value).all()
 
 
 def test_predictive_diagnostics_calculation():

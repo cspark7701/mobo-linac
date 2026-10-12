@@ -35,6 +35,7 @@ with the next phase extending to qEHVI/qNEHVI-based MOBO.
 - **Git & GitHub Actions Policy**:
   - Do NOT perform `git push` and do NOT check remote GitHub Actions status or query remote workflow executions.
   - Modifying GitHub Actions workflows in the local repository only is permitted.
+  - Follow the existing Git log's commit-message format: an imperative subject, a blank line, concise explanatory paragraphs, then a `Files:` section listing paths with status letters (`A`, `M`, `D`). Use this format when providing commit messages as well.
 - **Task Summary & Execution Plan Persistence**:
   - All executed tasks must be summarized and saved into `docs/exec-plans/completed/` following continuous numerical ordering (e.g., `TASK_01_...` through `TASK_20_...`, `TASK_21_...`, `TASK_22_...`, `TASK_23_...`, etc.).
   - Every completed task must follow the structured markdown summary format established in `docs/exec-plans/completed/`.
