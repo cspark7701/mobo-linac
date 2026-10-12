@@ -254,7 +254,24 @@ def test_install_script_never_edits_pythonpath():
     from pathlib import Path
     root = Path(__file__).resolve().parents[1]
     assert "PYTHONPATH" not in (root / "install.sh").read_text().split("# ===")[-1]
-    assert not (root / "setup.sh").exists()
+
+
+def test_setup_script_is_sourced_and_leaves_pythonpath_alone(tmp_path):
+    """setup.sh only loads the shell environment: it refuses execution and never sets PYTHONPATH."""
+    import re
+    from pathlib import Path
+    root = Path(__file__).resolve().parents[1]
+    script = root / "setup.sh"
+    assert not re.search(r"(export\s+)?PYTHONPATH=", script.read_text())
+    executed = subprocess.run(["bash", str(script)], capture_output=True, text=True)
+    assert executed.returncode == 1 and "must be sourced" in executed.stderr
+    env = {"HOME": str(tmp_path), "PATH": "/usr/bin:/bin", "PYTHONPATH": "/kept"}
+    probe = 'source "$1" >/dev/null 2>&1; source "$1" >/dev/null 2>&1; printf "%s\\n" "$PYTHONPATH" "$ASTRA_BIN" "$PATH"'
+    sourced = subprocess.run(["bash", "-c", probe, "probe", str(script)], capture_output=True, text=True, env=env)
+    pythonpath, astra_bin, path = sourced.stdout.splitlines()
+    assert pythonpath == "/kept"
+    assert astra_bin == str(root / "bin" / "astra")
+    assert path.split(":").count(str(root / "bin")) == 1
 
 
 def test_package_modules_carry_no_reexport_shims():

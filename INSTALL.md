@@ -116,6 +116,12 @@ No environment script is needed: the configuration's `simulation.executable` (de
 `../bin/astra`, relative to the configuration file) is used, then `$ASTRA_BIN`, then `PATH`.
 `PYTHONPATH` is never modified; the installed package is always the one imported.
 
+For an interactive shell, `source setup.sh` activates the conda environment (`linac-opt`, or
+`$MOBO_LINAC_ENV`), puts `./bin` on `PATH` and exports `ASTRA_BIN` and `GENERATOR_BIN`. It must be
+sourced, not executed, and it does not modify `PYTHONPATH`; install the package with
+`./install.sh` first. If an older version of this script left `src/` on your `PYTHONPATH`, remove
+it (`unset PYTHONPATH`).
+
 ### Using Custom External ASTRA Binaries
 If you have custom compiled ASTRA executables built for your specific cluster architecture:
 
