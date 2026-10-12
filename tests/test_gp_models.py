@@ -46,11 +46,36 @@ def test_output_scaling_warning_policy_preserves_transform(device, values):
     torch.testing.assert_close(model.outcome_transform.means, expected_transform.means)
 
 
-def test_mean_only_outcome_keeps_input_scaling_warnings_visible():
+@pytest.mark.parametrize("noise_mode", ["deterministic_fixed", "inferred"])
+def test_mean_only_outcome_keeps_input_scaling_warnings_visible(noise_mode):
     X = torch.tensor([[0.1], [1.2]], dtype=torch.double)
     Y = torch.ones(2, 1, dtype=torch.double)
     with pytest.warns(InputDataWarning, match="not contained to the unit cube"):
-        build_output_gp(X, Y, torch.tensor([[0.0], [1.0]], dtype=torch.double), device="cpu")
+        build_output_gp(X, Y, torch.tensor([[0.0], [1.0]], dtype=torch.double),
+                        SurrogateSettings(noise_mode=noise_mode), device="cpu")
+
+
+@pytest.mark.parametrize("values", [[1.0, 1.0], [1.0, 2.0]])
+def test_input_scaling_check_uses_configured_bounds(values):
+    X = torch.tensor([[10.0], [22.0]], dtype=torch.double)
+    Y = torch.tensor(values, dtype=torch.double).unsqueeze(-1)
+    bounds = torch.tensor([[10.0], [20.0]], dtype=torch.double)
+    with pytest.warns(InputDataWarning, match="not contained to the unit cube"):
+        model = build_output_gp(X, Y, bounds, device="cpu")
+    torch.testing.assert_close(model.input_transform(X), X.new_tensor([[0.0], [1.2]]))
+    torch.testing.assert_close(channel_record(model).train_X, X)
+
+
+def test_input_scaling_check_respects_botorch_validation_setting():
+    import warnings
+    from botorch import settings
+
+    X = torch.tensor([[0.1], [1.2]], dtype=torch.double)
+    with settings.validate_input_scaling(False), warnings.catch_warnings():
+        warnings.simplefilter("error", InputDataWarning)
+        model = build_output_gp(X, torch.ones(2, 1, dtype=torch.double),
+                                X.new_tensor([[0.0], [1.0]]), device="cpu")
+    torch.testing.assert_close(model.input_transform(X), X)
 
 
 def test_gp_deterministic_fixed_noise_mode(dummy_data):

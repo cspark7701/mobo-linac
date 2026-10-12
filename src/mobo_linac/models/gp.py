@@ -14,10 +14,12 @@ import weakref
 import warnings
 import torch
 from botorch.exceptions.warnings import InputDataWarning
+from botorch import settings as botorch_settings
 from botorch.fit import fit_gpytorch_mll, fit_gpytorch_mll_torch
 from botorch.models import ModelListGP, SingleTaskGP
 from botorch.models.transforms.input import Normalize
 from botorch.models.transforms.outcome import Standardize
+from botorch.models.utils.assorted import check_min_max_scaling
 from gpytorch.likelihoods import FixedNoiseGaussianLikelihood
 from gpytorch.kernels import MaternKernel, RBFKernel, ScaleKernel
 from gpytorch.mlls import ExactMarginalLogLikelihood
@@ -175,6 +177,13 @@ def build_output_gp(
         computed_var = max(settings.relative_noise_ratio * sample_var, settings.min_noise_variance)
         yvar = torch.full_like(train_Y_dbl, fill_value=float(computed_var), device=target_device)
 
+    input_transform = Normalize(d=input_dim, bounds=bounds_dbl)
+    # BoTorch skips scaling checks for custom covariance modules. Our kernels
+    # still use normalized inputs, so check those explicitly without clipping.
+    if botorch_settings.validate_input_scaling.on():
+        with torch.no_grad():
+            check_min_max_scaling(input_transform(train_X_dbl))
+
     mean_only = train_Y_dbl.shape[0] > 1 and bool(train_Y_dbl.std() < OUTCOME_MIN_STDV)
     with warnings.catch_warnings():
         if mean_only:
@@ -189,7 +198,7 @@ def build_output_gp(
         gp = SingleTaskGP(
             train_X=train_X_dbl, train_Y=train_Y_dbl, train_Yvar=yvar,
             covar_module=ScaleKernel(base_kernel),
-            input_transform=Normalize(d=input_dim, bounds=bounds_dbl),
+            input_transform=input_transform,
             outcome_transform=Standardize(m=1, min_stdv=OUTCOME_MIN_STDV),
         ).to(device=target_device, dtype=torch.double)
     _RECORDS[gp] = ChannelRecord(
