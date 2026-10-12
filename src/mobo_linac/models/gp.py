@@ -11,7 +11,9 @@ from copy import deepcopy
 import math
 from typing import Any, Dict, List, Optional, Tuple, Union
 import weakref
+import warnings
 import torch
+from botorch.exceptions.warnings import InputDataWarning
 from botorch.fit import fit_gpytorch_mll, fit_gpytorch_mll_torch
 from botorch.models import ModelListGP, SingleTaskGP
 from botorch.models.transforms.input import Normalize
@@ -29,6 +31,8 @@ logger = get_logger(__name__)
 
 NOISE_MODES = ("deterministic_fixed", "measured_fixed", "inferred")
 COVARIANCE_KERNELS = ("matern52", "rbf")
+# Preserve Standardize's default mean-only policy for small/constant outcomes.
+OUTCOME_MIN_STDV = 1.0e-8
 
 
 @dataclass(frozen=True)
@@ -171,12 +175,23 @@ def build_output_gp(
         computed_var = max(settings.relative_noise_ratio * sample_var, settings.min_noise_variance)
         yvar = torch.full_like(train_Y_dbl, fill_value=float(computed_var), device=target_device)
 
-    gp = SingleTaskGP(
-        train_X=train_X_dbl, train_Y=train_Y_dbl, train_Yvar=yvar,
-        covar_module=ScaleKernel(base_kernel),
-        input_transform=Normalize(d=input_dim, bounds=bounds_dbl),
-        outcome_transform=Standardize(m=1),
-    ).to(device=target_device, dtype=torch.double)
+    mean_only = train_Y_dbl.shape[0] > 1 and bool(train_Y_dbl.std() < OUTCOME_MIN_STDV)
+    with warnings.catch_warnings():
+        if mean_only:
+            # Unit variance is intentionally unavailable under Standardize's
+            # small-output policy. Suppress only that constructor notice;
+            # input scaling and all numerical warnings remain visible.
+            warnings.filterwarnings(
+                "ignore", message=r"^Data \(outcome observations\) is not standardized \(std =",
+                category=InputDataWarning,
+            )
+            logger.debug("GP outcome uses mean-only scaling: observed std is below %g.", OUTCOME_MIN_STDV)
+        gp = SingleTaskGP(
+            train_X=train_X_dbl, train_Y=train_Y_dbl, train_Yvar=yvar,
+            covar_module=ScaleKernel(base_kernel),
+            input_transform=Normalize(d=input_dim, bounds=bounds_dbl),
+            outcome_transform=Standardize(m=1, min_stdv=OUTCOME_MIN_STDV),
+        ).to(device=target_device, dtype=torch.double)
     _RECORDS[gp] = ChannelRecord(
         train_X=train_X_dbl.detach().cpu().clone(), train_Y=train_Y_dbl.detach().cpu().clone(),
         bounds=bounds_dbl.detach().cpu().clone(), covar_type=settings.covar_type, noise_mode=settings.noise_mode,

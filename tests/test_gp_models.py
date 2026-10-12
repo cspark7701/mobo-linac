@@ -5,9 +5,10 @@ Unit tests for Fixed-Noise GP Treatment, Noise Modes, and Repeatability Utilitie
 import pytest
 import numpy as np
 import torch
+from botorch.exceptions.warnings import InputDataWarning
 
 from mobo_linac.evaluation import EvaluationResult, FailureCategory
-from mobo_linac.models.gp import SurrogateSettings, build_gp_models, channel_record, fit_gp_models
+from mobo_linac.models.gp import SurrogateSettings, build_gp_models, build_output_gp, channel_record, fit_gp_models
 from mobo_linac.models.pipeline import SurrogatePipeline
 from mobo_linac.models.repeatability import (
     compute_measured_noise_variance,
@@ -23,6 +24,33 @@ def dummy_data():
     train_Y = torch.randn(10, 3, dtype=torch.double)
     bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
     return train_X, train_Y, bounds
+
+
+@pytest.mark.parametrize("device", ["cpu", "cuda:0"])
+@pytest.mark.parametrize("values", [[1.0, 1.0, 1.0], [1e-6, 1.001e-6, 1.002e-6], [1.0, 2.0, 3.0]])
+def test_output_scaling_warning_policy_preserves_transform(device, values):
+    import warnings
+    from botorch.models.transforms.outcome import Standardize
+
+    if device.startswith("cuda") and not torch.cuda.is_available():
+        pytest.skip("CUDA unavailable")
+    X = torch.tensor([[0.1], [0.4], [0.8]], dtype=torch.double, device=device)
+    Y = torch.tensor(values, dtype=torch.double, device=device).unsqueeze(-1)
+    expected_transform = Standardize(m=1)
+    expected, _ = expected_transform(Y)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", InputDataWarning)
+        model = build_output_gp(X, Y, X.new_tensor([[0.0], [1.0]]), device=device)
+    torch.testing.assert_close(model.train_targets, expected.squeeze(-1))
+    torch.testing.assert_close(model.outcome_transform.stdvs, expected_transform.stdvs)
+    torch.testing.assert_close(model.outcome_transform.means, expected_transform.means)
+
+
+def test_mean_only_outcome_keeps_input_scaling_warnings_visible():
+    X = torch.tensor([[0.1], [1.2]], dtype=torch.double)
+    Y = torch.ones(2, 1, dtype=torch.double)
+    with pytest.warns(InputDataWarning, match="not contained to the unit cube"):
+        build_output_gp(X, Y, torch.tensor([[0.0], [1.0]], dtype=torch.double), device="cpu")
 
 
 def test_gp_deterministic_fixed_noise_mode(dummy_data):

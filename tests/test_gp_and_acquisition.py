@@ -84,8 +84,9 @@ def test_acquisition_function_construction(device):
     """Verify construction of qLogNEHVI, qLogEHVI, qEHVI, and qNEHVI acquisition functions."""
     if device.startswith("cuda") and not torch.cuda.is_available():
         pytest.skip("CUDA unavailable")
-    train_X = torch.rand(15, 6, dtype=torch.double)
-    train_Y = torch.rand(15, 3, dtype=torch.double)
+    generator = torch.Generator().manual_seed(123)
+    train_X = torch.rand(15, 6, dtype=torch.double, generator=generator)
+    train_Y = torch.rand(15, 3, dtype=torch.double, generator=generator)
     bounds = torch.tensor([[0.0] * 6, [1.0] * 6], dtype=torch.double)
     ref_point = torch.tensor([-1.0, -1.0, -1.0], dtype=torch.double)
 
@@ -102,7 +103,9 @@ def test_acquisition_function_construction(device):
         assert acq_func is not None
         assert {tensor.device for tensor in (*acq_func.parameters(), *acq_func.buffers())} == {torch.device(device)}
         with torch.no_grad():
-            value = acq_func(train_X[:1].to(device).unsqueeze(0))
+            # A baseline duplicate makes noisy MC posterior sampling singular.
+            query = torch.full((1, 1, 6), 0.5, dtype=torch.double, device=device)
+            value = acq_func(query)
         assert value.device == torch.device(device)
         assert torch.isfinite(value).all()
 
