@@ -64,6 +64,27 @@ def test_forecast_uses_pilot_runtime_and_disk(tmp_path, capsys):
     assert disk.read_text().strip() == "12"  # 4800 x 2 MB x 1.25
 
 
+def test_forecast_partitions_global_workers_across_campaigns(tmp_path, capsys):
+    summary = tmp_path / "pilot_summary.json"
+    summary.write_text(json.dumps({"measured": {"median_runtime_s": 300.0, "bytes_per_evaluation": 2e6}}))
+    disk = tmp_path / "disk"
+    assert _tools().main(["forecast", "--pilot-summary", str(summary), "--runs", "30", "--initial", "16",
+                          "--iterations", "18", "--batch", "8", "--workers", "8", "--concurrent-campaigns", "2",
+                          "--disk-output", str(disk)]) == 0
+    out = capsys.readouterr().out
+    assert "4800 ASTRA evaluations" in out and "50.0 h" in out
+    assert "2 campaigns, 4 workers each" in out
+    assert disk.read_text().strip() == "12"
+
+
+@pytest.mark.parametrize("step", ["03_screening.sh", "04_primary.sh"])
+def test_benchmark_steps_forward_global_scheduler_limits(step):
+    source = (PRODUCTION / step).read_text()
+    assert '--max-concurrent-campaigns "$MAX_CONCURRENT_CAMPAIGNS" --total-workers "$WORKERS"' in source
+    assert '--campaign-threads "$CAMPAIGN_THREADS"' in source
+    assert '--concurrent-campaigns "$MAX_CONCURRENT_CAMPAIGNS"' in source
+
+
 def _run(path, feasible, complete=True):
     path.mkdir(parents=True)
     pd.DataFrame({"simulation_valid": [True, True, False], "physically_feasible": [feasible, False, False],

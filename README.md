@@ -255,6 +255,28 @@ mobo-linac run-benchmark --config configs/publication_200MeV.yaml --seeds 42 43 
 
 The benchmark dispatcher supports `constrained_qlognehvi`, `unconstrained_qlognehvi`, `qlogehvi`, and `scalarized_bo`; choose a subset with `--algorithms`. NSGA-II and Sobol-only benchmark executors are not implemented and are rejected. The budget includes initial samples and failed evaluations, with a smaller final batch when needed. Runs are skipped only when `benchmark_state.json` and persisted evaluation/metric counts confirm completion. The dispatcher does not automatically resume incomplete experiments or reconcile their benchmark completion markers; incomplete or incompatible outputs require a new output directory.
 
+Independent algorithm/seed campaigns can run in spawned processes without changing their
+scientific budgets or batch sizes. For two campaigns with four ASTRA workers each:
+
+```bash
+mobo-linac run-benchmark --config configs/publication_200MeV.yaml \
+  --num-workers 4 --max-concurrent-campaigns 2 --total-workers 8 --campaign-threads 1 --device cpu
+```
+
+`--num-workers` caps workers per campaign; `--total-workers` is the global ASTRA cap
+(defaults to `--num-workers`). The scheduler divides that cap across campaign slots,
+rounding down, so allocated workers never exceed it. Sequential execution remains the
+default. `--campaign-threads` limits PyTorch CPU threads in each spawned controller;
+the global worker cap does not reserve GPU memory or limit custom evaluator internals.
+Each child writes only its own run; the parent validates completion, maintains the manifest,
+records PIDs/timings/errors in `scheduler.json`, and aggregates results after all jobs succeed.
+An exclusive POSIX lock rejects competing schedulers/analysis for the same root. After a
+failure, active jobs finish, new jobs remain pending, and failed artifacts are retained.
+Completed runs can be skipped on a later invocation; incomplete runs still require investigation.
+Custom evaluators used concurrently must be serializable; child-local changes are not reflected
+back into the parent evaluator object. Process isolation preserves seeded RNG streams, while
+floating-point fitting/proposal results may depend on device and thread configuration.
+
 ### 4. Run Robustness & Engineering Sensitivity Analysis
 ```bash
 mobo-linac run-robustness --config configs/publication_200MeV.yaml --num-perturbations 50 --num-workers 12

@@ -189,14 +189,19 @@ def summarize(args):
 
 
 def forecast(args):
+    if args.workers < 1 or args.concurrent_campaigns < 1 or args.runs < 1:
+        raise ValueError("Forecast workers, concurrent campaigns and run count must be positive.")
     measured = json.loads(Path(args.pilot_summary).read_text())["measured"]
     seconds = measured.get("median_runtime_s") or args.default_runtime
-    rounds = math.ceil(args.initial / args.workers) + args.iterations * math.ceil(args.batch / args.workers)
-    wall = (args.runs * rounds + math.ceil(args.extra_evaluations / args.workers)) * seconds
+    slots = min(args.concurrent_campaigns, args.workers, args.runs)
+    per_campaign = args.workers // slots
+    rounds = math.ceil(args.initial / per_campaign) + args.iterations * math.ceil(args.batch / per_campaign)
+    wall = (math.ceil(args.runs / slots) * rounds + math.ceil(args.extra_evaluations / args.workers)) * seconds
     evaluations = args.runs * (args.initial + args.iterations * args.batch) + args.extra_evaluations
     disk_gb = evaluations * measured["bytes_per_evaluation"] * 1.25 / 1e9
     print(f"Forecast: {evaluations} ASTRA evaluations; about {wall / 3600:.1f} h of simulator wall time "
-          f"({wall / 86400:.1f} days) at {seconds:.0f} s per run with {args.workers} workers, "
+          f"({wall / 86400:.1f} days) at {seconds:.0f} s per run with {args.workers} workers "
+          f"({slots} campaigns, {per_campaign} workers each), "
           f"plus GP fitting; about {disk_gb:.1f} GB of outputs.")
     Path(args.disk_output).write_text(f"{max(1, math.ceil(disk_gb))}\n") if args.disk_output else None
     return 0
@@ -243,6 +248,7 @@ def main(argv=None):
     for name in ("runs", "initial", "iterations", "batch", "workers"):
         fc.add_argument(f"--{name}", type=int, required=True)
     fc.add_argument("--extra-evaluations", type=int, default=0)
+    fc.add_argument("--concurrent-campaigns", type=int, default=1)
     fc.add_argument("--default-runtime", type=float, default=300.0)
     fc.add_argument("--disk-output")
     inv = sub.add_parser("inventory")

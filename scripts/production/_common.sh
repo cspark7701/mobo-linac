@@ -17,6 +17,8 @@ OUT_ROOT="${PRODUCTION_ROOT:-results/paper_production}"
 CONFIG="configs/publication_200MeV.yaml"
 DEVICE="${DEVICE:-cpu}"              # CPU is the reproducibility baseline
 WORKERS="${WORKERS:-4}"              # parallel ASTRA processes
+MAX_CONCURRENT_CAMPAIGNS="${MAX_CONCURRENT_CAMPAIGNS:-1}" # benchmark stages only
+CAMPAIGN_THREADS="${CAMPAIGN_THREADS:-1}" # PyTorch CPU threads per spawned campaign
 ALGORITHMS=(constrained_qlognehvi unconstrained_qlognehvi scalarized_bo)
 # Mock evaluator: rehearsal of the scripts themselves, never physical evidence.
 MOCK="${MOCK_EVALUATOR:-0}"

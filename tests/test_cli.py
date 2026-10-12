@@ -90,9 +90,13 @@ def test_benchmark_cli_forwards_workers_and_algorithm_settings(tmp_path, monkeyp
         "run-benchmark", "--algorithms", "scalarized_bo", "qlogehvi",
         "--seeds", "7", "8", "--num-workers", "3", "--budget", "5",
         "--n-sobol-init", "2", "-q", "2", "--device", "cpu",
+        "--max-concurrent-campaigns", "2", "--total-workers", "6", "--campaign-threads", "2",
         "--output-dir", str(tmp_path), "--mock-evaluator",
     ])
     assert captured["num_workers"] == 3
+    assert captured["max_concurrent_campaigns"] == 2
+    assert captured["total_workers"] == 6
+    assert captured["campaign_threads"] == 2
     assert captured["algorithms"] == ["scalarized_bo", "qlogehvi"]
     assert captured["seeds"] == [7, 8]
     assert captured["total_eval_budget"] == 5

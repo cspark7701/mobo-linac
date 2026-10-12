@@ -193,6 +193,19 @@ summed simulator runtime alone by worker count. Retain outputs and estimate byte
 per attempt before committing the primary allocation; no cleanup should destroy
 provenance needed by verification.
 
+Benchmark steps 03/04 can overlap independent algorithm/seed runs with
+`WORKERS=8 MAX_CONCURRENT_CAMPAIGNS=2 CAMPAIGN_THREADS=1`, retaining all planned
+seeds, evaluation budgets, batches and validation. `WORKERS` is a global ASTRA cap
+for these stages: this example reserves four workers for each of two spawned
+campaigns. Forecast campaign waves with the per-campaign allocation, rather than
+dividing every campaign by the global cap. Overlap can hide GP/acquisition time;
+the simulator-only estimate is not a measured speedup. The parent coordinates
+completion validation, manifests and final aggregation under an exclusive lock.
+Per-run RNG state, checkpoints, logs and provenance stay isolated; thread/device
+choices remain part of the execution policy. Active jobs drain after a failure;
+incomplete runs retain the existing investigation requirement. Audit counts and
+the scheduling of the survey and verification/robustness stages are unchanged.
+
 ## Candidate verification, robustness and final deliverables
 
 Use measured feasible Phase 3 history, or `pareto_feasible.csv` joined to sibling

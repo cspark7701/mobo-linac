@@ -25,14 +25,17 @@ section "Forecast"
 "$PYTHON_BIN" "$PRODUCTION_DIR/production_tools.py" forecast \
   --pilot-summary "$OUT_ROOT/02_pilot/pilot_summary.json" --runs $(( ${#SEEDS[@]} * ${#ALGORITHMS[@]} )) \
   --initial "$N_SOBOL_INIT" --iterations $(( (BUDGET - N_SOBOL_INIT) / BATCH_SIZE )) --batch "$BATCH_SIZE" \
-  --workers "$WORKERS" --disk-output "$STEP_DIR/.disk_gb"
+  --workers "$WORKERS" --concurrent-campaigns "$MAX_CONCURRENT_CAMPAIGNS" --disk-output "$STEP_DIR/.disk_gb"
 require_free_disk "$(cat "$STEP_DIR/.disk_gb")"
 
 write_record step=04_primary algorithms="${ALGORITHMS[*]}" seeds="${SEEDS[*]}" budget=$BUDGET \
-  n_sobol_init=$N_SOBOL_INIT batch_size=$BATCH_SIZE workers=$WORKERS device=$DEVICE
+  n_sobol_init=$N_SOBOL_INIT batch_size=$BATCH_SIZE workers=$WORKERS device=$DEVICE \
+  max_concurrent_campaigns=$MAX_CONCURRENT_CAMPAIGNS campaign_threads=$CAMPAIGN_THREADS
 
 BENCH_ARGS=(--config "$CONFIG" --algorithms "${ALGORITHMS[@]}" --seeds "${SEEDS[@]}" --budget "$BUDGET"
             --n-sobol-init "$N_SOBOL_INIT" --batch-size "$BATCH_SIZE" --num-workers "$WORKERS"
+            --max-concurrent-campaigns "$MAX_CONCURRENT_CAMPAIGNS" --total-workers "$WORKERS"
+            --campaign-threads "$CAMPAIGN_THREADS"
             --device "$DEVICE" --output-dir "$BENCHMARK" "${EVALUATOR_FLAGS[@]}")
 section "Plan"
 cli run-benchmark "${BENCH_ARGS[@]}" --dry-run

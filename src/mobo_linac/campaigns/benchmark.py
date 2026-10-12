@@ -7,9 +7,13 @@ publication-ready aggregate metrics and plots.
 """
 
 from dataclasses import asdict, replace
+from concurrent.futures import ProcessPoolExecutor, FIRST_COMPLETED, wait
 import hashlib
 import json
+import logging
+import multiprocessing
 from pathlib import Path
+import pickle
 from typing import Any, Dict, List, Optional, Tuple, Union
 import pandas as pd
 import torch
@@ -27,7 +31,7 @@ from mobo_linac.campaigns.analysis import compute_aggregate_benchmark_metrics, f
 from mobo_linac.io.run_data import read_run_data
 
 from mobo_linac.utils.logger import get_logger
-from mobo_linac.campaigns.runner import campaign_runner
+from mobo_linac.campaigns.scheduler import CampaignJob, exclusive_benchmark, run_campaign_job
 from mobo_linac.config import load_config
 
 logger = get_logger(__name__)
@@ -81,6 +85,9 @@ class BenchmarkCampaignRunner:
         device: str = "auto",
         benchmark_config: Optional[BenchmarkConfig] = None,
         num_workers: Optional[int] = None,
+        max_concurrent_campaigns: int = 1,
+        total_workers: Optional[int] = None,
+        campaign_threads: int = 1,
     ):
         config.validate()
         self.device = device
@@ -88,6 +95,13 @@ class BenchmarkCampaignRunner:
         self.num_workers = config.execution.max_workers if num_workers is None else num_workers
         if type(self.num_workers) is not int or self.num_workers < 1:
             raise ValueError("num_workers must be >= 1.")
+        self.total_workers = self.num_workers if total_workers is None else total_workers
+        for name, value in (("max_concurrent_campaigns", max_concurrent_campaigns),
+                            ("total_workers", self.total_workers), ("campaign_threads", campaign_threads)):
+            if type(value) is not int or value < 1:
+                raise ValueError(f"{name} must be a positive integer.")
+        self.max_concurrent_campaigns = max_concurrent_campaigns
+        self.campaign_threads = campaign_threads
         if benchmark_config is None:
             # Explicit arguments override the configuration's benchmark section, then defaults.
             requested = dict(algorithms=algorithms, seeds=seeds, total_eval_budget=total_eval_budget,
@@ -105,11 +119,15 @@ class BenchmarkCampaignRunner:
         self.output_dir = Path(self.benchmark_config.output_dir)
         self.algorithms = list(self.benchmark_config.algorithms)
         self.seeds = list(self.benchmark_config.seeds)
+        self.concurrent_campaigns = min(max_concurrent_campaigns, self.total_workers,
+                                        len(self.algorithms) * len(self.seeds))
+        self.workers_per_campaign = min(self.num_workers, self.total_workers // self.concurrent_campaigns)
         self.total_eval_budget = self.benchmark_config.total_eval_budget
         self.n_sobol_init = self.benchmark_config.n_sobol_init
         self.batch_size = self.benchmark_config.batch_size
         self.output_dir.mkdir(parents=True, exist_ok=True)
         self.manifest_rows: List[Dict[str, Any]] = []
+        self._active_runs = set()
 
     @property
     def reporting_ref_point_norm(self) -> List[float]:
@@ -211,6 +229,7 @@ class BenchmarkCampaignRunner:
         """Returns isolated run directory for algorithm and seed."""
         return self.output_dir / "per_seed" / f"{algorithm}_seed_{seed}"
 
+    @exclusive_benchmark
     def run_campaign_manifest(self) -> pd.DataFrame:
         """Generates campaign manifest DataFrame."""
         self.manifest_rows = []
@@ -218,6 +237,8 @@ class BenchmarkCampaignRunner:
             for s in self.seeds:
                 run_path = self.get_run_dir(algo, s)
                 status = self._run_status(algo, s)
+                if status != "completed" and (algo, s) in self._active_runs:
+                    status = "running"
                 effective_budget = self.total_eval_budget
                 self.manifest_rows.append({
                     "algorithm": algo,
@@ -231,11 +252,15 @@ class BenchmarkCampaignRunner:
                     "batch_size": self.batch_size,
                     "run_dir": str(run_path),
                     "status": status,
+                    "workers_per_campaign": self.workers_per_campaign,
+                    "max_concurrent_campaigns": self.concurrent_campaigns,
+                    "total_workers": self.total_workers,
                 })
         manifest_df = pd.DataFrame(self.manifest_rows)
         atomic_csv(self.output_dir / "campaign_manifest.csv", manifest_df)
         return manifest_df
 
+    @exclusive_benchmark
     def analyze_completed_results(self) -> Tuple[pd.DataFrame, pd.DataFrame]:
         """
         Analyzes all completed seed results and exports aggregate metrics and summary tables.
@@ -248,6 +273,7 @@ class BenchmarkCampaignRunner:
             plot_benchmark_comparison,
             plot_benchmark_feasibility_comparison,
         )
+        from matplotlib import pyplot as plt
 
         seed_histories: Dict[str, Dict[int, pd.DataFrame]] = {}
         manifest_path = self.output_dir / "campaign_manifest.csv"
@@ -287,11 +313,91 @@ class BenchmarkCampaignRunner:
         atomic_csv(tables_dir / "benchmark_summary_table.csv", summary_df)
 
         if not agg_df.empty:
-            plot_benchmark_comparison(agg_df, output_path=figures_dir / "benchmark_hv_comparison.pdf")
-            plot_benchmark_feasibility_comparison(agg_df, output_path=figures_dir / "benchmark_feasibility_comparison.pdf")
+            for plot, filename in ((plot_benchmark_comparison, "benchmark_hv_comparison.pdf"),
+                                   (plot_benchmark_feasibility_comparison, "benchmark_feasibility_comparison.pdf")):
+                figure = plot(agg_df, output_path=figures_dir / filename)
+                plt.close(figure)
 
         return agg_df, summary_df
 
+    def _job(self, algorithm, seed, evaluator):
+        return CampaignJob(
+            config=asdict(self.config),
+            source_path=None if self.config.source_path is None else str(self.config.source_path),
+            algorithm=algorithm, seed=seed, output_dir=str(self.get_run_dir(algorithm, seed)),
+            initial=self.n_sobol_init, batches=self.n_batches, batch_size=self.batch_size,
+            budget=self.total_eval_budget, workers=self.workers_per_campaign, device=self.device,
+            reference=self.model_reporting_ref_point, evaluator=evaluator, threads=self.campaign_threads,
+            log_level=logging.getLogger("mobo_linac").getEffectiveLevel(),
+        )
+
+    def _complete_job(self, job, result):
+        count = result["evaluation_count"]
+        if count != self.total_eval_budget:
+            raise RuntimeError(f"Benchmark returned {count} evaluations; expected {self.total_eval_budget}.")
+        run_dir = Path(job.output_dir)
+        metadata_path = run_dir / "reporting_metadata.json"
+        if metadata_path.exists():
+            expected = reporting_metadata(self.config, self.model_reporting_ref_point, "explicit")
+            validate_campaign_compatibility(json.loads(metadata_path.read_text()), expected)
+        self._save_run_state(job.algorithm, job.seed, "completed", count)
+        if self._run_status(job.algorithm, job.seed) != "completed":
+            self._save_run_state(job.algorithm, job.seed, "incomplete", count)
+            raise RuntimeError(f"Benchmark run {run_dir} has incomplete persisted evaluation or metric history.")
+
+    def _execute_parallel(self, jobs, schedule):
+        # Validate serialization before reserving any attempt/run directories.
+        for job in jobs:
+            try:
+                pickle.dumps(job)
+            except Exception as error:
+                raise ValueError("Concurrent campaigns require a serializable evaluator and configuration.") from error
+        errors = []
+        pending = iter(jobs)
+        active = {}
+        with ProcessPoolExecutor(max_workers=self.concurrent_campaigns,
+                                 mp_context=multiprocessing.get_context("spawn")) as executor:
+            def submit_next():
+                job = next(pending, None)
+                if job is None:
+                    return
+                self._save_run_state(job.algorithm, job.seed, "running", 0)
+                active[executor.submit(run_campaign_job, job)] = job
+                self._active_runs.add((job.algorithm, job.seed))
+                self.run_campaign_manifest()
+
+            for _ in range(self.concurrent_campaigns):
+                submit_next()
+            while active:
+                finished, _ = wait(active, return_when=FIRST_COMPLETED)
+                for future in finished:
+                    job = active.pop(future)
+                    self._active_runs.discard((job.algorithm, job.seed))
+                    event = {"algorithm": job.algorithm, "seed": job.seed}
+                    try:
+                        result = future.result()
+                        event.update(result)
+                        self._complete_job(job, result)
+                        event["status"] = "completed"
+                    except Exception as error:
+                        errors.append(error)
+                        event.update(status="failed", error=f"{type(error).__name__}: {error}")
+                        # A failed run is never promoted to completed; retained
+                        # journals/checkpoints remain available for investigation.
+                        if self._run_status(job.algorithm, job.seed) != "completed":
+                            self._save_run_state(job.algorithm, job.seed, "incomplete", event.get("evaluation_count", 0))
+                        logger.error(f"Benchmark {job.algorithm} seed {job.seed} failed: {error}")
+                    schedule["completions"].append(event)
+                atomic_json(self.output_dir / "scheduler.json", schedule)
+                self.run_campaign_manifest()
+                # Drain in-flight jobs after a failure; do not start more jobs.
+                if not errors:
+                    for _ in finished:
+                        submit_next()
+        if errors:
+            raise RuntimeError(f"{len(errors)} benchmark campaign(s) failed; retained outputs are incomplete.") from errors[0]
+
+    @exclusive_benchmark
     def execute_benchmark_campaigns(
         self,
         dry_run: bool = False,
@@ -317,9 +423,10 @@ class BenchmarkCampaignRunner:
             logger.info(f"  - Total Runs: {total_runs}")
             logger.info(f"  - Per-run Budget: {effective_budget} evals ({self.n_sobol_init} Sobol + {self.n_batches} batches, final q={self.final_batch_size})")
             logger.info(f"  - Total Planned Evaluations: {total_runs * effective_budget}")
+            logger.info(f"  - Campaign slots: {self.concurrent_campaigns}; ASTRA workers per campaign: "
+                        f"{self.workers_per_campaign}; global worker cap: {self.total_workers}")
             return pd.DataFrame(self.manifest_rows)
-
-
+        jobs = []
         for s in self.seeds:
             for algo in self.algorithms:
                 run_dir = self.get_run_dir(algo, s)
@@ -333,30 +440,26 @@ class BenchmarkCampaignRunner:
                         "select a new output directory. Automatic recovery requires the complete resume-state refactor."
                     )
 
-                logger.info(f"\nExecuting Benchmark Run: algorithm='{algo}', seed={s}...")
-                spec = get_benchmark_algorithm(algo)
-                self._save_run_state(algo, s, "running", 0)
-                options = {"num_initial_samples": self.n_sobol_init, "num_batches": self.n_batches,
-                           "batch_size": self.batch_size, "num_workers": self.num_workers, "seed": s,
-                           "acquisition": spec.acquisition}
-                runner = campaign_runner(self.config, options, optimization_mode=spec.optimization_mode,
-                                         output_dir=run_dir, constrained=spec.constrained,
-                                         total_eval_budget=self.total_eval_budget, evaluator=mock_evaluator,
-                                         reporting_ref_point=self.model_reporting_ref_point, device=self.device)
-                results, _, _ = runner.run()
-
-                if len(results) != self.total_eval_budget:
-                    raise RuntimeError(f"Benchmark returned {len(results)} evaluations; expected {self.total_eval_budget}.")
-                # The campaign runner publishes the complete artifact contract; nothing is
-                # reconstructed here, so a run without it can never be marked complete.
-                metadata_path = run_dir / "reporting_metadata.json"
-                if metadata_path.exists():
-                    expected = reporting_metadata(self.config, self.model_reporting_ref_point, "explicit")
-                    validate_campaign_compatibility(json.loads(metadata_path.read_text()), expected)
-                self._save_run_state(algo, s, "completed", len(results))
-                if self._run_status(algo, s) != "completed":
-                    self._save_run_state(algo, s, "incomplete", len(results))
-                    raise RuntimeError(f"Benchmark run {run_dir} has incomplete persisted evaluation or metric history.")
-
+                jobs.append(self._job(algo, s, mock_evaluator))
+        schedule = {"version": 1, "start_method": "spawn" if self.concurrent_campaigns > 1 else "in_process",
+                    "requested_concurrent_campaigns": self.max_concurrent_campaigns,
+                    "max_concurrent_campaigns": self.concurrent_campaigns,
+                    "total_workers": self.total_workers, "workers_per_campaign": self.workers_per_campaign,
+                    "campaign_threads": self.campaign_threads if self.concurrent_campaigns > 1 else None,
+                    "completions": []}
+        if jobs:
+            atomic_json(self.output_dir / "scheduler.json", schedule)
+            if self.concurrent_campaigns > 1:
+                try:
+                    self._execute_parallel(jobs, schedule)
+                finally:
+                    self._active_runs.clear()
+            else:
+                for job in jobs:
+                    self._save_run_state(job.algorithm, job.seed, "running", 0)
+                    result = run_campaign_job(job, isolated=False)
+                    self._complete_job(job, result)
+                    schedule["completions"].append(dict(result, algorithm=job.algorithm, seed=job.seed, status="completed"))
+                    atomic_json(self.output_dir / "scheduler.json", schedule)
         self.analyze_completed_results()
         return self.run_campaign_manifest()

@@ -29,6 +29,9 @@ def run_benchmark(args: argparse.Namespace) -> None:
         batch_size=getattr(args, "batch_size", None),
         device=getattr(args, "device", "auto"),
         num_workers=getattr(args, "num_workers", None),
+        max_concurrent_campaigns=getattr(args, "max_concurrent_campaigns", 1),
+        total_workers=getattr(args, "total_workers", None),
+        campaign_threads=getattr(args, "campaign_threads", 1),
     )
     mock_eval = (
         MockEvaluator(runner.output_dir, config=config)
@@ -81,8 +84,14 @@ def register_benchmark_commands(subparsers: argparse._SubParsersAction) -> None:
         help="BO batch size per iteration (default: config benchmark.batch_size)",
     )
     run_bm_parser.add_argument(
-        "--num-workers", type=int, default=None, help="Parallel worker processes (default: config execution.max_workers)"
+        "--num-workers", type=int, default=None, help="Maximum ASTRA workers per campaign (default: config execution.max_workers)"
     )
+    run_bm_parser.add_argument("--max-concurrent-campaigns", type=int, default=1,
+                               help="Maximum independent spawned campaigns (default: 1)")
+    run_bm_parser.add_argument("--total-workers", type=int, default=None,
+                               help="Global ASTRA worker cap (default: --num-workers); divided across campaign slots")
+    run_bm_parser.add_argument("--campaign-threads", type=int, default=1,
+                               help="PyTorch CPU threads per spawned campaign (default: 1)")
     run_bm_parser.add_argument(
         "--device", type=str, default="auto", help="Target PyTorch compute device ('auto', 'cuda', 'cuda:0', 'cpu')"
     )

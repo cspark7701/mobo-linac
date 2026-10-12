@@ -18,6 +18,24 @@ top of each script and follow the [campaign plan](../../docs/strategic_simulatio
 Steps 03–05 print a forecast from the pilot's measured runtime and disk use before they start.
 GP fitting adds to these times.
 
+Benchmark steps 03 and 04 support independent campaign concurrency. `WORKERS` is the
+global ASTRA cap for these steps; `MAX_CONCURRENT_CAMPAIGNS` defaults to 1 and
+`CAMPAIGN_THREADS` defaults to 1 PyTorch CPU thread per spawned controller. For example:
+
+```bash
+WORKERS=8 MAX_CONCURRENT_CAMPAIGNS=2 CAMPAIGN_THREADS=1 scripts/production/04_primary.sh
+```
+
+This runs at most two campaigns with four ASTRA workers each. It preserves all 30
+algorithm/seed pairs, the 160-evaluation budgets, batch size 8, and subsequent audits.
+The forecast partitions the worker cap across campaign slots; it does not assume eight
+workers for each concurrent campaign. The parent owns reporting/completion checks and
+records scheduler outcomes in `benchmark/scheduler.json`; per-run journals, checkpoints,
+provenance and logs stay isolated. Concurrent schedulers or analysis sharing the same
+benchmark root are rejected. CPU is still the baseline; selecting CUDA shares the chosen
+GPU across controllers and requires enough VRAM. Steps 02, 05 and 06 retain their existing
+scheduling; the independent-campaign option applies only to benchmark steps 03/04.
+
 ```bash
 conda activate linac-opt            # or set PYTHON_BIN to that environment's python
 scripts/production/01_preflight.sh
