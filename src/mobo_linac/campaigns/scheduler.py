@@ -81,6 +81,13 @@ def run_campaign_job(job: CampaignJob, *, isolated: bool = True) -> dict:
                              total_eval_budget=job.budget, evaluator=job.evaluator,
                              reporting_ref_point=job.reference, device=job.device)
     start = time.time()
-    results, _, _ = runner.run()
-    return {"evaluation_count": len(results), "pid": os.getpid(), "started_at": start,
-            "finished_at": time.time(), "workers": job.workers}
+    try:
+        results, _, _ = runner.run()
+        return {"evaluation_count": len(results), "pid": os.getpid(), "started_at": start,
+                "finished_at": time.time(), "workers": job.workers}
+    finally:
+        if job.evaluator is not None and hasattr(job.evaluator, "close"):
+            try:
+                job.evaluator.close()
+            except Exception:
+                pass

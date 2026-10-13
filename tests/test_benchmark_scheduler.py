@@ -206,3 +206,46 @@ def test_campaign_processes_can_spawn_bounded_evaluation_pools(tmp_path):
         active += delta
         peak = max(peak, active)
     assert peak <= 4
+
+
+def test_campaign_loop_explicitly_closes_default_evaluator(tmp_path, monkeypatch):
+    """Verify CampaignLoop.run closes default ProcessPoolEvaluator in its finally block."""
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.execution.parallel import ProcessPoolEvaluator
+
+    closed = []
+    original_close = ProcessPoolEvaluator.close
+
+    def tracking_close(self):
+        closed.append(self)
+        original_close(self)
+
+    monkeypatch.setattr(ProcessPoolEvaluator, "close", tracking_close)
+
+    def mock_evaluate(self, requests, run_id="test", on_complete=None):
+        evaluator = MockEvaluator()
+        results = []
+        for r in requests:
+            res = evaluator.respond(r.parameters, run_id, r.eval_id)
+            res["request"] = r.to_dict()
+            results.append(res)
+            if on_complete:
+                on_complete(res)
+        return results
+
+    monkeypatch.setattr(ProcessPoolEvaluator, "evaluate", mock_evaluate)
+
+    config = load_config("configs/publication_200MeV.yaml")
+    runner = MoboCampaignRunner(
+        config=config,
+        output_dir=tmp_path / "test_closure_run",
+        num_initial_samples=2,
+        num_batches=1,
+        batch_size=1,
+        total_eval_budget=3,
+        num_workers=1,
+        device="cpu",
+    )
+    runner.run()
+    assert len(closed) == 1
+

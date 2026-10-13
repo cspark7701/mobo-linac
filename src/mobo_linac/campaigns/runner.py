@@ -362,31 +362,38 @@ class CampaignLoop:
         runner = self.runner
         self.prepare_outputs()
         self.evaluator = runner.build_evaluator()
-        self.journal = EvaluationJournal(self.run_dir, self.config)  # validated and repaired once per session
-        start = self.restore() if self.resume_state is not None and self.resume_state.iteration >= 0 else None
-        if start is None:
-            self.run_initial_design()
-            start = 1
-        for iteration in range(start, runner.num_batches + 1):
-            batch_size = runner.batch_size
-            if runner.total_eval_budget is not None:
-                batch_size = min(batch_size, runner.total_eval_budget - len(self.results))
-                if batch_size <= 0:
-                    break
-            logger.info(f"--- Iteration {iteration:02d}/{runner.num_batches:02d} ---")
-            candidates, metadata = self.propose(iteration, batch_size)
-            batch = self.evaluate(candidates, iteration, metadata)
-            self.results.extend(batch)
-            self.evaluation_batches.extend([iteration] * len(batch))
-            self.record_iteration(iteration)
-            self.commit(iteration)
-        self.export()
-        finalize_campaign(self.writer, self.results, self.tracker, self.run_dir, self.config, self.proposal_history,
-                          runner.export_plots, self.elapsed(), campaign_figures())
-        logger.info(f"=== Campaign Complete: {runner.run_id} ===")
-        logger.info(f"Total Evaluations: {len(self.results)}")
-        logger.info(f"Output saved in: {self.run_dir.resolve()}")
-        return self.results, self.tracker, self.run_dir
+        try:
+            self.journal = EvaluationJournal(self.run_dir, self.config)  # validated and repaired once per session
+            start = self.restore() if self.resume_state is not None and self.resume_state.iteration >= 0 else None
+            if start is None:
+                self.run_initial_design()
+                start = 1
+            for iteration in range(start, runner.num_batches + 1):
+                batch_size = runner.batch_size
+                if runner.total_eval_budget is not None:
+                    batch_size = min(batch_size, runner.total_eval_budget - len(self.results))
+                    if batch_size <= 0:
+                        break
+                logger.info(f"--- Iteration {iteration:02d}/{runner.num_batches:02d} ---")
+                candidates, metadata = self.propose(iteration, batch_size)
+                batch = self.evaluate(candidates, iteration, metadata)
+                self.results.extend(batch)
+                self.evaluation_batches.extend([iteration] * len(batch))
+                self.record_iteration(iteration)
+                self.commit(iteration)
+            self.export()
+            finalize_campaign(self.writer, self.results, self.tracker, self.run_dir, self.config, self.proposal_history,
+                              runner.export_plots, self.elapsed(), campaign_figures())
+            logger.info(f"=== Campaign Complete: {runner.run_id} ===")
+            logger.info(f"Total Evaluations: {len(self.results)}")
+            logger.info(f"Output saved in: {self.run_dir.resolve()}")
+            return self.results, self.tracker, self.run_dir
+        finally:
+            if self.runner.custom_evaluator is None and hasattr(self.evaluator, "close"):
+                try:
+                    self.evaluator.close()
+                except Exception as exc:
+                    logger.warning(f"Failed to close evaluator cleanly: {exc}")
 
     def prepare_outputs(self) -> None:
         """Check reporting compatibility, open the artifact writer and record a fresh run's inputs."""

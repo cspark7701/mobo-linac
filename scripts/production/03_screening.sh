@@ -7,6 +7,7 @@
 #   that failure causes and GP fit/fallback outcomes are understood.
 # Outputs: results/paper_production/03_screening/
 # Interrupted? Run ./03_screening.sh again: completed runs are kept and skipped.
+# Evaluators: spawned campaign workers explicitly close evaluation pools on exit.
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
 SEEDS=(42 43 44)

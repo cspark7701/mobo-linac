@@ -7,6 +7,7 @@
 # Outputs: results/paper_production/04_primary/
 # Interrupted? Run ./04_primary.sh again: completed runs are kept and skipped. An incomplete
 #   run is reported and preserved; investigate it rather than deleting it.
+# Evaluators: spawned campaign workers explicitly close evaluation pools on exit.
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
 SEEDS=(42 43 44 45 46 47 48 49 50 51)
