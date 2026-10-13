@@ -164,13 +164,6 @@ class CandidateEvaluatorBase(ABC):
                 on_task_complete(outcome)
 
         backend = evaluator if evaluator is not None else self.default_evaluator()
-        try:
-            completions = evaluate_requests(backend, [task.to_request() for task in tasks],
-                                            run_id=run_id, config=self.config, on_complete=complete)
-            return [outcomes[completion.result.evaluation_id] for completion in completions]
-        finally:
-            if evaluator is None and hasattr(backend, "close"):
-                try:
-                    backend.close()
-                except Exception:
-                    pass
+        completions = evaluate_requests(backend, [task.to_request() for task in tasks],
+                                        run_id=run_id, config=self.config, on_complete=complete)
+        return [outcomes[completion.result.evaluation_id] for completion in completions]
