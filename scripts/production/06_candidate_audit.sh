@@ -6,6 +6,8 @@
 #   (robustness, 300 evaluations). Charge and laser channels are unsupported for the fixed
 #   pal_photo2.ini source; report the scores as lattice-jitter robustness.
 # Outputs: results/paper_production/06_candidate_audit/
+# Device policy matches stages 04/05; these physical reruns execute ASTRA on CPU.
+DEVICE="${DEVICE:-cuda:0}"
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
 AUDIT_ALGORITHM=constrained_qlognehvi
@@ -26,7 +28,7 @@ for target in verification robustness; do
 done
 
 write_record step=06_candidate_audit run_dir="$RUN_DIR" perturbations=$PERTURBATIONS \
-  robustness_seed=$ROBUSTNESS_SEED workers=$WORKERS
+  robustness_seed=$ROBUSTNESS_SEED workers=$WORKERS device=$DEVICE optimization=none
 
 section "Verification: independent nominal reruns"
 cli run-verification --config "$RUN_DIR/config.yaml" --input "$RUN_DIR" \

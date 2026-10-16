@@ -15,7 +15,7 @@ PYTHON_BIN="${PYTHON_BIN:-python3}"
 export PYTHON_BIN
 OUT_ROOT="${PRODUCTION_ROOT:-results/paper_production}"
 CONFIG="configs/publication_200MeV.yaml"
-DEVICE="${DEVICE:-cpu}"              # CPU is the reproducibility baseline
+DEVICE="${DEVICE:-cpu}"              # stages 04+ set their CUDA default before sourcing
 WORKERS="${WORKERS:-4}"              # parallel ASTRA processes
 MAX_CONCURRENT_CAMPAIGNS="${MAX_CONCURRENT_CAMPAIGNS:-1}" # benchmark stages only
 CAMPAIGN_THREADS="${CAMPAIGN_THREADS:-1}" # PyTorch CPU threads per spawned campaign
@@ -98,6 +98,21 @@ check_python() {
     || fail "$PYTHON_BIN cannot import mobo_linac. Activate the linac environment or set PYTHON_BIN."
   [[ "$location" == "$PROJECT_ROOT/src/"* ]] \
     || fail "mobo_linac resolves to $location, not this checkout ($PROJECT_ROOT/src). Reinstall with pip install -e ."
+}
+
+# Optimization stages require the requested device instead of silently using CPU.
+# Audit/figure stages run ASTRA or read artifacts and need no CUDA context.
+require_optimization_device() {
+  [[ "$MOCK" == 1 ]] && return 0
+  "$PYTHON_BIN" - "$DEVICE" <<'PY'
+import sys
+import torch
+from mobo_linac.utils.device import get_device
+
+device = get_device(sys.argv[1], allow_cpu_fallback=False)
+torch.empty(1, dtype=torch.double, device=device)
+print(f"Optimization device: {device} (float64)")
+PY
 }
 
 # require_free_disk GB: refuse to start when the output file system has less free space.

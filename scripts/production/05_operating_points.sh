@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Step 5 - Operating-point survey and manuscript phases (full launcher defaults). About 1.5 days.
+# Step 5 - Operating-point survey and manuscript phases (full launcher defaults). GPU optimization.
 #   Phase 1: the five configured scalarized weight cases; Phase 2: unconstrained qLogNEHVI;
 #   Phase 3: constrained qLogNEHVI. Each: 16 initial samples + 20 batches of 8 = 176 evaluations
 #   (1,232 in total), base seed 42. Then nominal reruns of the six Phase 3 representatives
@@ -7,6 +7,7 @@
 #   Descriptive survey with unequal budgets (Phase 1 has five runs); the algorithm claim is Step 4.
 # Outputs: results/paper_production/05_operating_points/   (inputs of Step 7)
 # Interrupted? Run ./05_operating_points.sh --resume
+DEVICE="${DEVICE:-cuda:0}"
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
 SEED=42
@@ -27,6 +28,7 @@ require_step 04_primary
 start_step 05_operating_points
 refuse_if_done
 require_clean_tree
+require_optimization_device
 CAMPAIGN="$STEP_DIR/campaign"
 if [[ -e "$CAMPAIGN" && "$RESUME" == 0 ]]; then
   fail "$CAMPAIGN exists from an earlier attempt. Continue it with ./05_operating_points.sh --resume"

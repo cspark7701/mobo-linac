@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Step 4 - Primary experiment (plan Stage 3). About 4-5 days at ~300 s per ASTRA run.
+# Step 4 - Primary experiment (plan Stage 3). GPU optimization; timing depends on proposals.
 #   constrained_qlognehvi, unconstrained_qlognehvi and scalarized_bo; seeds 42-51 (all kept);
 #   budget 160 evaluations per algorithm-seed pair (16 Sobol + 18 batches of 8) = 4,800 evaluations.
 #   This is the paper's algorithm comparison; it starts from fresh runs, separate from screening.
@@ -8,6 +8,7 @@
 # Interrupted? Run ./04_primary.sh again: completed runs are kept and skipped. An incomplete
 #   run is reported and preserved; investigate it rather than deleting it.
 # Evaluators: spawned campaign workers explicitly close evaluation pools on exit.
+DEVICE="${DEVICE:-cuda:0}"
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 
 SEEDS=(42 43 44 45 46 47 48 49 50 51)
@@ -20,6 +21,7 @@ require_step 03_screening
 start_step 04_primary
 refuse_if_done
 require_clean_tree
+require_optimization_device
 BENCHMARK="$STEP_DIR/benchmark"
 
 section "Forecast"

@@ -5,6 +5,8 @@
 #   Also stages the primary comparison figures and summary, and the audit tables of Step 6.
 #   Outputs are staged for review; docs/paper/ is not modified.
 # Outputs: results/paper_production/07_paper_outputs/
+# This reporting-only stage does not fit models or run acquisition optimization.
+DEVICE="${DEVICE:-cuda:0}"
 source "$(dirname "${BASH_SOURCE[0]}")/_common.sh"
 [[ "${1:-}" == -h || "${1:-}" == --help ]] && { usage; exit 0; }
 
@@ -19,7 +21,7 @@ PAPER_ARGS=(--phase1-dir "$CAMPAIGN/phase1_scalarized" --phase2-dir "$CAMPAIGN/p
             --phase3-dir "$CAMPAIGN/phase3_constrained"
             --verification-csv "$CAMPAIGN/analysis/verification/verification_summary.csv"
             --output-dir "$STEP_DIR/figures" --tables-dir "$STEP_DIR/tables")
-write_record step=07_paper_outputs
+write_record step=07_paper_outputs device=$DEVICE optimization=none
 
 section "Figures and tables"
 mkdir -p "$STEP_DIR/figures" "$STEP_DIR/tables"

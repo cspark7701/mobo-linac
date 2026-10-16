@@ -4,6 +4,7 @@ import importlib.util
 import json
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pandas as pd
@@ -50,6 +51,28 @@ def test_steps_require_their_predecessor(tmp_path):
     result = subprocess.run([str(PRODUCTION / "04_primary.sh")], capture_output=True, text=True, env=env)
     assert result.returncode != 0
     assert "Step 03_screening has not completed" in result.stderr
+
+
+@pytest.mark.parametrize("device, succeeds", [("cpu", True), ("cuda:1000000", False)])
+def test_optimization_device_guard_refuses_unavailable_cuda(device, succeeds):
+    env = dict(os.environ, PYTHON_BIN=sys.executable, DEVICE=device, MOCK_EVALUATOR="0")
+    result = subprocess.run(
+        ["bash", "-c", 'source "$1"; require_optimization_device', "guard", str(PRODUCTION / "_common.sh")],
+        capture_output=True, text=True, env=env,
+    )
+    assert (result.returncode == 0) is succeeds
+    if succeeds:
+        assert "Optimization device: cpu (float64)" in result.stdout
+    else:
+        assert "unavailable" in result.stderr
+
+
+def test_mock_device_guard_does_not_require_cuda():
+    env = dict(os.environ, PYTHON_BIN="/nonexistent/python", DEVICE="cuda:0", MOCK_EVALUATOR="1")
+    subprocess.run(
+        ["bash", "-c", 'source "$1"; require_optimization_device', "guard", str(PRODUCTION / "_common.sh")],
+        check=True, env=env,
+    )
 
 
 def test_forecast_uses_pilot_runtime_and_disk(tmp_path, capsys):

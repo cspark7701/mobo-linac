@@ -10,30 +10,38 @@ top of each script and follow the [campaign plan](../../docs/strategic_simulatio
 | `01_preflight.sh` | 0 | Environment, `validate-config`, unit tests, one real ASTRA run, pilot preview, mock rehearsal | 1 | ~45 min |
 | `02_pilot.sh` | 1 | Balanced scalarized, unconstrained and constrained MOBO, seed 42, 8 + 2×4 each; 10 jitter samples | 48 + 66 audit | ~2–3 h |
 | `03_screening.sh` | 2 | 3 algorithms × seeds 42–44, budget 40 (8 Sobol, batch 4) | 360 | ~8 h |
-| `04_primary.sh` | 3 | 3 algorithms × seeds 42–51, budget 160 (16 Sobol, batch 8) | 4,800 | ~4–5 days |
-| `05_operating_points.sh` | survey | Full launcher: 5 scalarized cases + both MOBO phases, 16 + 20×8 each; 50 jitter samples | 1,232 + 306 audit | ~1.5 days |
+| `04_primary.sh` | 3 | 3 algorithms × seeds 42–51, budget 160 (16 Sobol, batch 8); CUDA optimization | 4,800 | Benchmark late-stage proposals first |
+| `05_operating_points.sh` | survey | Full launcher: 5 scalarized cases + both MOBO phases, 16 + 20×8 each; CUDA optimization; 50 jitter samples | 1,232 + 306 audit | Depends on proposal timing |
 | `06_candidate_audit.sh` | 4 | Reruns and 50 jitter samples for the predeclared primary run (constrained, seed 42) | 306 | ~7 h |
 | `07_paper_outputs.sh` | deliverables | Manuscript figures and tables (staged), consistency check, campaign inventory | 0 | minutes |
 
 Steps 03–05 print a forecast from the pilot's measured runtime and disk use before they start.
-GP fitting adds to these times.
+The forecast covers ASTRA scheduling; GP fitting and acquisition optimization add to it.
+The small pilot can substantially underestimate late-stage MOBO proposal time.
 
 Benchmark steps 03 and 04 support independent campaign concurrency. `WORKERS` is the
 global ASTRA cap for these steps; `MAX_CONCURRENT_CAMPAIGNS` defaults to 1 and
 `CAMPAIGN_THREADS` defaults to 1 PyTorch CPU thread per spawned controller. For example:
 
 ```bash
-WORKERS=8 MAX_CONCURRENT_CAMPAIGNS=2 CAMPAIGN_THREADS=1 scripts/production/04_primary.sh
+WORKERS=8 MAX_CONCURRENT_CAMPAIGNS=1 CAMPAIGN_THREADS=1 scripts/production/04_primary.sh
 ```
 
-This runs at most two campaigns with four ASTRA workers each. It preserves all 30
+This runs one campaign with eight ASTRA workers. It preserves all 30
 algorithm/seed pairs, the 160-evaluation budgets, batch size 8, and subsequent audits.
 The forecast partitions the worker cap across campaign slots; it does not assume eight
 workers for each concurrent campaign. The parent owns reporting/completion checks and
 records scheduler outcomes in `benchmark/scheduler.json`; per-run journals, checkpoints,
 provenance and logs stay isolated. Concurrent schedulers or analysis sharing the same
-benchmark root are rejected. CPU is still the baseline; selecting CUDA shares the chosen
-GPU across controllers and requires enough VRAM. Steps 02, 05 and 06 retain their existing
+benchmark root are rejected. Steps 01–03 retain their CPU default. Stages 04 onward
+default to `DEVICE=cuda:0`; stages 04/05 check availability and allocate a float64
+tensor before launching optimization, so unavailable CUDA cannot silently fall back
+to CPU at startup. `DEVICE=cpu` remains an explicit override. Internal proposal
+recovery can still use its recorded CPU fallback after CUDA optimization fails.
+Start with one GPU campaign; raising `MAX_CONCURRENT_CAMPAIGNS` shares VRAM and
+should follow a measured memory check. ASTRA stays on CPU. Stages 06/07 record
+the device policy but perform physical audits/reporting without a GPU optimizer;
+their validation counts and checks are unchanged. Steps 02, 05 and 06 retain their existing
 scheduling; the independent-campaign option applies only to benchmark steps 03/04.
 
 ```bash
