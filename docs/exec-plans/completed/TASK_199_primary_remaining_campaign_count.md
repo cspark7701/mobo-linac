@@ -27,5 +27,23 @@ Each cell represents one campaign with a budget of 160 evaluations (30 campaigns
 | 50 | Queued | Queued | Queued |
 | 51 | Queued | Queued | Queued |
 
+## Per-Campaign Wall-Time Estimates at 10:54 KST
+Measured times below are completed campaign wall times. Estimates are the mean completed GPU campaign duration for each algorithm, rounded to the nearest minute: constrained 3 h 24 min (three completed seeds), unconstrained 2 h 14 min (two seeds), scalarized 1 h 13 min (two seeds). All campaigns retain a 160-evaluation budget; execution uses one GPU campaign and eight ASTRA workers. These are total per-campaign durations, not queue waiting times.
+
+| Seed | Constrained qLogNEHVI | Unconstrained qLogNEHVI | Scalarized BO |
+| --- | --- | --- | --- |
+| 42 | Actual: 3 h 34 min | Actual: 2 h 16 min | Actual: 1 h 13 min |
+| 43 | Actual: 3 h 04 min | Actual: 2 h 12 min | Actual: 1 h 13 min |
+| 44 | Actual: 3 h 35 min | Running: 1 h 59 min elapsed; approximately 2 h 14 min total estimated | Estimated: 1 h 13 min |
+| 45 | Estimated: 3 h 24 min | Estimated: 2 h 14 min | Estimated: 1 h 13 min |
+| 46 | Estimated: 3 h 24 min | Estimated: 2 h 14 min | Estimated: 1 h 13 min |
+| 47 | Estimated: 3 h 24 min | Estimated: 2 h 14 min | Estimated: 1 h 13 min |
+| 48 | Estimated: 3 h 24 min | Estimated: 2 h 14 min | Estimated: 1 h 13 min |
+| 49 | Estimated: 3 h 24 min | Estimated: 2 h 14 min | Estimated: 1 h 13 min |
+| 50 | Estimated: 3 h 24 min | Estimated: 2 h 14 min | Estimated: 1 h 13 min |
+| 51 | Estimated: 3 h 24 min | Estimated: 2 h 14 min | Estimated: 1 h 13 min |
+
+The active journal had 139 / 160 observations during this snapshot, including an unfinished batch. Mean-duration extrapolation yields approximately 49.5 hours remaining, with a central finish estimate of October 22 at 12:25 KST before final reporting overhead. Seed-dependent optimizer behavior and competing workloads can change this estimate; it is not a promised deadline. No application code or running process was changed.
+
 ## Status
 Completed. The production experiment continues.
