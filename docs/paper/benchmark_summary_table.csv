@@ -1,0 +1,4 @@
+algorithm,num_seeds,final_median_feasible_hv,final_ci_lower_hv,final_ci_upper_hv,median_evals_to_first_feasible,mean_final_feasible_fraction,mean_final_pareto_size,mean_invalid_run_count,failure_rate,mean_total_wallclock_s,mean_total_sim_runtime_s,bootstrap_seed,min_norm_emit_x_m_rad,min_norm_emit_y_m_rad,min_sigma_energy_eV
+constrained_qlognehvi,10,0.0,0.0,0.0,12.5,0.40499999999999997,0.0,0.0,0.0,12059.988299837918,23275.423196371587,42,2.5804e-06,2.8774e-06,318360.0
+unconstrained_qlognehvi,10,0.0,0.0,0.0,13.0,0.156875,0.0,0.0,0.0,8606.402657459199,24094.905480967765,42,2.5922999999999997e-06,3.0117e-06,326090.0
+scalarized_bo,10,0.0,0.0,0.0,12.5,0.12499999999999997,0.0,0.0,0.0,4484.643961326301,23994.366145125543,42,2.8099999999999998e-06,3.0557e-06,331630.0

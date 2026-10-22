@@ -150,7 +150,7 @@ def _assert_pareto_data(directory):
         frame = pd.read_csv(directory / "pareto.csv", comment="#", header=None, names=columns)
     values = frame[columns].apply(pd.to_numeric, errors="raise")
     assert len(values) >= 1, f"Empty Pareto export: {directory}"
-    assert values.map(math.isfinite).all().all()
+    assert all(math.isfinite(value) for value in values.to_numpy().flat)
     if {"run_id", "evaluation_id"}.issubset(frame.columns):
         assert not frame[["run_id", "evaluation_id"]].isna().any().any()
         assert not frame.duplicated(["run_id", "evaluation_id"]).any()
@@ -270,7 +270,8 @@ def test_verification_csv_columns(verification_csv):
     else:
         legacy = {"stored_emit_x_m_rad", "rerun_emit_x_m_rad", "stored_sigma_energy_eV", "rerun_sigma_energy_eV"}
         assert legacy.issubset(df.columns)
-        assert df[sorted(legacy)].apply(pd.to_numeric, errors="raise").map(math.isfinite).all().all()
+        values = df[sorted(legacy)].apply(pd.to_numeric, errors="raise")
+        assert all(math.isfinite(value) for value in values.to_numpy().flat)
 
 
 def test_reproduction_stops_on_selected_dataset_validation_failure(tmp_path, project_root):

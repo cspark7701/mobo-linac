@@ -2,8 +2,8 @@
 % Free-format submission; references use the IOP numeric style (iopart-num.bst).
 %
 % Results are produced by scripts/production/01_preflight.sh ... 07_paper_outputs.sh.
-% Every number that depends on the campaign is marked \pending{...} (red) until the
-% campaign outputs are copied into this directory (see the comment before Section 5).
+% Campaign values are generated from the completed October 2026 production runs.
+% Remaining \pending markers identify unresolved author/public-archive information.
 % Set \finaltrue only after every \pending marker has been replaced.
 \documentclass[11pt,a4paper]{article}
 
@@ -66,13 +66,15 @@ unconstrained. A weighted-sum Bayesian optimization baseline is included. The co
 paired and budget-matched: three algorithms over ten seeds, 160 simulations per run with a
 shared quasi-random initial design per seed, failed simulations charged to the budget, and
 hypervolume measured over feasible evaluated points against a fixed, predeclared reference.
-Constraint-aware qLogNEHVI reached a median final feasible hypervolume of \pending{value [95\% CI]}
-compared with \pending{value [CI]} for unconstrained qLogNEHVI and \pending{value [CI]} for the
-weighted-sum baseline, with \pending{feasible fractions}. Representative Pareto-optimal settings
-were re-simulated independently with hash-recorded inputs, \pending{N of 6} reproduced within
-0.1\%, and their sensitivity to lattice jitter of $0.1\%$ in magnet strengths and $0.1^\circ$ in RF
-phases was quantified. The software, configurations and complete campaign records are openly
-available.
+All 4800 primary simulations were valid. Final feasible hypervolume was zero for every run
+against the predeclared reference, so this primary endpoint did not distinguish the algorithms.
+Median feasible fractions were 40.6\%, 15.0\% and 12.5\% for constraint-aware qLogNEHVI,
+unconstrained qLogNEHVI and the weighted-sum baseline, respectively. Six representatives of the
+predeclared primary audit run were independently re-simulated with hash-recorded inputs; all six
+reproduced with zero difference at the stored output precision. All 50 sampled lattice-jitter
+simulations per representative were feasible at standard deviations of $0.1\%$ in magnet
+strengths and $0.1^\circ$ in RF phases. Source jitter was not applied. Evaluation journals and
+input/output checksums retain the evidence needed to reproduce these results.
 \end{abstract}
 
 \noindent\textbf{Keywords:} Bayesian optimization, multi-objective optimization, constrained
@@ -284,11 +286,11 @@ over it with respect to the acquisition reference point $\mathbf{r}_\mathrm{acq}
 is estimated with quasi-Monte-Carlo samples. In the constraint-aware variant, the improvement is
 weighted by a smooth feasibility indicator: $c_k \le 0$ denotes satisfaction of the $k$-th
 inequality of table~\ref{tab:constraints} evaluated on the sampled diagnostics, and $s_\tau$ is a
-fat-tailed sigmoid with temperature $\tau = 10^{-3}$. \pending{Author decision before the
-campaign: the residuals $c_k$ are currently passed in SI units, which makes $s_\tau$ nearly
-uninformative for the beam-size, divergence and bunch-length channels (residuals
-$\sim10^{-4}$) and a hard step for energy; normalizing each residual by its threshold would treat
-the channels alike.} The unconstrained variant omits the product.
+fat-tailed sigmoid with temperature $\tau = 10^{-3}$. The residuals $c_k$ are passed in SI units
+without threshold normalization. The common temperature therefore has different physical
+transition widths across the beam-size, divergence, bunch-length and energy channels. This
+unit-dependent smoothing is a limitation of the recorded implementation; no residual scaling was
+changed during or after the campaigns. The unconstrained variant omits the product.
 
 The weighted-sum baseline fits a single GP to the scalar cost
 $g(\mathbf{x}) = \sum_m w_m f_m(\mathbf{x})/s_m$, where $s_m$ are the reporting scales
@@ -317,13 +319,15 @@ is fixed and only evaluated points enter, the feasible hypervolume never decreas
 comparable across algorithms, seeds and budgets.
 
 \subsection{Execution and provenance}
-Candidates of a batch are simulated in parallel worker processes, four at a time. Every attempt
+Candidates of a batch are simulated in parallel worker processes, eight at a time. Every attempt
 runs in its own working directory, created from the template input, the field maps and the
 initial distribution, and the SHA-256 hashes of all inputs, the ASTRA executable and the outputs
 are stored with an attempt manifest. Evaluations are appended to a journal as they complete, and
 the campaign state, including random-number generator states and pending proposals, is
 checkpointed atomically after each batch, so that an interrupted campaign resumes without
-repeating or losing evaluations. All computations use double precision on CPUs.
+repeating or losing evaluations. GP and acquisition calculations use double precision on an
+NVIDIA RTX A5000 GPU; ASTRA tracking runs on Intel Xeon Gold 6256 CPUs. One optimization campaign
+runs at a time, with at most eight ASTRA processes.
 
 %==========================================================================================
 \section{Experimental design}
@@ -348,9 +352,12 @@ counts by category and the computational cost. For each algorithm we report the 
 with a 95\% percentile bootstrap confidence interval~\cite{Efron1993} (1000 resamples with a fixed
 generator seed). Because the initial designs are paired, the algorithms are compared through the
 per-seed differences in final feasible hypervolume between constraint-aware qLogNEHVI and each
-baseline, summarized by their median with a bootstrap interval and tested with the two-sided exact
-Wilcoxon signed-rank test~\cite{Wilcoxon1945} with Holm correction~\cite{Holm1979} for the two
-comparisons. \pending{The paired-difference analysis is not yet produced by the pipeline.}
+baseline, summarized by their median with a bootstrap interval. The planned two-sided exact
+Wilcoxon signed-rank test~\cite{Wilcoxon1945}, with Holm correction~\cite{Holm1979} for the two
+comparisons, is not applied when every paired difference is zero: no nonzero signed ranks remain.
+That condition occurred for both hypervolume comparisons here. Feasible Pareto cardinality counts
+all feasible nondominated measured observations, including those outside the reporting reference;
+it is distinct from the reference-dominating point count in the hypervolume history.
 
 \subsection{Independent audit of operating points}
 \label{sec:audit}
@@ -385,11 +392,13 @@ A representative with $P_\mathrm{feas} < 0.8$ is classified as fragile.
 \subsection{Operating-point survey}
 \label{sec:survey}
 To illustrate the operating modes accessible to the injector, we additionally ran single campaigns
-(seed 42; 16 initial points and 20 batches of 8, i.e.\ 176 simulations each) of the weighted-sum
+(16 initial points and 20 batches of 8, i.e.\ 176 simulations each) of the weighted-sum
 method for five weightings $(w_x, w_y, w_E)$---balanced $(\frac13, \frac13, \frac13)$,
 high brightness $(0.45, 0.45, 0.10)$, low energy spread $(0.10, 0.10, 0.80)$, horizontal
 $(0.60, 0.20, 0.20)$ and vertical $(0.20, 0.60, 0.20)$---and one campaign of each qLogNEHVI
-variant. The five weighted-sum runs together use five times the budget of a qLogNEHVI run, so the
+variant. The suite uses base seed 42 and case seeds 42, 142, 242, 342 and 442 for the five
+weightings in the order listed; each qLogNEHVI survey uses seed 42.
+The five weighted-sum runs together use five times the budget of a qLogNEHVI run, so the
 survey is descriptive and is not used to compare algorithms. Its constraint-aware run was audited
 with the same protocol.
 
@@ -406,42 +415,36 @@ with the same protocol.
 \label{sec:results}
 
 \subsection{Simulation validity and cost}
-Of the \pending{4800} simulations of the primary comparison, \pending{N (x\%)} were valid; the
-failures were \pending{categories and counts}. A single ASTRA simulation took a median of
-\pending{t}~s (95th percentile \pending{t}~s) on \pending{CPU model}, and one run of 160
-simulations took \pending{h} including surrogate fitting and acquisition optimization, of which
-\pending{x\%} was spent in simulation. Acquisition optimization fell back to Sobol sampling in
-\pending{N of 540} proposals.
+All 4800 simulations of the primary comparison were valid; no simulation-invalid failure was
+recorded. Physical infeasibility is retained separately: 1099 evaluations satisfied all
+constraints. Individual ASTRA evaluations took a median of 140.4~s and a 95th percentile of
+194.0~s on the host described above. Mean campaign wall times, including fitting and acquisition
+optimization, were 3.35~h, 2.39~h and 1.25~h for constraint-aware qLogNEHVI, unconstrained
+qLogNEHVI and weighted-sum qLogNEI. Individual simulation runtimes overlap across workers, so
+their sum is not a wall-time fraction and is not reported as one. All 540 post-initialization
+proposals used the primary CUDA tier; none used the recorded CPU or Sobol fallback tier.
+Internal optimizer warnings and fitting recovery are retained in the run logs.
 
 \subsection{Primary comparison}
 \label{sec:primary}
 Table~\ref{tab:primary} summarizes the endpoints of the three algorithms and
 figure~\ref{fig:benchmark} shows the feasible hypervolume and the feasible fraction as functions of
-the number of evaluations. \pending{Describe: median final feasible hypervolume with CI per
-algorithm; paired differences and test results; evaluations to first feasible point; feasible
-fractions. State the comparison as measured, for all ten seeds.}
+the number of evaluations. Every run had zero feasible hypervolume against the predeclared
+reference, with median and bootstrap interval $0\,[0,0]$ for all algorithms. Each paired
+hypervolume difference was also zero; no signed-rank $p$-value or Holm-adjusted significance
+claim is reported. This endpoint does not distinguish the algorithms, and the result does not
+establish equality of their physical trade-offs. The reference was not changed after observing
+the runs.
 
-\begin{table}[H]
-\centering
-\caption{Primary comparison over ten seeds (160 simulations per run). Medians with 95\%
-bootstrap confidence intervals over seeds; hypervolumes in \si{\micro\metre^2\,rad^2\,MeV} against
-the fixed reference $\mathbf{r}$; the feasible fraction uses all evaluations.}
-\label{tab:primary}
-\begin{tabular}{lccc}
-\toprule
- & Constraint-aware & Unconstrained & Weighted sum \\
- & qLogNEHVI & qLogNEHVI & qLogNEI \\
-\midrule
-Final feasible hypervolume & \pending{} & \pending{} & \pending{} \\
-Paired difference to constraint-aware & --- & \pending{} & \pending{} \\
-Holm-adjusted $p$ (Wilcoxon) & --- & \pending{} & \pending{} \\
-Feasible fraction & \pending{} & \pending{} & \pending{} \\
-Evaluations to first feasible point & \pending{} & \pending{} & \pending{} \\
-Feasible Pareto set size & \pending{} & \pending{} & \pending{} \\
-Invalid simulations & \pending{} & \pending{} & \pending{} \\
-\bottomrule
-\end{tabular}
-\end{table}
+Median feasible fractions were 40.6\% [35.6\%, 45.6\%], 15.0\% [12.8\%, 18.8\%] and
+12.5\% [11.2\%, 13.8\%] for the constraint-aware, unconstrained and weighted-sum algorithms.
+These are descriptive secondary results; no separate significance test of feasibility is claimed.
+Median evaluations to the first feasible point were 12.5, 13.0 and 12.5, while median feasible
+Pareto cardinalities were 13.5, 7.0 and 4.0. Feasible fronts can exist without contributing to
+the fixed-reference hypervolume: the observed transverse emittances remain above its
+1.5~\umrad\ reference components.
+
+\input{primary_results_table}
 
 \begin{figure}[H]
 \centering
@@ -457,9 +460,14 @@ are medians over ten seeds and bands are 95\% bootstrap confidence intervals.}
 \label{sec:survey_results}
 Table~\ref{tab:campaign_summary} and figures~\ref{fig:survey_hv}--\ref{fig:pareto} summarize the
 operating-point survey of section~\ref{sec:survey}, and table~\ref{tab:phase1_cases} the five
-weightings. \pending{Describe the trade-off between transverse emittance and energy spread visible
-in the feasible fronts, the operating modes reached by each weighting, and the best feasible values
-of each objective. Because the budgets differ, do not rank algorithms with these data.}
+weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
+106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
+feasible horizontal emittances were 2.7076, 3.1141 and 2.6513~\umrad, and the best feasible
+vertical emittances were 3.1349, 3.1712 and 3.0264~\umrad. Their minimum feasible energy spreads
+were 0.3393, 0.3905 and 0.3467~MeV. These coordinate-wise extrema need not occur at the same
+operating point. Table~\ref{tab:phase1_cases} instead labels its coordinate minima as all-valid
+observations; an infeasible setting can therefore improve a value in that table. The differing
+budgets and case-specific seeds prevent interpreting this descriptive survey as an algorithm ranking.
 
 \IfFileExists{results_table.tex}{\input{results_table}}{\pendingtable{results_table}{Operating-point
 survey summary.}{tab:campaign_summary}}
@@ -495,9 +503,11 @@ physical objective space.}
 \label{sec:verification_results}
 Table~\ref{tab:audit_verification} lists the reruns of the six representatives of the primary
 audit run, and table~\ref{tab:pareto_verification} those of the survey's constraint-aware run.
-\pending{N of 6} representatives were verified (largest relative difference
-\pending{value}), \pending{N} conditionally verified and \pending{N} rejected.
-\pending{Explain any non-verified case.}
+All six representatives in each audit were verified; none was conditionally verified or rejected.
+The largest recorded relative difference was zero for both sets at the precision of the ASTRA
+output. All 12 reruns were valid and feasible. Independent provenance checks verified the
+original and rerun identities, input snapshots and executable checksums; this establishes
+computational reproducibility of the simulated model, without comparison to accelerator measurements.
 
 \IfFileExists{audit_verification_table.tex}{\input{audit_verification_table}}{\pendingtable{audit_verification_table}{Independent
 reruns of the primary audit run.}{tab:audit_verification}}
@@ -515,9 +525,14 @@ the survey's constraint-aware run.}
 \subsection{Robustness to lattice jitter}
 \label{sec:robustness_results}
 Table~\ref{tab:robustness_summary} reports the lattice-jitter statistics of the six representatives
-of the primary audit run. \pending{Describe $P_\mathrm{feas}$, the limiting constraint channel,
-the objective degradation and which representatives are fragile; relate fragility to the
-position on the front.}
+of the primary audit run. Each of its six distinct representatives retained feasibility in all
+50 sampled perturbations; no representative was classified as fragile. The mean objective
+ratio $D$ ranged from 0.988 to 1.064, and the robustness score ranged from 0.959 to 1.019.
+The smallest normalized constraint margin was 0.01595, associated with the lower energy limit;
+other representatives were limited by bunch length or the upper energy limit. All 300 survey
+perturbations were also valid and feasible. Each audit used 300 distinct perturbed parameter
+vectors. Finite samples with no infeasible outcome do not establish zero population failure
+probability, and these results do not cover charge or laser-distribution fluctuations.
 
 \IfFileExists{robustness_table.tex}{\input{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
 robustness of the representatives.}{tab:robustness_summary}}
@@ -525,10 +540,15 @@ robustness of the representatives.}{tab:robustness_summary}}
 %==========================================================================================
 \section{Discussion}
 \label{sec:discussion}
-\pending{Interpret the primary comparison: whether and when modelling the constraints pays off
-for this problem, how the advantage develops with the number of evaluations, and how sensitive the
-conclusions are to the seeds. Discuss the cost of the additional constraint surrogates relative to
-the simulation time, and what the audit implies for selecting an operating point.}
+Constraint-aware acquisition produced a larger feasible fraction and a larger feasible Pareto
+set in the descriptive summaries over ten seeds, at a greater campaign wall cost than the
+unconstrained and weighted-sum methods. The predeclared primary endpoint nevertheless remains
+uninformative because the fixed reference lies beyond the observed emittances. Secondary
+feasibility results should therefore not be substituted for a positive primary hypervolume
+comparison. A future benchmark may predeclare a reference supported by independent operating
+data, but changing it retrospectively would answer a different question. The independent reruns
+support reproducibility, and the sampled lattice-jitter tests identify several feasible operating
+points within the simulated tolerance model; neither establishes performance on the real machine.
 
 The study has the following limitations. All results are simulations of one injector model with a
 fixed initial distribution; source fluctuations were not perturbed, and agreement with the
@@ -546,20 +566,25 @@ verification reruns test directly.
 We studied constraint-aware batch multi-objective Bayesian optimization for a six-parameter,
 three-objective, seven-constraint design problem of a 200~MeV electron injector, in a paired,
 budget-matched comparison over ten seeds with failure-inclusive accounting and a fixed hypervolume
-reference. \pending{State the measured outcome of the primary comparison and of the audit.}
-The software and the campaign records allow every number in this paper to be regenerated from the
-recorded simulations. Future work will extend the robustness analysis to source fluctuations with
+reference. All simulations were valid. Hypervolume was zero in every primary campaign, so no
+hypervolume-based algorithm ranking is supported. Constraint-aware acquisition had a median
+feasible fraction of 40.6\%, compared with 15.0\% and 12.5\% for the two baselines. All audited
+representatives reproduced at stored output precision and all sampled lattice perturbations were
+feasible, with source jitter explicitly excluded. The recorded data and analysis scripts support
+regeneration of these results; public archive identifiers remain to be assigned.
+Future work will extend the robustness analysis to source fluctuations with
 a validated distribution generator, distribute the simulations across compute nodes, and test the
 optimized settings on the machine.
 
 %==========================================================================================
 \section*{Data availability statement}
 \label{sec:data}
-The software, configurations and analysis scripts are available at
-\url{https://github.com/cspark7701/mobo-linac} and archived at \pending{Zenodo DOI}. The complete
-campaign records (evaluation journals, attempt manifests with input hashes, checkpoints and
-surrogate states) are archived at \pending{DOI}. All figures and tables in the results section are
-generated from these records by the scripts in \texttt{scripts/production}.
+The source repository is \url{https://github.com/cspark7701/mobo-linac}; its public archive
+identifier remains \pending{Zenodo DOI}. Complete campaign records (evaluation journals,
+attempt manifests with input hashes, checkpoints and surrogate states) are retained locally;
+their public deposit identifier remains \pending{campaign archive DOI}. The paper update includes
+derived figures, tables and per-seed aggregate endpoints rather than raw simulation files.
+The reproduction commands and data provenance are documented in \texttt{docs/paper/README.md}.
 
 \section*{Acknowledgments}
 \pending{Funding and acknowledgments.}
