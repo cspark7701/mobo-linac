@@ -5,6 +5,27 @@ step. Each step prints its progress, saves the same text in `results/paper_produ
 and writes its outputs to `results/paper_production/<step>/`. The parameters are written at the
 top of each script and follow the [campaign plan](../../docs/strategic_simulation_campaign_plan.md).
 
+## Six-hour checks and recovery
+
+`tools/production_watch.py` can queue recurring checks into an existing local Codex
+chat. The user-authorized monitor for this production run is configured in
+`results/paper_production/monitor/config.json`; its cron entry runs every six hours.
+It checks stages 05–07 in the same chat, where the existing context and approval
+controls govern diagnosis, focused fixes, local commits, and checkpoint-preserving
+relaunches. Healthy runs are left alone, and simulation budgets and physical
+validation remain unchanged. No remote push is included.
+
+The computer, cron service, and local Codex app-server must remain available.
+Queue delivery is recorded in `monitor/last_dispatch.json` and
+`monitor/dispatch_history.jsonl`; the first scheduled time is in `monitor/schedule.json`.
+A queued message is a trigger, not proof that its check or recovery succeeded;
+the resulting chat turn records the outcome. After stages 05–07 and their artifacts
+are verified complete, the monitor removes only its own cron entry. To stop it manually:
+
+```bash
+python tools/production_watch.py --config results/paper_production/monitor/config.json --disable
+```
+
 | Script | Plan stage | What it runs | ASTRA evaluations | Time at ~300 s/run, 4 workers |
 |---|---|---|---:|---|
 | `01_preflight.sh` | 0 | Environment, `validate-config`, unit tests, one real ASTRA run, pilot preview, mock rehearsal | 1 | ~45 min |
