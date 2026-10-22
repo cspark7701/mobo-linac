@@ -15,12 +15,22 @@ controls govern diagnosis, focused fixes, local commits, and checkpoint-preservi
 relaunches. Healthy runs are left alone, and simulation budgets and physical
 validation remain unchanged. No remote push is included.
 
+For the current production run, the user also requested paper updates after stage 07.
+The monitor's local `prepare_paper_after_stage07` flag requests review and promotion
+of staged figures/tables into `docs/paper`, consistency checks, and a formatted local
+commit. It then prepares an exact outgoing commit/file manifest for `origin/main`.
+Automatic approval review rejected an unattended future push based on general
+authorization, so remote publication remains blocked pending precise approval of the
+actual prepared payload and destination. The monitor reports that condition and
+does not bypass it. Raw simulations and models stay local.
+
 The computer, cron service, and local Codex app-server must remain available.
 Queue delivery is recorded in `monitor/last_dispatch.json` and
 `monitor/dispatch_history.jsonl`; the first scheduled time is in `monitor/schedule.json`.
 A queued message is a trigger, not proof that its check or recovery succeeded;
 the resulting chat turn records the outcome. After stages 05–07 and their artifacts
-are verified complete, the monitor removes only its own cron entry. To stop it manually:
+are verified complete (and requested local paper preparation finishes), the monitor
+removes only its own cron entry. To stop it manually:
 
 ```bash
 python tools/production_watch.py --config results/paper_production/monitor/config.json --disable

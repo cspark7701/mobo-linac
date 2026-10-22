@@ -50,3 +50,17 @@ def test_dispatch_queues_existing_thread_and_records_failure(tmp_path, monkeypat
     assert "Do not git push" in prompt
     assert "Do not stop a healthy run" in prompt
     assert "WORKERS=8 DEVICE=cuda:0" in prompt
+
+
+def test_final_paper_preparation_is_local_and_push_remains_blocked(tmp_path):
+    tool = module()
+    config = {"python": "/python", "project": str(tmp_path), "config_path": str(tmp_path / "config.json"),
+              "prepare_paper_after_stage07": True}
+    prompt = tool.monitor_prompt(config)
+    assert "scripts/reproduce_paper.sh with explicit stage-05" in prompt
+    assert "commit the related paper updates" in prompt
+    assert "Do not git push" in prompt
+    assert "automatic approval review rejected unattended" in prompt
+    assert "actual prepared commit/files and destination" in prompt
+    assert "request precise final push approval" in prompt
+    assert "including already-unpublished ancestor commits" in prompt

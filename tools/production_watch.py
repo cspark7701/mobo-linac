@@ -41,6 +41,27 @@ def write_crontab(contents):
 
 
 def monitor_prompt(config):
+    if config.get("prepare_paper_after_stage07"):
+        final_step = """After all stages 05–07 and their completion/audit/report evidence are verified,
+prepare the user's requested paper updates locally before stopping the monitor. Stage 07 only
+stages outputs: review them, run scripts/reproduce_paper.sh with explicit stage-05 phase and
+verification paths, and copy the stage-07 benchmark figures and audit/robustness tables into
+docs/paper as its final instructions specify. Keep manuscript references consistent with measured
+results; do not invent findings or modify archived release artifacts. Run focused paper-output
+tests and manuscript consistency checks, review changes, and commit the related paper updates
+and task summary in the required format. Do not include raw simulations, models, or unrelated work.
+Prepare an exact outgoing file/commit manifest, including already-unpublished ancestor commits,
+for the intended destination https://github.com/cspark7701/mobo-linac, branch main.
+The user gave general one-time push approval, but automatic approval review rejected unattended
+future egress because that approval did not name the actual payload and destination. Do not git push
+or bypass this rejection. Present the actual prepared commit/files and destination, explain the
+review rejection, and request precise final push approval. Record local preparation and pending
+push status in results/paper_production/monitor/paper_preparation.json. Do not repeat preparation
+if its completed receipt already exists. Once execution checks and local paper preparation finish,
+disable the six-hour monitor and leave remote publication explicitly pending that final approval.
+"""
+    else:
+        final_step = "Once all stages 05–07 finish and their completion/audit/report evidence is verified, stop monitoring."
     return f"""Scheduled six-hour production check authorized by the user for {config['project']}.
 Continue the existing task in this chat; do not create another schedule or another agent.
 Read AGENTS.md and inspect stages 05_operating_points, 06_candidate_audit, and 07_paper_outputs
@@ -61,7 +82,8 @@ If stages are idle and prerequisites are complete, continue the user's already-a
 relaunch so clean-tree startup records the correct code. Do not git push or query remote workflows.
 Record findings and actions under results/paper_production/monitor and in a task summary committed
 with related changes, according to AGENTS.md. Respect any later user instruction to stop.
-Once all stages 05–07 finish and their completion/audit/report evidence is verified, stop monitoring:
+{final_step}
+Command to stop monitoring:
 {shlex.join([config['python'], str(Path(__file__).resolve()), '--config', config['config_path'], '--disable'])}
 Normal sandbox and automatic approval review remain enabled; report any blocked recovery honestly.
 """
