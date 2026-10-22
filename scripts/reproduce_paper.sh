@@ -195,19 +195,25 @@ pytest -q tests/test_paper_outputs.py \
     --phase3-dir "$PHASE3_DIR" \
     --verification-csv "$VER_CSV" \
     --figures-dir "$PAPER_FIG_DIR" \
-    --tables-dir "$PAPER_DIR" 2>/dev/null || \
-pytest -q tests/test_paper_outputs.py
+    --tables-dir "$PAPER_DIR"
 echo ""
 
 # ---------------------------------------------------------------------------
 # Step 5: Attempt LaTeX compilation (optional, non-fatal)
 # ---------------------------------------------------------------------------
 echo "Step 5: LaTeX compilation..."
-if command -v pdflatex &>/dev/null; then
+if command -v latexmk &>/dev/null; then
+    echo "  Building $PAPER_DIR/main.pdf with latexmk (including bibliography)..."
+    pushd "$PAPER_DIR" > /dev/null
+    latexmk -pdf -interaction=nonstopmode -halt-on-error main.tex
+    popd > /dev/null
+elif command -v pdflatex &>/dev/null; then
     echo "  Building $PAPER_DIR/main.pdf with pdflatex..."
     pushd "$PAPER_DIR" > /dev/null
-    pdflatex -interaction=nonstopmode main.tex > /dev/null 2>&1 || true
-    pdflatex -interaction=nonstopmode main.tex > /dev/null 2>&1 || true
+    pdflatex -interaction=nonstopmode -halt-on-error main.tex
+    bibtex main
+    pdflatex -interaction=nonstopmode -halt-on-error main.tex
+    pdflatex -interaction=nonstopmode -halt-on-error main.tex
     popd > /dev/null
     if [[ -f "$PAPER_DIR/main.pdf" ]]; then
         echo "  ✓ Manuscript compiled: $PAPER_DIR/main.pdf"

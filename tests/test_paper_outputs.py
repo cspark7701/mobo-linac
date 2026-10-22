@@ -21,10 +21,17 @@ CLI options (registered in conftest.py):
 
 import subprocess
 import sys
+import json
+import math
+import os
+import shlex
 from pathlib import Path
 
 import pandas as pd
 import pytest
+
+from mobo_linac.config import load_config
+from mobo_linac.result_schema import ResultSchema
 
 
 
@@ -131,7 +138,22 @@ HYPERVOLUME_REQUIRED_COLS = {
     "num_feasible_points",
 }
 
-PARETO_CSV_N_COLS = 9  # 6 design vars + 3 objectives
+def _assert_pareto_data(directory):
+    schema = ResultSchema.from_config(load_config(directory / "config.yaml"))
+    columns = list(schema.design_columns + schema.physical_columns)
+    frame = pd.read_csv(directory / "pareto.csv", comment="#")
+    if not set(columns).issubset(frame.columns):
+        # Headerless legacy exports have numeric first-row labels. Arbitrary
+        # malformed headers must fail instead of silently becoming observations.
+        assert len(frame.columns) == len(columns)
+        assert all(math.isfinite(float(value)) for value in frame.columns)
+        frame = pd.read_csv(directory / "pareto.csv", comment="#", header=None, names=columns)
+    values = frame[columns].apply(pd.to_numeric, errors="raise")
+    assert len(values) >= 1, f"Empty Pareto export: {directory}"
+    assert values.map(math.isfinite).all().all()
+    if {"run_id", "evaluation_id"}.issubset(frame.columns):
+        assert not frame[["run_id", "evaluation_id"]].isna().any().any()
+        assert not frame.duplicated(["run_id", "evaluation_id"]).any()
 
 
 @pytest.mark.parametrize("fname", REQUIRED_RESULT_FILES)
@@ -187,38 +209,17 @@ def test_hypervolume_csv_columns_phase3(phase3_dir):
 
 def test_pareto_csv_has_data_phase1(phase1_dir):
     """Phase 1 pareto.csv must contain at least one Pareto point."""
-    df = pd.read_csv(phase1_dir / "pareto.csv", comment="#")
-    if list(df.columns) != ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg", "norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]:
-        df = pd.read_csv(phase1_dir / "pareto.csv", comment="#", header=None)
-    df = df.dropna(how="all")
-    assert len(df) >= 1, "Phase 1 pareto.csv is empty."
-    assert df.shape[1] == PARETO_CSV_N_COLS, (
-        f"Phase 1 pareto.csv has {df.shape[1]} columns; expected {PARETO_CSV_N_COLS}."
-    )
+    _assert_pareto_data(phase1_dir)
 
 
 def test_pareto_csv_has_data_phase2(phase2_dir):
     """Phase 2 pareto.csv must contain at least one Pareto point."""
-    df = pd.read_csv(phase2_dir / "pareto.csv", comment="#")
-    if list(df.columns) != ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg", "norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]:
-        df = pd.read_csv(phase2_dir / "pareto.csv", comment="#", header=None)
-    df = df.dropna(how="all")
-    assert len(df) >= 1, "Phase 2 pareto.csv is empty."
-    assert df.shape[1] == PARETO_CSV_N_COLS, (
-        f"Phase 2 pareto.csv has {df.shape[1]} columns; expected {PARETO_CSV_N_COLS}."
-    )
+    _assert_pareto_data(phase2_dir)
 
 
 def test_pareto_csv_has_data_phase3(phase3_dir):
     """Phase 3 pareto.csv must contain at least one Pareto point."""
-    df = pd.read_csv(phase3_dir / "pareto.csv", comment="#")
-    if list(df.columns) != ["solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg", "acc1_acc2_phase_deg", "acc3_acc4_phase_deg", "norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]:
-        df = pd.read_csv(phase3_dir / "pareto.csv", comment="#", header=None)
-    df = df.dropna(how="all")
-    assert len(df) >= 1, "Phase 3 pareto.csv is empty."
-    assert df.shape[1] == PARETO_CSV_N_COLS, (
-        f"Phase 3 pareto.csv has {df.shape[1]} columns; expected {PARETO_CSV_N_COLS}."
-    )
+    _assert_pareto_data(phase3_dir)
 
 
 def test_hypervolume_monotonically_nondecreasing_phase2(phase2_dir):
@@ -238,10 +239,6 @@ def test_hypervolume_monotonically_nondecreasing_phase2(phase2_dir):
 
 VERIFICATION_REQUIRED_COLS = {
     "role",
-    "stored_emit_x_m_rad",
-    "rerun_emit_x_m_rad",
-    "stored_sigma_energy_eV",
-    "rerun_sigma_energy_eV",
     "max_diff_pct",
     "verification_status",
 }
@@ -261,6 +258,47 @@ def test_verification_csv_columns(verification_csv):
     assert VERIFICATION_REQUIRED_COLS.issubset(set(df.columns)), (
         f"Missing verification CSV columns: {VERIFICATION_REQUIRED_COLS - set(df.columns)}"
     )
+    if {"stored_objectives", "rerun_objectives", "objective_order", "objective_units"}.issubset(df.columns):
+        for row in df.to_dict("records"):
+            order = json.loads(row["objective_order"])
+            units = json.loads(row["objective_units"])
+            assert order and len(order) == len(set(order))
+            assert all(name in units for name in order)
+            for field in ("stored_objectives", "rerun_objectives"):
+                objectives = json.loads(row[field])
+                assert all(name in objectives and math.isfinite(float(objectives[name])) for name in order)
+    else:
+        legacy = {"stored_emit_x_m_rad", "rerun_emit_x_m_rad", "stored_sigma_energy_eV", "rerun_sigma_energy_eV"}
+        assert legacy.issubset(df.columns)
+        assert df[sorted(legacy)].apply(pd.to_numeric, errors="raise").map(math.isfinite).all().all()
+
+
+def test_reproduction_stops_on_selected_dataset_validation_failure(tmp_path, project_root):
+    fake_bin = tmp_path / "bin"
+    fake_bin.mkdir()
+    calls = tmp_path / "pytest_calls"
+    for name in ("python", "python3"):
+        executable = fake_bin / name
+        executable.write_text("#!/bin/sh\nexit 0\n")
+        executable.chmod(0o755)
+    executable = fake_bin / "pytest"
+    executable.write_text(f"#!/bin/sh\nprintf '%s\\n' \"$*\" >> {shlex.quote(str(calls))}\nexit 17\n")
+    executable.chmod(0o755)
+    directories = []
+    for name in ("phase1", "phase2", "phase3"):
+        directory = tmp_path / name
+        directory.mkdir()
+        directories.append(directory)
+    verification = tmp_path / "verification.csv"
+    verification.write_text("role\n")
+    result = subprocess.run(["bash", "scripts/reproduce_paper.sh", "--check-only",
+                             "--phase1-dir", str(directories[0]), "--phase2-dir", str(directories[1]),
+                             "--phase3-dir", str(directories[2]), "--verification-csv", str(verification)],
+                            cwd=project_root, env=dict(os.environ, PATH=str(fake_bin) + os.pathsep + os.environ["PATH"]),
+                            capture_output=True, text=True)
+    assert result.returncode == 17
+    assert len(calls.read_text().splitlines()) == 1
+    assert str(directories[0]) in calls.read_text()
 
 
 def test_all_candidates_verified(verification_csv):
