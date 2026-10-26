@@ -1,0 +1,1971 @@
+{
+  "schema_version": 1,
+  "scope": "existing-data descriptive audit only; no crest calibration, altered-domain performance or numerical convergence inferred",
+  "campaigns": 30,
+  "evaluations": 4800,
+  "archived_inputs_checked": 4800,
+  "phase_bounds": [
+    {
+      "name": "gun_phase_deg",
+      "nominal_deg": 35.62497684,
+      "lower_deg": 32.062479156,
+      "upper_deg": 39.187474524,
+      "half_width_deg": 3.562497684,
+      "width_deg": 7.124995368,
+      "wrapped_nominal_deg": 35.62497683999999
+    },
+    {
+      "name": "acc1_acc2_phase_deg",
+      "nominal_deg": -39.50903029,
+      "lower_deg": -43.459933319,
+      "upper_deg": -35.558127261,
+      "half_width_deg": 3.950903028999999,
+      "width_deg": 7.901806057999998,
+      "wrapped_nominal_deg": -39.50903029
+    },
+    {
+      "name": "acc3_acc4_phase_deg",
+      "nominal_deg": 310.0534192,
+      "lower_deg": 279.04807728,
+      "upper_deg": 341.05876112,
+      "half_width_deg": 31.005341920000006,
+      "width_deg": 62.01068384000001,
+      "wrapped_nominal_deg": -49.94658079999999
+    }
+  ],
+  "coupling_counts": [
+    {
+      "acc1_acc2_equal": true,
+      "acc3_acc4_equal": true,
+      "count": 4800
+    }
+  ],
+  "numerical_settings": [
+    {
+      "settings": {
+        "auto_phase": "false",
+        "nrad": "32",
+        "nlong_in": "32",
+        "nxf": "32",
+        "nyf": "32",
+        "nzf": "32",
+        "lmirror": "true",
+        "l2d_3d": "true",
+        "z_trans": "5.25",
+        "h_max": "0.01",
+        "h_min": "0.001"
+      },
+      "count": 4800
+    }
+  ],
+  "source_distribution_copies": {
+    "constrained_qlognehvi_seed_42": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/provenance/eval_000160/attempt_c449809485a74857ba3e801069b61ee2/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_43": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/provenance/eval_000160/attempt_d3768edbef8f46c0890443f10342d562/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_44": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/provenance/eval_000160/attempt_1e9cecd3366a46aca4aeffaa34b9b6a5/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_45": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/provenance/eval_000160/attempt_47864d19dc5c4a2dbd9a7465c29071ed/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_46": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/provenance/eval_000160/attempt_2050b80dc331444e87a4fd93e120e354/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_47": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/provenance/eval_000160/attempt_f0b636284d8445548f5f5d84192faa4b/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_48": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/provenance/eval_000160/attempt_3958beb7b94844e98aca95912827e45b/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_49": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/provenance/eval_000160/attempt_d18c26833229428e9e2456e8bdc95b39/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_50": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/provenance/eval_000160/attempt_b914fa28f68d442887529fa9bfe9c26a/inputs/pal_photo2.ini"
+    },
+    "constrained_qlognehvi_seed_51": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/provenance/eval_000160/attempt_fe0a0c397994435c9e099cf55913dc73/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_42": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/provenance/eval_000160/attempt_e99e2819f2c149cc9b6d5d70b769d600/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_43": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/provenance/eval_000160/attempt_10e5b3c18f334d5ab19bc57dc8336641/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_44": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/provenance/eval_000160/attempt_23f602f3f25348ecb32c26e09529f2fa/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_45": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/provenance/eval_000160/attempt_0f64fb48e2f14baf822bbb18e1040b6a/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_46": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/provenance/eval_000160/attempt_e79128cd6f3f4fd5a92db9f4328f58ca/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_47": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/provenance/eval_000160/attempt_0b956443bbf74632bcbc5846d7119b02/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_48": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/provenance/eval_000160/attempt_fc356c76fa1c4597b1bb56eb016b3641/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_49": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/provenance/eval_000160/attempt_9f72dbeefbfe46108799ee4c8c02ad6f/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_50": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/provenance/eval_000160/attempt_0ff8dd684ede41fcbd4d3d9bde36c338/inputs/pal_photo2.ini"
+    },
+    "scalarized_bo_seed_51": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/provenance/eval_000160/attempt_fe66e2bf12154db99d2ee400d5160caf/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_42": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/provenance/eval_000160/attempt_cf89cf90e7b442a2b0583d34923196c4/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_43": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/provenance/eval_000160/attempt_a28118cc214d4f3ba3fc3ac232f189c4/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_44": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/provenance/eval_000160/attempt_b9fb3790dcb1490284f8ffb1eb138707/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_45": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/provenance/eval_000160/attempt_9b5fd782dfed4ef39357af1e1ae19435/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_46": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/provenance/eval_000160/attempt_f72aa5256383487fa47158d6fa4a0318/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_47": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/provenance/eval_000160/attempt_4d9fb4a61cd54b709759b087a3b01cdf/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_48": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/provenance/eval_000160/attempt_fa6807e011544f0a973344f15cc467df/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_49": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/provenance/eval_000160/attempt_2fcd4971ad714cf6a73490de74d58952/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_50": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/provenance/eval_000160/attempt_c61579130977458d98e84810dc3e43cb/inputs/pal_photo2.ini"
+    },
+    "unconstrained_qlognehvi_seed_51": {
+      "sha256": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+      "lines": 10000,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/provenance/eval_000160/attempt_6072b0e24c3d47d2b80e4578c1a2225f/inputs/pal_photo2.ini"
+    }
+  },
+  "recorded_initial_particle_counts": {
+    "9999.0": 4800
+  },
+  "configuration_sources": [
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b",
+      "variables": [
+        {
+          "name": "gun_phase_deg",
+          "astra_key": "cavity:phi(1)",
+          "unit": "deg",
+          "nominal_value": 35.62497684,
+          "ratio": 0.1,
+          "lower_bound": 32.062479156,
+          "upper_bound": 39.187474524,
+          "is_coupled": false,
+          "coupled_targets": null,
+          "label": "$\\phi_\\mathrm{gun}$"
+        },
+        {
+          "name": "acc1_acc2_phase_deg",
+          "astra_key": "cavity:phi(2)",
+          "unit": "deg",
+          "nominal_value": -39.50903029,
+          "ratio": 0.1,
+          "lower_bound": -43.459933319,
+          "upper_bound": -35.558127261,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(2)",
+            "cavity:phi(3)"
+          ],
+          "label": "$\\phi_\\mathrm{acc1/2}$"
+        },
+        {
+          "name": "acc3_acc4_phase_deg",
+          "astra_key": "cavity:phi(4)",
+          "unit": "deg",
+          "nominal_value": 310.0534192,
+          "ratio": 0.1,
+          "lower_bound": 279.04807728,
+          "upper_bound": 341.05876112,
+          "is_coupled": true,
+          "coupled_targets": [
+            "cavity:phi(4)",
+            "cavity:phi(5)"
+          ],
+          "label": "$\\phi_\\mathrm{acc3/4}$"
+        }
+      ]
+    }
+  ],
+  "representative_phases": [
+    {
+      "role": "min_emit_x",
+      "run_id": "constrained_qlognehvi_seed_42",
+      "evaluation_id": "eval_000093",
+      "phases_deg": {
+        "gun_phase_deg": 36.11986904800193,
+        "acc1_acc2_phase_deg": -36.31333095823612,
+        "acc3_acc4_phase_deg": 292.945893544712
+      },
+      "offset_from_nominal_deg": {
+        "gun_phase_deg": 0.4948922080019287,
+        "acc1_acc2_phase_deg": 3.195699331763876,
+        "acc3_acc4_phase_deg": -17.107525655287986
+      }
+    },
+    {
+      "role": "min_emit_y",
+      "run_id": "constrained_qlognehvi_seed_42",
+      "evaluation_id": "eval_000094",
+      "phases_deg": {
+        "gun_phase_deg": 36.84731071004934,
+        "acc1_acc2_phase_deg": -42.62582055402008,
+        "acc3_acc4_phase_deg": 314.8742374919051
+      },
+      "offset_from_nominal_deg": {
+        "gun_phase_deg": 1.22233387004934,
+        "acc1_acc2_phase_deg": -3.116790264020082,
+        "acc3_acc4_phase_deg": 4.820818291905084
+      }
+    },
+    {
+      "role": "min_sigma_energy",
+      "run_id": "constrained_qlognehvi_seed_42",
+      "evaluation_id": "eval_000069",
+      "phases_deg": {
+        "gun_phase_deg": 33.12979276926576,
+        "acc1_acc2_phase_deg": -37.82214423651103,
+        "acc3_acc4_phase_deg": 305.90231342698246
+      },
+      "offset_from_nominal_deg": {
+        "gun_phase_deg": -2.49518407073424,
+        "acc1_acc2_phase_deg": 1.6868860534889691,
+        "acc3_acc4_phase_deg": -4.151105773017548
+      }
+    },
+    {
+      "role": "knee_point",
+      "run_id": "constrained_qlognehvi_seed_42",
+      "evaluation_id": "eval_000112",
+      "phases_deg": {
+        "gun_phase_deg": 36.455833526335816,
+        "acc1_acc2_phase_deg": -38.44620068017954,
+        "acc3_acc4_phase_deg": 309.34229094639863
+      },
+      "offset_from_nominal_deg": {
+        "gun_phase_deg": 0.8308566863358138,
+        "acc1_acc2_phase_deg": 1.0628296098204615,
+        "acc3_acc4_phase_deg": -0.7111282536013732
+      }
+    },
+    {
+      "role": "balanced",
+      "run_id": "constrained_qlognehvi_seed_42",
+      "evaluation_id": "eval_000025",
+      "phases_deg": {
+        "gun_phase_deg": 33.3740125778329,
+        "acc1_acc2_phase_deg": -37.93279770475881,
+        "acc3_acc4_phase_deg": 305.57826303675756
+      },
+      "offset_from_nominal_deg": {
+        "gun_phase_deg": -2.250964262167102,
+        "acc1_acc2_phase_deg": 1.5762325852411863,
+        "acc3_acc4_phase_deg": -4.4751561632424455
+      }
+    },
+    {
+      "role": "crowding_distance_max",
+      "run_id": "constrained_qlognehvi_seed_42",
+      "evaluation_id": "eval_000156",
+      "phases_deg": {
+        "gun_phase_deg": 36.60786990434689,
+        "acc1_acc2_phase_deg": -38.334714470694834,
+        "acc3_acc4_phase_deg": 314.9019599638596
+      },
+      "offset_from_nominal_deg": {
+        "gun_phase_deg": 0.9828930643468894,
+        "acc1_acc2_phase_deg": 1.1743158193051642,
+        "acc3_acc4_phase_deg": 4.848540763859603
+      }
+    }
+  ],
+  "acc3_acc4_coverage_bins": [
+    {
+      "method": "constrained_qlognehvi",
+      "bin": 1,
+      "lower_deg": 279.04807728,
+      "upper_deg": 286.79941276,
+      "evaluations": 134,
+      "feasible": 16,
+      "energy_in_band": 40
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "bin": 2,
+      "lower_deg": 286.79941276,
+      "upper_deg": 294.55074823999996,
+      "evaluations": 175,
+      "feasible": 64,
+      "energy_in_band": 174
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "bin": 3,
+      "lower_deg": 294.55074823999996,
+      "upper_deg": 302.30208372,
+      "evaluations": 218,
+      "feasible": 114,
+      "energy_in_band": 218
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "bin": 4,
+      "lower_deg": 302.30208372,
+      "upper_deg": 310.0534192,
+      "evaluations": 340,
+      "feasible": 205,
+      "energy_in_band": 340
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "bin": 5,
+      "lower_deg": 310.0534192,
+      "upper_deg": 317.80475468,
+      "evaluations": 305,
+      "feasible": 191,
+      "energy_in_band": 305
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "bin": 6,
+      "lower_deg": 317.80475468,
+      "upper_deg": 325.55609016,
+      "evaluations": 169,
+      "feasible": 58,
+      "energy_in_band": 129
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "bin": 7,
+      "lower_deg": 325.55609016,
+      "upper_deg": 333.30742563999996,
+      "evaluations": 116,
+      "feasible": 0,
+      "energy_in_band": 0
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "bin": 8,
+      "lower_deg": 333.30742563999996,
+      "upper_deg": 341.05876112,
+      "evaluations": 143,
+      "feasible": 0,
+      "energy_in_band": 0
+    },
+    {
+      "method": "scalarized_bo",
+      "bin": 1,
+      "lower_deg": 279.04807728,
+      "upper_deg": 286.79941276,
+      "evaluations": 267,
+      "feasible": 7,
+      "energy_in_band": 41
+    },
+    {
+      "method": "scalarized_bo",
+      "bin": 2,
+      "lower_deg": 286.79941276,
+      "upper_deg": 294.55074823999996,
+      "evaluations": 174,
+      "feasible": 28,
+      "energy_in_band": 168
+    },
+    {
+      "method": "scalarized_bo",
+      "bin": 3,
+      "lower_deg": 294.55074823999996,
+      "upper_deg": 302.30208372,
+      "evaluations": 157,
+      "feasible": 25,
+      "energy_in_band": 157
+    },
+    {
+      "method": "scalarized_bo",
+      "bin": 4,
+      "lower_deg": 302.30208372,
+      "upper_deg": 310.0534192,
+      "evaluations": 219,
+      "feasible": 49,
+      "energy_in_band": 219
+    },
+    {
+      "method": "scalarized_bo",
+      "bin": 5,
+      "lower_deg": 310.0534192,
+      "upper_deg": 317.80475468,
+      "evaluations": 204,
+      "feasible": 55,
+      "energy_in_band": 204
+    },
+    {
+      "method": "scalarized_bo",
+      "bin": 6,
+      "lower_deg": 317.80475468,
+      "upper_deg": 325.55609016,
+      "evaluations": 185,
+      "feasible": 36,
+      "energy_in_band": 134
+    },
+    {
+      "method": "scalarized_bo",
+      "bin": 7,
+      "lower_deg": 325.55609016,
+      "upper_deg": 333.30742563999996,
+      "evaluations": 169,
+      "feasible": 0,
+      "energy_in_band": 0
+    },
+    {
+      "method": "scalarized_bo",
+      "bin": 8,
+      "lower_deg": 333.30742563999996,
+      "upper_deg": 341.05876112,
+      "evaluations": 225,
+      "feasible": 0,
+      "energy_in_band": 0
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "bin": 1,
+      "lower_deg": 279.04807728,
+      "upper_deg": 286.79941276,
+      "evaluations": 166,
+      "feasible": 8,
+      "energy_in_band": 41
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "bin": 2,
+      "lower_deg": 286.79941276,
+      "upper_deg": 294.55074823999996,
+      "evaluations": 179,
+      "feasible": 21,
+      "energy_in_band": 176
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "bin": 3,
+      "lower_deg": 294.55074823999996,
+      "upper_deg": 302.30208372,
+      "evaluations": 162,
+      "feasible": 34,
+      "energy_in_band": 162
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "bin": 4,
+      "lower_deg": 302.30208372,
+      "upper_deg": 310.0534192,
+      "evaluations": 293,
+      "feasible": 68,
+      "energy_in_band": 293
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "bin": 5,
+      "lower_deg": 310.0534192,
+      "upper_deg": 317.80475468,
+      "evaluations": 277,
+      "feasible": 79,
+      "energy_in_band": 277
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "bin": 6,
+      "lower_deg": 317.80475468,
+      "upper_deg": 325.55609016,
+      "evaluations": 178,
+      "feasible": 41,
+      "energy_in_band": 124
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "bin": 7,
+      "lower_deg": 325.55609016,
+      "upper_deg": 333.30742563999996,
+      "evaluations": 152,
+      "feasible": 0,
+      "energy_in_band": 0
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "bin": 8,
+      "lower_deg": 333.30742563999996,
+      "upper_deg": 341.05876112,
+      "evaluations": 193,
+      "feasible": 0,
+      "energy_in_band": 0
+    }
+  ],
+  "initial_distribution_sha256_variants": [
+    "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734"
+  ]
+}

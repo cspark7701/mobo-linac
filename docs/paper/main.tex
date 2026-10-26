@@ -194,8 +194,19 @@ and constraint diagnostics are evaluated at the exit plane. Component symbols ar
 The six design variables (table~\ref{tab:variables}) are the solenoid peak field $B_\mathrm{sol}$,
 the two quadrupole gradients $G_{q1}$ and $G_{q2}$, the gun phase $\phi_\mathrm{gun}$ and two
 common phases, $\phi_\mathrm{acc1/2}$ applied to ACC1 and ACC2 and $\phi_\mathrm{acc3/4}$ applied to
-ACC3 and ACC4. Magnetic settings may vary by \SI{\pm50}{\percent} and phases by \SI{\pm10}{\percent} around the
-nominal machine setting. These bounds define the common search domain for all algorithms.
+ACC3 and ACC4. Magnetic settings may vary by \SI{\pm50}{\percent} around the
+nominal machine setting. The RF inputs are absolute wave phases at the start of tracking because automatic phasing is
+switched off~\cite{Floettmann2017Astra}. They are not calibrated off-crest angles. The recorded
+gun-phase interval is \SIrange{32.0625}{39.1875}{\degree}; the common ACC1/ACC2 phase spans
+\SIrange{-43.4599}{-35.5581}{\degree}, and the common ACC3/ACC4 phase spans
+\SIrange{279.0481}{341.0588}{\degree}. The respective nominal phases are
+\SI{35.6250}{\degree}, \SI{-39.5090}{\degree} and \SI{310.0534}{\degree}.
+Each structure pair receives one common phase, defining the six-control search problem.
+These unequal angular windows were inherited from percentage offsets of the stored nominal
+coordinates. They define the historical comparison rather than a demonstrated tolerance or an
+origin-independent engineering prescription.
+% Discussion limitation: no physical crest calibration or alternative-domain ranking is established.
+
 The drift lengths, RF-field amplitudes and field-map geometry remain fixed, so each candidate
 represents a different focusing and phasing configuration of the same reference lattice. The
 common phase variables are applied to their structure pairs together rather than treated as
@@ -203,8 +214,7 @@ independent controls, keeping the optimization dimension consistent with the cho
 
 \begin{table}[htbp]
 \centering
-\caption{Design variables. Bounds are \SI{\pm50}{\percent} (magnets) and \SI{\pm10}{\percent} (phases) of the nominal
-setting. Coupled phases are written to both structures of a pair.}
+\caption{Design variables. Magnetic bounds are \SI{\pm50}{\percent} of nominal; RF bounds are absolute angular intervals. Coupled phases are written to both structures of a pair.}
 \label{tab:variables}
 \begin{tabular}{llrrrl}
 \toprule
@@ -650,6 +660,17 @@ Ten repeated runs provide an estimate of variation with initialization, rather t
 statistical ranking, and no comparison with accelerator measurements is made. These limitations
 define the scope in which the observed feasible trade-offs and relative sampling behavior can
 be interpreted.
+
+The RF-domain interpretation is another limitation. The earlier JINST paper reports phases
+relative to maximum energy gain~\cite{Kim2024KLSMOGA}, whereas the present inputs are absolute
+wave phases; those earlier selected settings do not calibrate the current crest. In a post-hoc
+partition of the ACC3/ACC4 interval, its upper quarter
+(\SIrange{325.5561}{341.0588}{\degree}) contains 259, 345 and 394 sampled observations for
+constraint-aware, unconstrained and scalarized BO, respectively, all outside the energy band.
+This observation identifies unproductive sampled coverage, but upstream settings vary jointly.
+It neither establishes a causal phase cutoff nor predicts algorithm rankings after changing
+bounds. Physical crest calibration and an engineering basis for the unequal phase windows
+remain to be established.
 
 The originally designated fixed-reference hypervolume endpoint was uninformative: it was zero
 for all campaigns because the reporting reference $(\SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\mega\electronvolt})$
