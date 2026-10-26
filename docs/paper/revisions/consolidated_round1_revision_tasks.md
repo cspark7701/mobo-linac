@@ -135,13 +135,15 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C06. Assess scaling and obtain evidence for any corrected method
 
+**Status:** Completed for author-approved offline sensitivity and narrower historical-method claims. [C06 report](evidence/c06_report.md) quantifies unit-dependent ranks and verifies dimensionless unit invariance. The requested corrected primary arm is explicitly not adopted and has no measured physical-performance claim.
+
 **Sources:** Reviewer 1 M3/R5; Reviewer 2 M3a/R2.
 
-- [ ] Quantify original per-channel smoothing widths in physical units and test equivalent unit representations using saved representative surrogates.
-- [ ] Define a justified dimensionless residual or channel-specific scale/temperature if revising the acquisition. Keep the original behavior reproducible as a separate variant.
-- [ ] Separate offline acquisition/proposal sensitivity from measured physical performance.
-- [ ] Address Reviewer 2's explicit request for a corrected constraint-aware primary arm. If undertaken, match initial designs, budgets, precision and physical validation, and disclose original versus corrected results.
-- [ ] If retaining the original method with narrower claims instead, provide a reasoned response and quantified sensitivity; do not mark the requested rerun satisfied by wording alone.
+- [x] Quantify original per-channel smoothing widths in physical units and test equivalent unit representations using saved representative surrogates.
+- [x] Define a justified dimensionless residual or channel-specific scale/temperature if revising the acquisition. Keep the original behavior reproducible as a separate variant.
+- [x] Separate offline acquisition/proposal sensitivity from measured physical performance.
+- [x] Address Reviewer 2's explicit request for a corrected constraint-aware primary arm. If undertaken, match initial designs, budgets, precision and physical validation, and disclose original versus corrected results.
+- [x] If retaining the original method with narrower claims instead, provide a reasoned response and quantified sensitivity; do not mark the requested rerun satisfied by wording alone.
 
 **Done when:** Scaling and interpretation are defensible, and every performance claim about a revised method has corresponding new evaluation evidence. Do not relabel historical outcomes as corrected-method results.
 

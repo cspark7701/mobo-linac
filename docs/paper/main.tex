@@ -818,6 +818,28 @@ must therefore be interpreted with these unequal budgets in mind.}
 \end{figure}
 
 \FloatBarrier
+\subsection{Offline sensitivity of constraint smoothing}
+To quantify the unit dependence of the recorded constraint weights, we evaluated single-point
+qLogNEHVI on 32 fixed Sobol candidates using frozen early, middle and late surrogate snapshots
+from the prescribed constraint-aware run. Each evaluation used 128 common posterior samples
+and the same full baseline without pruning, isolating residual scaling from changes in
+baseline selection. This diagnostic does not replay the production eight-point optimizer.
+Changing the diagnostic representation from metres/radians/electron-volts to
+millimetres/milliradians/mega-electron-volts while retaining the raw numerical temperature
+changed candidate ranks: Spearman correlations with the original ranking were
+0.793, 0.852 and 0.880, with three or four of the original top five candidates retained.
+
+As a unit-invariant sensitivity convention, we divided size, divergence and length residuals
+by their upper thresholds, energy residuals by the \SI{5}{\mega\electronvolt} half-band,
+and transmission residuals by the allowed loss fraction of 0.1. These scales express distance
+relative to the stated production acceptance profile; they are not tuned engineering
+uncertainties. At dimensionless temperature 0.01, equivalent unit representations agreed in
+log acquisition value within $1.5\times10^{-13}$. Temperatures 0.001 and 0.1 were also
+examined as sensitivity settings. The highest-ranked probe candidate remained unchanged in
+all cases, while lower ranks varied. No normalized-residual campaign was executed, so these
+calculations establish unit dependence and sensitivity, not improved feasible sampling or
+beam quality for a corrected method.
+
 \subsection{Predictive checks on unseen batches}
 \label{sec:predictive_checks}
 We restored all 540 saved pre-proposal GP snapshots and predicted their next eight observations,

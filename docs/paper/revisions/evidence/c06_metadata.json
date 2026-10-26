@@ -1,0 +1,27 @@
+{
+  "scope": "Offline q=1 ranking on 32 fixed Sobol candidates for three frozen snapshots; no optimizer, ASTRA, model refit or production change.",
+  "mc_samples": 128,
+  "candidate_seed": 7301,
+  "sampler_seed": 7302,
+  "precision": "float64",
+  "device": "cpu",
+  "baseline_pruning": false,
+  "pruning_reason": "Keep the full identical historical baseline to isolate residual-unit/smoothing effects; not a replay of production pruning or q=8 proposal optimization.",
+  "inputs": [
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/gp_checkpoint/model_iter_01_ec2e00351c3441f8a496982e48b04545.pt",
+      "sha256": "4ee3b81c47cbe2f403ee6f25e6615ab05428b4d8726f5ee4195961ee3dfc2afb"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/gp_checkpoint/model_iter_09_80c564a441cc4ab584e4b0b96e57c713.pt",
+      "sha256": "be8f52d131cec985ae5625e2f072640d936d9d1bff517ac4c7a47c4f1f5ea0e2"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/gp_checkpoint/model_iter_18_3ffa611c4c8e4eb2b2a1d6ee034e1859.pt",
+      "sha256": "03cc77816ba35d1ddf91ef60e13fe5ba150d101ca7a3979e5b5f6db916a9585d"
+    }
+  ],
+  "warnings": {
+    "NumericalWarning: Very small noise values detected. This will likely lead to numerical instabilities. Rounding small noise values up to 1e-06.": 9
+  }
+}

@@ -1,0 +1,9 @@
+channel,side,original_eta_in_recorded_units,normalization_scale_in_recorded_units,normalized_eta_01_physical_width
+sigma_x_m,upper,0.001,0.001,1e-05
+sigma_y_m,upper,0.001,0.001,1e-05
+sigma_xp_rad,upper,0.001,0.001,1e-05
+sigma_yp_rad,upper,0.001,0.001,1e-05
+sigma_z_m,upper,0.001,0.001,1e-05
+mean_kinetic_energy_eV,lower,0.001,5000000.0,50000.0
+mean_kinetic_energy_eV,upper,0.001,5000000.0,50000.0
+transmission_fraction,lower,0.001,0.1,0.001
