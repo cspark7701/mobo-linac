@@ -7,7 +7,7 @@ is used. Static PNGs and a multipage vector PDF preserve the comparison for shar
 
 import argparse
 from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from itertools import combinations
 import json
 from pathlib import Path
@@ -57,6 +57,33 @@ def limits(fronts, schema):
     return list(zip(low - pad, high + pad))
 
 
+def projected_envelope(frame, schema, pair):
+    """Observed 2D nondominated subset, sorted for a piecewise linear visual guide.
+
+    This is not an interpolated physical solution or the entire 3D Pareto set.
+    Direction signs and units come from the recorded configuration.
+    """
+    projected = replace(schema, objectives=tuple(schema.objectives[i] for i in pair))
+    columns = [spec.column for spec in projected.objectives]
+    envelope = frame.loc[nondominated_mask(frame, projected)]
+    return envelope.drop_duplicates(columns).sort_values(columns[0], kind="stable")
+
+
+def paper_comparison(fronts, schema):
+    """Readable portrait panels for a manuscript; all observed points stay visible."""
+    fig, axes = plt.subplots(3, 1, figsize=(6.5, 8.5), layout="constrained")
+    bounds = limits(fronts, schema)
+    for ax, pair, letter in zip(axes, combinations(range(3), 2), "abc"):
+        draw(ax, fronts, schema, pair=pair, bounds=bounds)
+        ax.set_title(f"({letter})", loc="left", fontsize=11)
+    handles = [Line2D([], [], linestyle="", color=color, marker=marker, label=label)
+               for label, (color, marker) in zip(LABELS, STYLES)]
+    handles.append(Line2D([], [], color="0.4", linestyle="--", linewidth=1,
+                          label="2D envelope (guide)"))
+    axes[0].legend(handles=handles, fontsize=8, loc="best")
+    return fig
+
+
 def draw(ax, fronts, schema, is3d=False, pair=(0, 1), bounds=None, legend=False):
     for front in fronts:
         index = ALGORITHMS.index(front.algorithm)
@@ -68,6 +95,9 @@ def draw(ax, fronts, schema, is3d=False, pair=(0, 1), bounds=None, legend=False)
         if is3d:
             ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], depthshade=False, **kwargs)
         else:
+            boundary = coordinates(projected_envelope(front.frame, schema, pair), schema)
+            ax.plot(boundary[:, pair[0]], boundary[:, pair[1]], color=color,
+                    linestyle="--", linewidth=1, alpha=.8, zorder=1)
             ax.scatter(xyz[:, pair[0]], xyz[:, pair[1]], **kwargs)
     if is3d:
         ax.set_xlabel(axis_label(schema.objectives[0]), labelpad=7)
@@ -84,7 +114,11 @@ def draw(ax, fronts, schema, is3d=False, pair=(0, 1), bounds=None, legend=False)
         if bounds:
             ax.set_xlim(bounds[pair[0]]); ax.set_ylim(bounds[pair[1]])
     if legend:
-        ax.legend(fontsize=8, loc="best")
+        handles, labels = ax.get_legend_handles_labels()
+        if not is3d:
+            handles.append(Line2D([], [], color="0.4", linestyle="--", linewidth=1))
+            labels.append("2D envelope (guide)")
+        ax.legend(handles, labels, fontsize=8, loc="best")
 
 
 def comparison(fronts, schema, title, subtitle, two_d=False):
@@ -148,7 +182,7 @@ def small_multiples(groups, schema, path, title, notes, columns):
     plt.close(fig)
 
 
-def generate(root, output, two_d=False):
+def generate(root, output, two_d=False, paper_dir=None):
     if output.exists() and any(output.iterdir()):
         raise FileExistsError("Select a fresh comparison directory; existing outputs are preserved")
     manifest = pd.read_csv(root / "04_primary/benchmark/campaign_manifest.csv")
@@ -185,13 +219,13 @@ def generate(root, output, two_d=False):
         return Front(algorithm, frame)
 
     primary, per_algorithm = [], defaultdict(list)
-    for seed in seeds:
+    for run_index, seed in enumerate(seeds, 1):
         fronts = []
         for algorithm in ALGORITHMS:
             directory = root / "04_primary/benchmark/per_seed" / f"{algorithm}_seed_{seed}"
             front = load(directory, algorithm, seed, "primary", "balanced" if algorithm == "scalarized_bo" else algorithm)
             fronts.append(front); per_algorithm[algorithm].append(front.frame)
-        primary.append((f"Seed {seed}", fronts))
+        primary.append((f"Paired run {run_index}", fronts))
     pooled = [Front(a, pooled_front(per_algorithm[a], schema)) for a in ALGORITHMS]
     cases = pd.read_csv(root / "05_operating_points/campaign/phase1_scalarized/cases_summary.csv")
     records = sorted((root / "05_operating_points").glob("step_record_*.json"))
@@ -203,7 +237,7 @@ def generate(root, output, two_d=False):
         front = load(root / "05_operating_points/campaign/phase1_scalarized" / row.case_id,
                      ALGORITHMS[2], row.seed, "survey", row.case_id)
         scalar_fronts.append(front.frame)
-        survey.append((f"{row.case_id.replace('_', ' ')} (seed {row.seed})", [*survey_mobo, front]))
+        survey.append((f"{row.case_id.replace('_', ' ')}", [*survey_mobo, front]))
     pooled_survey = [*survey_mobo, Front(ALGORITHMS[2], pooled_front(scalar_fronts, schema))]
     with PdfPages(output / "all_pareto_comparisons.pdf") as book:
         def page(fronts, title, subtitle, filename):
@@ -221,7 +255,7 @@ def generate(root, output, two_d=False):
                  "primary_" + label.lower().replace(" ", "_"))
         for label, fronts in survey:
             page(fronts, "Survey comparison — " + label,
-                 f"176 evaluations per campaign; MOBO seed {base_seed}; scalarized case seeds differ (descriptive, unpaired)",
+                 "176 evaluations per campaign; independently initialized weight cases (descriptive, unpaired)",
                  "survey_" + label.split(" (")[0].replace(" ", "_"))
         page(pooled_survey, "Survey: descriptive aggregate of feasible fronts",
              "Scalarized: 5 × 176 = 880 evaluations; each MOBO: 176. Unequal budgets — no algorithm ranking.",
@@ -230,17 +264,24 @@ def generate(root, output, two_d=False):
         pairwise_small_multiples(primary, schema, output / "primary_all_seeds_2d",
                                 "Primary comparison: all paired seeds", "160 evaluations per method/seed; shared axes; all objectives minimized", 5)
         pairwise_small_multiples(survey, schema, output / "survey_all_cases_2d",
-                                "Survey comparison: all scalarized weight cases", f"176 evaluations per campaign; MOBO seed {base_seed}; unpaired case seeds; shared axes", 3)
+                                "Survey comparison: all scalarized weight cases", "176 evaluations per campaign; independently initialized weight cases; shared axes", 3)
     else:
         small_multiples(primary, schema, output / "primary_all_seeds_3d",
                         "Primary comparison: all paired seeds", "160 evaluations per method/seed; shared axes; all objectives minimized", 5)
         small_multiples(survey, schema, output / "survey_all_cases_3d",
-                        "Survey comparison: all five scalarized weight cases", f"176 evaluations per campaign; MOBO seed {base_seed}; unpaired case seeds; shared axes", 3)
+                        "Survey comparison: all five scalarized weight cases", "176 evaluations per campaign; independently initialized weight cases; shared axes", 3)
+    if paper_dir is not None:
+        paper_dir.mkdir(parents=True, exist_ok=True)
+        for name, fronts in [("primary_pareto_envelopes", pooled), ("survey_pareto_envelopes", pooled_survey)]:
+            fig = paper_comparison(fronts, schema)
+            fig.savefig(paper_dir / f"{name}.pdf")
+            fig.savefig(paper_dir / f"{name}.png", dpi=200)
+            plt.close(fig)
     pd.concat(all_rows, ignore_index=True).to_csv(output / "all_per_run_pareto_points.csv", index=False)
     pd.DataFrame(summaries).to_csv(output / "campaign_front_summary.csv", index=False)
     for name, fronts in [("primary", pooled), ("survey", pooled_survey)]:
         pd.concat([f.frame for f in fronts], ignore_index=True).to_csv(output / f"{name}_pooled_pareto_points.csv", index=False)
-    notes = {"two_dimensional_only": two_d, "reference_filter_used": False, "objectives": [{"column": s.column, "display_label": axis_label(s),
+    notes = {"two_dimensional_only": two_d, "projected_envelope_guides": True, "reference_filter_used": False, "objectives": [{"column": s.column, "display_label": axis_label(s),
              "physical_to_display_divisor": s.scale, "direction_sign": s.sign} for s in schema.objectives],
              "primary_pooled_front_sizes": {f.algorithm: len(f.frame) for f in pooled},
              "survey_pooled_front_sizes": {f.algorithm: len(f.frame) for f in pooled_survey},
@@ -255,5 +296,6 @@ if __name__ == "__main__":
     parser.add_argument("--production-root", type=Path, default=Path("results/paper_production"))
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--two-d", action="store_true", help="Only 2D objective pairs; omit every 3D axis")
+    parser.add_argument("--paper-dir", type=Path, help="Also export portrait manuscript panels to this figure directory")
     args = parser.parse_args()
-    generate(args.production_root, args.output_dir, two_d=args.two_d)
+    generate(args.production_root, args.output_dir, two_d=args.two_d, paper_dir=args.paper_dir)

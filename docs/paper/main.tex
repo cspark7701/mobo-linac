@@ -1,5 +1,4 @@
-% Manuscript for Machine Learning: Science and Technology (IOP Publishing).
-% Free-format submission; references use the IOP numeric style (iopart-num.bst).
+% Manuscript prepared with the official JINST jinstpub package and JHEP bibliography style.
 %
 % Results are produced by scripts/production/01_preflight.sh ... 07_paper_outputs.sh.
 % Campaign values are generated from the completed October 2026 production runs.
@@ -9,14 +8,11 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[margin=25mm]{geometry}
-\usepackage{amsmath,amssymb}
+\usepackage{jinstpub}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{xcolor}
-\usepackage{float}
 \usepackage{siunitx}
-\usepackage[hidelinks]{hyperref}
 \usepackage{lineno}
 
 \newif\iffinal
@@ -31,54 +27,50 @@
   {\fbox{\parbox[c][0.25\textheight][c]{#2}{\centering\footnotesize\pending{Pending figure:}\\ \textcolor{red}{\url{#1}}}}}}
 % Include a generated table, or a visible placeholder while the file is missing.
 \newcommand{\pendingtable}[3]{%
-  \begin{table}[H]\centering\caption{#2}\label{#3}\pending{Pending table: \texttt{\detokenize{#1}.tex}}\end{table}}
+  \begin{table}[htbp]\centering\caption{#2}\label{#3}\pending{Pending table: \texttt{\detokenize{#1}.tex}}\end{table}}
 
-\sisetup{range-phrase=--, range-units=single}
+\sisetup{range-phrase=--, range-units=single, group-separator={,}, group-minimum-digits=4}
 \setlength{\emergencystretch}{2em}
 \newcommand{\enx}{\varepsilon_{n,x}}
 \newcommand{\eny}{\varepsilon_{n,y}}
 \newcommand{\umrad}{\si{\micro\metre\,rad}}
 
-\title{Constraint-aware multi-objective Bayesian optimization of a space-charge-dominated
-200~MeV electron injector with independent audit of Pareto-optimal operating points}
+\title{Multi-objective Bayesian optimization of a 200~MeV electron injector linac}
 
-\author{Chong Shik Park\\[2pt]
-\small Department of Accelerator Science and Center for Accelerator Research, Korea University,\\
-\small Sejong 30019, Republic of Korea\\
-\small E-mail: \texttt{kuphy@korea.ac.kr}}
+\author{Chong Shik Park}
+\affiliation{Department of Accelerator Science, Korea University,\\
+Sejong 30019, Republic of Korea}
+\affiliation{Center for Accelerator Research, Korea University,\\
+Sejong 30019, Republic of Korea}
+\emailAdd{kuphy@korea.ac.kr}
 
-\date{}
+\abstract{
+Optimization of an electron injector linac requires balancing transverse beam emittances and
+energy spread while satisfying beam transport and transmission constraints. We investigate
+multi-objective Bayesian optimization of a 200~MeV S-band injector linac using ASTRA space-charge
+tracking simulations. Six magnetic and RF parameters are varied to minimize the horizontal and
+vertical normalized RMS emittances and RMS energy spread, subject to limits on seven beam
+diagnostics. Constraint-aware and unconstrained Bayesian optimization with logarithmic noisy
+expected hypervolume improvement are compared with weighted-sum Bayesian optimization in ten
+paired runs per method, with 160 simulations per run. All 4,800 primary simulations were
+numerically valid. The median feasible fractions were 40.6\%, 15.0\% and 12.5\% for the
+constraint-aware, unconstrained and weighted-sum methods, respectively; the corresponding median
+numbers of feasible nondominated observations were 13.5, 7.0 and 4.0. The observed trade-offs are
+compared through projections of the three-objective feasible Pareto sets. A separate survey
+explores five scalarization weightings. The fixed reporting hypervolume was zero for all methods
+because its reference emittances were below the observed values, preventing a hypervolume-based
+ranking. Twelve representative operating points reproduced their stored nominal results under
+independent simulation, and all 600 sampled lattice-jitter simulations remained feasible.
+These results identify reproducible feasible trade-offs within the simulated injector model and
+show a higher feasible sampling fraction for constraint-aware acquisition. They do not establish
+global Pareto optimality or robustness to source fluctuations.}
+
+\keywords{Beam optics, Beam dynamics, Accelerator modelling and simulations, Optimization}
+\notoc
 
 \begin{document}
-
 \maketitle
-
-\begin{abstract}
-Tuning a photoinjector requires trading off transverse emittances against energy spread while
-keeping beam size, divergence, bunch length, energy and transmission within operational limits,
-and each candidate setting must be evaluated with an expensive space-charge tracking simulation.
-We study batch multi-objective Bayesian optimization (MOBO) for a six-parameter, three-objective,
-seven-constraint design problem of a 200~MeV S-band electron injector simulated with ASTRA.
-Independent Gaussian-process surrogates model the objectives and the constraint diagnostics, and
-batches of candidates are selected with the noisy expected hypervolume improvement in its
-logarithmic form (qLogNEHVI), either weighted by the modelled constraint satisfaction or
-unconstrained. A weighted-sum Bayesian optimization baseline is included. The comparison is
-paired and budget-matched: three algorithms over ten seeds, 160 simulations per run with a
-shared quasi-random initial design per seed, failed simulations charged to the budget, and
-hypervolume measured over feasible evaluated points against a fixed, predeclared reference.
-All 4800 primary simulations were valid. Final feasible hypervolume was zero for every run
-against the predeclared reference, so this primary endpoint did not distinguish the algorithms.
-Median feasible fractions were 40.6\%, 15.0\% and 12.5\% for constraint-aware qLogNEHVI,
-unconstrained qLogNEHVI and the weighted-sum baseline, respectively. Six representatives of the
-predeclared primary audit run were independently re-simulated with hash-recorded inputs; all six
-reproduced with zero difference at the stored output precision. All 50 sampled lattice-jitter
-simulations per representative were feasible at standard deviations of $0.1\%$ in magnet
-strengths and $0.1^\circ$ in RF phases. Source jitter was not applied. Evaluation journals and
-input/output checksums retain the evidence needed to reproduce these results.
-\end{abstract}
-
-\noindent\textbf{Keywords:} Bayesian optimization, multi-objective optimization, constrained
-optimization, Gaussian processes, particle accelerators, photoinjector, reproducibility
+\flushbottom
 
 %==========================================================================================
 \section{Introduction}
@@ -95,8 +87,7 @@ result, the gun phase, the solenoid strength, the booster phasing and the downst
 optics act jointly on the emittances and the energy spread. These goals conflict, so a design
 study should deliver the set of achievable trade-offs, the Pareto front, rather than one optimum.
 Each candidate must also respect operational limits on beam size, divergence, bunch length,
-energy and transmission. Evaluating a candidate requires a space-charge tracking simulation that
-takes minutes.
+energy and transmission. Each candidate setting is evaluated with a space-charge tracking simulation.
 
 Multi-objective genetic algorithms, in particular NSGA-II~\cite{Deb2002}, are the established tool
 for mapping such trade-offs in photoinjector design~\cite{Bazarov2005,Hofler2013}. They have
@@ -143,23 +134,23 @@ also rarely re-simulated independently, although parallel execution of file-base
 silently mix inputs and outputs. Their sensitivity to machine errors is often not reported either,
 although it decides whether a setting is usable.
 
-In earlier work we compared weighted-sum BO settings for the 200~MeV S-band injector studied
-here~\cite{Park2025ICABU}. In this paper we make three contributions.
+Earlier weighted-sum BO studies of this injector linac were presented at ICABU 2025.
+The present simulation study makes three contributions.
 \begin{enumerate}
 \item We formulate the injector design as a problem with three objectives and constraints on
   seven diagnostic channels. We solve it with constraint-aware qLogNEHVI, using independent GP
   surrogates for the objectives and for each constraint diagnostic (section~\ref{sec:methods}).
 \item We compare constraint-aware qLogNEHVI, unconstrained qLogNEHVI and weighted-sum BO in a
-  paired, budget-matched experiment over ten seeds. Every simulation, including failed ones,
+  paired, budget-matched simulation comparison over ten independent runs per method. Every simulation, including failed ones,
   counts against the budget, and hypervolume is measured over feasible evaluated points against
-  a fixed reference declared before the experiment (section~\ref{sec:design}).
-\item We audit selected Pareto-optimal settings by independent re-simulation with recorded input
-  hashes and by their response to lattice jitter. We release the software and all campaign
+  a fixed reference declared before the simulations (section~\ref{sec:design}).
+\item We audit selected feasible nondominated settings by independent re-simulation with recorded input
+  hashes and by their response to lattice jitter. We provide analysis software and retain the campaign
   records (sections~\ref{sec:audit} and~\ref{sec:data}).
 \end{enumerate}
 Section~\ref{sec:problem} describes the injector model and the optimization problem, and
-section~\ref{sec:methods} the surrogates, acquisition functions and execution framework.
-Section~\ref{sec:design} defines the experimental protocol, section~\ref{sec:results} reports the
+section~\ref{sec:methods} the surrogates and acquisition functions.
+Section~\ref{sec:design} defines the simulation protocol, section~\ref{sec:results} reports the
 results, and section~\ref{sec:discussion} discusses them and their limitations.
 
 %==========================================================================================
@@ -167,20 +158,28 @@ results, and section~\ref{sec:discussion} discusses them and their limitations.
 \label{sec:problem}
 
 \subsection{Beamline and simulation}
-The injector consists of an S-band RF photocathode gun, a gun solenoid, four 84-cell S-band
+Figure~\ref{fig:layout} shows the injector linac, which consists of an S-band RF photocathode gun, a gun solenoid, four 84-cell S-band
 traveling-wave accelerating structures (ACC1--ACC4) and two quadrupoles, and is tracked with
-ASTRA~v3.2~\cite{Floettmann2017Astra} through the \texttt{lume-astra} interface~\cite{LumeAstra}.
-The structures start at $z = 1.810$, $5.610$, $9.411$ and $13.211$~m, and the quadrupoles
-(length 65~mm) are located at $z = 8.700$ and $12.501$~m. Beam properties are evaluated at the
-exit plane $z = 16.2$~m. Field maps of the gun, the solenoid and the structures are used, with
+ASTRA~\cite{Floettmann2017Astra} through the \texttt{lume-astra} interface~\cite{LumeAstra}.
+Beam properties are evaluated at the exit plane $z = 16.2$~m. Field maps of the gun, the solenoid and the structures are used, with
 peak field amplitudes of $100$~MV/m in the gun and $22.26$~MV/m (ACC1, ACC2) and
 $24.47$~MV/m (ACC3, ACC4) in the structures. ASTRA's automatic phasing is disabled, so RF phases
 are absolute.
 
-The initial distribution is a fixed file of $10^4$ macroparticles with a total charge of
+The initial distribution is a fixed file of \num{10000} macroparticles with a total charge of
 $1.0$~nC. Space charge is computed on a cylindrically symmetric grid of $32\times32$ cells up to
 $z = 5.25$~m and with a three-dimensional solver on a $32^3$ grid downstream, including the image
 charge of the cathode. A circular aperture of radius 20~mm defines particle loss.
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/injector_linac_layout.pdf}{\linewidth}
+\caption{Schematic layout of the simulated 200~MeV injector linac. A photocathode RF gun and
+solenoid feed four S-band accelerating structures and two quadrupoles. The six optimization
+variables are indicated; each downstream RF phase controls a pair of structures. Beam objectives
+and constraint diagnostics are evaluated at the exit plane. Component symbols are not to scale.}
+\label{fig:layout}
+\end{figure}
 
 \subsection{Design variables, objectives and constraints}
 The six design variables (table~\ref{tab:variables}) are the solenoid peak field $B_\mathrm{sol}$,
@@ -189,7 +188,7 @@ common phases, $\phi_\mathrm{acc1/2}$ applied to ACC1 and ACC2 and $\phi_\mathrm
 ACC3 and ACC4. Magnetic settings may vary by $\pm50\%$ and phases by $\pm10\%$ around the
 nominal machine setting.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Design variables. Bounds are $\pm50\%$ (magnets) and $\pm10\%$ (phases) of the nominal
 setting. Coupled phases are written to both structures of a pair.}
@@ -218,9 +217,9 @@ values, because the acquisition functions are formulated for maximization.
 
 A setting is \emph{feasible} if the seven diagnostics in table~\ref{tab:constraints} satisfy eight
 inequalities; the mean kinetic energy is bounded from both sides. The thresholds are fixed before
-the experiment and are not adjusted after observing algorithm performance.
+the simulation comparison and are not adjusted after observing algorithm performance.
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering
 \caption{Constraint diagnostics at the exit plane. Transmission is the fraction of the initial
 macroparticles that reach the exit plane.}
@@ -241,7 +240,7 @@ Transmission & $T$ & $\ge 0.90$ \\
 \subsection{Simulation validity and failures}
 \label{sec:failures}
 Numerical validity and physical feasibility are kept separate. An evaluation is \emph{valid} if
-ASTRA completes within its time limit (2000~s), its output can be parsed, all objectives and
+ASTRA completes within its configured time limit, its output can be parsed, all objectives and
 diagnostics are finite, and the particle set reaches the exit plane to within 0.1~m; a beam that
 is lost earlier is recorded as a premature loss. Invalid evaluations are never replaced by
 artificial penalty values: they are excluded from surrogate training, recorded with their failure
@@ -298,7 +297,7 @@ $g(\mathbf{x}) = \sum_m w_m f_m(\mathbf{x})/s_m$, where $s_m$ are the reporting 
 noisy expected improvement (qLogNEI)~\cite{Ament2023}. It does not model the constraints.
 
 \subsection{Acquisition optimization and reference points}
-Batches are optimized jointly with multi-start L-BFGS-B~\cite{Byrd1995}: 1024 quasi-random
+Batches are optimized jointly with multi-start L-BFGS-B~\cite{Byrd1995}: 1,024 quasi-random
 raw samples, 10 restarts and at most 200 iterations. If the optimizer fails or returns an invalid
 batch, it is retried with a reduced budget, and as a last resort the batch is drawn from the
 campaign's scrambled Sobol sequence~\cite{Owen1998}; every such fallback is recorded with the
@@ -306,7 +305,7 @@ proposal and reported. The acquisition reference point $\mathbf{r}_\mathrm{acq}$
 each iteration from the valid observations, offset from their worst values by 5\% of the observed
 range. It steers the search only and is never used to report results.
 
-Hypervolumes are reported against a fixed reference point declared before the experiment,
+Hypervolumes are reported against a fixed reference point declared before the simulation comparison,
 \begin{equation}
   \mathbf{r} = \bigl(1.5~\umrad,\ 1.5~\umrad,\ 1.5~\mathrm{MeV}\bigr),
 \end{equation}
@@ -316,30 +315,19 @@ $1~\si{\micro\metre^2\,rad^2\,MeV} = 10^{-6}~\si{\metre^2\,rad^2\,eV}$. The \emp
 the hypervolume dominated by the feasible evaluated points (not by surrogate predictions) among
 the first $n$; points that do not dominate $\mathbf{r}$ contribute nothing. Because the reference
 is fixed and only evaluated points enter, the feasible hypervolume never decreases and is
-comparable across algorithms, seeds and budgets.
-
-\subsection{Execution and provenance}
-Candidates of a batch are simulated in parallel worker processes, eight at a time. Every attempt
-runs in its own working directory, created from the template input, the field maps and the
-initial distribution, and the SHA-256 hashes of all inputs, the ASTRA executable and the outputs
-are stored with an attempt manifest. Evaluations are appended to a journal as they complete, and
-the campaign state, including random-number generator states and pending proposals, is
-checkpointed atomically after each batch, so that an interrupted campaign resumes without
-repeating or losing evaluations. GP and acquisition calculations use double precision on an
-NVIDIA RTX A5000 GPU; ASTRA tracking runs on Intel Xeon Gold 6256 CPUs. One optimization campaign
-runs at a time, with at most eight ASTRA processes.
+comparable across algorithms, runs and budgets.
 
 %==========================================================================================
-\section{Experimental design}
+\section{Simulation study design}
 \label{sec:design}
 
 \subsection{Primary comparison}
 The three algorithms---constraint-aware qLogNEHVI, unconstrained qLogNEHVI and weighted-sum
-qLogNEI---were each run with ten seeds (42--51). Each run has a budget of 160 simulations: an
-initial design of 16 points from a scrambled Sobol sequence~\cite{Owen1998}, followed by 18 batches
-of $q = 8$. Within a seed, all algorithms start from the same initial design, so the runs of one
-seed differ only in their acquisition strategy. All seeds are reported. The protocol (problem
-definition, budgets, seeds, reference point and endpoints) was fixed before the experiment; pilot
+qLogNEI---were each evaluated in ten independent runs with fixed seed numbers. Each run has a budget of 160 simulations:
+an initial design of 16 points from a scrambled Sobol sequence~\cite{Owen1998}, followed by 18 batches
+of $q = 8$. Within each paired run, all algorithms start from the same initial design and differ only
+in their acquisition strategy. The protocol (problem
+definition, budgets, seeds, reference point and endpoints) was fixed before the simulation comparison; pilot
 and screening runs used to validate the pipeline are not part of the reported comparison.
 
 \subsection{Endpoints and statistical analysis}
@@ -348,10 +336,10 @@ The primary endpoint is the final feasible hypervolume after 160 evaluations. Se
 are the feasible hypervolume as a function of the number of evaluations, the fraction of feasible
 evaluations (with all evaluations, including failures, in the denominator), the number of
 evaluations until the first feasible point, the size of the feasible Pareto set, the failure
-counts by category and the computational cost. For each algorithm we report the median over seeds
-with a 95\% percentile bootstrap confidence interval~\cite{Efron1993} (1000 resamples with a fixed
-generator seed). Because the initial designs are paired, the algorithms are compared through the
-per-seed differences in final feasible hypervolume between constraint-aware qLogNEHVI and each
+counts by category and the computational cost. For each algorithm we report the median over runs
+with a 95\% percentile bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed
+seed number). Because the initial designs are paired, the algorithms are compared through the
+paired-run differences in final feasible hypervolume between constraint-aware qLogNEHVI and each
 baseline, summarized by their median with a bootstrap interval. The planned two-sided exact
 Wilcoxon signed-rank test~\cite{Wilcoxon1945}, with Holm correction~\cite{Holm1979} for the two
 comparisons, is not applied when every paired difference is zero: no nonzero signed ranks remain.
@@ -361,8 +349,8 @@ it is distinct from the reference-dominating point count in the hypervolume hist
 
 \subsection{Independent audit of operating points}
 \label{sec:audit}
-To check that the reported optima are reproducible and to assess their sensitivity to machine
-errors, we audit the predeclared primary run of constraint-aware qLogNEHVI with seed~42. Six
+To check that the selected operating points are reproducible and to assess their sensitivity to machine
+errors, we audit the predeclared primary run of constraint-aware qLogNEHVI selected before the simulations. Six
 representative points are taken from its feasible Pareto set: the minimizer of each objective;
 the knee point, closest to the ideal point after min--max normalization of the front; the
 balanced point, closest to the normalized front's centroid; and the point of largest crowding
@@ -374,7 +362,7 @@ and diagnostics is below 0.1\%, \emph{conditionally verified} below 10\%, and \e
 otherwise. Both attempts are linked through their manifests, and a verification is withdrawn if
 the recorded input hashes of either attempt are missing or do not match its archived inputs.
 
-Robustness is evaluated with 50 perturbed simulations per representative, drawn with a fixed seed.
+Robustness is evaluated with 50 perturbed simulations per representative, drawn with a fixed seed number.
 Magnet settings are perturbed by Gaussian relative errors with standard deviation 0.1\%, and the
 gun and structure-pair phases by Gaussian errors of $0.1^\circ$. Fluctuations of the bunch charge,
 laser spot size and pulse duration cannot be applied to the fixed initial distribution and are
@@ -396,8 +384,8 @@ To illustrate the operating modes accessible to the injector, we additionally ra
 method for five weightings $(w_x, w_y, w_E)$---balanced $(\frac13, \frac13, \frac13)$,
 high brightness $(0.45, 0.45, 0.10)$, low energy spread $(0.10, 0.10, 0.80)$, horizontal
 $(0.60, 0.20, 0.20)$ and vertical $(0.20, 0.60, 0.20)$---and one campaign of each qLogNEHVI
-variant. The suite uses base seed 42 and case seeds 42, 142, 242, 342 and 442 for the five
-weightings in the order listed; each qLogNEHVI survey uses seed 42.
+variant. The campaigns use fixed seed numbers; scalarization weight cases have independently
+generated initial designs, whereas the two MOBO runs share an initial design.
 The five weighted-sum runs together use five times the budget of a qLogNEHVI run, so the
 survey is descriptive and is not used to compare algorithms. Its constraint-aware run was audited
 with the same protocol.
@@ -414,19 +402,41 @@ with the same protocol.
 \section{Results}
 \label{sec:results}
 
-\subsection{Simulation validity and cost}
-All 4800 simulations of the primary comparison were valid; no simulation-invalid failure was
-recorded. Physical infeasibility is retained separately: 1099 evaluations satisfied all
-constraints. Individual ASTRA evaluations took a median of 140.4~s and a 95th percentile of
-194.0~s on the host described above. Mean campaign wall times, including fitting and acquisition
-optimization, were 3.35~h, 2.39~h and 1.25~h for constraint-aware qLogNEHVI, unconstrained
-qLogNEHVI and weighted-sum qLogNEI. Individual simulation runtimes overlap across workers, so
-their sum is not a wall-time fraction and is not reported as one. All 540 post-initialization
+\subsection{Simulation validity and computational comparison}
+All 4,800 simulations of the primary comparison were valid; no simulation-invalid failure was
+recorded. Physical infeasibility is retained separately: 1,099 evaluations satisfied all
+constraints. Weighted-sum BO completed campaigns faster than unconstrained MOBO, which in turn
+was faster than constraint-aware MOBO under the same computational setup. GP fitting and
+acquisition optimization used double precision on an NVIDIA RTX A5000 GPU, while ASTRA tracking
+used CPU worker processes with at most eight concurrent simulations.
+All 540 post-initialization
 proposals used the primary CUDA tier; none used the recorded CPU or Sobol fallback tier.
 Internal optimizer warnings and fitting recovery are retained in the run logs.
 
 \subsection{Primary comparison}
 \label{sec:primary}
+Figure~\ref{fig:primary_pareto} compares the empirical feasible Pareto sets after pooling the
+ten runs separately for each method and recomputing nondominance jointly in all three objectives.
+The resulting sets contain 49, 27 and 17 observations for constraint-aware MOBO, unconstrained
+MOBO and weighted-sum BO, respectively. Pooling describes the combined search coverage at equal
+total budgets per method; it does not represent a single run or a globally optimal front.
+Markers retain every three-objective nondominated observation. Dashed lines join only the
+nondominated subset in each two-dimensional projection as visual guides, following the use of
+projected trade-off comparisons in accelerator MOBO~\cite{Roussel2021}. A point can appear
+dominated in a projection because it improves the omitted objective. Locations between markers
+are not additional simulated or validated settings. Neither a larger point count alone nor a
+visually lower projected envelope establishes superiority across all three objectives.
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/primary_pareto_envelopes.pdf}{0.85\linewidth}
+\caption{Primary comparison: pairwise projections of the pooled feasible three-objective
+nondominated sets, using ten runs of 160 simulations per method. Markers are evaluated ASTRA
+settings; dashed segments connect the two-dimensional nondominated subsets as guides to the eye.
+Smaller objective values are preferred. No hypervolume-reference filter is applied.}
+\label{fig:primary_pareto}
+\end{figure}
+
 Table~\ref{tab:primary} summarizes the endpoints of the three algorithms and
 figure~\ref{fig:benchmark} shows the feasible hypervolume and the feasible fraction as functions of
 the number of evaluations. Every run had zero feasible hypervolume against the predeclared
@@ -446,13 +456,13 @@ the fixed-reference hypervolume: the observed transverse emittances remain above
 
 \input{primary_results_table}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
 \datafigure{figures/benchmark_hv_comparison.pdf}{0.45\linewidth}\hfill
 \datafigure{figures/benchmark_feasibility_comparison.pdf}{0.45\linewidth}
 \caption{Primary comparison. Left: feasible hypervolume against the fixed reference
 $\mathbf{r}$ versus the number of simulations. Right: fraction of feasible simulations. Lines
-are medians over ten seeds and bands are 95\% bootstrap confidence intervals.}
+are medians over ten runs and bands are 95\% bootstrap confidence intervals.}
 \label{fig:benchmark}
 \end{figure}
 
@@ -467,14 +477,14 @@ vertical emittances were 3.1349, 3.1712 and 3.0264~\umrad. Their minimum feasibl
 were 0.3393, 0.3905 and 0.3467~MeV. These coordinate-wise extrema need not occur at the same
 operating point. Table~\ref{tab:phase1_cases} instead labels its coordinate minima as all-valid
 observations; an infeasible setting can therefore improve a value in that table. The differing
-budgets and case-specific seeds prevent interpreting this descriptive survey as an algorithm ranking.
+budgets and independently initialized cases prevent interpreting this descriptive survey as an algorithm ranking.
 
 \IfFileExists{results_table.tex}{\input{results_table}}{\pendingtable{results_table}{Operating-point
 survey summary.}{tab:campaign_summary}}
 \IfFileExists{phase1_cases_table.tex}{\input{phase1_cases_table}}{\pendingtable{phase1_cases_table}{Weighted-sum
 survey by weighting.}{tab:phase1_cases}}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
 \datafigure{figures/hypervolume_comparison.png}{0.75\linewidth}
 \caption{Operating-point survey: feasible hypervolume (SI units) against the fixed reference
@@ -483,7 +493,7 @@ each qLogNEHVI run.}
 \label{fig:survey_hv}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
 \datafigure{figures/feasible_fraction.png}{0.75\linewidth}
 \caption{Operating-point survey: fraction of feasible simulations versus the number of valid
@@ -491,11 +501,13 @@ simulations.}
 \label{fig:survey_feasible}
 \end{figure}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
-\datafigure{figures/pareto_front_comparison.png}{0.95\linewidth}
-\caption{Operating-point survey: two-dimensional projections of the feasible Pareto fronts in the
-physical objective space.}
+\datafigure{figures/survey_pareto_envelopes.pdf}{0.85\linewidth}
+\caption{Operating-point survey: pairwise projections of the feasible three-objective
+nondominated sets. Markers denote evaluated settings; dashed lines are projected envelope guides.
+The scalarized set pools five weighting cases (880 simulations), whereas each MOBO set uses
+176 simulations. This descriptive comparison has unequal budgets and supports no algorithm ranking.}
 \label{fig:pareto}
 \end{figure}
 
@@ -514,7 +526,7 @@ reruns of the primary audit run.}{tab:audit_verification}}
 \IfFileExists{verification_table.tex}{\input{verification_table}}{\pendingtable{verification_table}{Independent
 reruns of the survey run.}{tab:pareto_verification}}
 
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering
 \datafigure{figures/verification_rerun_comparison.png}{0.75\linewidth}
 \caption{Stored and independently re-simulated objective values of the representative points of
@@ -541,7 +553,7 @@ robustness of the representatives.}{tab:robustness_summary}}
 \section{Discussion}
 \label{sec:discussion}
 Constraint-aware acquisition produced a larger feasible fraction and a larger feasible Pareto
-set in the descriptive summaries over ten seeds, at a greater campaign wall cost than the
+set in the descriptive summaries over ten runs, while completing campaigns more slowly than the
 unconstrained and weighted-sum methods. The predeclared primary endpoint nevertheless remains
 uninformative because the fixed reference lies beyond the observed emittances. Secondary
 feasibility results should therefore not be substituted for a positive primary hypervolume
@@ -552,9 +564,9 @@ points within the simulated tolerance model; neither establishes performance on 
 
 The study has the following limitations. All results are simulations of one injector model with a
 fixed initial distribution; source fluctuations were not perturbed, and agreement with the
-machine has not been assessed. The space-charge model uses $10^4$ macroparticles and finite grids,
+machine has not been assessed. The space-charge model uses \num{10000} macroparticles and finite grids,
 whose numerical resolution limits the accuracy of absolute emittance values, although all
-algorithms are evaluated with the same model. Ten seeds give a first estimate of run-to-run
+algorithms are evaluated with the same model. Ten runs give a first estimate of run-to-run
 variability rather than a high-powered test. The constraint thresholds and the reference point
 were fixed in advance; other choices may change absolute hypervolumes. Finally, the deterministic
 noise model assumes that ASTRA returns identical results for identical inputs, which the
@@ -564,8 +576,8 @@ verification reruns test directly.
 \section{Conclusions}
 \label{sec:conclusions}
 We studied constraint-aware batch multi-objective Bayesian optimization for a six-parameter,
-three-objective, seven-constraint design problem of a 200~MeV electron injector, in a paired,
-budget-matched comparison over ten seeds with failure-inclusive accounting and a fixed hypervolume
+three-objective, seven-constraint design problem of a 200~MeV electron injector linac, in a paired,
+budget-matched comparison over ten runs with failure-inclusive accounting and a fixed hypervolume
 reference. All simulations were valid. Hypervolume was zero in every primary campaign, so no
 hypervolume-based algorithm ranking is supported. Constraint-aware acquisition had a median
 feasible fraction of 40.6\%, compared with 15.0\% and 12.5\% for the two baselines. All audited
@@ -586,10 +598,10 @@ their public deposit identifier remains \pending{campaign archive DOI}. The pape
 derived figures, tables and per-seed aggregate endpoints rather than raw simulation files.
 The reproduction commands and data provenance are documented in \texttt{docs/paper/README.md}.
 
-\section*{Acknowledgments}
+\acknowledgments
 \pending{Funding and acknowledgments.}
 
-\bibliographystyle{iopart-num}
+\bibliographystyle{JHEP}
 \bibliography{references}
 
 \end{document}

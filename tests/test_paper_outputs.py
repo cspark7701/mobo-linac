@@ -487,7 +487,9 @@ def test_manuscript_references_generated_figures(project_root):
     content = main_tex.read_text()
     required_fig_refs = [
         "hypervolume_comparison.png",
-        "pareto_front_comparison.png",
+        "primary_pareto_envelopes.pdf",
+        "survey_pareto_envelopes.pdf",
+        "injector_linac_layout.pdf",
         "verification_rerun_comparison.png",
         "feasible_fraction.png",
     ]
