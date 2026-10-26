@@ -1,0 +1,4 @@
+method,paired_ratio_to_scalarized_median,paired_ratio_min,paired_ratio_max,median_non_evaluation_fraction
+constrained_qlognehvi,2.7376409154303514,2.3017726983092666,2.9395241052559853,0.7140419571571254
+scalarized_bo,1.0,1.0,1.0,0.1915283565704708
+unconstrained_qlognehvi,1.887951985557773,1.655703487164804,2.347095722201131,0.5700259050780438

@@ -235,13 +235,15 @@ Add the appropriate existing JINST and JKPS citations to this passage when editi
 
 ### C13. Substantiate reproducibility and relative cost
 
+**Status:** Completed. [C13 report](evidence/c13_report.md) records actual execution settings, code/input identities, paired relative duration and overlap-aware evaluation intervals. Unmeasured fitting/acquisition components remain combined.
+
 **Sources:** Reviewer 1 M8/R11; Reviewer 2 minor 7/9, R9 and part of R16.
 
-- [ ] Record code/input/executable identities and actual model, proposal, device and worker/concurrency settings, reconciling CLI overrides with saved configurations.
-- [ ] Keep raw seed mappings in a reproducibility manifest and provide stable references to the campaigns and representative settings.
-- [ ] Quantify relative computational-cost ratios and modelling/acquisition versus tracking overhead where supported by timing records. Do not treat sums of overlapping ASTRA worker runtimes as elapsed fractions.
-- [ ] Remove or qualify speed claims if the available timings do not support the comparison. Keep absolute runtimes out of the main text as instructed by the author.
-- [ ] Provide sufficient reproduction information through Methods, an appendix or repository instructions without restoring the removed Data availability section or inventing a public archive identifier.
+- [x] Record code/input/executable identities and actual model, proposal, device and worker/concurrency settings, reconciling CLI overrides with saved configurations.
+- [x] Keep raw seed mappings in a reproducibility manifest and provide stable references to the campaigns and representative settings.
+- [x] Quantify relative computational-cost ratios and modelling/acquisition versus tracking overhead where supported by timing records. Do not treat sums of overlapping ASTRA worker runtimes as elapsed fractions.
+- [x] Remove or qualify speed claims if the available timings do not support the comparison. Keep absolute runtimes out of the main text as instructed by the author.
+- [x] Provide sufficient reproduction information through Methods, an appendix or repository instructions without restoring the removed Data availability section or inventing a public archive identifier.
 
 **Done when:** The reported configuration and relative-speed conclusions are reproducible from retained evidence.
 

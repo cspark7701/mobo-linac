@@ -181,3 +181,10 @@ C10 design-specific robustness evidence and the revised main robustness table ar
 with `python scripts/analyze_revision_robustness.py`. Run this after copying stage-07 tables:
 the archived stage-07 score table is preserved, while the revised manuscript reports its
 components and exact binomial uncertainty. No new simulations are involved.
+
+C11 next-batch surrogate checks: `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python scripts/analyze_revision_predictions.py`.
+C13 execution identities and overlap-aware cost: `python scripts/analyze_revision_cost.py`.
+Use the archived startup commit and hashed inputs together with the campaign manifest and
+proposal history for reproduction: configuration defaults alone do not capture CLI overrides.
+Detailed seed mappings and absolute accounting durations remain in supporting CSVs, while
+manuscript text reports relative costs. Saved GP analysis restores models without refitting.

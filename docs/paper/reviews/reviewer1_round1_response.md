@@ -55,3 +55,9 @@ We identify each selected run and design in the supporting manifest, explain com
 We restored every saved pre-proposal model and checked predictions against its next unseen batch, with explicit training-identity exclusion. The manuscript reports undercoverage of nominal Gaussian intervals and diagnostic-boundary performance. Covariance-based and library variance-floor intervals are separated to avoid artificial apparent calibration in small physical units. Constant transmission does not permit validation of loss discrimination. Fitting recovery remains distinct from calibration, and the analysis does not turn model feasibility into a calibrated machine-reliability claim.
 
 **Locations:** Predictive checks on unseen batches; predictive appendix; C11 per-observation and aggregate evidence.
+
+## Reproduction and computational cost (C13)
+
+The supporting manifest now links the startup code, executable, static inputs, software, actual budgets, devices and worker settings to the saved campaigns and seed identities. Configuration defaults are distinguished from effective CLI/history settings. We report paired relative durations and an overlap-aware evaluation-interval union; summed parallel worker times are not used as wall-time fractions. The remainder is described as combined model/acquisition/orchestration overhead because the records do not separately time its components. Absolute durations remain outside the manuscript, and no universal speedup or GPU/CPU comparison is claimed.
+
+**Locations:** Simulation validity and computational comparison; C13 reproduction and timing manifest; paper README.

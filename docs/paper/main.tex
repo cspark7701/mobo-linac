@@ -630,6 +630,21 @@ used CPU worker processes with at most eight concurrent simulations.
 All 540 post-initialization
 proposals used the primary CUDA tier; none used the recorded CPU or Sobol fallback tier.
 Internal optimizer warnings and fitting recovery are retained in the run logs.
+For each paired run, campaign duration was divided by that of scalarized BO with the same
+initialization. The median ratios are 2.74 for constraint-aware and 1.89 for unconstrained
+MOBO. These are measured costs of the recorded implementations and adaptive trajectories,
+not intrinsic algorithmic complexity or a GPU-versus-CPU speedup. Campaigns ran sequentially,
+with eight evaluation workers per campaign; hardware, software and input identities are
+retained in the supporting reproduction manifest.
+
+To avoid double-counting concurrent workers, we also formed the union of recorded evaluation
+start/end intervals. The median fraction of campaign time outside those intervals is
+\SI{71.4}{\percent}, \SI{57.0}{\percent} and \SI{19.2}{\percent} for constraint-aware,
+unconstrained and scalarized BO, respectively. This remainder combines model fitting,
+acquisition optimization, scheduling, setup and export; the logs do not support a separate
+measured allocation to each component. Summed worker runtimes are retained for reproducibility
+but are not interpreted as elapsed fractions.
+
 
 \subsection{Primary comparison}
 \label{sec:primary}

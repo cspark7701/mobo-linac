@@ -1,0 +1,551 @@
+{
+  "startup": {
+    "timestamp": "2026-10-19T15:47:54",
+    "mock_evaluator": false,
+    "parameters": {
+      "step": "04_primary",
+      "algorithms": "constrained_qlognehvi unconstrained_qlognehvi scalarized_bo",
+      "seeds": "42 43 44 45 46 47 48 49 50 51",
+      "budget": "160",
+      "n_sobol_init": "16",
+      "batch_size": "8",
+      "workers": "8",
+      "device": "cuda:0",
+      "max_concurrent_campaigns": "1",
+      "campaign_threads": "1"
+    },
+    "git": {
+      "commit": "8ad6c2c4ef30d8c310eca5c1d9f663e9a47d1f52",
+      "dirty": false
+    },
+    "config": {
+      "path": "/home/cspark/Work/projects/mobo-linac/configs/publication_200MeV.yaml",
+      "sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8"
+    },
+    "astra_executable": {
+      "path": "/home/cspark/Work/projects/mobo-linac/bin/astra",
+      "sha256": "bf62ae2e28fb1e4ece0a965c9b3882eb5090e9a7b39f211c557ae02b43a18720"
+    },
+    "static_inputs_sha256": {
+      "astra.in": "f1deda7db0f4bc45e48ddbdd28194db5a51a22d74111842472425098ac805f96",
+      "gun.dat": "8d90dcfdab0d5f8ec124c74029a73946aebf09691d60435e879eac5f0d5f5d0d",
+      "PAL_SOL_A.dat": "437908a008fc4ae492b0e018f2cac416450d54f36632f1d06a147db09d9d8e14",
+      "TWS_Sband.dat": "83268709c36365fbe96b9784cabce7d23eb522ea810d46b87de49f960c63dfaa",
+      "pal_photo2.ini": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734"
+    },
+    "mobo_linac_version": "1.0.0",
+    "python": "3.11.10",
+    "packages": {
+      "torch": "2.5.0+cu124",
+      "botorch": "0.17.0",
+      "gpytorch": "1.15.2",
+      "numpy": "2.4.1",
+      "pandas": "3.0.0",
+      "scipy": "1.17.1"
+    },
+    "host": "abacus01"
+  },
+  "startup_sha256": "7a90a416d9fa0a884a4ab938c58a6bcbf51b1643892945e576d7adedcffaafb5",
+  "scheduler": {
+    "version": 1,
+    "start_method": "in_process",
+    "requested_concurrent_campaigns": 1,
+    "max_concurrent_campaigns": 1,
+    "total_workers": 8,
+    "workers_per_campaign": 8,
+    "campaign_threads": null
+  },
+  "scheduler_sha256": "624b43675c8948cd71063a66f8dde06b620b81cb42267a98b27107da9aa7b234",
+  "static_input_hashes": {
+    "PAL_SOL_A.dat": "437908a008fc4ae492b0e018f2cac416450d54f36632f1d06a147db09d9d8e14",
+    "TWS_Sband.dat": "83268709c36365fbe96b9784cabce7d23eb522ea810d46b87de49f960c63dfaa",
+    "gun.dat": "8d90dcfdab0d5f8ec124c74029a73946aebf09691d60435e879eac5f0d5f5d0d",
+    "pal_photo2.ini": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734"
+  },
+  "executable_sha256": "bf62ae2e28fb1e4ece0a965c9b3882eb5090e9a7b39f211c557ae02b43a18720",
+  "precision": "float64 verified in C05 saved channel data",
+  "actual_budgets_source": "campaign_manifest.csv; config stores defaults, proposal history stores applied optimization budgets",
+  "timing_definition": "Campaign active-session elapsed; union of archived evaluation intervals counts overlap once. Complement includes fitting, acquisition, export, scheduling and setup; no separately measured fitting/acquisition split is claimed.",
+  "inputs": [
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "e605b04071a24fbb1600cd9ebb028a7694019680ebf7af85da4681ba35fa477c"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/metrics_history.csv",
+      "sha256": "3737f8551810ba7d19a01dfbca43cddcf84d20acff6194350053cfecdae4a281"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/proposal_history.json",
+      "sha256": "841c76f42e0023ad705264ca3887311e6b8ac8025811725643ab03d419054161"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/evaluations.csv",
+      "sha256": "d631bc4b2362f5428d9d2f611fed94742e56781595b407fa4e20e81b22e67d46"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/metrics_history.csv",
+      "sha256": "b9b2dc7ea06e08f30260286cae5bc1d4515a897219f469696750df6d1cd50dbe"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/proposal_history.json",
+      "sha256": "9fe044f3d3785345b50d5debcffd46a947afb4cbebdee90639daa8dcc9fa80f5"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/evaluations.csv",
+      "sha256": "3e4545b2592fa2f91b2bc51fbfb8e3a4568bf4462fce9a0ff03ab8070517ce1c"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/metrics_history.csv",
+      "sha256": "d122438645b2370038cefef91644916c1f75bf871432656197cce759fee446e8"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/proposal_history.json",
+      "sha256": "4dfa37d50ba841a2dcd6e940f54738da9238279ed215fe50e51afc5ed360b6db"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/evaluations.csv",
+      "sha256": "4f72459ebc6a9b7f33d1ddfb99bd63fd4b1833fc9b69da79a528da57f3910fe3"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/metrics_history.csv",
+      "sha256": "d8295d70e16b9a88debd212bb5a561cc37afc691069eada6f3f6d9d31c8fb5f1"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/proposal_history.json",
+      "sha256": "6f26c14a3f15f38d7459580ea4fa080fbe058fcfc0465154a5d2126e9836e7ef"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/evaluations.csv",
+      "sha256": "0263a9bba9482e0daea82d8c86754be80bd2166ce2a92ca8c35e0713e052f33b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/metrics_history.csv",
+      "sha256": "cd6275b5cb3d2b362f5b0765679ff75ef7292986386abd6f959bfa06a947e1e2"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/proposal_history.json",
+      "sha256": "438be1b22def43e276ea5658a0edfbd628bbf68e4039524a745b5971a068475d"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/evaluations.csv",
+      "sha256": "226d4af16ed71c14637384e56ae5ff1225f1d26ca6ecf7a2eb3f86d99067ac1b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/metrics_history.csv",
+      "sha256": "d3ec22eef8ef08fc6a5c37e4335261cfb81e08773f2319c102b898c144137b4e"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/proposal_history.json",
+      "sha256": "04d65466ed2cc45612c4ae6941acc368f24ecd3050416536e12669655ea09b4c"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/evaluations.csv",
+      "sha256": "f20db91fa2af5e2dc5cdbc2b90b2a21d71253d79e3e6f0570e8f930b2f43ffa8"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/metrics_history.csv",
+      "sha256": "c957232c3079072c5e186016f15a59e1a74b6ee7aba1bd543d780f98a3fd55a8"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/proposal_history.json",
+      "sha256": "0dae38f7adfb7b0a79ca18195535e0c8cf6c99cfd1c3fd7cb7f76864e6a38af1"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/evaluations.csv",
+      "sha256": "84b9988f8522cd4fcb601f3002db1a79b950a22fd19ab6c538547c12db122d06"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/metrics_history.csv",
+      "sha256": "83641b2005648fa0bb2c7b50bab920958ee8e89e2fcd7c00b91d0deebc999e61"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/proposal_history.json",
+      "sha256": "5debf606044c85be1636781d7547e99a4e3d8a54d21a95cf981a798465450d3f"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/evaluations.csv",
+      "sha256": "dfb115e1b0f69c162b6be8f8dc5a5782e8bf86ec692bd636e60e9712febb2645"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/metrics_history.csv",
+      "sha256": "62033df2a6a763629f872a407c8a096a43127f5b7c2a8bfa07a41ddf0fc23cab"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/proposal_history.json",
+      "sha256": "5ce6b4fa72e3771670a5e195662fc6801e6c0fdb128bf2ba242200bf0259c19e"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/evaluations.csv",
+      "sha256": "8c4646c95aa5915634cbce7be4da52c0af63e7a4f31dcfc2ab784dba11e7a6fa"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/metrics_history.csv",
+      "sha256": "7c90fca81f15dd117560825614f5f268042b5c0af186790a8d43f5fcde60d144"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/proposal_history.json",
+      "sha256": "58971ab8bb245b52cd63d60d0c9b127d66a471aa3404e215bb9d4f7fb2517a1b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "ab2c36a67ff68a6c3d86816be4bbb3d9dfeba56907c1153566752181a92f6eab"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/metrics_history.csv",
+      "sha256": "9aaf59408bad7784989682f0ae97edaf1eb853cc4fdcb69c093f1a12f8d28ca6"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/proposal_history.json",
+      "sha256": "43c31468e6fe19c4a246cc24509cb6af8b13f233410191d6ff4e61928830d23f"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/evaluations.csv",
+      "sha256": "d8d2dfd758e5a6cfe0f125776f118cc00bb589193cac800e0ad405fe2b4c553c"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/metrics_history.csv",
+      "sha256": "fb207374f425fce4c6e62045a0952481a5f200bca2b1070f6bfd324f9f73a95e"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/proposal_history.json",
+      "sha256": "11cd565a2e399202c0dd7b4298193ba87fc3ac447af52892b8607314add07225"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/evaluations.csv",
+      "sha256": "3064c257b6031f9fa46d7507aeb376200c51b98544134a67e85ce0b1d5ffab44"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/metrics_history.csv",
+      "sha256": "f5d2dc9fd3defe4bf0f4df89675a505913134ab6294d8a32ab09489d065685aa"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/proposal_history.json",
+      "sha256": "e1de166afe737ab0b584ba147de2620f13841912c877f5f421dabcc0144c04e3"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/evaluations.csv",
+      "sha256": "9224f82b46726d885a0f4a13328a0940477f2fad394fa9e416dcad1dae1e2ac1"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/metrics_history.csv",
+      "sha256": "e9e4a4d17cd83eef1f65d84c3601035d7152552a14cf3db53add935306e49d8b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/proposal_history.json",
+      "sha256": "fa1c9624e3cfc0ffbdacd1d1587e4717185d2f5396e70337a4d1b499ba9a3a6a"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/evaluations.csv",
+      "sha256": "0e670dc3175674c6a32ed1bd3c672a29bc257cb06456448c4084bd32be287b31"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/metrics_history.csv",
+      "sha256": "ec883aa380297d99d341c116c4cd2279730ada176333d463d6c4d45d50c1b868"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/proposal_history.json",
+      "sha256": "deebcb45f48b1f4a315e46fd43c7e2df11a9c1b75d05eb6029a2fe93ddcdfcb7"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/evaluations.csv",
+      "sha256": "3779a69114fdca61f2f0b3eb902e724b3a9f26cebddd19363281e7036126e5e6"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/metrics_history.csv",
+      "sha256": "047834165e08a42fb2add219e3f865ca127ec14033ec18533bdc77fa06683566"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/proposal_history.json",
+      "sha256": "80cc51c65460fc7383ebf9a1cbc7b78c168543d6222e703be946a6d61e75d209"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/evaluations.csv",
+      "sha256": "36de757d0a3dd0a1ed6a39c10ae2abf6d3a39f229de978169951aa8680c70745"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/metrics_history.csv",
+      "sha256": "5f958e0d44931745130b8ae6559cf46bdbcaf853f08327f11f53a61039762807"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/proposal_history.json",
+      "sha256": "8dd6fe63381462a1335b412459e00fd6cb7d3e1672233986ec8decc2ca46c913"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/evaluations.csv",
+      "sha256": "5555ff0776abc483f74ac7d4f309a9822ccedf914e01a70e56506fd28d58a2d2"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/metrics_history.csv",
+      "sha256": "45d425e263f64dc0b955e1625df98586785a35281813de4b1bb130fbe441f383"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/proposal_history.json",
+      "sha256": "e0a18d5bde7edf5719969063c9e768eea1fdacaec04c201065b6e602a565b9cc"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/evaluations.csv",
+      "sha256": "98620096b63206431db4eb6def2c0fa2932455067aaab2c0fbd256c11b04fb4a"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/metrics_history.csv",
+      "sha256": "66752446a34ce3d6df7ad3e858ad5171902aaf43f5791deb2ef934b1d5c04cc3"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/proposal_history.json",
+      "sha256": "4ff91ec286fceca9a10d2a26ba77c759f24416725dbdccc03999509ff7053112"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/evaluations.csv",
+      "sha256": "5db9bedbf444b0e1f3e167bc8833735a959542dabc7d76fb66a1e14d5c712884"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/metrics_history.csv",
+      "sha256": "dd2b8619d947552f857d1a6c009e1797cb33fe59cd1d3a25ab799d6c1e8a3477"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/proposal_history.json",
+      "sha256": "3b1ebf4e4835f7ab860c267860bb8f42099e23f3777c1e08bd0a912d1e86ff0e"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/evaluations.csv",
+      "sha256": "37133332cb48a34a7dfd2d8b43c01093be6f28454cdd8f759a4d27cd036656a3"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/metrics_history.csv",
+      "sha256": "7fe5886fdf5fc7c8cb50a4b4b88c98804d675c3d2484677777333bf0f9156b71"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/proposal_history.json",
+      "sha256": "7f91d5a2fa8c453209d53c5aaa5826b352fe1b97273080fdce16ac9242b7f7e4"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/evaluations.csv",
+      "sha256": "c66bd1d0b27cbb7fe01ed031a117b8f3ff2bc4839f6c7912c44c969eddadc02d"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/metrics_history.csv",
+      "sha256": "3d64608a9cde436114f790f25ae74c95171062ff2d45924ec107c6ae35937597"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/proposal_history.json",
+      "sha256": "f7fbebd0ef1b1a6adcdc0648e4b12afeebf899a0bea606de3d4ea58ec5d1f616"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/evaluations.csv",
+      "sha256": "f26a143e92ee3a4f0e8c404cab56489af4d82103beb059a4c94ad40c7e9729b5"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/metrics_history.csv",
+      "sha256": "ba77cc0056e9a6e09b90764b1759a1362fd6333f93d730036719391721acca55"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/proposal_history.json",
+      "sha256": "b14fcfabf06d9a083e560baa8c3e9a5a95fbb0bf56f9b4e00df4573904375be6"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/evaluations.csv",
+      "sha256": "3c6a0e394f27a305e4b56a17ac8bd95945819d0e56ef26a12e7173ac62fb4081"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/metrics_history.csv",
+      "sha256": "fcd5c955bfc2bca54a89973ac9e30f7a5c75db51edd9f86da8664793a8aebf52"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/proposal_history.json",
+      "sha256": "edc1e75017d7382d0fb29e7bef5484d7d6562d4afdf4a6d0de7f2654a79c02a0"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/evaluations.csv",
+      "sha256": "2f3caba5f254e949c08df98ac89516f77be41bef8778ef5de8db19b04cdb989b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/metrics_history.csv",
+      "sha256": "85cd60f6b3d5f396f6714aeb6d69d4424ffbbca17a9186194e4c6560c302261b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/proposal_history.json",
+      "sha256": "501278c8bf681a5be4eacc87e2eef1f644786a7103fa7f8be0ff188fa2c316e0"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/evaluations.csv",
+      "sha256": "769a10d06a9136f3a6b270f41ca8db27049725dafc7a1abe6307080ccb439935"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/metrics_history.csv",
+      "sha256": "08af6b183025a5de996d1b07ca9da528a5e26ff6121b4b5c343bb1a043510c15"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/proposal_history.json",
+      "sha256": "85ca64a8c4c903cd19f0327dd88b5864cb9944d1e6d1404a9311845d25d890dd"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/evaluations.csv",
+      "sha256": "8e8bcb5896a157c262439abd02b8c6e652ce51844fa77c20b75718e5b422480a"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/metrics_history.csv",
+      "sha256": "0405c179f8059369bf546242b5778bc993f2f33d5a8624a0277303034ea4fa86"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/proposal_history.json",
+      "sha256": "c5fd6b6232d470968126b69b332115620933fc2823605ca9d0d2e3c723ae01c2"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/evaluations.csv",
+      "sha256": "3d279ef69b7ae2ae2665c1fa286e0f019316d7ae7781aad5670505e0a3f138ca"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/metrics_history.csv",
+      "sha256": "156101549b34e99dd771044d3671675eacb2e9fdda468cb98816b96eb5e888f9"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/proposal_history.json",
+      "sha256": "e1b4759b96a46f85189b33ce790e17e4f09e650847991d9096568ef5edadee4f"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/evaluations.csv",
+      "sha256": "730a64facbcdcc1464474284aca56de8ae1ef675313814490f8c550f9a8e7bb3"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/metrics_history.csv",
+      "sha256": "83912f41ceec775c3af0399508345210be773062e8e514755499a44b6fe45642"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/proposal_history.json",
+      "sha256": "6e9da5fdaadb8ff6e26367a785e639e93ab62d1b95c13765c0bb2f648fb07d53"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/evaluations.csv",
+      "sha256": "7f866911136a7f34ea45667180fadc4e67adbc8c2325bb3e8e8bfc91578bd578"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/metrics_history.csv",
+      "sha256": "236bb838d599a6c84c435c98588cd2cb3bf0e2bf3c552f3d6f214eefe42be10a"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/proposal_history.json",
+      "sha256": "744d9aa099f7cea1f320cb5b15540243f1e9bcd40889c5e664da4b0bd0f9b248"
+    }
+  ]
+}
