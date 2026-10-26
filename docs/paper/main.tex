@@ -2,7 +2,7 @@
 %
 % Results are produced by scripts/production/01_preflight.sh ... 07_paper_outputs.sh.
 % Campaign values are generated from the completed October 2026 production runs.
-% Remaining \pending markers identify unresolved author/public-archive information.
+% The remaining funding/acknowledgment marker is explicitly deferred to the author.
 % Set \finaltrue only after every \pending marker has been replaced.
 \documentclass[11pt,a4paper]{article}
 
@@ -57,10 +57,10 @@ All methods identify feasible nondominated operating points, revealing trade-off
 transverse beam quality and energy spread. Paired analyses support a higher feasible
 sampling fraction for constraint-aware acquisition, while weighted-sum optimization completes campaigns faster.
 Objective-quality comparisons depend on the indicator and comparator. A survey of
-scalarization weightings explores additional operating modes, and sampled lattice perturbations
-preserve feasibility for the selected operating points. The results demonstrate the use of
+scalarization weightings explores additional trade-offs, and a limited lattice-jitter assessment
+retains feasibility for the selected operating points. The results demonstrate the use of
 constraint-aware Bayesian optimization to identify feasible injector-linac settings and map
-beam-quality trade-offs for the Korea Light Source.}
+beam-quality trade-offs within the stated injector model and acceptance profile.}
 
 \keywords{Beam dynamics, Accelerator modelling and simulations, Multi-Objective Bayesian Optimization}
 \notoc
@@ -81,18 +81,17 @@ provide the beam for subsequent acceleration in the booster. The present work co
 \SI{200}{\mega\electronvolt} S-band injector-linac reference model developed for that project and studies feasible
 trade-offs among its exit-beam emittances and energy spread.
 
-The electron injector sets the brightness available to the rest of a linear accelerator. X-ray
-free-electron lasers~\cite{Emma2010,Kang2017} and mega-electron-volt ultrafast electron
-diffraction~\cite{Weathersby2015} need bunches with small transverse emittance and small energy
-spread. Both are fixed largely in the first metres of the machine, where the beam is still
-non-relativistic and space charge dominates. There, the RF fields of the gun and the space-charge
-forces both increase the emittance~\cite{Kim1989}. Solenoid focusing combined with suitably phased
-booster structures can compensate part of this growth~\cite{Carlsten1989,Serafini1997}. As a
-result, the gun phase, the solenoid strength, the booster phasing and the downstream quadrupole
-optics act jointly on the emittances and the energy spread. These goals conflict, so a design
-study should deliver the set of achievable trade-offs, the Pareto front, rather than one optimum.
-Each candidate must also respect operational limits on beam size, divergence, bunch length,
-energy and transmission. Each candidate setting is evaluated with a space-charge tracking simulation.
+For storage-ring injection, beam emittance, energy spread and transport envelopes determine
+compatibility with the transfer line and booster acceptance. The injector must deliver a
+transmittable bunch with suitable phase-space properties rather than maximize a single beam
+quality measure. In the low-energy section, RF fields and space charge shape transverse
+emittance~\cite{Kim1989}; solenoid focusing and suitably phased accelerating structures can
+compensate part of its growth~\cite{Carlsten1989,Serafini1997}. Magnetic strengths and RF phases
+therefore act jointly on the transverse and longitudinal beam properties. A useful optimization
+study should identify feasible trade-offs while retaining limits on sizes, divergences, bunch
+length, mean energy and transmission. Here each proposed setting is evaluated with a
+space-charge tracking simulation, and the production profile is compared explicitly with the
+KLS technical design requirements.
 
 Multi-objective genetic algorithms, in particular NSGA-II~\cite{Deb2002}, are the established tool
 for mapping such trade-offs in photoinjector design~\cite{Bazarov2005,Hofler2013}. They have
@@ -140,7 +139,8 @@ Previous work on this injector established MOGA-based RF-cavity and beam-dynamic
 optimization~\cite{Kim2024KLSMOGA} and examined operating and installation errors for selected
 MOGA solutions~\cite{Kim2025KLSError}. A separate NAPAC publication compared scalarized BO
 with MOGA using eight independent controls and a fractional energy-spread
-objective~\cite{Park2025NAPAC}; ICABU contributions were presentations. The present paper
+objective~\cite{Park2025NAPAC}. Related work was presented orally at ICABU 2025~\cite{Park2025ICABU},
+without an associated proceeding for this study. The present paper
 focuses on MOBO, comparing its constraint-aware and unconstrained variants with scalarized BO.
 The completed MOGA study provides published design context; a new MOGA benchmark is outside
 this study's scope. Together, these studies motivate a comparison that separates the search
@@ -156,7 +156,7 @@ beam-quality trade-off can be traced to its constraint status. Feasible nondomin
 identified jointly in the objective space, while measured sizes, divergences, bunch length,
 energy and transmission determine whether a candidate enters that set. Repeated primary runs
 separate common trends from dependence on the initial design, and the additional scalarization
-survey illustrates how weighting choices sample different operating modes. The lattice-jitter
+survey illustrates how weighting choices sample different trade-offs. The lattice-jitter
 assessment then examines the tolerance of representative settings under the stated perturbation
 model. The earlier KLS studies provide a physical context for these results, with differences
 in feasibility limits and error coverage made explicit in section~\ref{sec:previous_kls}.
@@ -585,7 +585,7 @@ not a run selected retrospectively for its robustness outcome; the supporting ma
 its exact identity. The survey assessment is recorded separately.
 
 For each design we report the observed feasibility fraction and exact Clopper--Pearson
-binomial limits, conditional on independent trials from the stated error model. Objective
+binomial limits~\cite{Clopper1934}, conditional on independent trials from the stated error model. Objective
 changes are described by the mean ratio
 $D = \frac{1}{3}\sum_m \langle f_m\rangle/f_m^{\mathrm{nom}}$, along with separate
 objective means, population standard deviations and empirical fifth/ninety-fifth percentiles
@@ -925,49 +925,51 @@ show greater robustness under its broader error model. The earlier study identif
 errors as a principal sensitivity, supporting their inclusion in future assessments.
 
 \subsection{Limitations}
-The empirical Pareto sets characterize the settings observed within the sampled design domain
-and do not establish global optimality. Their extent depends on both the finite evaluation
-budget and the selected beam-quality limits, which were fixed before the campaigns. All results
-use one injector model and a fixed source distribution, with finite macroparticle and grid
-resolution. The cited JINST settings establish partial correspondence with the earlier model,
-but the inspected source supplies no particle/grid refinement error bound or full solver-transition
-equivalence. Absolute numerical uncertainty relative to the method differences and constraint
-margins is therefore not quantified here, even though all methods use common tracking settings. The perturbation tests exclude source fluctuations, RF-gradient errors
-and alignment errors, so the retained feasibility applies to the stated lattice-jitter model.
-The earlier JKPS results motivate extending this assessment to the omitted error channels.
-Ten repeated runs provide an estimate of variation with initialization, rather than a high-powered
-statistical ranking, and no comparison with accelerator measurements is made. These limitations
-define the scope in which the observed feasible trade-offs and relative sampling behavior can
-be interpreted.
+The feasible fronts are empirical sets from finite searches in the recorded domain. They
+characterize a broader production acceptance profile than the TDR optimization requirements,
+and do not establish global Pareto optimality or full injection acceptance. The comparison is
+restricted to the performed constraint-aware, unconstrained and equal-weight scalarized
+implementations. No matched constrained-scalarized or full-budget Sobol arm was evaluated,
+and the unequal-budget weighting survey cannot replace either control. Ten paired runs
+characterize initialization variability for this problem; they do not establish universal
+algorithm superiority. The original constraint smoothing is unit-dependent, and the offline
+normalization probes supply no physical-performance evidence for a corrected method.
 
-The next-batch checks also show undercoverage of the saved Gaussian intervals; estimated
-constraint probabilities must therefore not be interpreted as calibrated machine-reliability
-probabilities.
+The tracking model uses one fixed source file and finite particle/grid resolution. The cited
+JINST description establishes partial settings correspondence, but supplies neither a
+traceable refinement-error bound nor full solver-transition equivalence. Numerical uncertainty
+relative to the objective differences and feasibility margins is therefore unquantified. The
+source-generation recipe and cathode model are also not established by the retained file.
+Near-symmetric source moments and downstream trajectory changes support a transport
+interpretation of the transverse asymmetry, but do not isolate its causal mechanism. The
+lattice-jitter results exclude source, RF-gradient and alignment errors and cannot be directly
+compared with the broader JKPS error model or interpreted as machine certification.
 
-The RF-domain interpretation is another limitation. The earlier JINST paper reports phases
-relative to maximum energy gain~\cite{Kim2024KLSMOGA}, whereas the present inputs are absolute
-wave phases; those earlier selected settings do not calibrate the current crest. In a post-hoc
-partition of the ACC3/ACC4 interval, its upper quarter
-(\SIrange{325.5561}{341.0588}{\degree}) contains 259, 345 and 394 sampled observations for
+Physical crest calibration and an engineering basis for the inherited unequal phase windows
+remain unavailable. Earlier JINST phases are relative to maximum energy gain, whereas the
+current inputs are absolute wave phases. The upper quarter of the ACC3/ACC4 interval,
+\SIrange{325.5561}{341.0588}{\degree}, contains 259, 345 and 394 sampled observations for
 constraint-aware, unconstrained and scalarized BO, respectively, all outside the energy band.
-This observation identifies unproductive sampled coverage, but upstream settings vary jointly.
-It neither establishes a causal phase cutoff nor predicts algorithm rankings after changing
-bounds. Physical crest calibration and an engineering basis for the unequal phase windows
-remain to be established.
+Because upstream controls vary jointly, this does not establish a causal phase cutoff or
+predict rankings after changing the domain. Next-batch predictive checks also show
+undercoverage of the saved Gaussian intervals, so estimated model feasibility must not be
+interpreted as calibrated machine reliability; physical feasibility is determined by the
+tracking diagnostics themselves.
 
-The originally designated fixed-reference hypervolume endpoint was uninformative: it was zero
-for all campaigns because the reporting reference $(\SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\mega\electronvolt})$
-had emittance components below the observed values. This does not indicate an absence of feasible
-solutions. We therefore omit the original endpoint from the comparative figures and tables.
-The exploratory reference-sensitivity analysis in appendix~\ref{app:front_quality} uses new,
-explicitly post-hoc conventions and cannot retrospectively replace that endpoint. The original
-records and reference remain unchanged.
+The originally designated fixed-reference hypervolume endpoint was zero for every campaign
+because its reference $(\SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\micro\metre\radian},\
+\SI{1.5}{\mega\electronvolt})$ had emittance components below the observed values. This does
+not indicate absence of feasible solutions. The replacement quality analyses are explicitly
+post hoc, with data-derived references and sensitivity checks; they do not retrospectively
+validate the original endpoint. Their empirical reference remains sampling-dependent, and
+jointly nondominated points can appear dominated in a two-dimensional projection. No
+comparison with accelerator measurements is made in this simulation study.
 
 %==========================================================================================
 \section{Conclusions}
 \label{sec:conclusions}
 We studied constraint-aware batch multi-objective Bayesian optimization for a six-parameter,
-three-objective, seven-constraint design problem of a \SI{200}{\mega\electronvolt} electron injector linac for KLS, in a paired,
+three-objective design problem with seven diagnostic channels and eight inequalities for a \SI{200}{\mega\electronvolt} electron injector linac for KLS, in a paired,
 budget-matched comparison over ten runs with failure-inclusive accounting. All simulations were
 valid, and each method identified feasible nondominated solutions. The pooled feasible fronts
 contained 49, 27 and 17 observations for the constraint-aware, unconstrained and weighted-sum
@@ -984,7 +986,7 @@ optimized settings on the machine.
 
 %==========================================================================================
 \acknowledgments
-\pending{Funding and acknowledgments.}
+\pending{Funding and acknowledgments to be supplied by the author.}
 
 \appendix
 \section{Exploratory front-quality and attainment analyses}

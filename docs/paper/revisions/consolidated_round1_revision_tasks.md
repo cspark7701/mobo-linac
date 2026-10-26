@@ -282,13 +282,15 @@ Add the appropriate existing JINST and JKPS citations to this passage when editi
 
 ### C16. Consolidate prose and finish front matter
 
+**Status:** Editing completed; [C16 report](evidence/c16_report.md) records scientific prose and verified presentation/statistical citations. Funding/acknowledgments are deferred explicitly to the author; finalfalse remains set and submission readiness is not claimed.
+
 **Sources:** Reviewer 1 minor 6/7, R12; Reviewer 2 minor 9–16, R13/R14/R16 and abstract requests in R5/R9.
 
-- [ ] Keep the abstract qualitative, without numerical values or spelled-out counts, and remove or qualify claims not supported by the revised study.
-- [ ] State limitations coherently in Discussion; place most plotting conventions in captions and avoid repetitive audit/provenance language or padding paragraphs merely to increase length.
-- [ ] Center the motivation on storage-ring injection and the accepted KLS-reference problem rather than implying demonstrated FEL/UED operation.
-- [ ] Add only a verified ICABU presentation reference if available; do not invent a proceeding. Complete other bibliography metadata and author-verified funding/acknowledgments.
-- [ ] Resolve final placeholders before submission. Set the final-build switch only when appropriate. Assess the harmless upstream hyperref warning without unnecessarily modifying publisher-owned style files.
+- [x] Keep the abstract qualitative, without numerical values or spelled-out counts, and remove or qualify claims not supported by the revised study.
+- [x] State limitations coherently in Discussion; place most plotting conventions in captions and avoid repetitive audit/provenance language or padding paragraphs merely to increase length.
+- [x] Center the motivation on storage-ring injection and the accepted KLS-reference problem rather than implying demonstrated FEL/UED operation.
+- [x] Add only a verified ICABU presentation reference if available; do not invent a proceeding. Complete verified bibliography metadata; funding/acknowledgments remain explicitly author-deferred.
+- [ ] **Author-deferred:** Resolve funding/acknowledgment placeholder before submission. Set the final-build switch only when appropriate. Assess the harmless upstream hyperref warning without unnecessarily modifying publisher-owned style files.
 
 **Done when:** The manuscript is complete, coherent and consistent with the author's presentation instructions. Conflicting reviewer requests receive explicit responses rather than being silently marked complete.
 

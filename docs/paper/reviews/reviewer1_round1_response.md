@@ -85,3 +85,11 @@ Survey case extrema now use feasible observations consistently with the aggregat
 The scalarized survey now shows separate 176-evaluation histories for every weighting, not a concatenated 880-point trajectory. Method colors/markers are consistent and manuscript plots are vector outputs without redundant titles. Full-range constraint panels retain every observation and add transverse acceptance zooms; constant transmission is retained as an explicit count/value/threshold annotation. We do not invent an energy-spread constraint. The detailed unequal-budget survey moves to an appendix. The C03 attainment analyses and C08 representative settings supplement the existing scatter-only Pareto projections, which retain grid lines.
 
 **Locations:** Primary feasibility/constraint figures; exploratory survey appendix; C15 plotting source and input manifest.
+
+## Scientific prose, front matter and deferred acknowledgments (C16)
+
+We center the motivation on storage-ring injection, consolidate limitations, keep plotting conventions in captions and retain the author's qualitative abstract. The exact error amplitudes/sample counts stay in Methods/Results rather than the abstract, as requested by the author. The official ICABU conference record now supports an oral-presentation citation; no proceeding is invented. A verified Clopper–Pearson reference supports the interval calculation. Seven diagnostic channels are distinguished from eight inequalities.
+
+The author will supply funding/acknowledgments later. That visible placeholder and draft-mode switch remain, so this revision is not represented as submission-ready. The harmless pagecolor warning comes from the distributed publisher style, which is left intact. The requested Data availability section is not restored; reproduction identities and instructions are instead provided in Methods/supporting repository material under the author's scope decision.
+
+**Locations:** Abstract, Introduction, Limitations, Conclusions, bibliography and acknowledgments placeholder; C16 disposition report.
