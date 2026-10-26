@@ -142,8 +142,8 @@ retain every individual case. Figures 2 and 5 remain scatter-only Pareto views.
 
 ## Round1 evidence and paired analyses
 
-The consolidated revision list records completion of C03, C04, C05 and C12, plus the specific
-remaining engineering/calibration/source-evidence items under C01, C02 and C09. The original
+The consolidated revision list records completion of C01, C03, C04, C05 and C12, plus the specific
+remaining calibration/source-evidence items under C02 and C09. The original
 production labels and outputs remain authoritative. New profile filters and quality metrics
 are post hoc, with source hashes, protocols and limitations under `revisions/evidence/`.
 
@@ -168,3 +168,9 @@ The underlying first-feasible records are retained in the JSON and initializatio
 The new appendix contains metric histories and target-attainment heatmaps. Objective-space
 Pareto plots remain scatter-only. Manuscript source, compact derived analyses and figures are
 versioned; raw simulations, model artifacts and generated LaTeX build products are not added.
+
+C01 now uses the official October 2025 KLS TDR (4GSR-I-DE-TDR-001), Tables 2.1.4.4 and
+2.1.4.6. Its optimization limits admit two constraint-aware observations and none from the
+baselines; both also meet the separate relative-spread specification. These post-hoc checks
+preserve the production labels and do not certify full machine acceptance. Exact source pages,
+PDF hash, profile definitions and candidate identities are recorded in the C01 evidence files.

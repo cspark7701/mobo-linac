@@ -166,7 +166,9 @@ in feasibility limits and error coverage made explicit in section~\ref{sec:previ
 \label{sec:problem}
 
 \subsection{Beamline and simulation}
-The reference model follows the S-band injector configuration studied for Korea-4GSR~\cite{Kim2024KLSMOGA,Kim2025KLSError}.
+The reference model follows the earlier S-band injector studies~\cite{Kim2024KLSMOGA,Kim2025KLSError};
+the engineering comparison uses the October 2025 Korea-4GSR Technical Design Report
+(TDR)~\cite{KLSTDR2025}.
 Figure~\ref{fig:layout} shows the fixed lattice used here, which consists of an S-band RF photocathode gun, a gun solenoid, four 84-cell S-band
 traveling-wave accelerating structures (ACC1--ACC4) and two quadrupoles, and is tracked with
 ASTRA~\cite{Floettmann2017Astra} through the \texttt{lume-astra} interface~\cite{LumeAstra}.
@@ -273,11 +275,15 @@ in table~\ref{tab:constraints} satisfy eight inequalities:
  \sigma_z&\le\SI{1}{\milli\metre}, &T&\ge0.90,\\
  E_\mathrm{kin}&\ge\SI{195}{\mega\electronvolt}, &E_\mathrm{kin}&\le\SI{205}{\mega\electronvolt}.
 \end{align}
-These limits identify the fixed-lattice production configuration. They are wider than several
-requirements in the earlier injector studies~\cite{Kim2024KLSMOGA,Kim2025KLSError,Park2025NAPAC}.
-They were fixed before the simulation comparison and retained for every method. Their use
-establishes a common computational problem; it does not demonstrate acceptance by the current
-KLS booster or transfer line. A valid
+These limits identify the fixed-lattice production configuration. The TDR's optimization
+requirements are given separately in table~\ref{tab:constraints}; their source is
+Table 2.1.4.6 of the report~\cite{KLSTDR2025}. The production transverse and transmission
+limits are looser, while its two-sided energy interval differs from the TDR's lower bound.
+The TDR does not justify replacing its requirements with the production limits. The completed
+campaigns therefore compare algorithms on the stated computational profile; TDR compatibility
+is assessed separately from their archived observations. This is a fixed-lattice study with two
+quadrupole controls, rather than a model of the complete TDR linac and downstream matching
+system. A valid
 simulation that violates any limit is retained as an infeasible observation and cannot enter the
 feasible Pareto set, even if its objective values are attractive. Conversely, passing a subset
 of diagnostics is insufficient: the classification requires all inequalities to hold together.
@@ -286,26 +292,43 @@ to the displayed coordinates and marker fill communicates the joint constraint s
 
 \begin{table}[htbp]
 \centering
-\caption{Constraint diagnostics at the exit plane. Transmission is the fraction of the initial
-macroparticles that reach the exit plane.}
+\caption{Exit-plane diagnostics: the profile used in the completed campaigns and the TDR
+optimization requirements (Table 2.1.4.6)~\cite{KLSTDR2025}. Transmission is the fraction of
+initial counted particles reaching the exit. Strict TDR inequalities are retained; its energy
+condition supplies no upper bound.}
 \label{tab:constraints}
-\begin{tabular}{lll}
+\begin{tabular}{llll}
 \toprule
-Diagnostic & Symbol & Requirement \\
+Diagnostic & Symbol & Production profile & TDR optimization \\
 \midrule
-RMS beam sizes & $\sigma_x$, $\sigma_y$ & $\le \SI{1.0}{\milli\metre}$ \\
-RMS divergences & $\sigma_{x'}$, $\sigma_{y'}$ & $\le \SI{1.0}{\milli\radian}$ \\
-RMS bunch length & $\sigma_z$ & $\le \SI{1.0}{\milli\metre}$ \\
-Mean kinetic energy & $E_\mathrm{kin}$ & \SIrange{195}{205}{\mega\electronvolt} \\
-Transmission & $T$ & $\ge 0.90$ \\
+RMS beam sizes & $\sigma_x$, $\sigma_y$ & $\le \SI{1.0}{\milli\metre}$ & $<\SI{0.30}{\milli\metre}$ \\
+RMS divergences & $\sigma_{x'}$, $\sigma_{y'}$ & $\le \SI{1.0}{\milli\radian}$ & $<\SI{0.2663}{\milli\radian}$ \\
+RMS bunch length & $\sigma_z$ & $\le \SI{1.0}{\milli\metre}$ & $<\SI{1.0}{\milli\metre}$ \\
+Mean kinetic energy & $E_\mathrm{kin}$ & \SIrange{195}{205}{\mega\electronvolt} & $>\SI{200}{\mega\electronvolt}$ \\
+Transmission & $T$ & $\ge 0.90$ & $>0.9999$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
+The TDR also specifies relative RMS energy spread no greater than \SI{0.5}{\percent}
+and geometric emittance no greater than \SI{10}{\nano\metre\radian}; its single-bunch pulse
+duration is \SIrange{6}{8}{\pico\second} FWHM (Table 2.1.4.4 and accompanying discussion).
+These specifications are distinct from the optimization constraint list. We check the relative
+spread as $\sigma_E/E_\mathrm{kin}$, without substituting normalized for geometric emittance
+or equating FWHM duration with RMS bunch length.
+
+Reclassifying all archived observations under the TDR optimization constraints gives two
+constraint-aware observations and none from either baseline. Both also meet the relative
+energy-spread specification. Passing these checks does not establish the remaining pulse,
+emittance, stability or downstream matching specifications. The original profile instead
+accepts 648, 251 and 200 observations for constraint-aware, unconstrained and scalarized BO.
+The difference shows that their original feasible-front comparison describes a broader
+computational region than the TDR optimization acceptance region.
+
 As an exploratory sensitivity check, we reclassified the archived observations using published
 limits, without changing the original labels. The NAPAC profile~\cite{Park2025NAPAC} requires
 transverse sizes below \SI{0.30}{\milli\metre}, divergences below
-\SI{0.30}{\milli\radian}, bunch length below \SI{1}{\milli\metre}, the same energy band,
+\SI{0.30}{\milli\radian}, bunch length below \SI{1}{\milli\metre}, the production energy band,
 and transmission above \SI{99.99}{\percent}. It accepts 12 constraint-aware observations and
 none from either baseline, compared with 648, 251 and 200 under the production profile.
 Applying the JKPS size, bunch-length, mean-energy and energy-spread limits~\cite{Kim2025KLSError}

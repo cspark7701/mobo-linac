@@ -65,11 +65,11 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C01. Establish the accepted KLS-reference problem
 
-**Status:** Implemented for the bounded production-model comparison; current KLS engineering acceptance remains unverified. See [C01 evidence](evidence/c01_acceptance.md).
+**Status:** Completed for the explicitly bounded production-model comparison. The official October 2025 KLS TDR supplies the engineering reference; [C01 evidence](evidence/c01_acceptance.md) compares its requirements and reclassifies archived data. The production profile is not TDR-equivalent, and full machine acceptance is not claimed.
 
 **Sources:** Reviewer 1 M2/R1; Reviewer 2 M4/R6 and minor 12/R14.
 
-- [ ] Identify the lattice/design revision and the current engineering basis for each size, divergence, bunch-length, mean-energy and transmission limit.
+- [x] Identify the lattice/design revision and the current engineering basis for each size, divergence, bunch-length, mean-energy and transmission limit.
 - [x] Define the energy-spread objective precisely: total RMS, correlated/chirp-containing or uncorrelated/slice quantity; justify its relevance to booster/transport acceptance.
 - [x] State the eight inequalities explicitly, including the two sides of the mean-energy interval.
 - [x] Compare the present requirements with the cited JKPS/NAPAC requirements, including any energy-spread cutoff, and explain whether differences are deliberate, superseded or design-specific.

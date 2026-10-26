@@ -1,0 +1,3 @@
+run_id,evaluation_id,norm_emit_x_m_rad,norm_emit_y_m_rad,sigma_energy_eV,sigma_x_m,sigma_y_m,sigma_xp_rad,sigma_yp_rad,sigma_z_m,mean_kinetic_energy_eV,transmission_fraction,relative_rms_energy_spread,relative_spread_specification_pass
+constrained_qlognehvi_seed_44,eval_000079,3.3488e-06,3.2848e-06,481810.0,0.00029753,0.00025558,4.3450000000000006e-05,0.00024171,0.00099184,200310000.0,1.0,0.0024053217512855075,True
+constrained_qlognehvi_seed_51,eval_000099,3.2557e-06,3.2723e-06,885180.0,0.00029107,0.00021869,4.1942e-05,0.00025299,0.00099204,200140000.0,1.0,0.004422804037173978,True

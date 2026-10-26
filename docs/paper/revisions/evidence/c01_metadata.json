@@ -2,11 +2,34 @@
   "classification": "post-hoc; original labels preserved",
   "profiles": {
     "production": "Archived config, all eight inequalities",
+    "kls_tdr_optimization": "Korea-4GSR TDR 4GSR-I-DE-TDR-001 (October 2025), Table 2.1.4.6, printed p.2-104: all seven strict inequalities; no upper energy cutoff",
+    "kls_tdr_optimization_plus_spread": "TDR Table 2.1.4.6 plus relative RMS energy spread <=0.5% from Table 2.1.4.4; not full specification verification",
     "napac2025": "WECN03 Constraints and Feasibility; strict size/divergence/length/transmission limits",
     "jinst2024_necessary_subset": "P01023 Sec4.1/Table4, omit ambiguous pulse duration and geometric emittance",
     "jkps2025_necessary_subset": "Table2, omit geometric emittance; both transverse sizes required"
   },
-  "published_profile_caveat": "Subset success is not full-profile feasibility; zero successes exclude full-profile success under the stated interpretations.",
+  "published_profile_caveat": "Subset success is not full-profile feasibility; zero successes exclude full-profile success under the stated interpretations. TDR optimization success is not full machine acceptance: geometric emittance, pulse FWHM, pulse-to-pulse stability and downstream matching are not checked.",
+  "tdr_source": {
+    "report": "4GSR-I-DE-TDR-001",
+    "edition": "October 2025",
+    "landing_page": "https://kls.kbsi.re.kr/eng/sub0305/view/id/63794",
+    "url": "https://kls.kbsi.re.kr/_files/board/20260420/f0935668f91c7c3292fd1e843c1a9a25.pdf",
+    "sha256": "47b4218ace4bc8c1a5f166fb5523c7dd63e4962b5882217c1fac90a28126f40d",
+    "table_pages": {
+      "2.1.4.4": {
+        "printed": "2-98",
+        "pdf_one_based": 115
+      },
+      "2.1.4.6": {
+        "printed": "2-104",
+        "pdf_one_based": 121
+      },
+      "2.1.4.9": {
+        "printed": "2-108",
+        "pdf_one_based": 125
+      }
+    }
+  },
   "production_constraints": {
     "max_sigma_x_m": 0.001,
     "max_sigma_y_m": 0.001,

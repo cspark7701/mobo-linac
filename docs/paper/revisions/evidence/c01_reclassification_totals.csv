@@ -1,4 +1,4 @@
-method,evaluations,valid,production,napac2025,jinst2024_necessary_subset,jkps2025_necessary_subset,size_x_below_0p2mm,size_y_below_0p2mm
-constrained_qlognehvi,1600,1600,648,12,1,0,57,313
-scalarized_bo,1600,1600,200,0,0,0,13,156
-unconstrained_qlognehvi,1600,1600,251,0,0,0,11,151
+method,evaluations,valid,kls_tdr_optimization,kls_tdr_optimization_plus_spread,production,napac2025,jinst2024_necessary_subset,jkps2025_necessary_subset,size_x_below_0p2mm,size_y_below_0p2mm
+constrained_qlognehvi,1600,1600,2,2,648,12,1,0,57,313
+scalarized_bo,1600,1600,0,0,200,0,0,0,13,156
+unconstrained_qlognehvi,1600,1600,0,0,251,0,0,0,11,151

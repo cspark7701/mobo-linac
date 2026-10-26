@@ -29,3 +29,16 @@ def test_energy_objective_and_constraint_are_distinct():
     assert masks['production'].tolist()==[True,True,True,False]
     assert masks['jkps2025_necessary_subset'].tolist()==[False,False,True,True]
     assert masks['jinst2024_necessary_subset'].tolist()==[False,False,True,True]
+
+
+def test_tdr_strict_limits_and_separate_spread_specification():
+    base=row(mean_kinetic_energy_eV=201e6)
+    changes=[{}, {'mean_kinetic_energy_eV':200e6}, {'sigma_x_m':.3e-3},
+             {'sigma_yp_rad':.2663e-3}, {'sigma_z_m':1e-3},
+             {'transmission_fraction':.9999}, {'mean_kinetic_energy_eV':206e6},
+             {'sigma_energy_eV':201e6*.005}, {'sigma_energy_eV':201e6*.005+1}]
+    df=pd.DataFrame([{**base,**change} for change in changes])
+    masks=module.profile_masks(df)
+    assert masks['kls_tdr_optimization'].tolist()==[True,False,False,False,False,False,True,True,True]
+    assert masks['kls_tdr_optimization_plus_spread'].tolist()==[True,False,False,False,False,False,True,True,False]
+    assert not masks['production'].iloc[6]  # Production has an upper energy bound; TDR table does not.
