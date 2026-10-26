@@ -15,7 +15,7 @@
 
 The reviewer documents assess manuscript revision `fe459f2`; this consolidation uses their current round1 versions, including Reviewer 2's later corrections. Reviewer 1's older request for a new numerical-convergence study is superseded by the author clarification recorded in Tasks 220–221. The convergence work is **already complete**; citation, settings equivalence and uncertainty reporting remain pending under C09. Neither review's recommendation is thereby automatically resolved.
 
-All consolidated tasks below remain open unless a status explicitly refers to completed underlying work. P0 identifies central scientific revisions, P1 supporting scientific analysis/documentation, and P2 presentation or response preparation. Work categories distinguish analysis of existing records, manuscript changes and conditional new tracking.
+Task status is recorded within each section; unchecked items remain open. P0 identifies central scientific revisions, P1 supporting scientific analysis/documentation, and P2 presentation or response preparation. Work categories distinguish analysis of existing records, manuscript changes and conditional new tracking.
 
 ## Author-defined scope: MOBO, with published MOGA context
 
@@ -65,13 +65,15 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C01. Establish the accepted KLS-reference problem
 
+**Status:** Implemented for the bounded production-model comparison; current KLS engineering acceptance remains unverified. See [C01 evidence](evidence/c01_acceptance.md).
+
 **Sources:** Reviewer 1 M2/R1; Reviewer 2 M4/R6 and minor 12/R14.
 
 - [ ] Identify the lattice/design revision and the current engineering basis for each size, divergence, bunch-length, mean-energy and transmission limit.
-- [ ] Define the energy-spread objective precisely: total RMS, correlated/chirp-containing or uncorrelated/slice quantity; justify its relevance to booster/transport acceptance.
-- [ ] State the eight inequalities explicitly, including the two sides of the mean-energy interval.
-- [ ] Compare the present requirements with the cited JKPS/NAPAC requirements, including any energy-spread cutoff, and explain whether differences are deliberate, superseded or design-specific.
-- [ ] Reclassify existing observations under relevant published profiles in separate derived outputs, using consistent geometric/normalized-emittance and energy-spread conventions. Preserve original labels and report empty accepted sets honestly.
+- [x] Define the energy-spread objective precisely: total RMS, correlated/chirp-containing or uncorrelated/slice quantity; justify its relevance to booster/transport acceptance.
+- [x] State the eight inequalities explicitly, including the two sides of the mean-energy interval.
+- [x] Compare the present requirements with the cited JKPS/NAPAC requirements, including any energy-spread cutoff, and explain whether differences are deliberate, superseded or design-specific.
+- [x] Reclassify existing observations under relevant published profiles in separate derived outputs, using consistent geometric/normalized-emittance and energy-spread conventions. Preserve original labels and report empty accepted sets honestly.
 
 **Done when:** A cited requirements/conventions table and reclassification summary support a clearly bounded physical acceptance claim. Mathematical feasibility is not equated automatically with demonstrated KLS injection performance.
 

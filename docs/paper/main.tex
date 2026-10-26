@@ -221,10 +221,15 @@ $\phi_\mathrm{acc3/4}$ & \texttt{phi(4)}, \texttt{phi(5)} & 310.05 & 279.05 & 34
 \end{table}
 
 The three objectives, all minimized, are the normalized RMS emittances $\enx$ and $\eny$ and the
-RMS energy spread $\sigma_E$ at the exit plane,
+projected total RMS energy spread $\sigma_E$ at the exit plane,
 \begin{equation}
   \mathbf{f}(\mathbf{x}) = \bigl(\enx(\mathbf{x}),\ \eny(\mathbf{x}),\ \sigma_E(\mathbf{x})\bigr).
 \end{equation}
+The energy-spread objective is the RMS energy column of ASTRA's longitudinal statistics,
+converted from \si{\kilo\electronvolt} to \si{\electronvolt}; no longitudinal-correlation
+subtraction or slice selection is applied. It therefore includes energy chirp. Reducing this
+quantity can assist longitudinal matching, but compatibility with the booster also depends on
+transport optics and acceptance, which are not simulated here.
 For reporting they are expressed in \umrad, \umrad\ and \si{\mega\electronvolt}. The surrogates work with the negated
 values, because the acquisition functions are formulated for maximization. An observation is
 nondominated if no other observation is at least as good in every objective and strictly better
@@ -233,9 +238,19 @@ spread at the expense of another quantity, rather than combining those changes i
 score. Consequently, coordinate-wise minima describe the ends of the trade-off set and need not
 belong to the same accelerator setting.
 
-A setting is \emph{feasible} if the seven diagnostics in table~\ref{tab:constraints} satisfy eight
-inequalities; the mean kinetic energy is bounded from both sides. The thresholds are fixed before
-the simulation comparison and are not adjusted after observing algorithm performance. A valid
+A setting is \emph{feasible} within the present computational profile if the seven diagnostics
+in table~\ref{tab:constraints} satisfy eight inequalities:
+\begin{align}
+ \sigma_x&\le\SI{1}{\milli\metre}, &\sigma_y&\le\SI{1}{\milli\metre},\\
+ \sigma_{x'}&\le\SI{1}{\milli\radian}, &\sigma_{y'}&\le\SI{1}{\milli\radian},\\
+ \sigma_z&\le\SI{1}{\milli\metre}, &T&\ge0.90,\\
+ E_\mathrm{kin}&\ge\SI{195}{\mega\electronvolt}, &E_\mathrm{kin}&\le\SI{205}{\mega\electronvolt}.
+\end{align}
+These limits identify the fixed-lattice production configuration. They are wider than several
+requirements in the earlier injector studies~\cite{Kim2024KLSMOGA,Kim2025KLSError,Park2025NAPAC}.
+They were fixed before the simulation comparison and retained for every method. Their use
+establishes a common computational problem; it does not demonstrate acceptance by the current
+KLS booster or transfer line. A valid
 simulation that violates any limit is retained as an infeasible observation and cannot enter the
 feasible Pareto set, even if its objective values are attractive. Conversely, passing a subset
 of diagnostics is insufficient: the classification requires all inequalities to hold together.
@@ -259,6 +274,19 @@ Transmission & $T$ & $\ge 0.90$ \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+As an exploratory sensitivity check, we reclassified the archived observations using published
+limits, without changing the original labels. The NAPAC profile~\cite{Park2025NAPAC} requires
+transverse sizes below \SI{0.30}{\milli\metre}, divergences below
+\SI{0.30}{\milli\radian}, bunch length below \SI{1}{\milli\metre}, the same energy band,
+and transmission above \SI{99.99}{\percent}. It accepts 12 constraint-aware observations and
+none from either baseline, compared with 648, 251 and 200 under the production profile.
+Applying the JKPS size, bunch-length, mean-energy and energy-spread limits~\cite{Kim2025KLSError}
+accepts none. These journal checks omit geometric-emittance and ambiguous pulse-duration
+conditions rather than substituting normalized emittance or an assumed duration convention.
+One constraint-aware observation passes the checked JINST size, energy, relative-spread and
+transmission conditions, which is insufficient to certify its full acceptance. Reclassification
+describes observed coverage; it does not reproduce optimization under different constraints.
 
 \subsection{Simulation validity and failures}
 \label{sec:failures}
