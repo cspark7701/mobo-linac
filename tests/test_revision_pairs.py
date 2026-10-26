@@ -1,5 +1,4 @@
 """Exact paired-test handling of signs, ties, zeros and multiplicity."""
-import importlib.util
 from pathlib import Path
 import sys
 import numpy as np

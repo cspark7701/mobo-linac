@@ -3,7 +3,6 @@ from pathlib import Path
 from datetime import datetime
 import hashlib
 import json
-import numpy as np
 import pandas as pd
 ROOT=Path(__file__).resolve().parents[1]
 BASE=ROOT/'results/paper_production/04_primary/benchmark'
@@ -32,7 +31,8 @@ def main():
         for name in ['evaluations.csv','config.json','metrics_history.csv','proposal_history.json']:
             assert sha(run/name)==complete['artifacts'][name]
             sources.append({'path':str((run/name).relative_to(ROOT)),'sha256':sha(run/name)})
-        df=pd.read_csv(run/'evaluations.csv');cfg=json.loads((run/'config.json').read_text())
+        df=pd.read_csv(run/'evaluations.csv')
+        json.loads((run/'config.json').read_text())  # Retain validation of the archived configuration.
         intervals=[];mh=[]
         for _,r in df.iterrows():
             p=Path(r.manifest_path);m=json.loads(p.read_text());mh.append(str(p.relative_to(ROOT))+':'+sha(p))

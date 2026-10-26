@@ -2,6 +2,7 @@
 
 import json
 import os
+import sys
 from pathlib import Path
 
 import pytest
@@ -56,6 +57,16 @@ def test_notebooks_execute_against_mock_runs(name, mock_production, tmp_path, mo
     }
     for key, value in environment.items():
         monkeypatch.setenv(key, value)
+    # A machine's registered python3 kernel may belong to another environment.
+    # Keep notebook execution on the same interpreter as this CI matrix entry.
+    kernel_root = tmp_path / "jupyter"
+    kernel_dir = kernel_root / "kernels" / "mobo-tests"
+    kernel_dir.mkdir(parents=True)
+    (kernel_dir / "kernel.json").write_text(json.dumps({
+        "argv": [sys.executable, "-m", "ipykernel_launcher", "-f", "{connection_file}"],
+        "display_name": "MOBO test interpreter", "language": "python",
+    }))
+    monkeypatch.setenv("JUPYTER_PATH", str(kernel_root) + os.pathsep + os.environ.get("JUPYTER_PATH", ""))
     notebook = nbformat.read(ROOT / "notebooks" / f"{name}.ipynb", as_version=4)
-    nbclient.NotebookClient(notebook, timeout=600, kernel_name="python3",
+    nbclient.NotebookClient(notebook, timeout=600, kernel_name="mobo-tests",
                             resources={"metadata": {"path": str(ROOT / "notebooks")}}).execute()
