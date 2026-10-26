@@ -57,9 +57,8 @@ numerically valid. The median feasible fractions were 40.6\%, 15.0\% and 12.5\% 
 constraint-aware, unconstrained and weighted-sum methods, respectively; the corresponding median
 numbers of feasible nondominated observations were 13.5, 7.0 and 4.0. The observed trade-offs are
 compared through projections of the three-objective feasible Pareto sets. A separate survey
-explores five scalarization weightings. Twelve representative operating points reproduced their stored nominal results under
-independent simulation, and all 600 sampled lattice-jitter simulations remained feasible.
-These results identify reproducible feasible trade-offs within the simulated injector model and
+explores five scalarization weightings. All 600 sampled lattice-jitter simulations of selected
+operating points remained feasible. These results identify feasible trade-offs within the simulated injector model and
 show a higher feasible sampling fraction for constraint-aware acquisition. They do not establish
 global Pareto optimality or robustness to source fluctuations.}
 
@@ -127,10 +126,9 @@ thin. Comparisons can rest on a single run, on unequal simulation budgets, or on
 measured against reference points that change during the search. In machine learning more broadly,
 algorithm rankings have been shown to change with the random seed and the data
 sampling~\cite{Henderson2018,Bouthillier2021}. Multiple paired runs and predeclared metrics are
-therefore needed before a performance difference can be claimed. Optima found in simulation are
-also rarely re-simulated independently, although parallel execution of file-based codes can
-silently mix inputs and outputs. Their sensitivity to machine errors is often not reported either,
-although it decides whether a setting is usable.
+therefore needed before a performance difference can be claimed. The sensitivity of simulated
+operating points to machine errors also needs to be assessed,
+because nominal feasibility alone does not establish tolerance to realistic perturbations.
 
 Earlier weighted-sum BO studies of this injector linac were presented at ICABU 2025.
 The present simulation study makes three contributions.
@@ -142,8 +140,8 @@ The present simulation study makes three contributions.
   paired, budget-matched simulation comparison over ten independent runs per method. Every simulation, including failed ones,
   counts against the budget. We compare the feasible nondominated solutions and feasible sampling
   fractions obtained by each method (section~\ref{sec:design}).
-\item We audit selected feasible nondominated settings by independent re-simulation with recorded input
-  hashes and by their response to lattice jitter. We provide analysis software and retain the campaign
+\item We assess selected feasible nondominated settings under lattice jitter.
+  We provide analysis software and retain the campaign
   records (sections~\ref{sec:audit} and~\ref{sec:data}).
 \end{enumerate}
 Section~\ref{sec:problem} describes the injector model and the optimization problem, and
@@ -329,20 +327,13 @@ These are descriptive comparisons; no statistical significance or global optimal
 The limitation of the originally designated reporting endpoint is addressed in
 section~\ref{sec:discussion}.
 
-\subsection{Independent audit of operating points}
+\subsection{Robustness assessment of operating points}
 \label{sec:audit}
-To check that the selected operating points are reproducible and to assess their sensitivity to machine
-errors, we audit the predeclared primary run of constraint-aware qLogNEHVI selected before the simulations. Six
-representative points are taken from its feasible Pareto set: the minimizer of each objective;
+To assess sensitivity to machine errors, we select operating points from the predeclared
+primary constraint-aware MOBO run. Six representative points are taken from its feasible Pareto set: the minimizer of each objective;
 the knee point, closest to the ideal point after min--max normalization of the front; the
 balanced point, closest to the normalized front's centroid; and the point of largest crowding
 distance~\cite{Deb2002}. A role may select the same setting as another.
-
-Each representative is re-simulated in a fresh working directory. The rerun is \emph{verified} if
-its feasibility agrees with the original and the largest relative difference over all objectives
-and diagnostics is below 0.1\%, \emph{conditionally verified} below 10\%, and \emph{rejected}
-otherwise. Both attempts are linked through their manifests, and a verification is withdrawn if
-the recorded input hashes of either attempt are missing or do not match its archived inputs.
 
 Robustness is evaluated with 50 perturbed simulations per representative, drawn with a fixed seed number.
 Magnet settings are perturbed by Gaussian relative errors with standard deviation 0.1\%, and the
@@ -369,15 +360,15 @@ $(0.60, 0.20, 0.20)$ and vertical $(0.20, 0.60, 0.20)$---and one campaign of eac
 variant. The campaigns use fixed seed numbers; scalarization weight cases have independently
 generated initial designs, whereas the two MOBO runs share an initial design.
 The five weighted-sum runs together use five times the budget of a qLogNEHVI run, so the
-survey is descriptive and is not used to compare algorithms. Its constraint-aware run was audited
+survey is descriptive and is not used to compare algorithms. Its constraint-aware run was assessed under lattice jitter
 with the same protocol.
 
 % -----------------------------------------------------------------------------------------
 % Campaign outputs (copied here after scripts/production/07_paper_outputs.sh):
-%   results_table.tex, phase1_cases_table.tex, verification_table.tex, figures/*.png
+%   results_table.tex, phase1_cases_table.tex, figures/*.png
 %       scripts/reproduce_paper.sh with the Step 5 directories (printed by Step 7)
 %   figures/benchmark_feasibility_comparison.pdf,
-%   audit_verification_table.tex, robustness_table.tex
+%   robustness_table.tex
 %       copied from results/paper_production/07_paper_outputs/{figures,tables}
 % -----------------------------------------------------------------------------------------
 %==========================================================================================
@@ -475,39 +466,16 @@ The scalarized set pools five weighting cases (880 simulations), whereas each MO
 \label{fig:pareto}
 \end{figure}
 
-\subsection{Independent verification}
-\label{sec:verification_results}
-Table~\ref{tab:audit_verification} lists the reruns of the six representatives of the primary
-audit run, and table~\ref{tab:pareto_verification} those of the survey's constraint-aware run.
-All six representatives in each audit were verified; none was conditionally verified or rejected.
-The largest recorded relative difference was zero for both sets at the precision of the ASTRA
-output. All 12 reruns were valid and feasible. Independent provenance checks verified the
-original and rerun identities, input snapshots and executable checksums; this establishes
-computational reproducibility of the simulated model, without comparison to accelerator measurements.
-
-\IfFileExists{audit_verification_table.tex}{\input{audit_verification_table}}{\pendingtable{audit_verification_table}{Independent
-reruns of the primary audit run.}{tab:audit_verification}}
-\IfFileExists{verification_table.tex}{\input{verification_table}}{\pendingtable{verification_table}{Independent
-reruns of the survey run.}{tab:pareto_verification}}
-
-\begin{figure}[htbp]
-\centering
-\datafigure{figures/verification_rerun_comparison.png}{0.75\linewidth}
-\caption{Stored and independently re-simulated objective values of the representative points of
-the survey's constraint-aware run.}
-\label{fig:verification}
-\end{figure}
-
 \subsection{Robustness to lattice jitter}
 \label{sec:robustness_results}
 Table~\ref{tab:robustness_summary} reports the lattice-jitter statistics of the six representatives
-of the primary audit run. Each of its six distinct representatives retained feasibility in all
+of the selected primary run. Each of its six distinct representatives retained feasibility in all
 50 sampled perturbations; no representative was classified as fragile. The mean objective
 ratio $D$ ranged from 0.988 to 1.064, and the robustness score ranged from 0.959 to 1.019.
 The smallest normalized constraint margin was 0.01595, associated with the lower energy limit;
 other representatives were limited by bunch length or the upper energy limit. All 300 survey
-perturbations were also valid and feasible. Each audit used 300 distinct perturbed parameter
-vectors. Finite samples with no infeasible outcome do not establish zero population failure
+perturbations were also valid and feasible. Each robustness assessment used 300 distinct perturbed
+parameter vectors. Finite samples with no infeasible outcome do not establish zero population failure
 probability, and these results do not cover charge or laser-distribution fluctuations.
 
 \IfFileExists{robustness_table.tex}{\input{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
@@ -520,9 +488,8 @@ Constraint-aware acquisition produced a larger feasible fraction and a larger fe
 set in the descriptive summaries over ten runs, while completing campaigns more slowly than the
 unconstrained and weighted-sum methods. All methods identified feasible nondominated settings,
 with the objective projections exposing the trade-offs between transverse emittance and energy spread.
-The independent reruns
-support reproducibility, and the sampled lattice-jitter tests identify several feasible operating
-points within the simulated tolerance model; neither establishes performance on the real machine.
+The sampled lattice-jitter tests identify several operating points that remain feasible within
+the simulated tolerance model; this does not establish performance on the real machine.
 
 The originally designated fixed-reference hypervolume endpoint was uninformative: it was zero
 for all campaigns because the reporting reference $(1.5~\umrad,\ 1.5~\umrad,\ 1.5~\mathrm{MeV})$
@@ -538,8 +505,7 @@ whose numerical resolution limits the accuracy of absolute emittance values, alt
 algorithms are evaluated with the same model. Ten runs give a first estimate of run-to-run
 variability rather than a high-powered test. The constraint thresholds were fixed in advance;
 other choices may change the set of feasible solutions. Finally, the deterministic
-noise model assumes that ASTRA returns identical results for identical inputs, which the
-verification reruns test directly.
+noise model assumes that ASTRA returns identical results for identical inputs.
 
 %==========================================================================================
 \section{Conclusions}
@@ -551,9 +517,8 @@ valid, and each method identified feasible nondominated solutions. The pooled fe
 contained 49, 27 and 17 observations for the constraint-aware, unconstrained and weighted-sum
 methods, respectively; these are empirical trade-offs, rather than certified globally optimal
 fronts. Constraint-aware acquisition had a median
-feasible fraction of 40.6\%, compared with 15.0\% and 12.5\% for the two baselines. All audited
-representatives reproduced at stored output precision and all sampled lattice perturbations were
-feasible, with source jitter explicitly excluded. The recorded data and analysis scripts support
+feasible fraction of 40.6\%, compared with 15.0\% and 12.5\% for the two baselines. All sampled
+lattice perturbations were feasible, with source jitter explicitly excluded. The recorded data and analysis scripts support
 regeneration of these results; public archive identifiers remain to be assigned.
 Future work will extend the robustness analysis to source fluctuations with
 a validated distribution generator, distribute the simulations across compute nodes, and test the

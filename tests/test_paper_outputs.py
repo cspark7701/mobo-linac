@@ -490,7 +490,6 @@ def test_manuscript_references_generated_figures(project_root):
         "primary_pareto_points.pdf",
         "survey_pareto_points.pdf",
         "injector_linac_layout.pdf",
-        "verification_rerun_comparison.png",
         "feasible_fraction.png",
     ]
     for fig_name in required_fig_refs:
@@ -508,8 +507,9 @@ def test_manuscript_inputs_generated_tables(project_root):
     assert main_tex.exists(), "docs/paper/main.tex not found."
     content = main_tex.read_text()
     required_inputs = [
-        r"\input{verification_table}",
+        r"\input{primary_results_table}",
         r"\input{results_table}",
+        r"\input{robustness_table}",
     ]
     for inp in required_inputs:
         assert inp in content, (

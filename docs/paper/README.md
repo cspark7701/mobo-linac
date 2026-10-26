@@ -87,3 +87,10 @@ only. Run it after the generic reproduction steps above.
 `generate_primary_paper_table.py` retains timing and seed data in its JSON evidence
 but omits explicit timing from the manuscript table. The manuscript describes only
 the observed computational ordering.
+
+## Internal nominal-verification artifacts
+
+The nominal rerun tables and stored-versus-rerun figure remain available as internal
+validation evidence and reproduction outputs. They are excluded from the manuscript,
+along with the Independent verification subsection. The paper retains the lattice-jitter
+robustness analysis and its representative-selection and perturbation methods.
