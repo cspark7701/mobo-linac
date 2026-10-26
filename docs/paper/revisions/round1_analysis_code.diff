@@ -1,0 +1,1359 @@
+diff --git a/scripts/analyze_revision_acceptance.py b/scripts/analyze_revision_acceptance.py
+new file mode 100644
+index 0000000..4440fcd
+--- /dev/null
++++ b/scripts/analyze_revision_acceptance.py
+@@ -0,0 +1,109 @@
++#!/usr/bin/env python3
++"""Reclassify immutable primary observations under documented acceptance profiles."""
++from __future__ import annotations
++import argparse
++import hashlib
++import json
++from pathlib import Path
++import numpy as np
++import pandas as pd
++
++METHODS = ('constrained_qlognehvi', 'unconstrained_qlognehvi', 'scalarized_bo')
++
++
++def profile_masks(df):
++    """Published subsets deliberately omit unspecified/ambiguous diagnostics."""
++    valid = df.simulation_valid.eq(True)
++    x, y = df.sigma_x_m, df.sigma_y_m
++    xp, yp = df.sigma_xp_rad, df.sigma_yp_rad
++    z, energy, transmission = df.sigma_z_m, df.mean_kinetic_energy_eV, df.transmission_fraction
++    spread = df.sigma_energy_eV
++    cols = ['sigma_x_m','sigma_y_m','sigma_xp_rad','sigma_yp_rad','sigma_z_m',
++            'mean_kinetic_energy_eV','transmission_fraction','sigma_energy_eV']
++    finite = np.isfinite(df[cols].to_numpy()).all(axis=1)
++    base = valid & finite
++    tdr = (base & (x < .3e-3) & (y < .3e-3) & (xp < .2663e-3) & (yp < .2663e-3)
++           & (z < 1e-3) & (energy > 200e6) & (transmission > .9999))
++    return {
++        'kls_tdr_optimization': tdr,
++        'kls_tdr_optimization_plus_spread': tdr & (spread / energy <= .005),
++        'production': base & (x <= 1e-3) & (y <= 1e-3) & (xp <= 1e-3) & (yp <= 1e-3)
++                      & (z <= 1e-3) & (energy >= 195e6) & (energy <= 205e6) & (transmission >= .9),
++        # Strict inequalities follow the NAPAC text; energy band interpreted inclusively.
++        'napac2025': base & (x < .3e-3) & (y < .3e-3) & (xp < .3e-3) & (yp < .3e-3)
++                      & (z < 1e-3) & (energy >= 195e6) & (energy <= 205e6) & (transmission > .9999),
++        # Necessary, not sufficient: omit geometric emittance and ambiguous pulse duration.
++        'jinst2024_necessary_subset': base & (x < .2e-3) & (y < .2e-3)
++                      & (energy >= 200e6) & (spread / energy <= .002) & (transmission > .9999),
++        # Table 2's scalar transverse size interpreted as requiring both planes.
++        # Geometric emittance intentionally omitted; normalized emittance is not substituted.
++        'jkps2025_necessary_subset': base & (x <= .2e-3) & (y <= .2e-3)
++                      & (z <= .9e-3) & (energy >= 200e6) & (spread <= .5e6),
++    }
++
++
++def analyze(root, out):
++    out.mkdir(parents=True, exist_ok=True)
++    records, manifest, configs, tdr_candidates = [], [], [], []
++    for method in METHODS:
++        paths = sorted(root.glob(f'{method}_seed_*/evaluations.csv'))
++        if len(paths) != 10:
++            raise ValueError(f'Expected ten campaigns for {method}')
++        for path in paths:
++            df = pd.read_csv(path)
++            if len(df) != 160 or not df.evaluation_id.is_unique:
++                raise ValueError(f'Unexpected evaluation ledger: {path}')
++            if not (path.parent/'run_complete.json').exists():
++                raise ValueError(f'Missing completion marker: {path.parent}')
++            marker=json.loads((path.parent/'run_complete.json').read_text())
++            for name in ('evaluations.csv','config.json'):
++                if hashlib.sha256((path.parent/name).read_bytes()).hexdigest() != marker['artifacts'][name]:
++                    raise ValueError(f'Completion checksum mismatch: {path.parent/name}')
++            masks = profile_masks(df)
++            cols=['run_id','evaluation_id','norm_emit_x_m_rad','norm_emit_y_m_rad','sigma_energy_eV',
++                  'sigma_x_m','sigma_y_m','sigma_xp_rad','sigma_yp_rad','sigma_z_m',
++                  'mean_kinetic_energy_eV','transmission_fraction']
++            for candidate in df.loc[masks['kls_tdr_optimization'],cols].to_dict('records'):
++                candidate['relative_rms_energy_spread']=candidate['sigma_energy_eV']/candidate['mean_kinetic_energy_eV']
++                candidate['relative_spread_specification_pass']=candidate['relative_rms_energy_spread'] <= .005
++                tdr_candidates.append(candidate)
++            np.testing.assert_array_equal(masks['production'], df.physically_feasible)
++            record = {'method':method,'run':path.parent.name,'evaluations':len(df),
++                      'valid':int(df.simulation_valid.sum()),
++                      **{name:int(mask.sum()) for name,mask in masks.items()},
++                      'size_x_below_0p2mm':int((df.sigma_x_m < .2e-3).sum()),
++                      'size_y_below_0p2mm':int((df.sigma_y_m < .2e-3).sum())}
++            records.append(record)
++            cfg = json.loads((path.parent/'config.json').read_text())
++            configs.append(cfg['constraints'])
++            for filename in ['evaluations.csv','config.json','run_complete.json']:
++                source=path.parent/filename
++                manifest.append({'path':str(source),'sha256':hashlib.sha256(source.read_bytes()).hexdigest()})
++    assert all(c == configs[0] for c in configs)
++    pd.DataFrame(tdr_candidates,columns=cols+['relative_rms_energy_spread','relative_spread_specification_pass']).to_csv(out/'c01_tdr_candidates.csv',index=False)
++    pd.DataFrame(records).to_csv(out/'c01_reclassification_by_run.csv',index=False)
++    totals = pd.DataFrame(records).groupby('method').sum(numeric_only=True).reset_index()
++    totals.to_csv(out/'c01_reclassification_totals.csv',index=False)
++    (out/'c01_metadata.json').write_text(json.dumps({'classification':'post-hoc; original labels preserved',
++        'profiles': {'production':'Archived config, all eight inequalities',
++            'kls_tdr_optimization':'Korea-4GSR TDR 4GSR-I-DE-TDR-001 (October 2025), Table 2.1.4.6, printed p.2-104: all seven strict inequalities; no upper energy cutoff',
++            'kls_tdr_optimization_plus_spread':'TDR Table 2.1.4.6 plus relative RMS energy spread <=0.5% from Table 2.1.4.4; not full specification verification',
++            'napac2025':'WECN03 Constraints and Feasibility; strict size/divergence/length/transmission limits',
++            'jinst2024_necessary_subset':'P01023 Sec4.1/Table4, omit ambiguous pulse duration and geometric emittance',
++            'jkps2025_necessary_subset':'Table2, omit geometric emittance; both transverse sizes required'},
++        'published_profile_caveat':'Subset success is not full-profile feasibility; zero successes exclude full-profile success under the stated interpretations. TDR optimization success is not full machine acceptance: geometric emittance, pulse FWHM, pulse-to-pulse stability and downstream matching are not checked.',
++        'tdr_source': {'report':'4GSR-I-DE-TDR-001','edition':'October 2025',
++            'landing_page':'https://kls.kbsi.re.kr/eng/sub0305/view/id/63794',
++            'url':'https://kls.kbsi.re.kr/_files/board/20260420/f0935668f91c7c3292fd1e843c1a9a25.pdf',
++            'sha256':'47b4218ace4bc8c1a5f166fb5523c7dd63e4962b5882217c1fac90a28126f40d',
++            'table_pages':{'2.1.4.4':{'printed':'2-98','pdf_one_based':115},'2.1.4.6':{'printed':'2-104','pdf_one_based':121},'2.1.4.9':{'printed':'2-108','pdf_one_based':125}}},
++        'production_constraints':configs[0], 'inputs':manifest},indent=2)+'\n')
++    print(totals.to_string(index=False))
++
++
++if __name__ == '__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--root',type=Path,default=Path('results/paper_production/04_primary/benchmark/per_seed'))
++    parser.add_argument('--output',type=Path,default=Path('docs/paper/revisions/evidence'))
++    args=parser.parse_args()
++    analyze(args.root,args.output)
+diff --git a/scripts/analyze_revision_cost.py b/scripts/analyze_revision_cost.py
+new file mode 100644
+index 0000000..3502d34
+--- /dev/null
++++ b/scripts/analyze_revision_cost.py
+@@ -0,0 +1,72 @@
++"""C13: recorded execution identities and overlap-aware relative campaign cost."""
++from pathlib import Path
++from datetime import datetime
++import hashlib
++import json
++import numpy as np
++import pandas as pd
++ROOT=Path(__file__).resolve().parents[1]
++BASE=ROOT/'results/paper_production/04_primary/benchmark'
++OUT=ROOT/'docs/paper/revisions/evidence'
++
++def sha(p):return hashlib.sha256(p.read_bytes()).hexdigest()
++
++def union_duration(intervals):
++    intervals=sorted(intervals)
++    if not intervals:return 0.
++    left,right=intervals[0];total=0.
++    if right<left:raise ValueError('Negative duration')
++    for start,end in intervals[1:]:
++        if end<start:raise ValueError('Negative duration')
++        if start>right:total+=right-left;left,right=start,end
++        else:right=max(right,end)
++    return total+right-left
++
++def main():
++    manifest=pd.read_csv(BASE/'campaign_manifest.csv')
++    scheduler=json.loads((BASE/'scheduler.json').read_text())
++    stage=BASE.parent/'step_record_20261019_154752.json';startup=json.loads(stage.read_text())
++    rows=[];input_sets=set();executables=set();sources=[]
++    for _,entry in manifest.iterrows():
++        run=ROOT/entry.run_dir;complete=json.loads((run/'run_complete.json').read_text())
++        for name in ['evaluations.csv','config.json','metrics_history.csv','proposal_history.json']:
++            assert sha(run/name)==complete['artifacts'][name]
++            sources.append({'path':str((run/name).relative_to(ROOT)),'sha256':sha(run/name)})
++        df=pd.read_csv(run/'evaluations.csv');cfg=json.loads((run/'config.json').read_text())
++        intervals=[];mh=[]
++        for _,r in df.iterrows():
++            p=Path(r.manifest_path);m=json.loads(p.read_text());mh.append(str(p.relative_to(ROOT))+':'+sha(p))
++            t=m['timestamps'];start=datetime.fromisoformat(t['start_time']).timestamp();end=datetime.fromisoformat(t['end_time']).timestamp()
++            assert abs((end-start)-r.runtime_s)<.01
++            intervals.append((start,end));executables.add(m['executable']['sha256'])
++            input_sets.add(tuple(sorted((k,v) for k,v in m['input_hashes'].items() if k!='astra.in')))
++        elapsed=float(complete['elapsed_wall_time_s']);union=union_duration(intervals)
++        assert 0<union<=elapsed
++        history=json.loads((run/'proposal_history.json').read_text())
++        devices=sorted({h['metadata']['device'] for h in history if h['batch_idx']})
++        assert devices==['cuda:0']
++        rows.append({'method':entry.algorithm,'seed':entry.seed,'run_id':run.name,'elapsed_s':elapsed,
++            'evaluation_interval_union_s':union,'non_evaluation_interval_s':elapsed-union,
++            'non_evaluation_fraction':1-union/elapsed,'worker_runtime_sum_s':df.runtime_s.sum(),
++            'workers':entry.workers_per_campaign,'concurrent_campaigns':entry.max_concurrent_campaigns,
++            'budget':entry.effective_budget,'initial_points':entry.n_sobol_init,'batch_size':entry.batch_size,
++            'device':devices[0],'config_sha256':sha(run/'config.json'),
++            'evaluation_manifest_set_sha256':hashlib.sha256('\n'.join(sorted(mh)).encode()).hexdigest()})
++    frame=pd.DataFrame(rows);frame.to_csv(OUT/'c13_run_costs.csv',index=False)
++    costs=frame.pivot(index='seed',columns='method',values='elapsed_s')
++    ratios=[]
++    for method in costs:
++        v=costs[method]/costs['scalarized_bo']
++        ratios.append({'method':method,'paired_ratio_to_scalarized_median':v.median(),'paired_ratio_min':v.min(),'paired_ratio_max':v.max(),
++            'median_non_evaluation_fraction':frame.loc[frame.method==method,'non_evaluation_fraction'].median()})
++    pd.DataFrame(ratios).to_csv(OUT/'c13_relative_costs.csv',index=False)
++    assert len(input_sets)==len(executables)==1
++    (OUT/'c13_metadata.json').write_text(json.dumps({'startup':startup,'startup_sha256':sha(stage),
++        'scheduler':{k:v for k,v in scheduler.items() if k!='completions'},'scheduler_sha256':sha(BASE/'scheduler.json'),
++        'static_input_hashes':dict(next(iter(input_sets))),'executable_sha256':next(iter(executables)),
++        'precision':'float64 verified in C05 saved channel data','actual_budgets_source':'campaign_manifest.csv; config stores defaults, proposal history stores applied optimization budgets',
++        'timing_definition':'Campaign active-session elapsed; union of archived evaluation intervals counts overlap once. Complement includes fitting, acquisition, export, scheduling and setup; no separately measured fitting/acquisition split is claimed.',
++        'inputs':sources},indent=2)+'\n')
++    print(pd.DataFrame(ratios).to_string(index=False))
++
++if __name__=='__main__':main()
+diff --git a/scripts/analyze_revision_fronts.py b/scripts/analyze_revision_fronts.py
+new file mode 100644
+index 0000000..2cffdb2
+--- /dev/null
++++ b/scripts/analyze_revision_fronts.py
+@@ -0,0 +1,176 @@
++#!/usr/bin/env python3
++"""Post-hoc C03 Pareto analysis of immutable stage-04 primary campaigns."""
++from __future__ import annotations
++import argparse
++import hashlib
++import json
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++
++METHODS = ('constrained_qlognehvi', 'unconstrained_qlognehvi', 'scalarized_bo')
++LABELS = ('Constraint-aware MOBO', 'Unconstrained MOBO', 'Scalarized BO')
++OBJECTIVES = ('norm_emit_x_m_rad', 'norm_emit_y_m_rad', 'sigma_energy_eV')
++SCALES = np.array([1e-6, 1e-6, 1e6])
++VARIABLES = ('solenoid_field_T', 'quad_1_gradient_T_m', 'quad_2_gradient_T_m',
++             'gun_phase_deg', 'acc1_acc2_phase_deg', 'acc3_acc4_phase_deg')
++
++
++def nondominated(points):
++    points = np.unique(np.asarray(points, dtype=float).reshape(-1, 3), axis=0)
++    if not len(points):
++        return points
++    return points[~np.any(np.all(points[:, None] <= points[None, :], axis=2)
++                         & np.any(points[:, None] < points[None, :], axis=2), axis=0)]
++
++
++def additive_epsilon(a, reference):
++    if not len(reference):
++        raise ValueError('An empirical reference must not be empty')
++    return float(np.max(np.min(np.max(a[:, None] - reference[None, :], axis=2), axis=0))) if len(a) else np.inf
++
++
++def igd_plus(a, reference):
++    if not len(reference):
++        raise ValueError('An empirical reference must not be empty')
++    return float(np.mean(np.min(np.linalg.norm(np.maximum(a[:, None] - reference[None, :], 0), axis=2), axis=0))) if len(a) else np.inf
++
++
++def coverage(a, b):
++    if not len(b):
++        return np.nan
++    return float(np.mean(np.any(np.all(a[:, None] <= b[None, :], axis=2), axis=0))) if len(a) else 0.
++
++
++def hypervolume(a, reference):
++    """Exact 3D union volume by slicing, in minimization coordinates."""
++    a = nondominated(a)
++    a = a[np.all(a < reference, axis=1)]
++    if not len(a):
++        return 0.
++    xs = np.unique(np.r_[a[:, 0], reference[0]])
++    volume = 0.
++    for left, right in zip(xs[:-1], xs[1:]):
++        yz = a[a[:, 0] <= left, 1:]
++        ys = np.unique(np.r_[yz[:, 0], reference[1]])
++        area = sum((hi-lo) * (reference[2]-np.min(yz[yz[:, 0] <= lo, 1]))
++                   for lo, hi in zip(ys[:-1], ys[1:]))
++        volume += (right-left)*area
++    return float(volume)
++
++
++def load_runs(root):
++    runs, manifest = {}, []
++    for method in METHODS:
++        for path in sorted(root.glob(f'{method}_seed_*/evaluations.csv')):
++            group = path.parent.name.rsplit('_seed_', 1)[1]
++            df = pd.read_csv(path).sort_values('evaluation_id', kind='stable').reset_index(drop=True)
++            assert len(df) == 160 and df.evaluation_id.is_unique
++            assert df.evaluation_id.tolist() == [f'eval_{i:06}' for i in range(1, 161)]
++            marker = json.loads((path.parent / 'run_complete.json').read_text())
++            assert hashlib.sha256(path.read_bytes()).hexdigest() == marker['artifacts']['evaluations.csv']
++            vals = df[list(OBJECTIVES)].to_numpy(float)/SCALES
++            feasible = df.simulation_valid.to_numpy(bool) & df.physically_feasible.to_numpy(bool) & np.isfinite(vals).all(axis=1)
++            runs[(method, group)] = (df, vals, feasible)
++            manifest.append({'run':path.parent.name, 'path':str(path), 'sha256':hashlib.sha256(path.read_bytes()).hexdigest(), 'valid':int(df.simulation_valid.sum()),'feasible':int(feasible.sum())})
++    groups = sorted({group for _, group in runs})
++    assert len(groups) == 10 and len(runs) == 30
++    for group in groups:
++        initial = runs[(METHODS[0], group)][0].loc[:15, list(VARIABLES)].to_numpy()
++        initial_y = runs[(METHODS[0], group)][1][:16]
++        for method in METHODS[1:]:
++            np.testing.assert_array_equal(initial, runs[(method, group)][0].loc[:15, list(VARIABLES)].to_numpy())
++            np.testing.assert_array_equal(initial_y, runs[(method, group)][1][:16])
++            np.testing.assert_array_equal(runs[(METHODS[0], group)][2][:16],runs[(method, group)][2][:16])
++    return runs, groups, manifest
++
++
++def analyze(root, out, figures):
++    out.mkdir(parents=True, exist_ok=True)
++    figures.mkdir(parents=True, exist_ok=True)
++    runs, groups, manifest = load_runs(root)
++    reference = nondominated(np.vstack([v[f] for _,v,f in runs.values()]))
++    pd.DataFrame(reference,columns=['emit_x_um_rad','emit_y_um_rad','sigma_energy_MeV']).to_csv(out/'c03_empirical_reference.csv', index=False)
++    nadir, span = reference.max(0), np.ptp(reference, axis=0)
++    hvrefs = {f'hv_{int(offset*100)}':nadir + offset*span for offset in (.1,.25,.5)}
++    metadata={'analysis':'post hoc/exploratory', 'objective_names':OBJECTIVES,'scales_SI':SCALES.tolist(),'reference_size':len(reference),'reference_nadir':nadir.tolist(),'reference_span':span.tolist(),'HV_references':{k:v.tolist() for k,v in hvrefs.items()},'initial_evaluations':16,'batch_size':8,'total_budget':160,'input_manifest':manifest,'protocol':'c03_protocol.md'}
++    (out/'c03_metadata.json').write_text(json.dumps(metadata,indent=2)+'\n')
++    rows, cover_rows, attain_rows = [], [], []
++    terminal = {}
++    for (method, group), (df, vals, feasible) in runs.items():
++        heldout = nondominated(np.vstack([v[f] for (m,g),(_,v,f) in runs.items() if g != group]))
++        for n in range(16,161,8):
++            a=nondominated(vals[:n][feasible[:n]])
++            row={'method':method,'group':group,'evaluations':n,'feasible_count':int(feasible[:n].sum()),'feasible_fraction':float(feasible[:n].mean()),'front_size_unique':len(a),'epsilon':additive_epsilon(a,reference),'igd_plus':igd_plus(a,reference)}
++            for key,ref in hvrefs.items():
++                row[key]=hypervolume(a,ref)
++                row[f'{key}_excluded']=int(np.sum(~np.all(a<ref,axis=1)))
++            for delta in (.05,.10,.25,.50):
++                attained=np.any(np.all(a[:,None] <= (reference+delta)[None],axis=2),axis=0) if len(a) else np.zeros(len(reference),bool)
++                row[f'attainment_{delta:.2f}']=float(attained.mean())
++                if n == 160:
++                    attain_rows.extend({'method':method,'group':group,'delta':delta,'target_id':j,'attained':int(value)} for j,value in enumerate(attained))
++            if n == 160:
++                row['igd_plus_leave_group_out']=igd_plus(a,heldout)
++                terminal[(method,group)] = a
++            rows.append(row)
++    for group in groups:
++        for ma in METHODS:
++            for mb in METHODS:
++                if ma != mb:
++                    cover_rows.append({'group':group,'dominating_method':ma,'target_method':mb,'directional_coverage':coverage(terminal[(ma,group)],terminal[(mb,group)])})
++    traces=pd.DataFrame(rows)
++    traces.to_csv(out/'c03_run_histories.csv',index=False)
++    pd.DataFrame(cover_rows).to_csv(out/'c03_directional_coverage.csv',index=False)
++    pd.DataFrame(attain_rows).to_csv(out/'c03_attainment.csv',index=False)
++    end=traces[traces.evaluations==160]
++    summaries=[]
++    for method in METHODS:
++        for metric in ['feasible_fraction','front_size_unique','epsilon','igd_plus','igd_plus_leave_group_out',*hvrefs,'attainment_0.10']:
++            x=end.loc[end.method==method,metric].to_numpy(float)
++            summaries.append({'method':method,'metric':metric,'median':np.median(x),'q25':np.quantile(x,.25),'q75':np.quantile(x,.75),'min':np.min(x),'max':np.max(x)})
++    pd.DataFrame(summaries).to_csv(out/'c03_terminal_summary.csv',index=False)
++    # No connected objective-space fronts: these lines show metric histories only.
++    import matplotlib
++    matplotlib.use('Agg')
++    import matplotlib.pyplot as plt
++    colors=['#0072B2','#D55E00','#009E73']
++    fig,axes=plt.subplots(1,3,figsize=(12,3.4),layout='constrained')
++    for ax,metric,label in zip(axes,['epsilon','igd_plus','hv_25'],['Additive epsilon (lower is better)','IGD+ (lower is better)','Exploratory HV, +25% span']):
++        for method,name,color in zip(METHODS,LABELS,colors):
++            y=traces[traces.method==method].pivot(index='evaluations',columns='group',values=metric)
++            # Keep empty fronts as infinite when aggregating; gaps represent nonfinite summaries.
++            median=np.median(y.to_numpy(),axis=1)
++            lower=np.quantile(y.to_numpy(),.25,axis=1,method='inverted_cdf')
++            upper=np.quantile(y.to_numpy(),.75,axis=1,method='inverted_cdf')
++            median=np.where(np.isfinite(median),median,np.nan)
++            lower=np.where(np.isfinite(lower),lower,np.nan)
++            upper=np.where(np.isfinite(upper),upper,np.nan)
++            ax.plot(y.index,median,label=name,color=color)
++            ax.fill_between(y.index,lower,upper,color=color,alpha=.15)
++        ax.set(xlabel='Evaluations',ylabel=label)
++        ax.grid(alpha=.25)
++    axes[0].legend(fontsize=7)
++    fig.savefig(figures/'revision_front_quality.pdf')
++    plt.close(fig)
++    # Target-based empirical attainment matrix; no interpolated front curves.
++    fig,axes=plt.subplots(1,3,figsize=(12,3.2),layout='constrained')
++    att=pd.DataFrame(attain_rows)
++    for ax,method,name in zip(axes,METHODS,LABELS):
++        heat=att[att.method==method].groupby(['delta','target_id']).attained.mean().unstack()
++        im=ax.imshow(heat,vmin=0,vmax=1,aspect='auto',origin='lower',cmap='viridis')
++        ax.set(title=name,xlabel='Empirical-front target index',yticks=range(4),yticklabels=[.05,.10,.25,.50],ylabel='Target relaxation (scaled units)')
++    fig.colorbar(im,ax=axes,label='Empirical attainment probability')
++    fig.savefig(figures/'revision_attainment.pdf')
++    plt.close(fig)
++    print(pd.DataFrame(summaries).to_string(index=False))
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--runs',type=Path,default=Path('results/paper_production/04_primary/benchmark/per_seed'))
++    parser.add_argument('--output',type=Path,default=Path('docs/paper/revisions/evidence'))
++    parser.add_argument('--figures',type=Path,default=Path('docs/paper/figures'))
++    args=parser.parse_args()
++    analyze(args.runs,args.output,args.figures)
+diff --git a/scripts/analyze_revision_pairs.py b/scripts/analyze_revision_pairs.py
+new file mode 100644
+index 0000000..8c22a32
+--- /dev/null
++++ b/scripts/analyze_revision_pairs.py
+@@ -0,0 +1,81 @@
++#!/usr/bin/env python3
++"""C04 paired inference, using C03 derived data and immutable stage-04 observations."""
++from __future__ import annotations
++import argparse
++from itertools import combinations, product
++import json
++import hashlib
++from pathlib import Path
++import numpy as np
++import pandas as pd
++from scipy.stats import rankdata
++from analyze_revision_fronts import METHODS,load_runs
++
++ENDPOINTS=('feasible_fraction','epsilon','igd_plus','hv_25')
++
++
++def exact_signed_rank(differences):
++    d=np.asarray(differences,float)
++    if not np.isfinite(d).all():
++        raise ValueError('Paired inference requires finite differences')
++    d=d[d != 0]
++    if not len(d):
++        return 1.
++    ranks=rankdata(np.abs(d),method='average')
++    observed=abs(np.dot(np.sign(d),ranks))
++    possible=np.array(list(product((-1,1),repeat=len(d))))@ranks
++    return float(np.mean(abs(possible)>=observed-1e-12))
++
++
++def holm(pvalues):
++    p=np.asarray(pvalues,float)
++    order=np.argsort(p,kind='stable')
++    adjusted=np.minimum(1.,np.maximum.accumulate((len(p)-np.arange(len(p)))*p[order]))
++    result=np.empty_like(p)
++    result[order]=adjusted
++    return result
++
++
++def analyze(runs_path,out):
++    histories=pd.read_csv(out/'c03_run_histories.csv')
++    terminal=histories[histories.evaluations==160]
++    runs,groups,manifest=load_runs(runs_path)
++    source_metadata=json.loads((out/'c03_metadata.json').read_text())
++    old_hashes={x['run']:x['sha256'] for x in source_metadata['input_manifest']}
++    if old_hashes != {x['run']:x['sha256'] for x in manifest}:
++        raise ValueError('C03 histories do not match the current archived evaluation inputs')
++    rng=np.random.default_rng(20261026)
++    indices=rng.integers(0,len(groups),size=(10000,len(groups)))
++    results=[]
++    differences=[]
++    for metric in ENDPOINTS:
++        wide=terminal.pivot(index='group',columns='method',values=metric).sort_index()
++        assert len(wide)==10 and not wide.isna().any().any()
++        for first,second in combinations(METHODS,2):
++            d=(wide[first]-wide[second]).to_numpy()
++            boot=d[indices].mean(1)
++            lo,hi=np.quantile(boot,[.025,.975])
++            results.append({'endpoint':metric,'first_method':first,'second_method':second,'mean_difference':d.mean(),'ci_lower':lo,'ci_upper':hi,'p_exact_signed_rank':exact_signed_rank(d),'n_positive':int(sum(d>0)),'n_negative':int(sum(d<0)),'n_zero':int(sum(d==0))})
++            differences.extend({'endpoint':metric,'first_method':first,'second_method':second,'group':g,'difference':value} for g,value in zip(wide.index,d))
++    result=pd.DataFrame(results)
++    result['p_holm_12']=holm(result.p_exact_signed_rank)
++    result.to_csv(out/'c04_paired_effects.csv',index=False)
++    pd.DataFrame(differences).to_csv(out/'c04_paired_differences.csv',index=False)
++    initial=[]
++    for (method,group),(df,vals,feasible) in runs.items():
++        first=np.flatnonzero(feasible)
++        initial.append({'method':method,'group':group,'initial_feasible_count':int(feasible[:16].sum()),'initial_has_feasible':bool(feasible[:16].any()),'first_feasible_evaluation':int(first[0]+1) if len(first) else None,'post_initial_feasible_count':int(feasible[16:].sum()),'post_initial_feasible_fraction':float(feasible[16:].mean())})
++    init=pd.DataFrame(initial)
++    init.to_csv(out/'c04_initialization.csv',index=False)
++    metadata={'input_sha256':{name:hashlib.sha256((out/name).read_bytes()).hexdigest() for name in ('c03_metadata.json','c03_run_histories.csv')},'protocol':'c04_protocol.md','bootstrap_resamples':10000,'analysis_rng':20261026,'groups':groups,'n_groups':len(groups),'endpoints':ENDPOINTS,'family_size':12,'test':'exact two-sided signed-rank with zero exclusion and tied midranks','multiplicity':'Holm','effect':'mean paired first minus second','initial_groups_feasible':int(init[init.method==METHODS[0]].initial_has_feasible.sum()),'post_initial_median_fractions':init.groupby('method').post_initial_feasible_fraction.median().to_dict()}
++    (out/'c04_metadata.json').write_text(json.dumps(metadata,indent=2)+'\n')
++    print(result.to_string(index=False))
++    print(json.dumps(metadata,indent=2))
++
++
++if __name__=='__main__':
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--runs',type=Path,default=Path('results/paper_production/04_primary/benchmark/per_seed'))
++    parser.add_argument('--output',type=Path,default=Path('docs/paper/revisions/evidence'))
++    args=parser.parse_args()
++    analyze(args.runs,args.output)
+diff --git a/scripts/analyze_revision_predictions.py b/scripts/analyze_revision_predictions.py
+new file mode 100644
+index 0000000..8a3fee8
+--- /dev/null
++++ b/scripts/analyze_revision_predictions.py
+@@ -0,0 +1,98 @@
++"""C11: chronological next-batch validation of saved GP models without refitting."""
++from pathlib import Path
++from collections import Counter
++import hashlib
++import json
++import warnings
++import numpy as np
++import pandas as pd
++import torch
++from mobo_linac.models.artifacts import restore_model
++from analyze_revision_settings import OBJECTIVES, SIDES
++
++ROOT=Path(__file__).resolve().parents[1]
++OUT=ROOT/'docs/paper/revisions/evidence'
++DIAGNOSTICS=['sigma_x_m','sigma_y_m','sigma_xp_rad','sigma_yp_rad','sigma_z_m','mean_kinetic_energy_eV','transmission_fraction']
++
++def summarize(frame):
++    rows=[]
++    for (method,channel,subset),f in frame.groupby(['method','channel','subset']):
++        error=f.observed-f.predicted
++        rows.append({'method':method,'channel':channel,'subset':subset,'n':len(f),
++            'rmse':float(np.sqrt(np.mean(error**2))),'mae':float(np.mean(abs(error))),
++            'coverage95':float(np.mean(abs(error)<=1.959963984540054*f.predictive_std)),
++            'api_floor_coverage95':float(np.mean(abs(error)<=1.959963984540054*f.api_predictive_std)),
++            'api_floor_applied_n':int(f.api_variance_floor_applied.sum()),
++            'rms_standardized_error':float(np.sqrt(np.mean((error/f.predictive_std)**2))),
++            'mean_interval_half_width':float(np.mean(1.959963984540054*f.predictive_std))})
++    return pd.DataFrame(rows)
++
++def main():
++    torch.set_num_threads(1)
++    artifact_index=pd.read_csv(OUT/'c05_artifacts.csv')
++    rows=[];sources=[];warns=Counter();count=0
++    for run,paths in artifact_index.groupby(artifact_index.path.map(lambda p:Path(p).parents[1].name)):
++        base=ROOT/Path(paths.iloc[0].path).parents[1]
++        df=pd.read_csv(base/'evaluations.csv');cfg=json.loads((base/'config.json').read_text());marker=json.loads((base/'run_complete.json').read_text())
++        assert hashlib.sha256((base/'evaluations.csv').read_bytes()).hexdigest()==marker['artifacts']['evaluations.csv']
++        names=[v['name'] for v in cfg['design_variables']];method=run.split('_seed_')[0]
++        for _,entry in paths.iterrows():
++            path=ROOT/entry.path;assert hashlib.sha256(path.read_bytes()).hexdigest()==entry.sha256
++            sources.append({'path':entry.path,'sha256':entry.sha256})
++            a=torch.load(path,map_location='cpu',weights_only=True);n=len(a['training_ids'])
++            assert a['training_ids']==list(zip(df.run_id[:n],df.evaluation_id[:n]))
++            future=df.iloc[n:n+8];assert len(future)==8
++            assert n==16+8*(a['metadata']['proposal_iteration']-1)
++            X=torch.tensor(future[names].to_numpy(),dtype=torch.double)
++            groups=['model'] if a['kind']=='gp' else ['objectives']+(['constraints'] if a.get('constraints') else [])
++            for group in groups:
++                for i,channel in enumerate(a[group]['channels']):
++                    md=channel['metadata'];np.testing.assert_allclose(md['train_X'].numpy(),df[names].iloc[:n],rtol=1e-12)
++                    if group=='model':
++                        name='scalarized_cost';scales=np.array(a['metadata']['reporting_scales']);weights=np.array(a['metadata']['scalar_weights'])
++                        target=(df[OBJECTIVES].to_numpy()/scales*weights).sum(axis=1);sign=-1
++                    elif group=='objectives':name=OBJECTIVES[i];target=df[name].to_numpy();sign=-1
++                    else:name=DIAGNOSTICS[i];target=df[name].to_numpy();sign=1
++                    np.testing.assert_allclose(md['train_Y'].flatten().numpy(),sign*target[:n],rtol=1e-10,atol=1e-16)
++                    with warnings.catch_warnings(record=True) as caught:
++                        warnings.simplefilter('always')
++                        model=restore_model({'kind':'single','channels':[channel]},device='cpu')
++                        with torch.no_grad():
++                            posterior=model.posterior(X)
++                            mean=sign*posterior.mean.flatten().numpy()
++                            api_variance=posterior.variance.flatten().numpy()
++                            variance=posterior.distribution.covariance_matrix.diagonal(dim1=-2,dim2=-1).flatten().numpy()
++                            if (variance<0).any():raise ValueError('Negative covariance diagonal requires explicit numerical treatment')
++                        for w in caught:warns[str(w.category.__name__)+': '+str(w.message).split('\n')[0]]+=1
++                    # Fixed likelihood noise is regularization, included for an observation predictive interval.
++                    noise=channel['standardized_noise'].flatten().numpy()
++                    assert np.allclose(noise,noise[0])
++                    scale=channel['state']['outcome_transform.stdvs'].item()
++                    std=np.sqrt(variance+float(noise[0])*scale**2)
++                    if not np.isfinite(std).all() or (std<=0).any():raise ValueError('Invalid predictive uncertainty')
++                    for j,(_,obs) in enumerate(future.iterrows()):
++                        r={'method':method,'run_id':run,'batch':a['metadata']['proposal_iteration'],'training_n':n,
++                            'evaluation_id':obs.evaluation_id,'channel':name,'subset':'all',
++                            'observed':target[n+j],'predicted':mean[j],'predictive_std':std[j],
++                            'api_variance_floor_applied':bool(api_variance[j]>variance[j]*(1+1e-10)),
++                            'api_predictive_std':float(np.sqrt(api_variance[j]+float(noise[0])*scale**2))}
++                        rows.append(r)
++                        if group=='constraints':
++                            close=False
++                            for c,side,t in SIDES:
++                                if c==name:
++                                    width=.5e6 if c=='mean_kinetic_energy_eV' else .1*abs(t)
++                                    close |= abs(target[n+j]-t)<=width
++                            if close:rows.append({**r,'subset':'near_boundary'})
++                    del model
++            count+=1
++        print(f'{run}: checked {len(paths)} saved models',flush=True)
++    frame=pd.DataFrame(rows);frame.to_csv(OUT/'c11_next_batch_predictions.csv',index=False)
++    summary=summarize(frame);summary.to_csv(OUT/'c11_predictive_summary.csv',index=False)
++    (OUT/'c11_metadata.json').write_text(json.dumps({'saved_models':count,'precision':'float64','device':'cpu',
++        'interval':'Gaussian observation predictive interval from covariance diagonal, with saved effective fixed noise; no refitting. API variance-floor coverage is reported separately.',
++        'boundary_subset':'Observed diagnostic within 10% of absolute threshold, except energy within 0.5 MeV of either bound; selected post hoc.',
++        'warnings':dict(warns),'inputs':sources},indent=2)+'\n')
++    print(summary.to_string(index=False))
++
++if __name__=='__main__':main()
+diff --git a/scripts/analyze_revision_robustness.py b/scripts/analyze_revision_robustness.py
+new file mode 100644
+index 0000000..eb196dd
+--- /dev/null
++++ b/scripts/analyze_revision_robustness.py
+@@ -0,0 +1,107 @@
++"""Independently audit retained primary/survey robustness trials; never rerun ASTRA."""
++from pathlib import Path
++import hashlib
++import json
++import numpy as np
++import pandas as pd
++from scipy.stats import beta
++from analyze_revision_settings import SIDES, OBJECTIVES
++
++ROOT=Path(__file__).resolve().parents[1]
++OUT=ROOT/'docs/paper/revisions/evidence'
++AUDITS={'primary':ROOT/'results/paper_production/06_candidate_audit/robustness',
++        'survey':ROOT/'results/paper_production/05_operating_points/campaign/analysis/robustness'}
++LABELS={'min_emit_x':'Horizontal extreme','min_emit_y':'Vertical extreme','min_sigma_energy':'Spread extreme',
++        'knee_point':'Ideal-distance point','balanced':'Centroid-distance point','crowding_distance_max':'Crowding-distance point'}
++
++def binomial_bounds(k,n,alpha=.05):
++    if n<=0 or not 0<=k<=n:raise ValueError('Require 0 <= k <= n and n > 0')
++    return (float(beta.ppf(alpha/2,k,n-k+1)) if k else 0.,
++            float(beta.ppf(1-alpha/2,k+1,n-k)) if k<n else 1.,
++            float(beta.ppf(alpha,k,n-k+1)) if k else 0.)
++
++def summarize_trials(values,diagnostics,nominal,valid,feasible):
++    values=np.asarray(values,float);nominal=np.asarray(nominal,float)
++    # Existing evidence contains no invalid results: fail rather than silently omit any.
++    if not np.all(valid) or not np.isfinite(values).all():raise ValueError('Invalid trial requires explicit missing-data handling')
++    channels={c+':'+side: ((t-diagnostics[c] if side=='upper' else diagnostics[c]-t)/abs(t)) for c,side,t in SIDES}
++    margins=pd.DataFrame(channels)
++    np.testing.assert_array_equal((margins>=0).all(axis=1),feasible)
++    minima=margins.min();worst=minima.idxmin();mu=float(minima[worst]);d=float(np.mean(values.mean(axis=0)/nominal))
++    probability=float(np.mean(feasible));score=probability*max(.5,1+mu)/max(1,d)
++    return {'probability':probability,'D':d,'mu_min':mu,'worst_channel':worst,'score':score},minima
++
++def main():
++    summaries=[];objectives=[];physical=[];inputs=[];audit_details={}
++    def record(p):
++        inputs.append({'path':str(p.relative_to(ROOT)),'sha256':hashlib.sha256(p.read_bytes()).hexdigest()})
++    for audit,base in AUDITS.items():
++        paths=list((base/'robustness_runs').glob('*/robustness_requests.json'))
++        if len(paths)!=1:raise ValueError('Select authoritative attempt explicitly')
++        p=paths[0];record(p);request=json.loads(p.read_text());records=request['records']
++        saved_path=p.with_name('robustness_summary.json');record(saved_path)
++        saved=json.loads(saved_path.read_text())['summaries']
++        spec=request['perturbation_specification'];groups={}
++        for r in records:groups.setdefault(r['request']['metadata']['candidate_label'],[]).append(r)
++        assert len(groups)==6 and len(records)==300
++        assert len({tuple(rs[0]['request']['metadata']['nominal_parameters']) for rs in groups.values()})==6
++        assert len({tuple(r['result']['x_physical']) for r in records})==300
++        common_deltas=[]
++        for label,rs in groups.items():
++            previous=next(s for s in saved if s['candidate_label']==label)
++            values=np.array([r['result']['objectives_physical'] for r in rs])
++            diagnostics=pd.DataFrame([r['result']['diagnostics'] for r in rs])
++            nominal=np.array([previous['nominal_'+c] for c in OBJECTIVES])
++            valid=[r['result']['simulation_valid'] for r in rs];feasible=[r['result']['physically_feasible'] for r in rs]
++            metrics,minimum=summarize_trials(values,diagnostics,nominal,valid,feasible)
++            for ours,old in [('probability','probability_of_feasibility'),('D','mean_objective_degradation'),('mu_min','worst_constraint_margin'),('score','robust_score')]:
++                np.testing.assert_allclose(metrics[ours],previous[old],rtol=1e-12,atol=1e-14)
++            assert metrics['worst_channel']==previous['worst_constraint_channel']
++            lo,hi,one=binomial_bounds(sum(feasible),len(rs))
++            summaries.append({'audit':audit,'role':label,'run_id':previous['run_id'],'evaluation_id':previous['evaluation_id'],
++                'n':len(rs),'k':sum(feasible),**metrics,'cp95_lower':lo,'cp95_upper':hi,'one_sided95_failure_upper':1-one})
++            for i,c in enumerate(OBJECTIVES):
++                stats={'mean':values[:,i].mean(),'std':values[:,i].std(),'p5':np.percentile(values[:,i],5),'p95':np.percentile(values[:,i],95)}
++                for k,v in stats.items():np.testing.assert_allclose(v,previous[k+'_'+c],rtol=1e-12)
++                objectives.append({'audit':audit,'role':label,'objective':c,'nominal':nominal[i],**stats,'mean_ratio':stats['mean']/nominal[i]})
++            for c,side,t in SIDES:
++                raw=(t-diagnostics[c] if side=='upper' else diagnostics[c]-t).min()
++                physical.append({'audit':audit,'role':label,'channel':c,'side':side,'threshold':t,'minimum_physical_margin':raw,'threshold_normalized_margin':minimum[c+':'+side],
++                    'energy_half_band_normalized_margin':raw/5e6 if c=='mean_kinetic_energy_eV' else np.nan})
++            deltas=[]
++            for r in rs:
++                meta=r['request']['metadata'];result=r['result'];np.testing.assert_array_equal(r['request']['parameters'],result['x_physical'])
++                assert r['execution_kind']=='astra'
++                deltas.append([meta['channel_deltas'][ch['channel']] for ch in spec['lattice']])
++                manifest=Path(result['manifest_path']);record(manifest);m=json.loads(manifest.read_text())
++                for name in ['astra.Xemit.001','astra.Yemit.001','astra.Zemit.001']:
++                    op=Path(result['work_dir'])/name
++                    if hashlib.sha256(op.read_bytes()).hexdigest()!=m['output_hashes'][name]:raise ValueError(op)
++                ip=manifest.parent/'inputs/astra.in'
++                if hashlib.sha256(ip.read_bytes()).hexdigest()!=m['input_hashes']['astra.in']:raise ValueError(ip)
++            common_deltas.append(deltas)
++        for d in common_deltas[1:]:np.testing.assert_array_equal(common_deltas[0],d)
++        audit_details[audit]={'trials':len(records),'distinct_vectors':300,'common_random_numbers_verified':True,
++            'specification':spec,'interpretation':'Six separate 50-trial designs; no pooled reliability estimate. Pair phases are common controls; different channels independently sampled.'}
++    pd.DataFrame(summaries).to_csv(OUT/'c10_design_statistics.csv',index=False)
++    pd.DataFrame(objectives).to_csv(OUT/'c10_objective_statistics.csv',index=False)
++    pd.DataFrame(physical).to_csv(OUT/'c10_constraint_margins.csv',index=False)
++    (OUT/'c10_metadata.json').write_text(json.dumps({'audits':audit_details,'inputs':inputs},indent=2)+'\n')
++    tex=r'''\begin{table}[htbp]
++\centering
++\caption{Primary lattice-jitter results, evaluated against the production profile. Each setting
++has 50 feasible outcomes in 50 trials; its two-sided exact 95\% binomial interval is
++$[0.929,1]$. $D$ is the mean objective ratio and $\mu_{\min}$ is the minimum
++threshold-normalized margin; neither is a reliability probability.}
++\label{tab:robustness_summary}
++\begin{tabular}{lrrl}\toprule
++Setting & $D$ & $\mu_{\min}$ & Limiting inequality \\\midrule
++'''
++    channel_labels={'sigma_z_m:upper':r'$\sigma_z$ upper','mean_kinetic_energy_eV:lower':r'$E$ lower','mean_kinetic_energy_eV:upper':r'$E$ upper'}
++    for r in summaries:
++        if r['audit']=='primary':tex+=LABELS[r['role']]+f" & {r['D']:.4f} & {r['mu_min']:.5f} & "+channel_labels.get(r['worst_channel'],r['worst_channel'])+r' \\'+'\n'
++    tex+=r'\bottomrule\end{tabular}\end{table}'+'\n'
++    (ROOT/'docs/paper/robustness_table.tex').write_text(tex)
++    print(pd.DataFrame(summaries)[['audit','role','D','mu_min','score','cp95_lower']].to_string(index=False))
++
++if __name__=='__main__':main()
+diff --git a/scripts/analyze_revision_scaling.py b/scripts/analyze_revision_scaling.py
+new file mode 100644
+index 0000000..d72ed23
+--- /dev/null
++++ b/scripts/analyze_revision_scaling.py
+@@ -0,0 +1,87 @@
++"""C06: offline constraint-unit and smoothing sensitivity on frozen surrogates."""
++from pathlib import Path
++import hashlib
++import json
++import warnings
++import numpy as np
++import pandas as pd
++import torch
++from scipy.stats import spearmanr
++from botorch.models import ModelListGP
++from botorch.sampling.normal import SobolQMCNormalSampler
++from botorch.acquisition.multi_objective.logei import qLogNoisyExpectedHypervolumeImprovement
++from mobo_linac.models.artifacts import restore_model
++from mobo_linac.acquisition.mobo import SliceObjective
++from analyze_revision_settings import SIDES
++
++ROOT=Path(__file__).resolve().parents[1];OUT=ROOT/'docs/paper/revisions/evidence'
++RUN=ROOT/'results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42'
++DIAGNOSTICS=['sigma_x_m','sigma_y_m','sigma_xp_rad','sigma_yp_rad','sigma_z_m','mean_kinetic_energy_eV','transmission_fraction']
++
++def residual_functions(normalized=False,display_units=False):
++    functions=[]
++    for channel,side,threshold in SIDES:
++        index=3+DIAGNOSTICS.index(channel)
++        factor=1e-6 if channel=='mean_kinetic_energy_eV' else (1. if channel=='transmission_fraction' else 1e3)
++        scale=5e6 if channel=='mean_kinetic_energy_eV' else (.1 if channel=='transmission_fraction' else abs(threshold))
++        factor=factor if display_units else 1.
++        def residual(y,index=index,side=side,threshold=threshold,factor=factor,scale=scale,normalized=normalized):
++            value=y[...,index]*factor;limit=threshold*factor
++            result=limit-value if side=='lower' else value-limit
++            return result/(scale*factor) if normalized else result
++        functions.append(residual)
++    return functions
++
++def main():
++    torch.set_num_threads(1);history=json.loads((RUN/'proposal_history.json').read_text())
++    variants=[('original_native',False,False,.001),('raw_display_units',False,True,.001),
++              ('normalized_001',True,False,.001),('normalized_01',True,False,.01),
++              ('normalized_01_display',True,True,.01),('normalized_1',True,False,.1)]
++    rows=[];comparisons=[];sources=[];warning_counts={}
++    for iteration in [1,9,18]:
++        paths=list((RUN/'gp_checkpoint').glob(f'model_iter_{iteration:02d}_*.pt'));assert len(paths)==1
++        path=paths[0];a=torch.load(path,map_location='cpu',weights_only=True)
++        sources.append({'path':str(path.relative_to(ROOT)),'sha256':hashlib.sha256(path.read_bytes()).hexdigest()})
++        with warnings.catch_warnings(record=True) as caught:
++            warnings.simplefilter('always')
++            obj=restore_model(a['objectives']);con=restore_model(a['constraints'])
++            model=ModelListGP(*obj.models,*con.models)
++            md=a['objectives']['channels'][0]['metadata'];bounds=md['bounds'];train_X=md['train_X']
++            unit=torch.quasirandom.SobolEngine(6,scramble=True,seed=7301).draw(32,dtype=torch.double)
++            candidates=(bounds[0]+unit*(bounds[1]-bounds[0])).unsqueeze(-2)
++            values={}
++            for name,normalized,display,eta in variants:
++                sampler=SobolQMCNormalSampler(torch.Size([128]),seed=7302)
++                acq=qLogNoisyExpectedHypervolumeImprovement(model=model,
++                    ref_point=history[iteration]['metadata']['acquisition_reference']['point_model'],
++                    X_baseline=train_X,prune_baseline=False,sampler=sampler,objective=SliceObjective(3),
++                    constraints=residual_functions(normalized,display),eta=eta)
++                with torch.no_grad():value=acq(candidates).numpy()
++                assert np.isfinite(value).all();values[name]=value
++                rows.extend({'iteration':iteration,'variant':name,'candidate':i,'log_acquisition':float(v)} for i,v in enumerate(value))
++                del acq
++            for w in caught:
++                key=w.category.__name__+': '+str(w.message).split('\n')[0]
++                warning_counts[key]=warning_counts.get(key,0)+1
++        np.testing.assert_allclose(values['normalized_01'],values['normalized_01_display'],rtol=1e-9,atol=1e-9)
++        base=values['original_native'];top=set(np.argsort(base)[-5:])
++        for name in values:
++            comparisons.append({'iteration':iteration,'variant':name,'spearman_to_original':float(spearmanr(base,values[name]).statistic),
++                'top5_overlap_with_original':len(top & set(np.argsort(values[name])[-5:])),
++                'top_candidate':int(np.argmax(values[name])),
++                'normalized_unit_max_abs_difference':float(np.max(abs(values['normalized_01']-values['normalized_01_display'])))})
++        print(f'Iteration {iteration} complete',flush=True)
++    pd.DataFrame(rows).to_csv(OUT/'c06_acquisition_values.csv',index=False)
++    pd.DataFrame(comparisons).to_csv(OUT/'c06_rank_sensitivity.csv',index=False)
++    widths=[]
++    for c,side,t in SIDES:
++        scale=5e6 if c=='mean_kinetic_energy_eV' else (.1 if c=='transmission_fraction' else abs(t))
++        widths.append({'channel':c,'side':side,'original_eta_in_recorded_units':.001,'normalization_scale_in_recorded_units':scale,'normalized_eta_01_physical_width':.01*scale})
++    pd.DataFrame(widths).to_csv(OUT/'c06_smoothing_scales.csv',index=False)
++    (OUT/'c06_metadata.json').write_text(json.dumps({'scope':'Offline q=1 ranking on 32 fixed Sobol candidates for three frozen snapshots; no optimizer, ASTRA, model refit or production change.',
++        'mc_samples':128,'candidate_seed':7301,'sampler_seed':7302,'precision':'float64','device':'cpu',
++        'baseline_pruning':False,'pruning_reason':'Keep the full identical historical baseline to isolate residual-unit/smoothing effects; not a replay of production pruning or q=8 proposal optimization.',
++        'inputs':sources,'warnings':warning_counts},indent=2)+'\n')
++    print(pd.DataFrame(comparisons).to_string(index=False))
++
++if __name__=='__main__':main()
+diff --git a/scripts/analyze_revision_settings.py b/scripts/analyze_revision_settings.py
+new file mode 100644
+index 0000000..018a411
+--- /dev/null
++++ b/scripts/analyze_revision_settings.py
+@@ -0,0 +1,110 @@
++"""C08: read-only source, representative, trajectory and constraint audit."""
++from pathlib import Path
++import hashlib
++import json
++import re
++import numpy as np
++import pandas as pd
++
++ROOT = Path(__file__).resolve().parents[1]
++OUT = ROOT / 'docs/paper/revisions/evidence'
++BASE = ROOT / 'results/paper_production/04_primary/benchmark/per_seed'
++ROLE_PATH = ROOT / 'results/paper_production/06_candidate_audit/robustness/representatives.json'
++OBJECTIVES = ['norm_emit_x_m_rad', 'norm_emit_y_m_rad', 'sigma_energy_eV']
++SIDES = [('sigma_x_m','upper',1e-3),('sigma_y_m','upper',1e-3),
++         ('sigma_xp_rad','upper',1e-3),('sigma_yp_rad','upper',1e-3),
++         ('sigma_z_m','upper',1e-3),('mean_kinetic_energy_eV','lower',195e6),
++         ('mean_kinetic_energy_eV','upper',205e6),('transmission_fraction','lower',.9)]
++
++def sha(p):
++    return hashlib.sha256(Path(p).read_bytes()).hexdigest()
++
++def source_moments(a):
++    # Exclude the reference and status -3 probe records from source moment estimates.
++    particles = a[1:][a[1:,9] == -1].copy()
++    w = np.abs(particles[:,7]); w /= w.sum()
++    def variance(v):
++        return np.sum(w * (v-np.sum(w*v))**2)
++    def emittance(x,p):
++        cov=np.sum(w*(x-np.sum(w*x))*(p-np.sum(w*p)))
++        return np.sqrt(max(0.,variance(x)*variance(p)-cov**2))/510998.95
++    t=(particles[:,6]+a[0,6])*1e-9
++    r=np.hypot(particles[:,0],particles[:,1])
++    pz=particles[:,5]+a[0,5]
++    kinetic=np.sqrt(particles[:,3]**2+particles[:,4]**2+pz**2+510998.95**2)-510998.95
++    return {'ordinary_records_excluding_reference':len(particles),
++        'probe_records':int((a[:,9]==-3).sum()),'all_records':len(a),
++        'file_charge_magnitude_nC':float(np.abs(a[:,7]).sum()),
++        'sigma_x_m':float(np.sqrt(variance(particles[:,0]))),
++        'sigma_y_m':float(np.sqrt(variance(particles[:,1]))),
++        'sigma_emission_time_s':float(np.sqrt(variance(t))),
++        'gaussian_equivalent_fwhm_s':float(np.sqrt(8*np.log(2)*variance(t))),
++        'max_radius_m':float(r.max()),'r_p95_m':float(np.percentile(r,95)),
++        'norm_emit_x_m_rad':float(emittance(particles[:,0],particles[:,3])),
++        'norm_emit_y_m_rad':float(emittance(particles[:,1],particles[:,4])),
++        'mean_kinetic_energy_eV':float(np.sum(w*kinetic)),
++        'std_kinetic_energy_eV':float(np.sqrt(variance(kinetic))),
++        'sigma_px_eV_c':float(np.sqrt(variance(particles[:,3]))),
++        'sigma_py_eV_c':float(np.sqrt(variance(particles[:,4])))}
++
++def analyze():
++    manifest=[]
++    def record(p):
++        manifest.append({'path':str(p.relative_to(ROOT)),'sha256':sha(p)})
++    frames=[]
++    for p in sorted(BASE.glob('*/evaluations.csv')):
++        marker=json.loads((p.parent/'run_complete.json').read_text())
++        if sha(p)!=marker['artifacts'][p.name]:raise ValueError(p)
++        record(p); frames.append(pd.read_csv(p))
++    df=pd.concat(frames,ignore_index=True)
++    assert len(df)==4800 and df.simulation_valid.all()
++    roles=json.loads(ROLE_PATH.read_text())['roles']; record(ROLE_PATH)
++    cfg_path=BASE/next(iter(roles.values()))['run_id']/'config.json'
++    cfg=json.loads(cfg_path.read_text());record(cfg_path)
++    names=[v['name'] for v in cfg['design_variables']]
++    representative_rows=[];trajectories=[]
++    for role,identity in roles.items():
++        row=df[(df.run_id==identity['run_id']) & (df.evaluation_id==identity['evaluation_id'])].iloc[0]
++        result={'role':role,**row[['run_id','evaluation_id']+names+OBJECTIVES+[x[0] for x in SIDES if x[1]=='upper']+['transmission_fraction']].to_dict()}
++        for channel,side,threshold in SIDES:
++            result[channel+':'+side+'_margin']=(threshold-row[channel] if side=='upper' else row[channel]-threshold)/abs(threshold)
++        representative_rows.append(result)
++        mp=Path(row.manifest_path);m=json.loads(mp.read_text());record(mp)
++        arrays={}
++        for axis in 'XYZ':
++            p=Path(row.work_dir)/f'astra.{axis}emit.001'
++            if sha(p)!=m['output_hashes'][p.name]:raise ValueError(p)
++            record(p);arrays[axis]=np.loadtxt(p)
++        for target in [.5,1.8,5.2,5.3,8.6,8.8,12.4,12.6,16.2]:
++            x,y,z=[arrays[a][np.argmin(abs(arrays[a][:,0]-target))] for a in 'XYZ']
++            trajectories.append({'role':role,'target_z_m':target,'recorded_z_m':float(x[0]),
++                'emit_x_um_rad':float(x[5]),'emit_y_um_rad':float(y[5]),
++                'sigma_x_mm':float(x[3]),'sigma_y_mm':float(y[3]),
++                'mean_energy_MeV':float(z[2]),'sigma_energy_MeV':float(z[4]*1e-3),
++                'linear_z_energy_correlation':float(z[6]/z[4])})
++        np.testing.assert_allclose([arrays['X'][-1,5]*1e-6,arrays['Y'][-1,5]*1e-6,arrays['Z'][-1,4]*1e3],row[OBJECTIVES].to_numpy(float),rtol=1e-10)
++    input_dir=mp.parent/'inputs'
++    source=input_dir/'pal_photo2.ini';record(source)
++    if sha(source)!=m['input_hashes'][source.name]:raise ValueError(source)
++    source_stats=source_moments(np.loadtxt(source))
++    deck=input_dir/'astra.in';record(deck);text=deck.read_text()
++    geometry={}
++    for key in ['c_pos(1)','c_pos(2)','c_pos(3)','c_pos(4)','c_pos(5)','s_pos(1)','q_pos(1)','q_pos(2)','q_length(1)','q_length(2)','z_trans','zstop']:
++        geometry[key]=float(re.search(r'^\s*'+re.escape(key)+r'\s*=\s*([^,\n]+)',text,re.M|re.I)[1])
++    counts=[]
++    for channel,side,t in SIDES:
++        margins=(t-df[channel] if side=='upper' else df[channel]-t)/abs(t)
++        counts.append({'channel':channel,'side':side,'threshold':t,'violations':int((margins<0).sum()),'min_margin':margins.min(),'min_value':df[channel].min(),'max_value':df[channel].max()})
++    nominal=np.array([v['nominal_value'] for v in cfg['design_variables']])
++    matching=np.isclose(df[names].to_numpy(),nominal,rtol=0,atol=1e-10).all(axis=1)
++    pd.DataFrame(representative_rows).to_csv(OUT/'c08_representatives.csv',index=False)
++    pd.DataFrame(trajectories).to_csv(OUT/'c08_trajectories.csv',index=False)
++    pd.DataFrame(counts).to_csv(OUT/'c08_constraint_activity.csv',index=False)
++    metadata={'source_moments':source_stats,'geometry_m':geometry,'primary_nominal_matches':int(matching.sum()),
++        'scope':'Source moments exclude reference and probes; generation recipe and cathode material unverified. Trajectories are observational, not mechanism-isolation experiments.',
++        'inputs':manifest}
++    (OUT/'c08_metadata.json').write_text(json.dumps(metadata,indent=2)+'\n')
++    print(json.dumps({k:v for k,v in metadata.items() if k!='inputs'},indent=2))
++    print(pd.DataFrame(counts).to_string(index=False))
++
++if __name__=='__main__':analyze()
+diff --git a/scripts/generate_primary_paper_table.py b/scripts/generate_primary_paper_table.py
+index 3a4f4b3..28e15c1 100644
+--- a/scripts/generate_primary_paper_table.py
++++ b/scripts/generate_primary_paper_table.py
+@@ -83 +82,0 @@ def generate(root, output):
+-                          ("Evaluations to first feasible point", "first_feasible"),
+@@ -92 +91,2 @@ Entries are medians with 95\% percentile bootstrap intervals (1,000 resamples wi
+-Pareto sizes count feasible observations nondominated jointly in all three objectives.}
++Pareto sizes count feasible observations nondominated jointly in all three objectives.
++First-feasible counts are omitted because they mix shared initialization with adaptive search.}
+@@ -94 +94 @@ Pareto sizes count feasible observations nondominated jointly in all three objec
+-\resizebox{\textwidth}{!}{%
++\small
+@@ -97 +97 @@ Pareto sizes count feasible observations nondominated jointly in all three objec
+- & Constraint-aware qLogNEHVI & Unconstrained qLogNEHVI & Weighted-sum qLogNEI \\
++ & Constrained MOBO & Unconstrained MOBO & Scalarized BO \\
+@@ -101 +101 @@ Pareto sizes count feasible observations nondominated jointly in all three objec
+-\end{tabular}}
++\end{tabular}
+diff --git a/scripts/prepare_revision_figures.py b/scripts/prepare_revision_figures.py
+new file mode 100644
+index 0000000..74e541b
+--- /dev/null
++++ b/scripts/prepare_revision_figures.py
+@@ -0,0 +1,99 @@
++"""C15: independent survey histories and readable constraint acceptance views."""
++from pathlib import Path
++import hashlib
++import json
++import numpy as np
++import pandas as pd
++import matplotlib
++matplotlib.use('Agg')
++import matplotlib.pyplot as plt
++from matplotlib.lines import Line2D
++from matplotlib.patches import Rectangle,Patch
++from mobo_linac.config import load_config
++from mobo_linac.plotting.common import PlotSchema
++from compare_constraint_spaces import Campaign,ALGORITHMS,LABELS,STYLES,PHYSICAL,display_domain,plot_bounds,measured_constraints
++from prepare_revision_tables import CASES
++ROOT=Path(__file__).resolve().parents[1];PAPER=ROOT/'docs/paper';BASE=ROOT/'results/paper_production'
++
++
++def cumulative_feasible(frame):
++    return np.cumsum((frame.simulation_valid & frame.physically_feasible).to_numpy())/np.arange(1,len(frame)+1)
++
++def save(fig,name,png=False):
++    fig.savefig(PAPER/'figures'/f'{name}.pdf',bbox_inches='tight',metadata={'CreationDate':None,'ModDate':None})
++    if png:fig.savefig(PAPER/'figures'/f'{name}.png',dpi=170,bbox_inches='tight')
++    plt.close(fig)
++
++def constraint_view(campaigns,schema):
++    specs={s.column:s for s in schema.constraints};bounds=plot_bounds(campaigns,schema)
++    fig,axes=plt.subplots(3,1,figsize=(7.2,8.6))
++    pairs=[('sigma_x_m','sigma_y_m'),('sigma_xp_rad','sigma_yp_rad'),('mean_kinetic_energy_eV','sigma_z_m')]
++    def draw(ax,x,y,local=False):
++        ax.set_facecolor('#f7eded')
++        xb=(0,1.05) if local else bounds[x.column];yb=(0,1.05) if local else bounds[y.column]
++        ax.set(xlim=xb,ylim=yb)
++        l,r=display_domain(x,xb);b,t=display_domain(y,yb)
++        ax.add_patch(Rectangle((l,b),r-l,t-b,facecolor='#d8efdc',edgecolor='#438b55',lw=.8,zorder=0))
++        for campaign in campaigns:
++            color,marker=STYLES[ALGORITHMS.index(campaign.algorithm)]
++            f=campaign.frame;feasible=f.physically_feasible.to_numpy(bool)
++            for mask,filled in [(~feasible,False),(feasible,True)]:
++                ax.scatter(f.loc[mask,x.column]/x.scale,f.loc[mask,y.column]/y.scale,
++                    s=11 if local else 13,marker=marker,facecolors=color if filled else 'none',edgecolors=color,
++                    linewidths=.35,alpha=.8 if filled else .16,zorder=3 if filled else 2)
++        ax.grid(alpha=.35,linestyle=':',lw=.6);ax.set_axisbelow(True)
++    for letter,ax,(xn,yn) in zip('abc',axes,pairs):
++        x,y=specs[xn],specs[yn];draw(ax,x,y)
++        ax.set_xlabel(f'{PHYSICAL[xn].label} [{PHYSICAL[xn].display_unit}]',fontsize=9)
++        ax.set_ylabel(f'{PHYSICAL[yn].label} [{PHYSICAL[yn].display_unit}]',fontsize=9)
++        ax.text(.015,.94,f'({letter})',transform=ax.transAxes,va='top',fontsize=10)
++        ax.tick_params(labelsize=8)
++        if letter in 'ab':
++            inset=ax.inset_axes([.60,.43,.36,.49]);draw(inset,x,y,True)
++            inset.set_xticks([0,.5,1]);inset.set_yticks([0,.5,1]);inset.tick_params(labelsize=7)
++            inset.set_title('Acceptance zoom (same units)',fontsize=7)
++    handles=[Line2D([],[],color=c,marker=m,ls='',label=label) for label,(c,m) in zip(LABELS,STYLES)]
++    handles += [Line2D([],[],color='.2',marker='o',ls='',label='All constraints pass'),Line2D([],[],color='.2',marker='o',mfc='none',ls='',label='At least one fails'),Patch(facecolor='#d8efdc',label='Shown limits satisfied')]
++    fig.legend(handles=handles,loc='upper center',ncol=3,fontsize=8,frameon=False)
++    count=sum(len(c.frame) for c in campaigns)
++    assert all(np.all(c.frame.transmission_fraction==1) for c in campaigns)
++    fig.text(.5,.015,f'Transmission: all {count:,} observations = 100%; production limit = 90%.',ha='center',fontsize=9)
++    fig.subplots_adjust(top=.90,bottom=.085,left=.12,right=.97,hspace=.42)
++    return fig
++
++def main():
++    manifest=[]
++    def read(p):
++        digest=hashlib.sha256(p.read_bytes()).hexdigest();marker=json.loads((p.parent/'run_complete.json').read_text())
++        assert digest==marker['artifacts']['evaluations.csv'];manifest.append({'path':str(p.relative_to(ROOT)),'sha256':digest})
++        return pd.read_csv(p)
++    primary={a:[read(p) for p in sorted((BASE/'04_primary/benchmark/per_seed').glob(f'{a}_seed_*/evaluations.csv'))] for a in ALGORITHMS}
++    survey=BASE/'05_operating_points/campaign'
++    scalar={case:read(survey/'phase1_scalarized'/case/'evaluations.csv') for case in CASES}
++    mobo={ALGORITHMS[0]:read(survey/'phase3_constrained/evaluations.csv'),ALGORITHMS[1]:read(survey/'phase2_unconstrained/evaluations.csv')}
++    schema=PlotSchema.from_config(load_config(survey/'phase3_constrained/config.json'))
++    for scope,groups in [('primary',{a:pd.concat(fs,ignore_index=True) for a,fs in primary.items()}),('survey',{**mobo,ALGORITHMS[2]:pd.concat(list(scalar.values()),ignore_index=True)})]:
++        campaigns=[]
++        for a,frame in groups.items():
++            valid,_=measured_constraints(frame,schema);campaigns.append(Campaign(a,valid))
++        save(constraint_view(campaigns,schema),scope+'_constraint_spaces',png=True)
++    fig,axes=plt.subplots(1,2,figsize=(8,3.8),sharex=True,sharey=True)
++    for case,style in zip(CASES,['-', '--', ':', '-.', (0,(3,1,1,1,1,1))]):
++        y=cumulative_feasible(scalar[case]);axes[0].plot(np.arange(1,len(y)+1),y,color=STYLES[2][0],ls=style,lw=1.4,label=CASES[case])
++    for a,f in mobo.items():
++        color,marker=STYLES[ALGORITHMS.index(a)];y=cumulative_feasible(f)
++        axes[1].plot(np.arange(1,len(y)+1),y,color=color,marker=marker,markevery=24,ms=4,lw=1.4,label=LABELS[ALGORITHMS.index(a)])
++    for ax,label in zip(axes,['(a) Scalarized weightings','(b) MOBO campaigns']):
++        ax.set(xlim=(1,176),ylim=(0,1),xlabel='Evaluations within each campaign');ax.text(.04,.96,label,transform=ax.transAxes,va='top',fontsize=10)
++        ax.grid(alpha=.35,ls=':');ax.legend(fontsize=7,loc='upper right',bbox_to_anchor=(1,.87))
++    axes[0].set_ylabel('Cumulative feasible fraction');fig.tight_layout();save(fig,'survey_feasibility_by_case')
++    fig,ax=plt.subplots(figsize=(6.8,3.6));rng=np.random.default_rng(7303);indices=rng.integers(0,10,size=(1000,10))
++    for a in ALGORITHMS:
++        values=np.array([cumulative_feasible(f) for f in primary[a]]);assert values.shape==(10,160)
++        med=np.median(values,axis=0);boot=np.median(values[indices],axis=1);lo,hi=np.percentile(boot,[2.5,97.5],axis=0)
++        x=np.arange(1,161);color,marker=STYLES[ALGORITHMS.index(a)]
++        ax.fill_between(x,lo,hi,color=color,alpha=.16);ax.plot(x,med,color=color,marker=marker,markevery=24,ms=4,label=LABELS[ALGORITHMS.index(a)])
++    ax.set(xlim=(1,160),ylim=(0,1),xlabel='Evaluations per campaign',ylabel='Cumulative feasible fraction');ax.grid(alpha=.35,ls=':');ax.legend(fontsize=8);fig.tight_layout();save(fig,'benchmark_feasibility_comparison')
++    (PAPER/'revisions/evidence/c15_metadata.json').write_text(json.dumps({'inputs':manifest,'primary_bootstrap_resamples':1000,'bootstrap_seed':7303,'survey_curve_lengths':{k:len(v) for k,v in scalar.items()},'scope':'Independent per-campaign histories; shaded constraint zooms preserve full-range panels; transmission retained as exact annotation.'},indent=2)+'\n')
++
++if __name__=='__main__':main()
+diff --git a/scripts/prepare_revision_tables.py b/scripts/prepare_revision_tables.py
+new file mode 100644
+index 0000000..c33641b
+--- /dev/null
++++ b/scripts/prepare_revision_tables.py
+@@ -0,0 +1,57 @@
++"""C14: regenerate manuscript survey tables from feasible observations only."""
++from pathlib import Path
++import hashlib
++import json
++import numpy as np
++import pandas as pd
++ROOT=Path(__file__).resolve().parents[1];PAPER=ROOT/'docs/paper';BASE=ROOT/'results/paper_production/05_operating_points/campaign'
++OBJECTIVES=['norm_emit_x_m_rad','norm_emit_y_m_rad','sigma_energy_eV']
++CASES={'balanced':'Equal weight','high_brightness':'Emittance emphasis','low_energy_spread':'Spread emphasis','x_dominant':'Horizontal emphasis','y_dominant':'Vertical emphasis'}
++
++def feasible_summary(df):
++    feasible=df.loc[df.simulation_valid & df.physically_feasible]
++    values=feasible[OBJECTIVES].to_numpy()
++    # A point is dominated if any other point is no worse in every objective and strictly better in one.
++    nondominated=sum(not np.any(np.all(values<=v,axis=1)&np.any(values<v,axis=1)) for v in values)
++    return {'total':len(df),'valid':int(df.simulation_valid.sum()),'feasible':len(feasible),'pareto':nondominated,
++            'fraction':len(feasible)/len(df),**{c:float(feasible[c].min()) for c in OBJECTIVES}}
++
++def main():
++    summaries=[];inputs=[];frames={}
++    def read(p):
++        marker=json.loads((p.parent/'run_complete.json').read_text());digest=hashlib.sha256(p.read_bytes()).hexdigest()
++        assert digest==marker['artifacts']['evaluations.csv'];inputs.append({'path':str(p.relative_to(ROOT)),'sha256':digest});return pd.read_csv(p)
++    for case,label in CASES.items():
++        frame=read(BASE/'phase1_scalarized'/case/'evaluations.csv');frames[case]=frame
++        cfg=json.loads((BASE/'phase1_scalarized'/case/'config.json').read_text())
++        # The suite manifest records executed weights rather than relying on friendly labels.
++        cases=pd.read_csv(BASE/'phase1_scalarized/cases_summary.csv');r=cases[cases.case_id==case].iloc[0]
++        weights=json.loads(r.weights)
++        summaries.append({'case':case,'label':label,'weights':weights,**feasible_summary(frame)})
++    groups=[pd.concat(list(frames.values()),ignore_index=True),read(BASE/'phase2_unconstrained/evaluations.csv'),read(BASE/'phase3_constrained/evaluations.csv')]
++    g=[feasible_summary(df) for df in groups]
++    caption='Operating-point survey: all extrema and Pareto sizes use feasible observations; rates use all evaluations. The scalarized suite pools five independent weightings and has five times the total budget of either MOBO campaign. Coordinate minima need not belong to one setting.'
++    tex='\\begin{table}[htbp]\n\\centering\\small\n\\caption{'+caption+'}\n\\label{tab:campaign_summary}\n\\begin{tabular}{lrrr}\\toprule\nMetric & Scalarized suite & Unconstrained MOBO & Constrained MOBO \\\\\n\\midrule\n'
++    for label,key in [('Evaluations','total'),('Valid simulations','valid'),('Feasible observations','feasible'),('Feasible Pareto size','pareto')]:
++        tex+=label+' & '+' & '.join(f'{r[key]:,}' for r in g)+r' \\'+'\n'
++    tex+=r'Feasible fraction (\%) & '+' & '.join(f'{100*r["fraction"]:.1f}' for r in g)+r' \\'+'\n'
++    for label,c,scale in [(r'Minimum $\varepsilon_{n,x}$ (\si{\micro\metre\radian})',OBJECTIVES[0],1e6),(r'Minimum $\varepsilon_{n,y}$ (\si{\micro\metre\radian})',OBJECTIVES[1],1e6),(r'Minimum $\sigma_E$ (\si{\mega\electronvolt})',OBJECTIVES[2],1e-6)]:
++        tex+=label+' & '+' & '.join(f'{r[c]*scale:.4f}' for r in g)+r' \\'+'\n'
++    tex+=r'\bottomrule\end{tabular}\end{table}'+'\n';(PAPER/'results_table.tex').write_text(tex)
++    tex=r'''\begin{table}[htbp]\centering\small
++\caption{Independent scalarized survey cases, each using 176 evaluations. All objective
++minima use feasible observations. Emittances are in \si{\micro\metre\radian} and
++energy spread in \si{\mega\electronvolt}. Weights act on scale-normalized objectives.}
++\label{tab:phase1_cases}
++\begin{tabular}{lcrrrr}\toprule
++Weighting & $(w_x,w_y,w_E)$ & Feasible & Min. $\varepsilon_{n,x}$ & Min. $\varepsilon_{n,y}$ & Min. $\sigma_E$ \\\midrule
++'''
++    for r in summaries:
++        w=r['weights'];wt=r'$(\frac13,\frac13,\frac13)$' if r['case']=='balanced' else '$('+','.join(f'{x:.2f}' for x in w)+')$'
++        tex+=r['label']+' & '+wt+f" & {r['feasible']} & {r[OBJECTIVES[0]]*1e6:.4f} & {r[OBJECTIVES[1]]*1e6:.4f} & {r[OBJECTIVES[2]]*1e-6:.4f}"+r' \\'+'\n'
++    tex+=r'\bottomrule\end{tabular}\end{table}'+'\n';(PAPER/'phase1_cases_table.tex').write_text(tex)
++    out=PAPER/'revisions/evidence';pd.DataFrame(summaries).to_csv(out/'c14_feasible_case_summary.csv',index=False)
++    (out/'c14_metadata.json').write_text(json.dumps({'inputs':inputs,'population':'valid and jointly feasible; original flags unchanged'},indent=2)+'\n')
++    print(pd.DataFrame(summaries).to_string(index=False))
++
++if __name__=='__main__':main()
+diff --git a/tests/test_paper_outputs.py b/tests/test_paper_outputs.py
+index 690fc92..19153f3 100644
+--- a/tests/test_paper_outputs.py
++++ b/tests/test_paper_outputs.py
+@@ -495 +495 @@ def test_manuscript_references_generated_figures(project_root):
+-        "feasible_fraction.png",
++        "survey_feasibility_by_case.pdf",
+@@ -561,2 +561,5 @@ def test_manuscript_qlognehvi_description_present(project_root):
+-    assert "q\\text{LogNEHVI}" in content or r"q\text{LogNEHVI}" in content, (
+-        "main.tex missing qLogNEHVI acquisition function label."
++    assert "qLogNEHVI" in content and r"\alpha_{\mathrm{ideal}}" in content, (
++        "Manuscript must distinguish qLogNEHVI from its ideal mathematical target."
++    )
++    assert r"\mathcal{F}(\boldsymbol{\xi},\mathbf{X})" in content, (
++        "The ideal batch criterion must identify the feasible candidate subset."
+@@ -763,0 +767,11 @@ def test_custom_objective_figures_keep_recorded_units_and_close_figures(tmp_path
++
++
++def test_revision_front_matter_and_author_deferred_content(project_root):
++    import re
++    text=(project_root / "docs/paper/main.tex").read_text()
++    abstract=text.split(r"\abstract{",1)[1].split(r"\keywords",1)[0]
++    assert not re.search(r"\d|\b(one|two|three|four|five|six|seven|eight|nine|ten|fifty)\b",abstract,re.I)
++    assert r"\finalfalse" in text
++    assert "Funding and acknowledgments to be supplied by the author." in text
++    assert "Park2025ICABU" in text
++    assert "Page range to be confirmed" not in (project_root / "docs/paper/references.bib").read_text()
+diff --git a/tests/test_revision_acceptance.py b/tests/test_revision_acceptance.py
+new file mode 100644
+index 0000000..4f2b48a
+--- /dev/null
++++ b/tests/test_revision_acceptance.py
+@@ -0,0 +1,44 @@
++"""Acceptance-profile boundary checks for the post-hoc manuscript audit."""
++import importlib.util
++from pathlib import Path
++import pandas as pd
++
++spec=importlib.util.spec_from_file_location('revision_acceptance',Path(__file__).parents[1]/'scripts/analyze_revision_acceptance.py')
++module=importlib.util.module_from_spec(spec)
++spec.loader.exec_module(module)
++
++
++def row(**changes):
++    values=dict(simulation_valid=True,sigma_x_m=.0001,sigma_y_m=.0001,
++                sigma_xp_rad=.0001,sigma_yp_rad=.0001,sigma_z_m=.0005,
++                mean_kinetic_energy_eV=200e6,transmission_fraction=1.,sigma_energy_eV=.3e6)
++    values.update(changes)
++    return values
++
++
++def test_published_strict_boundaries_and_invalid_rows():
++    df=pd.DataFrame([row(),row(sigma_x_m=.0003),row(transmission_fraction=.9999),row(simulation_valid=False),row(sigma_z_m=float('nan'))])
++    masks=module.profile_masks(df)
++    assert masks['production'].tolist()==[True,True,True,False,False]
++    assert masks['napac2025'].tolist()==[True,False,False,False,False]
++
++
++def test_energy_objective_and_constraint_are_distinct():
++    df=pd.DataFrame([row(sigma_energy_eV=.6e6),row(mean_kinetic_energy_eV=195e6),row(mean_kinetic_energy_eV=205e6),row(mean_kinetic_energy_eV=205e6+1)])
++    masks=module.profile_masks(df)
++    assert masks['production'].tolist()==[True,True,True,False]
++    assert masks['jkps2025_necessary_subset'].tolist()==[False,False,True,True]
++    assert masks['jinst2024_necessary_subset'].tolist()==[False,False,True,True]
++
++
++def test_tdr_strict_limits_and_separate_spread_specification():
++    base=row(mean_kinetic_energy_eV=201e6)
++    changes=[{}, {'mean_kinetic_energy_eV':200e6}, {'sigma_x_m':.3e-3},
++             {'sigma_yp_rad':.2663e-3}, {'sigma_z_m':1e-3},
++             {'transmission_fraction':.9999}, {'mean_kinetic_energy_eV':206e6},
++             {'sigma_energy_eV':201e6*.005}, {'sigma_energy_eV':201e6*.005+1}]
++    df=pd.DataFrame([{**base,**change} for change in changes])
++    masks=module.profile_masks(df)
++    assert masks['kls_tdr_optimization'].tolist()==[True,False,False,False,False,False,True,True,True]
++    assert masks['kls_tdr_optimization_plus_spread'].tolist()==[True,False,False,False,False,False,True,True,False]
++    assert not masks['production'].iloc[6]  # Production has an upper energy bound; TDR table does not.
+diff --git a/tests/test_revision_cost.py b/tests/test_revision_cost.py
+new file mode 100644
+index 0000000..c3b933f
+--- /dev/null
++++ b/tests/test_revision_cost.py
+@@ -0,0 +1,14 @@
++"""Overlap-aware campaign timing must not double-count concurrent workers."""
++import importlib.util
++from pathlib import Path
++import pytest
++spec=importlib.util.spec_from_file_location('revision_cost',Path(__file__).parents[1]/'scripts/analyze_revision_cost.py')
++m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
++
++def test_union_nested_overlapping_and_disjoint_intervals():
++    assert m.union_duration([(5,8),(0,3),(1,2),(2,6),(10,12)])==10
++
++def test_union_empty_touching_and_negative():
++    assert m.union_duration([])==0
++    assert m.union_duration([(0,1),(1,2)])==2
++    with pytest.raises(ValueError):m.union_duration([(2,1)])
+diff --git a/tests/test_revision_figures.py b/tests/test_revision_figures.py
+new file mode 100644
+index 0000000..78105ab
+--- /dev/null
++++ b/tests/test_revision_figures.py
+@@ -0,0 +1,14 @@
++"""Survey histories restart per campaign and include rejected/invalid evaluations."""
++import importlib.util
++from pathlib import Path
++import numpy as np
++import pandas as pd
++
++def test_cumulative_feasibility_is_per_campaign(monkeypatch):
++    folder=Path(__file__).parents[1]/'scripts';monkeypatch.syspath_prepend(str(folder))
++    spec=importlib.util.spec_from_file_location('revision_figures',folder/'prepare_revision_figures.py')
++    m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
++    a=pd.DataFrame({'simulation_valid':[True,False,True],'physically_feasible':[True,False,False]})
++    b=pd.DataFrame({'simulation_valid':[True,True],'physically_feasible':[False,True]})
++    np.testing.assert_allclose(m.cumulative_feasible(a),[1,.5,1/3])
++    np.testing.assert_allclose(m.cumulative_feasible(b),[0,.5])
+diff --git a/tests/test_revision_fronts.py b/tests/test_revision_fronts.py
+new file mode 100644
+index 0000000..3287a31
+--- /dev/null
++++ b/tests/test_revision_fronts.py
+@@ -0,0 +1,37 @@
++"""Check metric definitions independently of production observations."""
++import importlib.util
++from pathlib import Path
++import numpy as np
++import pytest
++
++spec=importlib.util.spec_from_file_location('revision_fronts',Path(__file__).parents[1]/'scripts/analyze_revision_fronts.py')
++m=importlib.util.module_from_spec(spec)
++spec.loader.exec_module(m)
++
++
++def test_dominance_duplicates_and_tradeoffs():
++    points=np.array([[1,2,1],[2,1,1],[2,2,2],[1,2,1]])
++    np.testing.assert_array_equal(m.nondominated(points),[[1,2,1],[2,1,1]])
++    assert m.coverage(np.array([[1,1,1]]),m.nondominated(points))==1
++    assert m.coverage(m.nondominated(points),np.array([[1,1,1]]))==0
++
++
++def test_metrics_minimization_and_empty_conventions():
++    ref=np.array([[1.,2.,3.],[2.,1.,3.]])
++    assert m.additive_epsilon(ref,ref)==0
++    assert m.igd_plus(ref,ref)==0
++    assert m.additive_epsilon(ref+2,ref)==2
++    assert m.igd_plus(ref+2,ref)==pytest.approx(np.sqrt(12))
++    empty=np.empty((0,3))
++    assert np.isinf(m.additive_epsilon(empty,ref))
++    assert np.isinf(m.igd_plus(empty,ref))
++    assert m.coverage(empty,ref)==0
++    assert np.isnan(m.coverage(ref,empty))
++    with pytest.raises(ValueError):m.igd_plus(ref,empty)
++
++
++def test_exact_hypervolume_overlap_and_clipping():
++    a=np.array([[1,2,1],[2,1,1]])
++    assert m.hypervolume(a,np.array([3,3,3]))==6
++    assert m.hypervolume(np.r_[a,[[1,2,1],[4,0,0]]],np.array([3,3,3]))==6
++    assert m.hypervolume(np.empty((0,3)),np.array([3,3,3]))==0
+diff --git a/tests/test_revision_pairs.py b/tests/test_revision_pairs.py
+new file mode 100644
+index 0000000..f518412
+--- /dev/null
++++ b/tests/test_revision_pairs.py
+@@ -0,0 +1,22 @@
++"""Exact paired-test handling of signs, ties, zeros and multiplicity."""
++import importlib.util
++from pathlib import Path
++import sys
++import numpy as np
++import pytest
++sys.path.insert(0,str(Path(__file__).parents[1]/'scripts'))
++from analyze_revision_pairs import exact_signed_rank,holm
++
++
++def test_exact_signed_rank_known_extreme_and_symmetry():
++    assert exact_signed_rank([1,2,3,4])==.125
++    assert exact_signed_rank([-1,-2,-3,-4])==.125
++    assert exact_signed_rank([1,-1])==1
++    assert exact_signed_rank([0,0,0])==1
++    assert exact_signed_rank([0,1,1])==.5
++    with pytest.raises(ValueError):exact_signed_rank([1,np.inf])
++
++
++def test_holm_known_values_and_order():
++    np.testing.assert_allclose(holm([.04,.001,.02]),[.04,.003,.04])
++    np.testing.assert_allclose(holm([1.,1.,1.]),[1,1,1])
+diff --git a/tests/test_revision_robustness.py b/tests/test_revision_robustness.py
+new file mode 100644
+index 0000000..5ad0d54
+--- /dev/null
++++ b/tests/test_revision_robustness.py
+@@ -0,0 +1,40 @@
++"""Checks for reliability bounds and two-sided energy-margin interpretation."""
++import importlib.util
++from pathlib import Path
++import sys
++import numpy as np
++import pandas as pd
++import pytest
++
++@pytest.fixture
++def analysis(monkeypatch):
++    folder=Path(__file__).parents[1]/'scripts'
++    monkeypatch.syspath_prepend(str(folder))
++    spec=importlib.util.spec_from_file_location('revision_robustness',folder/'analyze_revision_robustness.py')
++    module=importlib.util.module_from_spec(spec);spec.loader.exec_module(module)
++    return module
++
++
++def test_exact_no_failure_bounds(analysis):
++    low,high,one=analysis.binomial_bounds(50,50)
++    assert low==pytest.approx(.025**(1/50))
++    assert high==1
++    assert 1-one==pytest.approx(1-.05**(1/50))
++    assert .058 < 1-one < .059
++
++
++def test_all_failure_and_invalid_counts(analysis):
++    low,high,one=analysis.binomial_bounds(0,50)
++    assert low==one==0
++    assert high==pytest.approx(1-.025**(1/50))
++    with pytest.raises(ValueError):analysis.binomial_bounds(1,0)
++
++
++def test_energy_threshold_margins_are_not_half_band_margins(analysis):
++    diagnostics=pd.DataFrame([dict(sigma_x_m=0,sigma_y_m=0,sigma_xp_rad=0,sigma_yp_rad=0,
++        sigma_z_m=0,mean_kinetic_energy_eV=e,transmission_fraction=1) for e in [196e6,204e6]])
++    metrics,margins=analysis.summarize_trials([[1,1,1],[1,1,1]],diagnostics,[1,1,1],[True,True],[True,True])
++    assert margins['mean_kinetic_energy_eV:lower']==pytest.approx(1/195)
++    assert margins['mean_kinetic_energy_eV:upper']==pytest.approx(1/205)
++    assert metrics['worst_channel']=='mean_kinetic_energy_eV:upper'
++    assert metrics['score']==pytest.approx(1+1/205)
+diff --git a/tests/test_revision_scaling.py b/tests/test_revision_scaling.py
+new file mode 100644
+index 0000000..b3583e3
+--- /dev/null
++++ b/tests/test_revision_scaling.py
+@@ -0,0 +1,26 @@
++"""Equivalent diagnostic units must preserve dimensionless residuals."""
++import importlib.util
++from pathlib import Path
++import pytest
++import torch
++
++@pytest.fixture
++def analysis(monkeypatch):
++    folder=Path(__file__).parents[1]/'scripts';monkeypatch.syspath_prepend(str(folder))
++    spec=importlib.util.spec_from_file_location('revision_scaling',folder/'analyze_revision_scaling.py')
++    m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m);return m
++
++def test_equivalent_units_preserve_normalized_residuals(analysis):
++    y=torch.tensor([[0.,0.,0.,.0011,.0008,.0012,.0009,.00105,196e6,.95]],dtype=torch.double)
++    a=torch.stack([f(y) for f in analysis.residual_functions(True,False)])
++    b=torch.stack([f(y) for f in analysis.residual_functions(True,True)])
++    torch.testing.assert_close(a,b,rtol=1e-12,atol=1e-12)
++    assert a[0].item()==pytest.approx(.1)
++    assert a[-2].item()==pytest.approx(-1.8)  # upper energy: (196-205)/5
++
++def test_raw_residuals_change_with_units_without_temperature_conversion(analysis):
++    y=torch.tensor([[0.,0.,0.,.0011,.0008,.0012,.0009,.00105,196e6,.95]],dtype=torch.double)
++    native=[f(y).item() for f in analysis.residual_functions(False,False)]
++    display=[f(y).item() for f in analysis.residual_functions(False,True)]
++    assert display[0]==pytest.approx(native[0]*1000)
++    assert display[-2]==pytest.approx(native[-2]*1e-6)
+diff --git a/tests/test_revision_tables.py b/tests/test_revision_tables.py
+new file mode 100644
+index 0000000..c991761
+--- /dev/null
++++ b/tests/test_revision_tables.py
+@@ -0,0 +1,12 @@
++"""Feasible-only tables must not admit attractive rejected observations."""
++import importlib.util
++from pathlib import Path
++import pandas as pd
++spec=importlib.util.spec_from_file_location('revision_tables',Path(__file__).parents[1]/'scripts/prepare_revision_tables.py')
++m=importlib.util.module_from_spec(spec);spec.loader.exec_module(m)
++
++def test_minima_and_nondominance_exclude_rejections():
++    df=pd.DataFrame([[True,True,2,3,4],[True,True,3,2,4],[True,True,4,4,5],[True,False,1,1,1]],columns=['simulation_valid','physically_feasible',*m.OBJECTIVES])
++    s=m.feasible_summary(df)
++    assert s['feasible']==3 and s['pareto']==2 and s['fraction']==.75
++    assert [s[c] for c in m.OBJECTIVES]==[2,2,4]

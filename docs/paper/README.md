@@ -142,7 +142,8 @@ retain every individual case. Figures 2 and 5 remain scatter-only Pareto views.
 
 ## Round1 evidence and paired analyses
 
-The consolidated revision list records completion of C01, C03, C04, C05 and C12, plus the specific
+The consolidated revision list records all C01–C17 dispositions and final validation in the
+[round1 overview](revisions/round1_revision_overview.md), including the specific
 author-closed C02/C09 calibration and numerical-evidence limitations. Closure does not certify
 missing calibration or numerical-error estimates. The original
 production labels and outputs remain authoritative. New profile filters and quality metrics
@@ -198,3 +199,8 @@ C15 revised manuscript figures: `python scripts/prepare_revision_figures.py` aft
 figure-copy steps. This keeps the full-range constraint views, adds acceptance zooms, annotates
 constant transmission, and renders independent survey histories as vector PDF. Existing
 all-campaign companion artifacts remain unchanged. The detailed survey is in the appendix.
+
+C06 offline acquisition sensitivity: `OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 python scripts/analyze_revision_scaling.py`.
+This evaluates frozen models without new campaigns. Complete all evidence-generation steps before
+C14/C15 presentation regeneration and the final LaTeX build. C07 records non-adoption of new controls.
+Funding and acknowledgments remain for the author to supply; the manuscript is not declared submission-ready.

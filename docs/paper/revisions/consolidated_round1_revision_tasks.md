@@ -13,7 +13,7 @@
 - [Task 220: convergence comment withdrawn](../../exec-plans/completed/TASK_220_withdraw_convergence_review_comment.md) and [Task 221: convergence study already completed](../../exec-plans/completed/TASK_221_record_completed_convergence_study.md).
 - [Task 222: current Reviewer 2 filenames](../../exec-plans/completed/TASK_222_match_reviewer2_document_names.md).
 
-The reviewer documents assess manuscript revision `fe459f2`; this consolidation uses their current round1 versions, including Reviewer 2's later corrections. Reviewer 1's older request for a new numerical-convergence study is superseded by the author clarification recorded in Tasks 220–221. The convergence work is **already complete**; citation, settings equivalence and uncertainty reporting remain pending under C09. Neither review's recommendation is thereby automatically resolved.
+The reviewer documents assess manuscript revision `fe459f2`; this consolidation uses their current round1 versions, including Reviewer 2's later corrections. Reviewer 1's older request for a new numerical-convergence study is superseded by the author clarification recorded in Tasks 220–221. The author reports prior convergence work, but C09 closes with resolution correspondence and an explicit absence of a traceable numerical-error bound. Neither review's recommendation is thereby automatically resolved.
 
 Task status is recorded within each section; unchecked items remain open. P0 identifies central scientific revisions, P1 supporting scientific analysis/documentation, and P2 presentation or response preparation. Work categories distinguish analysis of existing records, manuscript changes and conditional new tracking.
 
@@ -29,7 +29,7 @@ Keep the original campaign outputs, physical validation, seeds, budgets, precisi
 
 | Issue | Source requests | Consolidated treatment |
 |---|---|---|
-| Numerical convergence | Reviewer 1 originally requested new resolution calculations; Reviewer 2 withdrew that request after author clarification. | Underlying study completed. Document the existing evidence under C09; do not schedule another convergence campaign. |
+| Numerical convergence | Reviewer 1 originally requested new resolution calculations; Reviewer 2 withdrew that request after author clarification. | Author-closed under C09: document published resolution correspondence and the missing numerical-error bound; no new campaign adopted. |
 | Hypervolume | Reviewer 1 emphasizes reference-point-independent set comparisons; Reviewer 2 also requests post-hoc HV and sensitivity. | C03 retains both analysis requests, with new metadata and clear post-hoc labels. Preserve the original endpoint. Do not automatically restore the repetitive zero-HV panels removed by the author; decide main-text versus supporting placement from the usefulness of the new analysis. |
 | Corrected acquisition and new baselines | Reviewer 2 explicitly requests reruns/new arms; Reviewer 1 permits narrower claims in some cases. | C06–C07 retain the BO and space-filling baseline requests. New MOGA/NSGA-II simulations are excluded by the author-defined scope, and that non-adoption must be explained in the response. New performance claims for changed BO methods still require new evidence. |
 | MOGA comparison | Reviewer 2 requests new NSGA-II/MOGA benchmarks and reevaluation of a published MOGA setting. | The MOGA study is already published. Cite and discuss those results only; do not schedule new MOGA-related tracking. State the MOBO focus in the manuscript and explain this scope decision to the reviewers. |
@@ -296,12 +296,14 @@ Add the appropriate existing JINST and JKPS citations to this passage when editi
 
 ### C17. Validate the revision and prepare both response letters
 
+**Status:** Completed for the adopted revision scope. See [final overview](round1_revision_overview.md); scientific limitations and author-deferred funding remain explicit.
+
 **Sources:** Both reports; Reviewer 1 R12; Reviewer 2 R17.
 
-- [ ] Prepare `reviewer1_round1_response.md` and `reviewer2_round1_response.md` under `docs/paper/reviews/`, mapping every major/minor comment to C tasks, manuscript changes, evidence or a reasoned non-adoption.
-- [ ] Include the completed-convergence clarification in the response to the older Reviewer 1 request. Explain the author decision not to adopt Reviewer 2's new MOGA/NSGA-II benchmarks and MOGA-setting reevaluation because the current paper focuses on MOBO and the MOGA work is already published. Do not imply reviewer withdrawal or agreement; other BO/broader-robustness requests remain separately open.
-- [ ] Produce the requested revision diff against the reviewed manuscript baseline, separating new code/results from narrative edits.
-- [ ] Regenerate affected assets, build JINST, inspect the PDF and run focused checks after artifact generation finishes. Verify preserved historical evidence and traceability of new derived outputs and simulation variants.
+- [x] Prepare `reviewer1_round1_response.md` and `reviewer2_round1_response.md` under `docs/paper/reviews/`, mapping every major/minor comment to C tasks, manuscript changes, evidence or a reasoned non-adoption.
+- [x] Include the completed-convergence clarification in the response to the older Reviewer 1 request. Explain the author decision not to adopt Reviewer 2's new MOGA/NSGA-II benchmarks and MOGA-setting reevaluation because the current paper focuses on MOBO and the MOGA work is already published. Do not imply reviewer withdrawal or agreement; other BO/broader-robustness requests have explicit author-directed non-adoption dispositions.
+- [x] Produce the requested revision diff against the reviewed manuscript baseline, separating new code/results from narrative edits.
+- [x] Regenerate affected assets, build JINST, inspect the PDF and run focused checks after artifact generation finishes. Verify preserved historical evidence and traceability of new derived outputs and simulation variants.
 
 **Done when:** Both reviewers' comments are accounted for, the manuscript/figures are consistent and the remaining disagreements are visible to the author/editor. Completing a checklist is not a guarantee of journal acceptance.
 
@@ -340,7 +342,7 @@ The mappings below retain every original task group. A mapping records where a r
 | R12 | C15 |
 | R13 | C15, C16 |
 | R14 | C01, C08, C14, C16 |
-| R15 | C05, C09; convergence already done, documentation pending |
+| R15 | C05, C09; author-closed with numerical-error-bound limitation |
 | R16 | C13, C14, C16 |
 | R17 | C17 |
 

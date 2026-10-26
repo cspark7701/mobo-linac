@@ -1,0 +1,31 @@
+{
+  "original_production_files_hash_verified": 1328,
+  "cited_bibliography_keys": 49,
+  "included_figures": 9,
+  "reviewer1_comments_mapped": 15,
+  "reviewer2_comments_mapped": 25,
+  "new_simulations": 0,
+  "author_pending": "Funding and acknowledgments",
+  "baseline": "fe459f2c08ef5c1a992d65a0a26288c5926ae104",
+  "focused_tests": {
+    "passed": 79,
+    "duration_seconds": 102.0
+  },
+  "pdf": {
+    "pages": 30,
+    "build": "latexmk successful",
+    "undefined_references": false,
+    "overfull_boxes": false,
+    "visual_review_pages": [
+      1,
+      14,
+      23,
+      26,
+      27
+    ],
+    "remaining_warnings": [
+      "publisher hyperref pagecolor option",
+      "font size substitution"
+    ]
+  }
+}

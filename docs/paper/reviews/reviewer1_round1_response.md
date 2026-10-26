@@ -1,95 +1,89 @@
-# Reviewer 1 — round1 response draft
+# Response to Reviewer 1 — round1
 
-**Status:** Partial response covering C01, C02, C09 and C12. Other comments remain tracked in the consolidated revision list; this is not a completed submission response.
+**Status:** Complete point-by-point response for author review, against manuscript `fe459f2c08ef5c1a992d65a0a26288c5926ae104`. This is not a claim of journal acceptance or submission readiness. Funding/acknowledgments remain author-deferred.
 
-## Prior work, paper scope and MOGA comparison (C12)
+The revision uses the retained production simulations. At the author's explicit direction, no new MOGA/NSGA-II simulations, published-MOGA-setting reevaluations, corrected-acquisition campaigns, constrained-scalarized/Sobol controls or expanded error-model campaigns were run. C02 and C09 are closed as scope dispositions with missing calibration/error-bound evidence retained as limitations. The responses below distinguish changed analysis from unperformed validation requests. Original reviewer reports and simulation evidence remain unchanged.
 
-The revised Introduction explicitly states that this paper investigates MOBO by comparing its constraint-aware and unconstrained variants with scalarized BO. It cites the completed JINST MOGA optimization, the JKPS error-analysis study and the separate NAPAC2025 BO/MOGA publication. ICABU contributions are identified as presentations.
+Figure/table locations refer to their current captions and section names because the revised survey is now in an appendix. The [revision overview](../revisions/round1_revision_overview.md) links the baseline diff and separate analysis-change inventory.
 
-We distinguish the JINST abstract summary from its section 4.3 tracked setting, and identify differences in controls, objective definitions, acceptance limits and source evidence. The published results provide context for the physical trade-offs. The manuscript does not infer a matched-budget MOGA ranking or computational speedup.
+## Major comments
 
-The author has elected not to adopt new MOGA/NSGA-II benchmarks or fresh tracking of the published MOGA setting: those simulations fall outside the present MOBO study, and the MOGA study is already published. This is an explicit scope decision, not a claim that the requested runs were performed or that the reviewer has accepted their omission. The revised claims are limited accordingly.
+### M1. Pareto quality and convergence
 
-**Locations:** Introduction; Discussion, Relation to previous KLS injector studies; C12 evidence report. Related acceptance, phase and numerical-evidence limitations are documented separately under C01, C02 and C09.
+Added additive epsilon, IGD+, bidirectional coverage, checkpoint histories, relaxed-target attainment and post-hoc reference-sensitivity hypervolume. The empirical reference is identified and a leave-group-out sensitivity is included; it is not the true Pareto front. Paired effects and a twelve-comparison Holm family replace unsupported universal rankings. The original zero endpoint is preserved as a limitation.
 
-## Engineering acceptance reference (C01)
+**Tasks:** C03/C04. **Manuscript:** Primary comparison; Exploratory front-quality appendix.
 
-We now cite the official Korea-4GSR Technical Design Report, 4GSR-I-DE-TDR-001 (October 2025), section 2.1.4 F and Tables 2.1.4.4/2.1.4.6. The revised constraint table distinguishes its published optimization inequalities from the broader computational profile used for the completed comparison. The production limits are not presented as engineering limits that supersede the TDR.
+**Evidence:** [C03 report](../revisions/evidence/c03_report.md), [C04 report](../revisions/evidence/c04_report.md).
 
-A separate post-hoc reclassification of the retained observations finds two constraint-aware observations and none from either baseline satisfying the TDR optimization inequalities. Both also pass its relative energy-spread specification. This does not certify all beam specifications or downstream injection acceptance, and filtering the archived records does not reproduce adaptive optimization under revised constraints. Original labels, budgets and measured outcomes remain unchanged.
+### M2. Physical acceptance and phase domain
 
-**Locations:** Injector model and optimization problem; constraint table and following acceptance comparison; C01 evidence report with exact TDR pages and source hash.
+The official October 2025 KLS TDR is now the engineering reference. A separate reclassification gives two constrained observations and no baseline observations passing its optimization inequalities; both also pass the relative-spread specification. The broad production profile is explicitly different and is not full injection certification. Absolute ASTRA phases, nominal coordinates and inherited bounds are documented. The author closes the crest-calibration request without a scan: no engineering justification of those unequal windows or calibrated off-crest phases is claimed.
 
-## Phase-domain interpretation (C02)
+**Tasks:** C01/C02/C08. **Manuscript:** Injector model and optimization problem; Limitations.
 
-The archived decks use absolute phases with automatic phasing disabled. The manuscript gives the actual angular windows and nominal coordinates, describes common phase controls for each structure pair, and identifies the unequal percentage-derived windows as inherited search bounds. Prior published off-crest values cannot calibrate the current trajectories. The upper-quarter coverage result is descriptive only. We retain this limitation and do not undertake a crest scan or altered-domain campaign in this revision; algorithm conclusions apply only to the recorded domain.
+**Evidence:** [C01 report](../revisions/evidence/c01_acceptance.md), [C02 report](../revisions/evidence/c02_phase_report.md), [C08 report](../revisions/evidence/c08_report.md).
 
-The author has closed this revision item with these limitations explicitly retained. The original validation request is not represented as fulfilled, and reviewer acceptance of this scope decision is not presumed.
+### M3. Acquisition specification and dimensional smoothing
 
-**Locations:** Methods and Discussion, Limitations; C02 evidence report and consolidated disposition.
+The actual sampled qLogNEHVI constraint weights, model outputs, eight inequalities, raw units, effective noise floor, MC defaults and reference construction are reconciled with saved artifacts and call sites. Offline fixed-model probes quantify unit-sensitive ranking and dimensionless invariance. No corrected physical campaign was run under the author-approved existing-data scope; historical outcomes remain those of the original raw-residual method.
 
-## Numerical-resolution evidence (C09)
+**Tasks:** C05/C06. **Manuscript:** Surrogates and acquisition Methods; Offline sensitivity results.
 
-The manuscript cites Kim et al., JINST 19 P01023 for the reported particle-count scale, cylindrical grid and image-charge treatment. The inspected publication does not supply a refinement-error bound or establish all current Cartesian/transition settings. We retain the author confirmation of prior convergence work without inventing missing quantitative evidence. No repeat convergence study is undertaken. Numerical uncertainty relative to objective differences or narrow feasibility margins remains unquantified; GP regularization is not an error estimate.
+**Evidence:** [C05 report](../revisions/evidence/c05_report.md), [C06 report](../revisions/evidence/c06_report.md).
 
-The author has closed this revision item with these limitations explicitly retained. The original validation request is not represented as fulfilled, and reviewer acceptance of this scope decision is not presumed.
+### M4. Novelty and baselines
 
-**Locations:** Methods and Discussion, Limitations; C09 evidence report and consolidated disposition.
+Cite and distinguish the earlier JINST MOGA, JKPS errors, NAPAC BO/MOGA study and verified ICABU oral presentation. The current paper focuses on the recorded MOBO comparison. The scalarized arm is specifically equal-weight, while the independent multiweight survey has a larger aggregate budget. New constrained-scalarized, Sobol and MOGA controls are not adopted; no advantage over those unrun controls or matched MOGA speedup is asserted.
 
-## Source, geometry and operating-setting interpretation (C08)
+**Tasks:** C07/C12/C16. **Manuscript:** Introduction; primary comparison protocol; prior-study Discussion.
 
-We characterize the actual retained source file rather than assuming an undocumented generator model, and provide complete representative controls, objectives and all constraint margins. Both quadrupoles lie between accelerating structures. Saved trajectories show downstream growth of transverse asymmetry from nearly symmetric source moments, but cannot isolate chromatic, coupling, space-charge or discretization mechanisms. The projected energy spread includes chirp. Transmission and the upper energy bound were unviolated in the sample; neither is removed from validation. No measured nominal-lattice improvement or causal mechanism claim is made. Missing source-generation provenance and the need for controlled calculations for stronger causal claims remain explicit.
+**Evidence:** [C07 report](../revisions/evidence/c07_report.md), [C12 report](../revisions/evidence/c12_prior_work.md).
 
-**Locations:** Beamline and simulation; Interpretation of selected settings; Selected operating settings appendix; C08 supporting records.
+### M5. Numerical fidelity and surrogate adequacy
 
-## Reliability uncertainty, margin convention and error coverage (C10)
+The author previously confirmed completed convergence work and asked to use Kim et al., JINST 19 P01023. Its particle/grid/image-charge settings are compared with the current records, but no traceable refinement-error bound or full solver-transition equivalence was found. C09 is closed with that limitation, not certified as numerical convergence. Separately, all 540 saved models predict their unseen next batch; errors and undercoverage are reported, including boundary subsets and the physical-unit variance-floor distinction. Constant transmission cannot validate loss discrimination.
 
-We now report design-specific exact binomial intervals, objective-ratio changes and all constraint-margin components. The score audit reproduces every retained statistic: one pair of equal scores arises from clipping with equal recorded energy margins, and another pair is equal only after rounding. The revised main table therefore reports feasibility uncertainty, D and the limiting margin rather than treating the score as a physical ranking. The energy margin uses threshold normalization, not the band half-width; physical headroom is provided separately.
+**Tasks:** C09/C11. **Manuscript:** Beamline and simulation; Predictive checks and appendix; Limitations.
 
-We identify each selected run and design in the supporting manifest, explain common random numbers across designs and identical cavity errors within each phase pair, and do not pool trials into a universal reliability estimate. We retain the existing small lattice-jitter scope. The requested RF-amplitude/JKPS/alignment extensions and ambiguous tolerance scan are not performed in this revision; broader machine-reliability or comparative robustness claims are therefore not made. This non-adoption is disclosed rather than represented as satisfying the requested expanded model. A future scan would require an explicit per-channel RMS error table before execution.
+**Evidence:** [C09 report](../revisions/evidence/c09_convergence_report.md), [C11 report](../revisions/evidence/c11_report.md).
 
-**Locations:** Robustness assessment and results; revised robustness table; C10 independent audit and per-design supporting statistics.
+### M6. Reproducible operating settings and physical interpretation
 
-## Predictive surrogate validation (C11)
+Provide all six representative control vectors, objectives and every signed constraint margin, together with source-file moments and sampled trajectories. Both quadrupoles are between accelerating structures. The downstream asymmetry and projected energy chirp are described without causal over-attribution. No primary record matches the nominal vector exactly, so no measured nominal-lattice improvement is claimed. Source-generation provenance and isolated mechanism tests remain unestablished.
 
-We restored every saved pre-proposal model and checked predictions against its next unseen batch, with explicit training-identity exclusion. The manuscript reports undercoverage of nominal Gaussian intervals and diagnostic-boundary performance. Covariance-based and library variance-floor intervals are separated to avoid artificial apparent calibration in small physical units. Constant transmission does not permit validation of loss discrimination. Fitting recovery remains distinct from calibration, and the analysis does not turn model feasibility into a calibrated machine-reliability claim.
+**Tasks:** C08. **Manuscript:** Interpretation of selected settings; operating-settings appendix.
 
-**Locations:** Predictive checks on unseen batches; predictive appendix; C11 per-observation and aggregate evidence.
+**Evidence:** [C08 report](../revisions/evidence/c08_report.md).
 
-## Reproduction and computational cost (C13)
+### M7. Robustness meaning and score
 
-The supporting manifest now links the startup code, executable, static inputs, software, actual budgets, devices and worker settings to the saved campaigns and seed identities. Configuration defaults are distinguished from effective CLI/history settings. We report paired relative durations and an overlap-aware evaluation-interval union; summed parallel worker times are not used as wall-time fractions. The remainder is described as combined model/acquisition/orchestration overhead because the records do not separately time its components. Absolute durations remain outside the manuscript, and no universal speedup or GPU/CPU comparison is claimed.
+Report exact per-design binomial limits, objective means/spreads/ratios and limiting margins. Explain threshold versus energy half-band normalization and retain physical headroom. Independent recalculation reproduces all archived scores; exact ties arise from clipping and equal recorded margins, while another pair only agrees after rounding. The main table reports components instead of a score ranking. Common random numbers, paired-cavity correlations and design identities are explicit; heterogeneous trials are not pooled. Broader error models are not claimed.
 
-**Locations:** Simulation validity and computational comparison; C13 reproduction and timing manifest; paper README.
+**Tasks:** C10. **Manuscript:** Robustness Methods/results and table.
 
-## Baseline matrix and non-adopted controls (C07)
+**Evidence:** [C10 report](../revisions/evidence/c10_report.md).
 
-The revised Methods and supporting matrix identify the actual matched three-method comparison and separate the independently initialized unequal-budget weighting survey. The scalarized baseline is explicitly the equal-weight strategy. At the author's request we retain the existing simulations and do not add constrained scalarized BO, a full-budget Sobol control, a corrected-method campaign or any MOGA run. Therefore no vector-over-constrained-scalarization advantage, BO-over-space-filling advantage or matched MOGA ranking is asserted. These missing controls limit the scope of inference; their requested execution is not claimed complete. Reclassified observations and offline acquisition ranks do not stand in for adaptive campaigns under changed definitions.
+### M8. Paired inference and reproducibility
 
-**Locations:** Primary comparison protocol; C07 comparison matrix and scope report; Discussion limitations.
+Report run-level paired effects, confidence intervals and corrected tests; separate initialization from adaptive search. Code/input/executable identities and actual device, worker and acquisition settings are recorded, distinguishing CLI overrides from defaults. Paired relative cost ratios and overlap-aware evaluation intervals substantiate the speed statement. Unmeasured fitting/acquisition/orchestration overhead remains combined; absolute runtimes and seed identities stay in supporting records.
 
-## Constraint-unit sensitivity and corrected-arm request (C06)
+**Tasks:** C04/C13. **Manuscript:** Primary comparison protocol/results; computational comparison.
 
-We quantify the original physical smoothing scales and evaluate frozen early/middle/late surrogates on common candidate/posterior samples. Equivalent raw-unit representations change acquisition ranks, whereas explicit dimensionless residuals preserve values to numerical precision. The highest-ranked candidate in this limited probe set is unchanged, so we do not overstate the sensitivity result. This is a q=1 offline comparison with an identical unpruned baseline, not production q=8 proposal replay or evidence of improved beam quality. At the author's explicit request we retain existing simulations and do not run a corrected arm. The paper therefore describes the original raw-residual implementation and limits its conclusions accordingly; the requested new physical-performance comparison remains unperformed.
+**Evidence:** [C04 report](../revisions/evidence/c04_report.md), [C13 report](../revisions/evidence/c13_report.md).
 
-**Locations:** Constraint handling and smoothing; Offline sensitivity of constraint smoothing; C06 scales, acquisition values and rank comparisons.
+## Minor comments
 
-## Table populations, labels and units (C14)
+| Comment | Tasks | Response and disposition |
+|---|---|---|
+| 1 | C14 | All survey-case minima now use jointly feasible observations, with a reproducible population check. |
+| 2 | C14 | Method/weighting names replace internal Phase labels and unsupported FEL/operational modes. |
+| 3 | C15 | Full-range constraint plots retain all points and add accepted-region zooms; Pareto views remain scatter-only. |
+| 4 | C10/C14 | The robustness table uses physical labels, readable type, exact feasibility uncertainty and component statistics. |
+| 5 | C12 | The JINST abstract summary is distinguished from its tracked setting; unlike source/acceptance conventions are not interpreted as dominance. |
+| 6 | C16/C17 | Emmerich pages 421–439 are verified from the author-group bibliography. ICABU is cited as an oral presentation. The abstract stays qualitative. Funding/acknowledgments remain explicitly author-deferred, so submission readiness is not claimed. |
+| 7 | C15/C16 | Move detailed survey material to an appendix, shorten plotting explanations and consolidate limitations while retaining the scientific evidence. |
 
-Survey case extrema now use feasible observations consistently with the aggregate table, with explicit population and coordinate-minimum captions. Unsupported operational/FEL labels and internal Phase names are replaced by weighting and method names. Stale reference-point text is removed. Main tables use readable layouts rather than whole-table resizing; units use siunitx, and the robustness table reports the C10 components and uncertainty. Original data and archived tables are preserved.
+## Remaining scientific and author-controlled limits
 
-**Locations:** Primary, survey, weighting-case and robustness tables; C14 derived population audit.
-
-## Figure clarity and survey presentation (C15)
-
-The scalarized survey now shows separate 176-evaluation histories for every weighting, not a concatenated 880-point trajectory. Method colors/markers are consistent and manuscript plots are vector outputs without redundant titles. Full-range constraint panels retain every observation and add transverse acceptance zooms; constant transmission is retained as an explicit count/value/threshold annotation. We do not invent an energy-spread constraint. The detailed unequal-budget survey moves to an appendix. The C03 attainment analyses and C08 representative settings supplement the existing scatter-only Pareto projections, which retain grid lines.
-
-**Locations:** Primary feasibility/constraint figures; exploratory survey appendix; C15 plotting source and input manifest.
-
-## Scientific prose, front matter and deferred acknowledgments (C16)
-
-We center the motivation on storage-ring injection, consolidate limitations, keep plotting conventions in captions and retain the author's qualitative abstract. The exact error amplitudes/sample counts stay in Methods/Results rather than the abstract, as requested by the author. The official ICABU conference record now supports an oral-presentation citation; no proceeding is invented. A verified Clopper–Pearson reference supports the interval calculation. Seven diagnostic channels are distinguished from eight inequalities.
-
-The author will supply funding/acknowledgments later. That visible placeholder and draft-mode switch remain, so this revision is not represented as submission-ready. The harmless pagecolor warning comes from the distributed publisher style, which is left intact. The requested Data availability section is not restored; reproduction identities and instructions are instead provided in Methods/supporting repository material under the author's scope decision.
-
-**Locations:** Abstract, Introduction, Limitations, Conclusions, bibliography and acknowledgments placeholder; C16 disposition report.
+Crest calibration and a quantitative tracking-refinement error bound remain unavailable. New corrected-method, constrained-scalarized, Sobol, broader-jitter and MOGA campaigns were not performed. Source-generation provenance and isolated causal mechanisms remain unestablished. These scope decisions may still concern the reviewer; neither reviewer agreement nor acceptance is presumed. Funding/acknowledgments must be supplied before submission.
