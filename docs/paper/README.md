@@ -143,7 +143,7 @@ retain every individual case. Figures 2 and 5 remain scatter-only Pareto views.
 ## Round1 evidence and paired analyses
 
 The consolidated revision list records completion of C01, C03, C04, C05 and C12, plus the specific
-remaining calibration/source-evidence items under C02 and C09. The original
+author-closed C02 phase-calibration limitation and remaining C09 source-evidence gap. The original
 production labels and outputs remain authoritative. New profile filters and quality metrics
 are post hoc, with source hashes, protocols and limitations under `revisions/evidence/`.
 

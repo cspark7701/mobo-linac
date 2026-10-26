@@ -1,6 +1,6 @@
 # Reviewer 1 — round1 response draft
 
-**Status:** Partial response covering C01 and C12. Other comments remain tracked in the consolidated revision list; this is not a completed submission response.
+**Status:** Partial response covering C01, C02 and C12. Other comments remain tracked in the consolidated revision list; this is not a completed submission response.
 
 ## Prior work, paper scope and MOGA comparison (C12)
 
@@ -19,3 +19,11 @@ We now cite the official Korea-4GSR Technical Design Report, 4GSR-I-DE-TDR-001 (
 A separate post-hoc reclassification of the retained observations finds two constraint-aware observations and none from either baseline satisfying the TDR optimization inequalities. Both also pass its relative energy-spread specification. This does not certify all beam specifications or downstream injection acceptance, and filtering the archived records does not reproduce adaptive optimization under revised constraints. Original labels, budgets and measured outcomes remain unchanged.
 
 **Locations:** Injector model and optimization problem; constraint table and following acceptance comparison; C01 evidence report with exact TDR pages and source hash.
+
+## Phase-domain interpretation (C02)
+
+The archived decks use absolute phases with automatic phasing disabled. The manuscript gives the actual angular windows and nominal coordinates, describes common phase controls for each structure pair, and identifies the unequal percentage-derived windows as inherited search bounds. Prior published off-crest values cannot calibrate the current trajectories. The upper-quarter coverage result is descriptive only. We retain this limitation and do not undertake a crest scan or altered-domain campaign in this revision; algorithm conclusions apply only to the recorded domain.
+
+The author has closed this revision item with these limitations explicitly retained. The original validation request is not represented as fulfilled, and reviewer acceptance of this scope decision is not presumed.
+
+**Locations:** Methods and Discussion, Limitations; C02 evidence report and consolidated disposition.

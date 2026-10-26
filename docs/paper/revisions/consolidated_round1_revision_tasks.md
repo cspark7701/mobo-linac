@@ -79,16 +79,16 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C02. Justify phase windows in physical units
 
-**Status:** Partially addressed: absolute phase convention, recorded bounds, coupling and sampled coverage are verified in [C02 evidence](evidence/c02_phase_report.md). Physical crest calibration and engineering interval justification remain open. No revised domain was adopted.
+**Status:** Closed by author scope decision (2026-10-26), with limitations retained. The author closes C02 with the historical absolute-phase domain retained. No calibrated crest, engineering tolerance or alternative-domain ranking is claimed. This is a reasoned non-adoption of the remaining validation request, not evidence that the missing validation has been performed.
 
 **Sources:** Reviewer 1 M2/R1; Reviewer 2 M2/R3.
 
-- [ ] Establish the crest or other chosen physical phase reference for the gun and structure pairs from existing evidence or a separately planned scan.
-- [ ] Report nominal and representative phases relative to that reference and justify each interval in degrees, including why phases are coupled within each pair.
+- [ ] **Not adopted in this revision:** Establish the crest or other chosen physical phase reference for the gun and structure pairs from existing evidence or a separately planned scan.
+- [ ] **Not adopted in this revision:** Report nominal and representative phases relative to that reference and justify each interval in degrees, including why phases are coupled within each pair.
 - [x] Assess the effect of the broad ACC3/4 domain. A restricted-data reanalysis can describe sampled coverage but cannot, by itself, demonstrate how an adaptive algorithm would behave when rerun in a different domain.
-- [ ] If a revised domain is adopted, define the matched rerun protocol before execution. Keep historical bounds and campaigns available under their original definitions.
+- [ ] **Not adopted in this revision:** If a revised domain is adopted, define the matched rerun protocol before execution. Keep historical bounds and campaigns available under their original definitions.
 
-**Done when:** The intervals have a physical interpretation independent of an arbitrary phase origin, and any domain-sensitivity claim is supported by the appropriate analysis or new tracking.
+**Original scientific completion criterion (not claimed satisfied):** The intervals have a physical interpretation independent of an arbitrary phase origin, and any domain-sensitivity claim is supported by the appropriate analysis or new tracking.
 
 ### C03. Measure feasible-front quality and convergence
 

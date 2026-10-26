@@ -1,7 +1,7 @@
 # C02 — Archived phase-domain audit
 
 ## Status
-Partially addressed from existing evidence. Recorded intervals, pair coupling and sampled domain coverage are verified. Physical crest calibration and an engineering justification of the unequal angular windows remain unresolved. No new tracking or optimization was performed, and no revised domain was adopted.
+Closed by explicit author instruction on 2026-10-26, with the unresolved scientific limitations retained. The author closes C02 with the historical absolute-phase domain retained. No calibrated crest, engineering tolerance or alternative-domain ranking is claimed. Closure is administrative scope disposition, not new validation evidence.
 
 ## Reproduction and evidence
 Run `/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/bin/python docs/paper/revisions/evidence/c02_audit.py` from any directory. The script reads all 30 primary campaign configurations, 4,800 evaluation records and their archived pre-execution ASTRA input decks. Derived results are in [c02_phase_audit.json](c02_phase_audit.json); source paths and configuration SHA-256 values are recorded there. It reads one initial-distribution copy per campaign and the selected audit representatives. It does not mutate production files.
@@ -28,9 +28,9 @@ Eight equal-width bins partition the recorded interval. All observations in the 
 ## Published phase convention
 The earlier JINST study, [section 4.3 and table 6](https://doi.org/10.1088/1748-0221/19/01/P01023), explicitly gives phases relative to maximum energy gain. This is a different convention from the current absolute ASTRA inputs. Its selected controls and trajectory differ from the present nominal and representatives, so its tabulated phases cannot calibrate current off-crest values by subtraction. The prior paper's paired phase variables support continuity of the chosen control architecture; they do not physically justify the present unequal angular widths.
 
-## Remaining closure requirements
+## Evidence needed for stronger future claims
 1. Supply the archived nominal/reference phase-scan calibration, or separately plan a physical scan with the full tracking model and fixed upstream conditions. Identify whether the reference maximizes energy or minimizes energy spread and how paired cavities are treated.
 2. Justify chosen angular widths in terms of that calibration and accepted beam transport. This is presently absent from the inspected records.
 3. If narrower bounds are adopted, define matched reruns before execution. Filtering the current data cannot substitute for new adaptive searches in that domain.
 
-The manuscript-ready [c02_phase.tex](c02_phase.tex) corrects the phase interpretation and reports the verified domain. It does not claim the unresolved scientific justification is complete.
+The manuscript-ready [c02_phase.tex](c02_phase.tex) corrects the phase interpretation and reports the verified domain. It does not claim the unresolved scientific justification is complete. These stronger claims are outside the closed revision scope.
