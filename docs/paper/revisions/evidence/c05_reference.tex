@@ -1,0 +1,14 @@
+% C05 replacement for the acquisition-reference explanation.
+The acquisition reference is recomputed before each MOBO proposal from all
+valid observations, including physically infeasible observations. In negated
+model coordinates it is
+\begin{equation}
+ r_{\mathrm{acq},m}=\min_i y_{im}
+ -0.05\left(\max_i y_{im}-\min_i y_{im}+10^{-8}\right).
+\end{equation}
+The additive safeguard is applied numerically in each recorded output unit.
+All 360 saved MOBO reference vectors agree with this rule applied to their
+saved training sets. The noisy acquisition receives the complete valid
+baseline before posterior-based pruning; recorded nominal feasibility is not
+used to pre-filter that baseline. This adaptive reference steers acquisition
+and remains distinct from the frozen reporting reference.

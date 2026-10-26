@@ -1,0 +1,19 @@
+% C05 insertion after the requested physical-noise equation and model count.
+The fixed-noise expression specifies the requested variance in each output's
+recorded units. The outcome transform divides it by the square of the observed
+standard deviation, and the float64 likelihood additionally enforces a minimum
+variance of $10^{-6}$ in the transformed coordinates. Outputs with observed
+standard deviation below $10^{-8}$ are centered without variance scaling.
+Transmission is constant in the primary data: its requested variance is
+$10^{-24}$, its transform scale is one, and its saved effective likelihood
+variance is $10^{-6}$. Thus not every channel has unit-variance transformed
+observations, and the requested physical variance need not equal the effective
+likelihood variance.
+
+There are ten independent GPs in constraint-aware MOBO: three objective
+models and seven diagnostic models. The energy diagnostic supplies both energy
+inequalities. Across the saved primary models, 1,714 constraint-aware channel
+fits completed with L-BFGS and 86 used Adam recovery; the corresponding counts
+were 535 and five for unconstrained MOBO, and 180 and zero for scalarized BO.
+No saved fit used a restored-prior fallback. These are fitting outcomes rather
+than simulation failures or candidate-proposal fallbacks.

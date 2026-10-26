@@ -1,0 +1,335 @@
+{
+  "botorch": "0.17.0",
+  "gpytorch": "1.15.2",
+  "torch": "2.5.0+cu124",
+  "campaigns": 30,
+  "saved_model_artifacts": 540,
+  "verified_acquisition_references": 360,
+  "completion_verified_sources": [
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/proposal_history.json",
+      "sha256": "841c76f42e0023ad705264ca3887311e6b8ac8025811725643ab03d419054161"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/proposal_history.json",
+      "sha256": "9fe044f3d3785345b50d5debcffd46a947afb4cbebdee90639daa8dcc9fa80f5"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/proposal_history.json",
+      "sha256": "4dfa37d50ba841a2dcd6e940f54738da9238279ed215fe50e51afc5ed360b6db"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/proposal_history.json",
+      "sha256": "6f26c14a3f15f38d7459580ea4fa080fbe058fcfc0465154a5d2126e9836e7ef"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/proposal_history.json",
+      "sha256": "438be1b22def43e276ea5658a0edfbd628bbf68e4039524a745b5971a068475d"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/proposal_history.json",
+      "sha256": "04d65466ed2cc45612c4ae6941acc368f24ecd3050416536e12669655ea09b4c"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/proposal_history.json",
+      "sha256": "0dae38f7adfb7b0a79ca18195535e0c8cf6c99cfd1c3fd7cb7f76864e6a38af1"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/proposal_history.json",
+      "sha256": "5debf606044c85be1636781d7547e99a4e3d8a54d21a95cf981a798465450d3f"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/proposal_history.json",
+      "sha256": "5ce6b4fa72e3771670a5e195662fc6801e6c0fdb128bf2ba242200bf0259c19e"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/proposal_history.json",
+      "sha256": "58971ab8bb245b52cd63d60d0c9b127d66a471aa3404e215bb9d4f7fb2517a1b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/proposal_history.json",
+      "sha256": "7f91d5a2fa8c453209d53c5aaa5826b352fe1b97273080fdce16ac9242b7f7e4"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/proposal_history.json",
+      "sha256": "f7fbebd0ef1b1a6adcdc0648e4b12afeebf899a0bea606de3d4ea58ec5d1f616"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/proposal_history.json",
+      "sha256": "b14fcfabf06d9a083e560baa8c3e9a5a95fbb0bf56f9b4e00df4573904375be6"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/proposal_history.json",
+      "sha256": "edc1e75017d7382d0fb29e7bef5484d7d6562d4afdf4a6d0de7f2654a79c02a0"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/proposal_history.json",
+      "sha256": "501278c8bf681a5be4eacc87e2eef1f644786a7103fa7f8be0ff188fa2c316e0"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/proposal_history.json",
+      "sha256": "85ca64a8c4c903cd19f0327dd88b5864cb9944d1e6d1404a9311845d25d890dd"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/proposal_history.json",
+      "sha256": "c5fd6b6232d470968126b69b332115620933fc2823605ca9d0d2e3c723ae01c2"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/proposal_history.json",
+      "sha256": "e1b4759b96a46f85189b33ce790e17e4f09e650847991d9096568ef5edadee4f"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/proposal_history.json",
+      "sha256": "6e9da5fdaadb8ff6e26367a785e639e93ab62d1b95c13765c0bb2f648fb07d53"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/proposal_history.json",
+      "sha256": "744d9aa099f7cea1f320cb5b15540243f1e9bcd40889c5e664da4b0bd0f9b248"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/proposal_history.json",
+      "sha256": "43c31468e6fe19c4a246cc24509cb6af8b13f233410191d6ff4e61928830d23f"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/proposal_history.json",
+      "sha256": "11cd565a2e399202c0dd7b4298193ba87fc3ac447af52892b8607314add07225"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/proposal_history.json",
+      "sha256": "e1de166afe737ab0b584ba147de2620f13841912c877f5f421dabcc0144c04e3"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/proposal_history.json",
+      "sha256": "fa1c9624e3cfc0ffbdacd1d1587e4717185d2f5396e70337a4d1b499ba9a3a6a"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/proposal_history.json",
+      "sha256": "deebcb45f48b1f4a315e46fd43c7e2df11a9c1b75d05eb6029a2fe93ddcdfcb7"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/proposal_history.json",
+      "sha256": "80cc51c65460fc7383ebf9a1cbc7b78c168543d6222e703be946a6d61e75d209"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/proposal_history.json",
+      "sha256": "8dd6fe63381462a1335b412459e00fd6cb7d3e1672233986ec8decc2ca46c913"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/proposal_history.json",
+      "sha256": "e0a18d5bde7edf5719969063c9e768eea1fdacaec04c201065b6e602a565b9cc"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/proposal_history.json",
+      "sha256": "4ff91ec286fceca9a10d2a26ba77c759f24416725dbdccc03999509ff7053112"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/proposal_history.json",
+      "sha256": "3b1ebf4e4835f7ab860c267860bb8f42099e23f3777c1e08bd0a912d1e86ff0e"
+    }
+  ],
+  "saved_channel_fits": 2520,
+  "proposal_batches": 540,
+  "proposal_methods": {
+    "primary": 540
+  },
+  "fit_status_by_algorithm": {
+    "constrained_qlognehvi:adam": 86,
+    "constrained_qlognehvi:lbfgs": 1714,
+    "scalarized_bo:lbfgs": 180,
+    "unconstrained_qlognehvi:adam": 5,
+    "unconstrained_qlognehvi:lbfgs": 535
+  },
+  "acquisition_defaults_inferred_from_matching_installed_version": {
+    "qLogNEHVI_mc": [
+      128
+    ],
+    "qLogNEI_mc": [
+      512
+    ],
+    "eta": 0.001,
+    "fat": true,
+    "tau_relu": 1e-06,
+    "mobo_tau_max": 0.001,
+    "scalar_tau_max": 0.01,
+    "prune_baseline": true
+  },
+  "mean_only_channels": {
+    "transmission": 180
+  },
+  "effective_noise_floor_double": 1e-06,
+  "source_files": [
+    {
+      "path": "/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/lib/python3.11/site-packages/botorch/acquisition/acquisition.py",
+      "sha256": "d9182ef00e8b95754f65f92a393b95a06b5d61ec89bd595c519c932ffc0559fe"
+    },
+    {
+      "path": "/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/lib/python3.11/site-packages/botorch/acquisition/logei.py",
+      "sha256": "9fcaa083fb034f607701c25913f2b1333d674e208bd2c08a894079b9539be34b"
+    },
+    {
+      "path": "/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/lib/python3.11/site-packages/botorch/acquisition/multi_objective/logei.py",
+      "sha256": "458b9638e7b03fb311427df7d337950ae10191fa879d50f0b76516648a13d7d0"
+    },
+    {
+      "path": "/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/lib/python3.11/site-packages/botorch/utils/objective.py",
+      "sha256": "7edf10cd9418aa03927a0bf73abec32f3397f6fa5346273256e5fbcebe14d452"
+    },
+    {
+      "path": "/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/lib/python3.11/site-packages/botorch/utils/safe_math.py",
+      "sha256": "daabde65d69f8cde677a32d42c99165f01f16261e66a069146e4a0f8eb32c968"
+    },
+    {
+      "path": "src/mobo_linac/acquisition/mobo.py",
+      "sha256": "ba477c0283e2c33ceb6451a93adf0a80c4f48dc577c152b1553fc87abe5a4570"
+    },
+    {
+      "path": "src/mobo_linac/campaigns/strategies.py",
+      "sha256": "44eaff76da9e50aca4c6757d6e90974a2fe2983c8132fe9833f4a559f95d9a75"
+    },
+    {
+      "path": "src/mobo_linac/constraints.py",
+      "sha256": "5073c3f728930a9c2c489da7949aa8b221cd669415cf1baf45eb598a797f5c9f"
+    },
+    {
+      "path": "src/mobo_linac/metrics/hypervolume.py",
+      "sha256": "2e2069530446e5c5c0993633c29976c97333b83a940c16a2d6a80af7507afd8a"
+    },
+    {
+      "path": "src/mobo_linac/models/artifacts.py",
+      "sha256": "7403b937ff4d277b597ec93d34458f3e272da9f710f12380de3ba4c4eabc7552"
+    },
+    {
+      "path": "src/mobo_linac/models/gp.py",
+      "sha256": "39b2e12b85690b9e1989e071dcfeb6c0932afa77e0ad2ecb9d7213c6c135fd0f"
+    },
+    {
+      "path": "src/mobo_linac/models/pipeline.py",
+      "sha256": "60e3bb7ae3d14131ccfb362ace716c46b088aecbb806632a5ee6564118937a49"
+    }
+  ],
+  "limitations": [
+    "Acquisition objects and sampler base samples were not persisted; sample counts, smoothing and pruning are reconstructed from explicit call sites and the installed BoTorch version matching all archived environment files. Actual retained baseline cardinalities cannot be recovered from these artifacts.",
+    "Saved config.json includes nominal campaign defaults; actual budgets and workers must be read from campaign_manifest.csv and proposal history.",
+    "No production artifacts are changed and no simulations or surrogate fitting are performed."
+  ]
+}

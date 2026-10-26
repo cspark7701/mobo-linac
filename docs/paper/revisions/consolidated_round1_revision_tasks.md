@@ -116,14 +116,16 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C05. Reconcile the acquisition and GP description with execution
 
+**Status:** Completed. [C05 audit](evidence/c05_report.md) verifies all saved model/proposal artifacts and distinguishes directly recorded evidence from reconstructed library defaults. Manuscript Methods corrected; unsaved sampler draws/pruned subsets are disclosed.
+
 **Sources:** Reviewer 1 M3/M8, R4; Reviewer 2 M3a, minor 8, R2/R10 and part of R15.
 
-- [ ] Correct the batch acquisition equation or label it schematic, explaining candidate-wise constraints, baseline feasibility and logarithmic relaxations.
-- [ ] Audit executed sampler/sample counts, pruning, smoothing parameters, precision, fitting recovery and effective noise against saved configurations/artifacts.
-- [ ] Report mean-only handling of constant/small-variance channels and distinguish requested training variance from effective likelihood floors, including the inspected transmission example.
-- [ ] Explain the acquisition reference's observation basis, inclusion of infeasible observations, negated/model-space calculation and update rule. Keep it distinct from reporting references.
-- [ ] Calculate transition behavior using the actual archived feasibility function. Reviewer 2's illustrative ordinary-logistic values must not be assumed exact for BoTorch's fat-tailed indicator.
-- [ ] Count models and inequalities correctly: independent objective and diagnostic outputs are not one GP per inequality; the shared energy channel supplies two bounds.
+- [x] Correct the batch acquisition equation or label it schematic, explaining candidate-wise constraints, baseline feasibility and logarithmic relaxations.
+- [x] Audit executed sampler/sample counts, pruning, smoothing parameters, precision, fitting recovery and effective noise against saved configurations/artifacts.
+- [x] Report mean-only handling of constant/small-variance channels and distinguish requested training variance from effective likelihood floors, including the inspected transmission example.
+- [x] Explain the acquisition reference's observation basis, inclusion of infeasible observations, negated/model-space calculation and update rule. Keep it distinct from reporting references.
+- [x] Calculate transition behavior using the actual archived feasibility function. Reviewer 2's illustrative ordinary-logistic values must not be assumed exact for BoTorch's fat-tailed indicator.
+- [x] Count models and inequalities correctly: independent objective and diagnostic outputs are not one GP per inequality; the shared energy channel supplies two bounds.
 
 **Done when:** A traceable methods/settings audit reproduces what was executed and distinguishes implementation facts from inferred defaults or reviewer illustrations.
 

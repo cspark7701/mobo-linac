@@ -1,0 +1,50 @@
+% C05 replacement for the acquisition subsection's equation and explanation.
+% Integrate before the unchanged scalarized-baseline paragraph.
+Let $\boldsymbol{\xi}$ be a joint posterior draw at the observed baseline and
+at the proposed batch $\mathbf{X}$. Define the feasible sampled baseline
+$\mathcal{P}_{\mathrm{feas}}(\boldsymbol{\xi}_n)$ and the feasible candidate
+subset $\mathcal{F}(\boldsymbol{\xi},\mathbf{X})$ by requiring all eight
+inequalities at each individual point. The ideal constrained noisy
+hypervolume-improvement criterion is
+\begin{equation}
+ \alpha_{\mathrm{ideal}}(\mathbf{X})=
+ \log\mathbb{E}_{\boldsymbol{\xi}}\!\left[
+ \mathrm{HVI}\!\left(\mathcal{F}(\boldsymbol{\xi},\mathbf{X})\mid
+ \mathcal{P}_{\mathrm{feas}}(\boldsymbol{\xi}_n),\mathbf{r}_{\mathrm{acq}}\right)
+ \right].
+ \label{eq:qlognehvi}
+\end{equation}
+This expression defines the ideal target; the implementation uses BoTorch's
+qLogNEHVI approximation~\cite{Daulton2021,Ament2023}. It evaluates batch
+hypervolume contributions by inclusion--exclusion and applies feasibility
+weights to each candidate participating in a contribution, rather than
+multiplying the entire batch improvement by one feasibility factor. Sampled
+baseline feasibility determines the baseline front. For each sampled candidate,
+the weight is $\prod_{k=1}^{8}h(-c_k/\tau_c)$, where $h$ is BoTorch's
+fat-tailed sigmoid and $\tau_c=10^{-3}$. Positive improvements and extrema are
+also smoothed and combined in log space, with $\tau_{\mathrm{ReLU}}=10^{-6}$
+and $\tau_{\max}=10^{-3}$. The unconstrained variant omits the diagnostic
+constraints. The separately available analytical Gaussian probability of
+feasibility is a diagnostic; it is not substituted for these sampled weights.
+
+The residuals are expressed in their recorded physical units: metres, radians,
+electron-volts and transmission fraction, without threshold normalization.
+Thus $\tau_c$ corresponds to \SI{1}{\milli\metre},
+\SI{1}{\milli\radian}, \SI{0.001}{\electronvolt} and a transmission
+fraction of 0.001 in their respective channels. These are scale parameters,
+not equal physical transition widths. At a residual of zero the indicator is
+0.5; at residuals $-\tau_c$ and $+\tau_c$ it is approximately 0.8089 and
+0.1911, respectively. For a \SI{1}{\milli\metre} beam-size limit,
+a size of zero therefore receives an indicator of 0.8089, while a size of
+\SI{2}{\milli\metre} receives 0.1911. This unit dependence limits the
+interpretation of constraint weighting; no residual scaling is changed when
+analysing the recorded campaigns.
+
+The executed call sites use baseline pruning and BoTorch's default normal
+Sobol samplers: 128 posterior samples for qLogNEHVI and 512 for scalarized
+qLogNEI. These counts and the smoothing constants are reconstructed from the
+call sites and the matching archived BoTorch version, because acquisition
+objects and sampler base draws were not saved. The model dimension and baseline
+sizes remain below the Sobol engine's dimension limit. Scalarized qLogNEI uses
+$\tau_{\max}=10^{-2}$ and $\tau_{\mathrm{ReLU}}=10^{-6}$. These posterior
+sample counts differ from the 1,024 raw candidate-initialization samples.

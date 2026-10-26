@@ -315,7 +315,7 @@ retried, so every budget slot corresponds to exactly one simulation attempt.
 \subsection{Surrogate models}
 Each objective is modelled by an independent GP~\cite{Rasmussen2006} with a constant mean and a
 scaled Mat\'ern-5/2 kernel with automatic relevance determination over the six inputs, which are
-normalized to the unit cube; outputs are standardized. The models are implemented in
+normalized to the unit cube; outputs are centered and, when their observed variance permits, scaled. The models are implemented in
 BoTorch~\cite{Balandat2020} and GPyTorch~\cite{Gardner2018}, and the kernel hyperparameters are
 fitted by maximizing the exact marginal likelihood. Because ASTRA is deterministic for a fixed
 input, the observation noise is not inferred but fixed to
@@ -327,30 +327,79 @@ for output $m$, which keeps the kernel matrices well conditioned without smoothi
 constraint-aware optimization, each of the seven diagnostics is modelled by a further GP of the
 same form, and all models are combined in one multi-output model with independent outputs.
 
+% C05 insertion after the requested physical-noise equation and model count.
+The fixed-noise expression specifies the requested variance in each output's
+recorded units. The outcome transform divides it by the square of the observed
+standard deviation, and the float64 likelihood additionally enforces a minimum
+variance of $10^{-6}$ in the transformed coordinates. Outputs with observed
+standard deviation below $10^{-8}$ are centered without variance scaling.
+Transmission is constant in the primary data: its requested variance is
+$10^{-24}$, its transform scale is one, and its saved effective likelihood
+variance is $10^{-6}$. Thus not every channel has unit-variance transformed
+observations, and the requested physical variance need not equal the effective
+likelihood variance.
+
+There are ten independent GPs in constraint-aware MOBO: three objective
+models and seven diagnostic models. The energy diagnostic supplies both energy
+inequalities. Across the saved primary models, 1,714 constraint-aware channel
+fits completed with L-BFGS and 86 used Adam recovery; the corresponding counts
+were 535 and five for unconstrained MOBO, and 180 and zero for scalarized BO.
+No saved fit used a restored-prior fallback. These are fitting outcomes rather
+than simulation failures or candidate-proposal fallbacks.
+
+
 \subsection{Acquisition functions}
 \label{sec:acquisition}
-Let $\mathcal{D}_n = \{(\mathbf{x}_i, \mathbf{y}_i)\}_{i=1}^{n}$ be the valid observations, with
-$\mathbf{y}_i$ the negated objectives, and let $\mathbf{X} = (\mathbf{x}_1', \dots, \mathbf{x}_q')$
-be a batch of $q$ candidates. The noisy expected hypervolume improvement
-(qNEHVI)~\cite{Daulton2021} integrates the hypervolume improvement of the batch over the joint
-posterior of the observed and the new points. We use its logarithmic form~\cite{Ament2023},
+% C05 replacement for the acquisition subsection's equation and explanation.
+% Integrate before the unchanged scalarized-baseline paragraph.
+Let $\boldsymbol{\xi}$ be a joint posterior draw at the observed baseline and
+at the proposed batch $\mathbf{X}$. Define the feasible sampled baseline
+$\mathcal{P}_{\mathrm{feas}}(\boldsymbol{\xi}_n)$ and the feasible candidate
+subset $\mathcal{F}(\boldsymbol{\xi},\mathbf{X})$ by requiring all eight
+inequalities at each individual point. The ideal constrained noisy
+hypervolume-improvement criterion is
 \begin{equation}
-  \alpha_{q\text{LogNEHVI}}(\mathbf{X}) = \log\, \mathbb{E}_{\boldsymbol{\xi}}\Bigl[
-    \mathrm{HVI}\bigl(\boldsymbol{\xi}(\mathbf{X}) \mid \mathcal{P}(\boldsymbol{\xi}_n), \mathbf{r}_\mathrm{acq}\bigr)
-    \prod_{k=1}^{8} s_\tau\bigl(-c_k(\boldsymbol{\xi})\bigr) \Bigr],
-  \label{eq:qlognehvi}
+ \alpha_{\mathrm{ideal}}(\mathbf{X})=
+ \log\mathbb{E}_{\boldsymbol{\xi}}\!\left[
+ \mathrm{HVI}\!\left(\mathcal{F}(\boldsymbol{\xi},\mathbf{X})\mid
+ \mathcal{P}_{\mathrm{feas}}(\boldsymbol{\xi}_n),\mathbf{r}_{\mathrm{acq}}\right)
+ \right].
+ \label{eq:qlognehvi}
 \end{equation}
-where $\boldsymbol{\xi}$ is a joint posterior sample, $\mathcal{P}(\boldsymbol{\xi}_n)$ the Pareto
-front of the sampled values at the observed points, and $\mathrm{HVI}$ the hypervolume improvement
-over it with respect to the acquisition reference point $\mathbf{r}_\mathrm{acq}$. The expectation
-is estimated with quasi-Monte-Carlo samples. In the constraint-aware variant, the improvement is
-weighted by a smooth feasibility indicator: $c_k \le 0$ denotes satisfaction of the $k$-th
-inequality of table~\ref{tab:constraints} evaluated on the sampled diagnostics, and $s_\tau$ is a
-fat-tailed sigmoid with temperature $\tau = 10^{-3}$. The residuals $c_k$ are passed in SI units
-without threshold normalization. The common temperature therefore has different physical
-transition widths across the beam-size, divergence, bunch-length and energy channels. This
-unit-dependent smoothing is a limitation of the recorded implementation; no residual scaling was
-changed during or after the campaigns. The unconstrained variant omits the product.
+This expression defines the ideal target; the implementation uses BoTorch's
+qLogNEHVI approximation~\cite{Daulton2021,Ament2023}. It evaluates batch
+hypervolume contributions by inclusion--exclusion and applies feasibility
+weights to each candidate participating in a contribution, rather than
+multiplying the entire batch improvement by one feasibility factor. Sampled
+baseline feasibility determines the baseline front. For each sampled candidate,
+the weight is $\prod_{k=1}^{8}h(-c_k/\tau_c)$, where $h$ is BoTorch's
+fat-tailed sigmoid and $\tau_c=10^{-3}$. Positive improvements and extrema are
+also smoothed and combined in log space, with $\tau_{\mathrm{ReLU}}=10^{-6}$
+and $\tau_{\max}=10^{-3}$. The unconstrained variant omits the diagnostic
+constraints. The separately available analytical Gaussian probability of
+feasibility is a diagnostic; it is not substituted for these sampled weights.
+
+The residuals are expressed in their recorded physical units: metres, radians,
+electron-volts and transmission fraction, without threshold normalization.
+Thus $\tau_c$ corresponds to \SI{1}{\milli\metre},
+\SI{1}{\milli\radian}, \SI{0.001}{\electronvolt} and a transmission
+fraction of 0.001 in their respective channels. These are scale parameters,
+not equal physical transition widths. At a residual of zero the indicator is
+0.5; at residuals $-\tau_c$ and $+\tau_c$ it is approximately 0.8089 and
+0.1911, respectively. For a \SI{1}{\milli\metre} beam-size limit,
+a size of zero therefore receives an indicator of 0.8089, while a size of
+\SI{2}{\milli\metre} receives 0.1911. This unit dependence limits the
+interpretation of constraint weighting; no residual scaling is changed when
+analysing the recorded campaigns.
+
+The executed call sites use baseline pruning and BoTorch's default normal
+Sobol samplers: 128 posterior samples for qLogNEHVI and 512 for scalarized
+qLogNEI. These counts and the smoothing constants are reconstructed from the
+call sites and the matching archived BoTorch version, because acquisition
+objects and sampler base draws were not saved. The model dimension and baseline
+sizes remain below the Sobol engine's dimension limit. Scalarized qLogNEI uses
+$\tau_{\max}=10^{-2}$ and $\tau_{\mathrm{ReLU}}=10^{-6}$. These posterior
+sample counts differ from the 1,024 raw candidate-initialization samples.
 
 The weighted-sum baseline fits a single GP to the scalar cost
 $g(\mathbf{x}) = \sum_m w_m f_m(\mathbf{x})/s_m$, where $s_m$ are the reporting scales
@@ -368,9 +417,20 @@ Batches are optimized jointly with multi-start L-BFGS-B~\cite{Byrd1995}: 1,024 q
 raw samples, 10 restarts and at most 200 iterations. If the optimizer fails or returns an invalid
 batch, it is retried with a reduced budget, and as a last resort the batch is drawn from the
 campaign's scrambled Sobol sequence~\cite{Owen1998}; every such fallback is recorded with the
-proposal and reported. The acquisition reference point $\mathbf{r}_\mathrm{acq}$ is recomputed at
-each iteration from the valid observations, offset from their worst values by \SI{5}{\percent} of the observed
-range. It steers the search only and is never used to report results.
+proposal and reported. % C05 replacement for the acquisition-reference explanation.
+The acquisition reference is recomputed before each MOBO proposal from all
+valid observations, including physically infeasible observations. In negated
+model coordinates it is
+\begin{equation}
+ r_{\mathrm{acq},m}=\min_i y_{im}
+ -0.05\left(\max_i y_{im}-\min_i y_{im}+10^{-8}\right).
+\end{equation}
+The additive safeguard is applied numerically in each recorded output unit.
+All 360 saved MOBO reference vectors agree with this rule applied to their
+saved training sets. The noisy acquisition receives the complete valid
+baseline before posterior-based pruning; recorded nominal feasibility is not
+used to pre-filter that baseline. This adaptive reference steers acquisition
+and remains distinct from the frozen reporting reference.
 
 %==========================================================================================
 \section{Simulation study design}
