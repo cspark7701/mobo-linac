@@ -185,6 +185,32 @@ def test_save_and_load_evaluation_results(sample_results, tmp_path):
     assert loaded_csv[0].simulation_valid is True
 
 
+@pytest.mark.parametrize("legacy_header", [False, True])
+def test_csv_round_trip_preserves_float_bits_without_warnings(tmp_path, sample_results, legacy_header):
+    from dataclasses import replace
+    import warnings
+
+    values = [0.2804161877670514, -1.2345678901234567, np.nextafter(1.0, 2.0),
+              np.nextafter(0.0, 1.0), -0.0, 2.2250738585072014e-308]
+    objectives = [1.2345678901234567e-6, 2.3456789012345678e-6, 1234567.8901234567]
+    result = replace(sample_results[0], x_physical=values, objectives_physical=objectives,
+                     objectives_model=[-value for value in objectives],
+                     diagnostics={"sigma_x_m": 0.00012345678901234567},
+                     runtime_s=1.2345678901234567)
+    path = tmp_path / "precise.csv"
+    text = results_to_dataframe([result], TEST_CONFIG).to_csv(index=False)
+    path.write_text(("# " if legacy_header else "") + text)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        restored, = load_evaluation_results(path, TEST_CONFIG)
+    for field in ("x_physical", "objectives_physical", "objectives_model"):
+        assert [float(value).hex() for value in getattr(restored, field)] == [float(value).hex() for value in getattr(result, field)]
+    assert restored.runtime_s.hex() == result.runtime_s.hex()
+    assert restored.diagnostics == result.diagnostics
+    assert restored.evaluation_id == result.evaluation_id
+    assert restored.simulation_valid is True and restored.physically_feasible is True
+
+
 def make_checkpoint_state(iteration, results, hypervolumes, acquisition_mode="qLogNEHVI", seed=42):
     """A complete typed snapshot of a small unconstrained campaign."""
     return CheckpointState(

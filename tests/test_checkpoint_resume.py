@@ -807,7 +807,9 @@ def test_configured_two_variable_mixed_objective_campaign(tmp_path, mode):
         assert [r.x_physical for r in restored] == [r.x_physical for r in results]
     stream = pd.read_csv(directory / "evaluations_stream.csv")
     assert "model_norm_emit_x_pos" in stream and "gun_phase_deg" not in stream
-    pareto = pd.read_csv(directory / "pareto_all.csv", float_precision="round_trip")
+    pareto = pd.read_csv(directory / "pareto_all.csv", converters={
+        "norm_emit_x_m_rad": float, "sigma_energy_eV": float,
+    })
     assert set(pareto.norm_emit_x_m_rad) <= {r.objectives_physical[1] for r in results}
     assert set(pareto.sigma_energy_eV) <= {r.objectives_physical[0] for r in results}
     assert tracker.history[0]["reporting_ref_point_physical"][1] == tracker.reporting_ref_point[1]

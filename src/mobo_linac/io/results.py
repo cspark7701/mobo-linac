@@ -175,11 +175,21 @@ def load_evaluation_results(
     elif path.suffix == ".csv":
         with path.open(encoding="utf-8") as stream:
             legacy_header = stream.readline().startswith("# ")
-        df = pd.read_csv(path, float_precision="round_trip")
+        # Parse numeric text with Python's correctly rounded float conversion.
+        # pandas' default parser can lose an ULP, while float_precision is
+        # deprecated in pandas 3.1. Text loading also retains missing-value rules.
+        df = pd.read_csv(path, dtype=str)
         if legacy_header:
-            df.rename(columns={df.columns[0]: df.columns[0][2:]}, inplace=True)
+            df = df.rename(columns={df.columns[0]: df.columns[0][2:]})
         if not set(design_var_cols).issubset(df.columns):
             raise ValueError("CSV lacks named design columns required by the result schema.")
+        numeric_columns = set(design_var_cols + physical_obj_cols + model_obj_cols
+                              + list(DIAGNOSTIC_NAMES) + TELEMETRY_COLUMNS + ["runtime_s"])
+        for aliases in schema.objective_aliases:
+            numeric_columns.update(aliases)
+            numeric_columns.add(f"model_{aliases[0]}_neg")
+        for column in numeric_columns.intersection(df.columns):
+            df[column] = df[column].map(lambda value: np.nan if pd.isna(value) else float(value))
         results = []
         # Plain row dictionaries avoid constructing one pandas Series per record.
         for row_index, row in enumerate(df.to_dict("records")):
