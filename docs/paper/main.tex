@@ -730,70 +730,20 @@ These post-hoc results support a feasible-sampling advantage under the archived 
 objective-quality evidence depends on the endpoint and comparator and does not establish
 uniform algorithm superiority or global optimality.
 
-\subsection{Operating points and trade-offs}
-\label{sec:survey_results}
-Table~\ref{tab:campaign_summary} and figures~\ref{fig:survey_feasible} and~\ref{fig:pareto} summarize the
-operating-point survey of section~\ref{sec:survey}, and table~\ref{tab:phase1_cases} the five
-weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
-106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
-feasible horizontal emittances were \SI{2.7076}{\micro\metre\radian}, \SI{3.1141}{\micro\metre\radian} and \SI{2.6513}{\micro\metre\radian}, and the best feasible
-vertical emittances were \SI{3.1349}{\micro\metre\radian}, \SI{3.1712}{\micro\metre\radian} and \SI{3.0264}{\micro\metre\radian}. Their minimum feasible energy spreads
-were \SI{0.3393}{\mega\electronvolt}, \SI{0.3905}{\mega\electronvolt} and \SI{0.3467}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
-operating point. Table~\ref{tab:phase1_cases} uses the same feasible-only convention for each weighting. The differing
-budgets and independently initialized cases prevent interpreting this descriptive survey as an algorithm ranking.
-
-\IfFileExists{results_table.tex}{\input{results_table}}{\pendingtable{results_table}{Operating-point
-survey summary.}{tab:campaign_summary}}
-\IfFileExists{phase1_cases_table.tex}{\input{phase1_cases_table}}{\pendingtable{phase1_cases_table}{Weighted-sum
-survey by weighting.}{tab:phase1_cases}}
-
-
-
-\begin{figure}[htbp]
-\centering
-\datafigure{figures/feasible_fraction.png}{0.75\linewidth}
-\caption{Operating-point survey: fraction of feasible simulations versus the number of valid
-simulations.}
-\label{fig:survey_feasible}
-\end{figure}
-
-\begin{figure}[htbp]
-\centering
-\datafigure{figures/survey_pareto_points.pdf}{0.85\linewidth}
-\caption{Operating-point survey: pairwise projections of the feasible three-objective
-nondominated sets. Markers denote evaluated settings without interpolation or connecting lines.
-The scalarized set pools five weighting cases (880 simulations), whereas each MOBO set uses
-176 simulations. This descriptive comparison has unequal budgets and supports no algorithm ranking.}
-\label{fig:pareto}
-\end{figure}
+\subsection{Exploratory weighting survey}
+The independently initialized weighting survey found additional feasible trade-offs, with
+106 feasible observations across its five scalarized campaigns and 19 and 69 in the single
+unconstrained and constraint-aware campaigns. Its unequal aggregate budgets preclude a
+matched efficiency comparison. The per-case histories, feasible extrema and objective-space
+views are retained in Appendix~\ref{app:survey} rather than treated as another primary test.
 
 \subsection{Constraint-space distributions}
 \label{sec:constraint_spaces}
-Figures~\ref{fig:primary_constraints} and~\ref{fig:survey_constraints} place the evaluated
-settings in diagnostic space and show how the objective-space trade-offs relate to physical
-acceptance. The beam-size and divergence panels display the transverse limits, while the
-energy--bunch-length and energy--transmission panels cover the longitudinal and transport
-requirements, including both energy bounds. The green rectangles indicate satisfaction of the
-limits in those coordinates; only filled markers satisfy every channel simultaneously. Open
-markers inside a green rectangle therefore identify settings rejected by a diagnostic in another
-projection, rather than an inconsistency in the acceptance definition. This representation
-makes the rejected observations visible alongside the accepted population and complements the
-Pareto plots, which contain only feasible nondominated settings.
-
-The horizontal beam-size condition was the most frequently violated individual channel in each
-primary algorithm: it was satisfied in 804 of 1,600 constraint-aware evaluations and 496 of 1,600
-evaluations for each baseline. Every primary evaluation passed the transmission requirement.
-These channel counts describe individual inequalities, whose violations can occur together;
-they do not assign each rejected candidate to a unique cause. The primary overview pools equally
-budgeted campaigns separately for each algorithm, whereas the survey overview combines the
-scalarized weight cases and retains the unequal-budget
-qualification of the objective-space comparison. The companion per-campaign and per-case views
-separate these populations when examining individual search histories. All points are measured
-ASTRA outputs, and none is displaced, interpolated or clipped to make a constraint appear
-satisfied. The globally feasible population is determined from the full set of diagnostics,
-so a large concentration in any one shaded projection is not itself a measure of complete
-feasibility. The corresponding feasible fractions and observed Pareto cardinalities remain the
-descriptive summaries reported in table~\ref{tab:primary}.
+Figure~\ref{fig:primary_constraints} relates the primary observations to the production
+acceptance limits. Accepted-region insets make the transverse feasible populations visible
+without discarding the rejected observations in the full-range panels. The corresponding
+survey view is retained in Appendix~\ref{app:survey}; detailed companion plots retain every
+individual campaign and weighting case.
 
 \begin{figure}[htbp]
 \centering
@@ -802,19 +752,13 @@ descriptive summaries reported in table~\ref{tab:primary}.
 method. Green shading satisfies the shown limits; the pale red background lies outside them.
 Filled markers pass all constraints, while open markers fail at least one channel. Passing a
 shaded projection alone does not imply joint feasibility. Colors and marker shapes identify
-algorithms; all measured coordinates are retained.}
+algorithms; full-range panels retain all measured coordinates and insets show the transverse
+acceptance region in the same units. Constant transmission is stated in the annotation rather
+than repeated as an empty scatter panel.}
 \label{fig:primary_constraints}
 \end{figure}
 
-\begin{figure}[htbp]
-\centering
-\datafigure{figures/survey_constraint_spaces.pdf}{\linewidth}
-\caption{Operating-point survey in constraint space, using the same shading and joint-feasibility
-encoding as figure~\ref{fig:primary_constraints}. The scalarized set pools five weight cases
-(880 evaluations), whereas each MOBO campaign has 176 evaluations. Differences in point density
-must therefore be interpreted with these unequal budgets in mind.}
-\label{fig:survey_constraints}
-\end{figure}
+
 
 \FloatBarrier
 \subsection{Offline sensitivity of constraint smoothing}
@@ -1080,6 +1024,59 @@ runs per method. Each row applies the indicated componentwise relaxation in norm
 objective coordinates. Colors give the fraction of runs with a feasible point weakly dominating
 the relaxed target. Targets and relaxations are post-hoc analysis conventions.}
 \label{fig:revision_attainment}
+\end{figure}
+\FloatBarrier
+
+\section{Exploratory operating-point survey}
+\label{app:survey}
+\label{sec:survey_results}
+Table~\ref{tab:campaign_summary} and figures~\ref{fig:survey_feasible} and~\ref{fig:pareto} summarize the
+operating-point survey of section~\ref{sec:survey}, and table~\ref{tab:phase1_cases} the five
+weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
+106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
+feasible horizontal emittances were \SI{2.7076}{\micro\metre\radian}, \SI{3.1141}{\micro\metre\radian} and \SI{2.6513}{\micro\metre\radian}, and the best feasible
+vertical emittances were \SI{3.1349}{\micro\metre\radian}, \SI{3.1712}{\micro\metre\radian} and \SI{3.0264}{\micro\metre\radian}. Their minimum feasible energy spreads
+were \SI{0.3393}{\mega\electronvolt}, \SI{0.3905}{\mega\electronvolt} and \SI{0.3467}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
+operating point. Table~\ref{tab:phase1_cases} uses the same feasible-only convention for each weighting. The differing
+budgets and independently initialized cases prevent interpreting this descriptive survey as an algorithm ranking.
+
+\IfFileExists{results_table.tex}{\input{results_table}}{\pendingtable{results_table}{Operating-point
+survey summary.}{tab:campaign_summary}}
+\IfFileExists{phase1_cases_table.tex}{\input{phase1_cases_table}}{\pendingtable{phase1_cases_table}{Weighted-sum
+survey by weighting.}{tab:phase1_cases}}
+
+
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/survey_feasibility_by_case.pdf}{0.75\linewidth}
+\caption{Independent survey histories: cumulative feasibility versus evaluations within each
+campaign. Each scalarized weighting is a separate curve ending at 176 evaluations; no curve
+concatenates the five searches. MOBO campaigns are shown separately with the same method
+colors as the primary comparison. All evaluations are valid in these campaigns.}
+\label{fig:survey_feasible}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/survey_pareto_points.pdf}{0.85\linewidth}
+\caption{Operating-point survey: pairwise projections of the feasible three-objective
+nondominated sets. Markers denote evaluated settings without interpolation or connecting lines.
+The scalarized set pools five weighting cases (880 simulations), whereas each MOBO set uses
+176 simulations. This descriptive comparison has unequal budgets and supports no algorithm ranking.}
+\label{fig:pareto}
+\end{figure}
+
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/survey_constraint_spaces.pdf}{\linewidth}
+\caption{Operating-point survey in constraint space, using the same shading and joint-feasibility
+encoding as figure~\ref{fig:primary_constraints}. The scalarized set pools five weight cases
+(880 evaluations), whereas each MOBO campaign has 176 evaluations. Differences in point density
+must therefore be interpreted with these unequal budgets in mind. Insets use the same
+transverse units; the constant-transmission annotation retains that required diagnostic.}
+\label{fig:survey_constraints}
 \end{figure}
 \FloatBarrier
 

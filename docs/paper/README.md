@@ -193,3 +193,8 @@ C14 manuscript tables: `python scripts/prepare_revision_tables.py` after reprodu
 This regenerates survey extrema from feasible observations and avoids reintroducing archived
 all-valid case minima or internal project labels. The full executed weights remain in the
 supporting summary; displayed fractions/decimals are rounded.
+
+C15 revised manuscript figures: `python scripts/prepare_revision_figures.py` after stage-07
+figure-copy steps. This keeps the full-range constraint views, adds acceptance zooms, annotates
+constant transmission, and renders independent survey histories as vector PDF. Existing
+all-campaign companion artifacts remain unchanged. The detailed survey is in the appendix.

@@ -492,7 +492,7 @@ def test_manuscript_references_generated_figures(project_root):
         "injector_linac_layout.pdf",
         "primary_constraint_spaces.pdf",
         "survey_constraint_spaces.pdf",
-        "feasible_fraction.png",
+        "survey_feasibility_by_case.pdf",
     ]
     for fig_name in required_fig_refs:
         assert fig_name in content, (

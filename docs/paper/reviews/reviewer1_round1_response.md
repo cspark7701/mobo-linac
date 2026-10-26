@@ -79,3 +79,9 @@ We quantify the original physical smoothing scales and evaluate frozen early/mid
 Survey case extrema now use feasible observations consistently with the aggregate table, with explicit population and coordinate-minimum captions. Unsupported operational/FEL labels and internal Phase names are replaced by weighting and method names. Stale reference-point text is removed. Main tables use readable layouts rather than whole-table resizing; units use siunitx, and the robustness table reports the C10 components and uncertainty. Original data and archived tables are preserved.
 
 **Locations:** Primary, survey, weighting-case and robustness tables; C14 derived population audit.
+
+## Figure clarity and survey presentation (C15)
+
+The scalarized survey now shows separate 176-evaluation histories for every weighting, not a concatenated 880-point trajectory. Method colors/markers are consistent and manuscript plots are vector outputs without redundant titles. Full-range constraint panels retain every observation and add transverse acceptance zooms; constant transmission is retained as an explicit count/value/threshold annotation. We do not invent an energy-spread constraint. The detailed unequal-budget survey moves to an appendix. The C03 attainment analyses and C08 representative settings supplement the existing scatter-only Pareto projections, which retain grid lines.
+
+**Locations:** Primary feasibility/constraint figures; exploratory survey appendix; C15 plotting source and input manifest.

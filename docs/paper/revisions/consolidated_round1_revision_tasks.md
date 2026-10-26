@@ -267,14 +267,16 @@ Add the appropriate existing JINST and JKPS citations to this passage when editi
 
 ### C15. Improve figures and the survey presentation
 
+**Status:** Completed. [C15 report](evidence/c15_report.md) documents independent survey curves, consistent vector figures, acceptance zooms, explicit constant-transmission coverage and appendix survey placement.
+
 **Sources:** Reviewer 1 minor 3/7, R12; Reviewer 2 minor 3–6, R12/R13 and parts of R1/R6.
 
-- [ ] Fix the survey feasibility plot so independent weighting campaigns do not appear to be one sequential 880-evaluation run; use separate curves or an appropriately defined summary.
-- [ ] Keep method colors/markers consistent, remove embedded manuscript titles and use vector output where practical.
-- [ ] Add accepted-region zooms or density views to crowded constraint panels while retaining the complete distributions and shaded-limit explanation.
-- [ ] Address the constant-transmission panel without silently removing coverage of a required diagnostic. A compact annotation/supporting view can retain that information; an energy-spread-versus-energy panel must not invent an energy-spread constraint absent from the selected requirements.
-- [ ] Add the attainment/representative information justified by C03/C08 and use suitable shared axes. Keep Pareto views two-dimensional and scatter-only, without smooth front curves.
-- [ ] Shorten the descriptive unequal-budget survey or move detail to an appendix/supporting material, retaining all-case artifacts and the budget qualification.
+- [x] Fix the survey feasibility plot so independent weighting campaigns do not appear to be one sequential 880-evaluation run; use separate curves or an appropriately defined summary.
+- [x] Keep method colors/markers consistent, remove embedded manuscript titles and use vector output where practical.
+- [x] Add accepted-region zooms or density views to crowded constraint panels while retaining the complete distributions and shaded-limit explanation.
+- [x] Address the constant-transmission panel without silently removing coverage of a required diagnostic. A compact annotation/supporting view can retain that information; an energy-spread-versus-energy panel must not invent an energy-spread constraint absent from the selected requirements.
+- [x] Add the attainment/representative information justified by C03/C08 and use suitable shared axes. Keep Pareto views two-dimensional and scatter-only, without smooth front curves.
+- [x] Shorten the descriptive unequal-budget survey or move detail to an appendix/supporting material, retaining all-case artifacts and the budget qualification.
 
 **Done when:** Figures communicate constraint status and trade-offs without misleading continuity, density or algorithm identity, and every original case remains available.
 
