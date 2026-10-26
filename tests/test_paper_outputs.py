@@ -490,6 +490,8 @@ def test_manuscript_references_generated_figures(project_root):
         "primary_pareto_points.pdf",
         "survey_pareto_points.pdf",
         "injector_linac_layout.pdf",
+        "primary_constraint_spaces.pdf",
+        "survey_constraint_spaces.pdf",
         "feasible_fraction.png",
     ]
     for fig_name in required_fig_refs:

@@ -14,6 +14,7 @@
 \usepackage{xcolor}
 \usepackage{siunitx}
 \usepackage{lineno}
+\usepackage{placeins}
 
 \newif\iffinal
 \finalfalse
@@ -103,18 +104,16 @@ on its initial sample~\cite{Neveu2022}. Machine-learning methods are now explore
 accelerator design and operation~\cite{Edelen2018}.
 
 Bayesian optimization (BO)~\cite{Jones1998,Snoek2012,Shahriari2016} targets problems in which
-each evaluation is expensive. BO fits a probabilistic surrogate, usually a Gaussian process
-(GP)~\cite{Rasmussen2006}, to the evaluations made so far, and chooses the next evaluation by
-maximizing an acquisition function that balances exploitation and exploration. BO is now widely
-used to tune accelerators online:
-\begin{itemize}
-  \item free-electron laser tuning at LCLS~\cite{McIntire2016,Duris2020};
-  \item safe optimization in high dimensions at SwissFEL~\cite{Kirschner2019};
-  \item GP priors derived from physics models~\cite{Hanuka2021};
-  \item multi-objective online tuning~\cite{Roussel2021};
-  \item comparison with optimizers trained by reinforcement learning~\cite{Kaiser2024}.
-\end{itemize}
-A recent review gives an overview of BO for accelerator physics~\cite{Roussel2024}.
+each evaluation is expensive. It fits a probabilistic surrogate, usually a Gaussian process
+(GP)~\cite{Rasmussen2006}, to the observations accumulated so far and selects new evaluations
+through an acquisition function that balances exploitation and exploration. Accelerator
+applications include free-electron laser tuning at LCLS~\cite{McIntire2016,Duris2020}, safe
+optimization at SwissFEL~\cite{Kirschner2019}, physics-informed GP priors~\cite{Hanuka2021},
+and multi-objective online tuning~\cite{Roussel2021}; comparisons with reinforcement-learning
+optimizers have also been reported~\cite{Kaiser2024}. These applications motivate using
+probabilistic models to reduce the number of expensive evaluations, while the present study
+addresses a simulation-based injector design problem with competing objectives and explicit
+beam-quality limits. The wider accelerator BO literature is reviewed in ref.~\cite{Roussel2024}.
 
 Multi-objective BO (MOBO) extends BO to the Pareto front. Early methods either scalarize the
 objectives with random weights, as in ParEGO~\cite{Knowles2006}, or select candidates by their
@@ -138,28 +137,24 @@ because nominal feasibility alone does not establish tolerance to realistic pert
 
 Previous work on this injector established MOGA-based RF-cavity and beam-dynamics
 optimization~\cite{Kim2024KLSMOGA} and examined operating and installation errors for selected
-MOGA solutions~\cite{Kim2025KLSError}. These studies provide the design and tolerance context
-for the present comparison of constraint-aware, unconstrained and scalarized BO. Section~\ref{sec:previous_kls}
-compares their reported results with the present feasible operating points.
+MOGA solutions~\cite{Kim2025KLSError}. Earlier weighted-sum BO studies of the injector were
+presented at ICABU 2025. Together, these studies motivate a comparison that separates the search
+for feasible operating points from the selection of trade-offs within that feasible set. The
+present work formulates the fixed-lattice injector problem with separate transverse-emittance
+and energy-spread objectives, compares constraint-aware and unconstrained MOBO with scalarized
+BO under matched budgets and paired initial designs, and assesses selected operating points
+under lattice perturbations. The objective is to characterize the empirical feasible Pareto
+sets and the efficiency of feasible sampling, rather than to select a single weighted optimum.
 
-Earlier weighted-sum BO studies of this injector linac were presented at ICABU 2025.
-The present simulation study makes three contributions.
-\begin{enumerate}
-\item We formulate the injector design as a problem with three objectives and constraints on
-  seven diagnostic channels. We solve it with constraint-aware qLogNEHVI, using independent GP
-  surrogates for the objectives and for each constraint diagnostic (section~\ref{sec:methods}).
-\item We compare constraint-aware qLogNEHVI, unconstrained qLogNEHVI and weighted-sum BO in a
-  paired, budget-matched simulation comparison over ten independent runs per method. Every simulation, including failed ones,
-  counts against the budget. We compare the feasible nondominated solutions and feasible sampling
-  fractions obtained by each method (section~\ref{sec:design}).
-\item We assess selected feasible nondominated settings under lattice jitter
-  (section~\ref{sec:audit}) and relate the results to the earlier KLS optimization and error studies
-  (section~\ref{sec:previous_kls}).
-\end{enumerate}
-Section~\ref{sec:problem} describes the injector model and the optimization problem, and
-section~\ref{sec:methods} the surrogates and acquisition functions.
-Section~\ref{sec:design} defines the simulation protocol, section~\ref{sec:results} reports the
-results, and section~\ref{sec:discussion} discusses them and their limitations.
+The comparison combines objective-space views with diagnostic-space views so that an attractive
+beam-quality trade-off can be traced to its constraint status. Feasible nondominated points are
+identified jointly in the objective space, while measured sizes, divergences, bunch length,
+energy and transmission determine whether a candidate enters that set. Repeated primary runs
+separate common trends from dependence on the initial design, and the additional scalarization
+survey illustrates how weighting choices sample different operating modes. The lattice-jitter
+assessment then examines the tolerance of representative settings under the stated perturbation
+model. The earlier KLS studies provide a physical context for these results, with differences
+in feasibility limits and error coverage made explicit in section~\ref{sec:previous_kls}.
 
 %==========================================================================================
 \section{Injector model and optimization problem}
@@ -178,7 +173,12 @@ are absolute.
 The initial distribution is a fixed file of \num{10000} macroparticles with a total charge of
 $1.0$~nC. Space charge is computed on a cylindrically symmetric grid of $32\times32$ cells up to
 $z = 5.25$~m and with a three-dimensional solver on a $32^3$ grid downstream, including the image
-charge of the cathode. A circular aperture of radius 20~mm defines particle loss.
+charge of the cathode. A circular aperture of radius 20~mm defines particle loss. The same source
+file, field maps and space-charge settings are used for every algorithm, so the optimization
+comparison does not mix changes in numerical fidelity with changes in candidate selection.
+Keeping the initial distribution fixed also makes the present search a study of machine settings
+for a specified source condition; the separate perturbation assessment changes lattice parameters
+while retaining that source distribution.
 
 \begin{figure}[htbp]
 \centering
@@ -195,7 +195,11 @@ The six design variables (table~\ref{tab:variables}) are the solenoid peak field
 the two quadrupole gradients $G_{q1}$ and $G_{q2}$, the gun phase $\phi_\mathrm{gun}$ and two
 common phases, $\phi_\mathrm{acc1/2}$ applied to ACC1 and ACC2 and $\phi_\mathrm{acc3/4}$ applied to
 ACC3 and ACC4. Magnetic settings may vary by $\pm50\%$ and phases by $\pm10\%$ around the
-nominal machine setting.
+nominal machine setting. These bounds define the common search domain for all algorithms.
+The drift lengths, RF-field amplitudes and field-map geometry remain fixed, so each candidate
+represents a different focusing and phasing configuration of the same reference lattice. The
+common phase variables are applied to their structure pairs together rather than treated as
+independent controls, keeping the optimization dimension consistent with the chosen operating model.
 
 \begin{table}[htbp]
 \centering
@@ -222,11 +226,21 @@ RMS energy spread $\sigma_E$ at the exit plane,
   \mathbf{f}(\mathbf{x}) = \bigl(\enx(\mathbf{x}),\ \eny(\mathbf{x}),\ \sigma_E(\mathbf{x})\bigr).
 \end{equation}
 For reporting they are expressed in \umrad, \umrad\ and MeV. The surrogates work with the negated
-values, because the acquisition functions are formulated for maximization.
+values, because the acquisition functions are formulated for maximization. An observation is
+nondominated if no other observation is at least as good in every objective and strictly better
+in at least one. This definition retains settings that improve one emittance or the energy
+spread at the expense of another quantity, rather than combining those changes into a single
+score. Consequently, coordinate-wise minima describe the ends of the trade-off set and need not
+belong to the same accelerator setting.
 
 A setting is \emph{feasible} if the seven diagnostics in table~\ref{tab:constraints} satisfy eight
 inequalities; the mean kinetic energy is bounded from both sides. The thresholds are fixed before
-the simulation comparison and are not adjusted after observing algorithm performance.
+the simulation comparison and are not adjusted after observing algorithm performance. A valid
+simulation that violates any limit is retained as an infeasible observation and cannot enter the
+feasible Pareto set, even if its objective values are attractive. Conversely, passing a subset
+of diagnostics is insufficient: the classification requires all inequalities to hold together.
+This distinction is retained in the constraint-space plots, where the shaded regions apply only
+to the displayed coordinates and marker fill communicates the joint constraint status.
 
 \begin{table}[htbp]
 \centering
@@ -303,7 +317,13 @@ changed during or after the campaigns. The unconstrained variant omits the produ
 The weighted-sum baseline fits a single GP to the scalar cost
 $g(\mathbf{x}) = \sum_m w_m f_m(\mathbf{x})/s_m$, where $s_m$ are the reporting scales
 ($1~\umrad$, $1~\umrad$, $1$~MeV) and $w_m = 1/3$, and selects batches with the logarithmic
-noisy expected improvement (qLogNEI)~\cite{Ament2023}. It does not model the constraints.
+noisy expected improvement (qLogNEI)~\cite{Ament2023}. The scales keep the weighted combination
+from being determined simply by the different physical units of emittance and energy spread.
+Equal weights define the balanced baseline used in the primary comparison, while the survey
+changes those weights to explore other operating preferences. This method does not model the
+constraints during candidate selection; the same physical feasibility checks and joint
+nondominance calculation are nevertheless applied to its evaluated results, allowing a common
+interpretation of the operating points found by all methods.
 
 \subsection{Acquisition optimization}
 Batches are optimized jointly with multi-start L-BFGS-B~\cite{Byrd1995}: 1,024 quasi-random
@@ -338,7 +358,15 @@ computational cost. For each algorithm we report the median over runs with a 95\
 bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed seed number).
 These are descriptive comparisons; no statistical significance or global optimality is claimed.
 The limitation of the originally designated reporting endpoint is addressed in
-section~\ref{sec:discussion}.
+section~\ref{sec:discussion}. Constraint-space figures use every numerically valid observation,
+including physically infeasible settings, rather than only the Pareto subset. Their limits and
+display units are read from each recorded configuration, and the recorded joint feasibility is
+checked against those limits before plotting. Green shading marks the allowed interval or
+rectangle in the displayed diagnostic coordinates; filled markers satisfy all constraints and
+open markers violate at least one, potentially in another panel. Invalid simulations remain
+counted in the campaign summary but receive no invented diagnostic coordinates. Individual-run
+views and pooled views use the same definitions, with pooled views describing combined coverage
+rather than the trajectory of a single campaign.
 
 \subsection{Robustness assessment of operating points}
 \label{sec:audit}
@@ -421,9 +449,8 @@ retained, including points that appear dominated in a two-dimensional projection
 \label{fig:primary_pareto}
 \end{figure}
 
-Table~\ref{tab:primary} summarizes the measured feasible sampling fractions and Pareto set sizes;
-figure~\ref{fig:benchmark} shows the evolution of the feasible fraction during optimization.
-
+Table~\ref{tab:primary} summarizes the measured feasible sampling fractions and Pareto set sizes,
+while figure~\ref{fig:benchmark} shows how the feasible fraction evolves during optimization.
 Median feasible fractions were 40.6\% [35.6\%, 45.6\%], 15.0\% [12.8\%, 18.8\%] and
 12.5\% [11.2\%, 13.8\%] for the constraint-aware, unconstrained and weighted-sum algorithms.
 These are descriptive results; no separate significance test of feasibility is claimed.
@@ -479,6 +506,56 @@ The scalarized set pools five weighting cases (880 simulations), whereas each MO
 \label{fig:pareto}
 \end{figure}
 
+\subsection{Constraint-space distributions}
+\label{sec:constraint_spaces}
+Figures~\ref{fig:primary_constraints} and~\ref{fig:survey_constraints} place the evaluated
+settings in diagnostic space and show how the objective-space trade-offs relate to physical
+acceptance. The beam-size and divergence panels display the transverse limits, while the
+energy--bunch-length and energy--transmission panels cover the longitudinal and transport
+requirements, including both energy bounds. The green rectangles indicate satisfaction of the
+limits in those coordinates; only filled markers satisfy every channel simultaneously. Open
+markers inside a green rectangle therefore identify settings rejected by a diagnostic in another
+projection, rather than an inconsistency in the acceptance definition. This representation
+makes the rejected observations visible alongside the accepted population and complements the
+Pareto plots, which contain only feasible nondominated settings.
+
+The horizontal beam-size condition was the most frequently violated individual channel in each
+primary algorithm: it was satisfied in 804 of 1,600 constraint-aware evaluations and 496 of 1,600
+evaluations for each baseline. Every primary evaluation passed the transmission requirement.
+These channel counts describe individual inequalities, whose violations can occur together;
+they do not assign each rejected candidate to a unique cause. The primary overview pools equally
+budgeted campaigns separately for each algorithm, whereas the survey overview combines the
+scalarized weight cases and retains the unequal-budget
+qualification of the objective-space comparison. The companion per-campaign and per-case views
+separate these populations when examining individual search histories. All points are measured
+ASTRA outputs, and none is displaced, interpolated or clipped to make a constraint appear
+satisfied. The globally feasible population is determined from the full set of diagnostics,
+so a large concentration in any one shaded projection is not itself a measure of complete
+feasibility. The corresponding feasible fractions and observed Pareto cardinalities remain the
+descriptive summaries reported in table~\ref{tab:primary}.
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/primary_constraint_spaces.pdf}{\linewidth}
+\caption{Primary comparison in constraint space, pooling all valid evaluations from ten runs per
+method. Green shading satisfies the shown limits; the pale red background lies outside them.
+Filled markers pass all constraints, while open markers fail at least one channel. Passing a
+shaded projection alone does not imply joint feasibility. Colors and marker shapes identify
+algorithms; all measured coordinates are retained.}
+\label{fig:primary_constraints}
+\end{figure}
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/survey_constraint_spaces.pdf}{\linewidth}
+\caption{Operating-point survey in constraint space, using the same shading and joint-feasibility
+encoding as figure~\ref{fig:primary_constraints}. The scalarized set pools five weight cases
+(880 evaluations), whereas each MOBO campaign has 176 evaluations. Differences in point density
+must therefore be interpreted with these unequal budgets in mind.}
+\label{fig:survey_constraints}
+\end{figure}
+
+\FloatBarrier
 \subsection{Robustness to lattice jitter}
 \label{sec:robustness_results}
 Table~\ref{tab:robustness_summary} reports the lattice-jitter statistics of the six representatives
@@ -533,9 +610,18 @@ show greater robustness under its broader error model. The earlier study identif
 errors as a principal sensitivity, supporting their inclusion in future assessments.
 
 \subsection{Limitations}
-The empirical Pareto sets do not establish global optimality. Source fluctuations are excluded
-from the perturbation tests, which also omit the RF-gradient and alignment errors considered in
-the earlier JKPS study. Their inclusion requires a separate robustness assessment.
+The empirical Pareto sets characterize the settings observed within the sampled design domain
+and do not establish global optimality. Their extent depends on both the finite evaluation
+budget and the selected beam-quality limits, which were fixed before the campaigns. All results
+use one injector model and a fixed source distribution, with finite macroparticle and grid
+resolution; the numerical resolution limits absolute emittance accuracy even though it is
+common to every method. The perturbation tests exclude source fluctuations, RF-gradient errors
+and alignment errors, so the retained feasibility applies to the stated lattice-jitter model.
+The earlier JKPS results motivate extending this assessment to the omitted error channels.
+Ten repeated runs provide an estimate of variation with initialization, rather than a high-powered
+statistical ranking, and no comparison with accelerator measurements is made. These limitations
+define the scope in which the observed feasible trade-offs and relative sampling behavior can
+be interpreted.
 
 The originally designated fixed-reference hypervolume endpoint was uninformative: it was zero
 for all campaigns because the reporting reference $(1.5~\umrad,\ 1.5~\umrad,\ 1.5~\mathrm{MeV})$
@@ -543,14 +629,6 @@ had emittance components below the observed values. This does not indicate an ab
 solutions. We therefore omit this metric from the comparative figures and tables and present
 descriptive physical trade-offs and feasibility summaries, without claiming a hypervolume-based
 ranking. The original endpoint records and reference remain unchanged.
-
-All results are simulations of one injector model with a fixed initial distribution, and agreement
-with the machine has not been assessed. The space-charge model uses \num{10000} macroparticles and finite grids,
-whose numerical resolution limits the accuracy of absolute emittance values, although all
-algorithms are evaluated with the same model. Ten runs give a first estimate of run-to-run
-variability rather than a high-powered test. The constraint thresholds were fixed in advance;
-other choices may change the set of feasible solutions. Finally, the deterministic
-noise model assumes that ASTRA returns identical results for identical inputs.
 
 %==========================================================================================
 \section{Conclusions}

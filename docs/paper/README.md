@@ -59,6 +59,10 @@ python scripts/compare_pareto_fronts.py --two-d \
   --output-dir results/paper_production/pareto_points_NEW_DIRECTORY \
   --paper-dir docs/paper/figures
 
+python scripts/compare_constraint_spaces.py \
+  --output-dir results/paper_production/constraint_spaces_NEW_DIRECTORY \
+  --paper-dir docs/paper/figures
+
 latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex
 ```
 
@@ -115,3 +119,23 @@ local regeneration instructions and the underlying evidence remain available.
 
 The manuscript Pareto panels (Figures 2 and 5) retain scatter-only points and use visible
 major grid lines on both axes. Regeneration uses `paper_comparison` in the comparison script.
+
+## Constraint-space plots
+
+Generate all primary runs and survey cases from authoritative campaign histories:
+
+```bash
+python scripts/compare_constraint_spaces.py \
+  --output-dir results/paper_production/constraint_spaces_NEW_DIRECTORY \
+  --paper-dir docs/paper/figures
+```
+
+The output contains an individual PNG and PDF page for every campaign, a comparison
+PDF for all paired runs and survey weight cases, pooled primary/survey figures,
+measured diagnostic CSVs, per-channel pass counts and source/configuration metadata.
+Shading indicates the allowed region in the displayed coordinates only. Filled
+markers satisfy all constraints; open markers fail at least one. Invalid simulations
+remain counted without invented coordinates. All thresholds and scales come from
+recorded configurations, and joint feasibility is checked against the recorded flags.
+The paper includes the pooled primary and survey panels; the complete companion PDFs
+retain every individual case. Figures 2 and 5 remain scatter-only Pareto views.
