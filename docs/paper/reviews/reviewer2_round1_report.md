@@ -1,4 +1,4 @@
-# Referee Report — Reviewer 2 (Round 1)
+# Reviewer 2 report — round1
 
 **Manuscript:** *Multi-objective Bayesian optimization of a 200 MeV electron injector linac for the Korea Light Source*
 **Author:** C. S. Park (Korea University)

@@ -1,6 +1,6 @@
-# Revision Task List — Response to Reviewer 2 (Round 1)
+# Revision tasks for Reviewer 2 — round1
 
-**Source review:** `docs/paper/reviews/REVIEW_round1_reviewer2.md`
+**Source report:** [reviewer2_round1_report.md](../reviews/reviewer2_round1_report.md)
 **Decision:** Major revision
 **Manuscript:** `docs/paper/main.tex` (as of commit `fe459f2`)
 
@@ -186,7 +186,7 @@ reports the existing validation.
 
 ### R17. Response letter
 - [ ] Write a point-by-point response to Reviewer 2 in
-      `docs/paper/reviews/RESPONSE_round1_reviewer2.md`, with a latexdiff against `fe459f2`.
+      `docs/paper/reviews/reviewer2_round1_response.md`, with a latexdiff against `fe459f2`.
 
 ---
 
