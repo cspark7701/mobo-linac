@@ -1,0 +1,29 @@
+\section{Chronological predictive validation}
+\label{app:predictive}
+Every saved model is evaluated only on its subsequent batch, using recorded hyperparameters
+and effective fixed noise. The supporting records include per-observation predictions,
+interval widths and training identities. Rows are pooled descriptive summaries of adaptive
+sampling, not independent calibration trials. Constant transmission is excluded from the
+error-discrimination table because no failed-transmission example was observed.
+\begin{table}[htbp]\centering
+\caption{Constraint-aware surrogate prediction errors on unseen batches. Boundary rows use
+the explicitly defined observed-value neighborhood. Coverage refers to nominal 95\% intervals.}
+\label{tab:predictive}
+\begin{tabular}{llrrr}\toprule
+Channel (RMSE unit) & Subset & Observations & RMSE & Coverage (\%) \\\midrule
+$E$ (\si{\mega\electronvolt}) & All & 1,440 & 0.8929 & 84.5 \\
+$E$ (\si{\mega\electronvolt}) & Boundary & 51 & 0.5966 & 88.2 \\
+$\varepsilon_{n,x}$ (\si{\micro\metre\radian}) & All & 1,440 & 7.8795 & 78.6 \\
+$\varepsilon_{n,y}$ (\si{\micro\metre\radian}) & All & 1,440 & 13.7283 & 79.7 \\
+$\sigma_E$ (\si{\mega\electronvolt}) & All & 1,440 & 0.1294 & 88.8 \\
+$\sigma_x$ (\si{\milli\metre}) & All & 1,440 & 0.5115 & 85.5 \\
+$\sigma_x$ (\si{\milli\metre}) & Boundary & 74 & 0.4492 & 89.2 \\
+$\sigma_{x\prime}$ (\si{\milli\radian}) & All & 1,440 & 0.0989 & 85.4 \\
+$\sigma_{x\prime}$ (\si{\milli\radian}) & Boundary & 66 & 0.1820 & 87.9 \\
+$\sigma_y$ (\si{\milli\metre}) & All & 1,440 & 0.4884 & 84.3 \\
+$\sigma_y$ (\si{\milli\metre}) & Boundary & 86 & 0.4370 & 80.2 \\
+$\sigma_{y\prime}$ (\si{\milli\radian}) & All & 1,440 & 0.1544 & 85.1 \\
+$\sigma_{y\prime}$ (\si{\milli\radian}) & Boundary & 51 & 0.1863 & 80.4 \\
+$\sigma_z$ (\si{\milli\metre}) & All & 1,440 & 0.0097 & 87.4 \\
+$\sigma_z$ (\si{\milli\metre}) & Boundary & 1,258 & 0.0094 & 88.1 \\
+\bottomrule\end{tabular}\end{table}

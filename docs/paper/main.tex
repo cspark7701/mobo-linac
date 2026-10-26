@@ -794,6 +794,34 @@ must therefore be interpreted with these unequal budgets in mind.}
 \end{figure}
 
 \FloatBarrier
+\subsection{Predictive checks on unseen batches}
+\label{sec:predictive_checks}
+We restored all 540 saved pre-proposal GP snapshots and predicted their next eight observations,
+verifying that none of these observations appeared in the corresponding training identities.
+This chronological check uses \num{1440} post-initialization observations per method and
+requires no refitting. Gaussian observation intervals include the saved effective fixed
+likelihood variance. Their variance is taken from the posterior covariance diagonal before
+any absolute floor imposed by the distribution's variance accessor. The latter can inflate
+small-unit uncertainties; both conventions are recorded in the supporting results, but the
+covariance-based convention is used here. No production model or proposal is changed.
+
+Nominal \SI{95}{\percent} interval coverage for constraint-aware MOBO is
+\SI{78.6}{\percent}, \SI{79.7}{\percent} and \SI{88.8}{\percent} for horizontal
+emittance, vertical emittance and energy spread. The corresponding unconstrained values
+are \SI{78.1}{\percent}, \SI{81.1}{\percent} and \SI{87.1}{\percent}; the scalarized
+cost has \SI{81.3}{\percent} coverage. Thus the saved Gaussian uncertainties are generally
+too narrow on the sampled next-batch trajectories. These method-specific adaptive inputs
+are not a common independent test set, so predictive errors do not establish a ranking
+of surrogate architectures.
+
+For diagnostic observations near a production boundary, coverage ranges from approximately
+\SI{80.2}{\percent} to \SI{89.2}{\percent}. The post-hoc neighborhood is within
+\SI{10}{\percent} of each absolute threshold, except energy, for which it is within
+\SI{0.5}{\mega\electronvolt} of either bound. Counts and physical-unit errors are supplied
+in Appendix~\ref{app:predictive}. Transmission is constant; perfect prediction of its
+observed value cannot validate discrimination of losses. The previously reported Adam
+recovery counts concern fitting completion and do not establish predictive calibration.
+
 \subsection{Interpretation of selected settings}
 \label{sec:settings}
 Appendix~\ref{app:settings} gives the complete controls and objectives of the six distinct
@@ -923,6 +951,10 @@ statistical ranking, and no comparison with accelerator measurements is made. Th
 define the scope in which the observed feasible trade-offs and relative sampling behavior can
 be interpreted.
 
+The next-batch checks also show undercoverage of the saved Gaussian intervals; estimated
+constraint probabilities must therefore not be interpreted as calibrated machine-reliability
+probabilities.
+
 The RF-domain interpretation is another limitation. The earlier JINST paper reports phases
 relative to maximum energy gain~\cite{Kim2024KLSMOGA}, whereas the present inputs are absolute
 wave phases; those earlier selected settings do not calibrate the current crest. In a post-hoc
@@ -1006,6 +1038,8 @@ the relaxed target. Targets and relaxations are post-hoc analysis conventions.}
 \end{figure}
 \FloatBarrier
 
+\input{revisions/evidence/c11_predictive}
+\FloatBarrier
 \input{revisions/evidence/c08_settings}
 \FloatBarrier
 

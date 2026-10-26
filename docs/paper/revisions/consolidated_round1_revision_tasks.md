@@ -203,11 +203,13 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C11. Validate the surrogate models
 
+**Status:** Completed. [C11 report](evidence/c11_report.md) validates unseen next batches from all saved models, reports undercoverage and boundary errors, and distinguishes constant transmission from validated loss discrimination.
+
 **Sources:** Reviewer 1 M5/R10.
 
-- [ ] Use saved observations/models for suitable leave-one-out or predictive validation and uncertainty checks for objectives and diagnostics.
-- [ ] Examine performance near relevant constraint boundaries and report fitting recovery.
-- [ ] Treat constant transmission explicitly; discrimination cannot be estimated from a channel with no observed failures.
+- [x] Use saved observations/models for suitable leave-one-out or predictive validation and uncertainty checks for objectives and diagnostics.
+- [x] Examine performance near relevant constraint boundaries and report fitting recovery.
+- [x] Treat constant transmission explicitly; discrimination cannot be estimated from a channel with no observed failures.
 
 **Done when:** A reproducible diagnostics summary supports the surrogate interpretation and identifies unassessed calibration. This is model validation, not a request to repeat the completed ASTRA convergence study.
 

@@ -49,3 +49,9 @@ We now report design-specific exact binomial intervals, objective-ratio changes 
 We identify each selected run and design in the supporting manifest, explain common random numbers across designs and identical cavity errors within each phase pair, and do not pool trials into a universal reliability estimate. We retain the existing small lattice-jitter scope. The requested RF-amplitude/JKPS/alignment extensions and ambiguous tolerance scan are not performed in this revision; broader machine-reliability or comparative robustness claims are therefore not made. This non-adoption is disclosed rather than represented as satisfying the requested expanded model. A future scan would require an explicit per-channel RMS error table before execution.
 
 **Locations:** Robustness assessment and results; revised robustness table; C10 independent audit and per-design supporting statistics.
+
+## Predictive surrogate validation (C11)
+
+We restored every saved pre-proposal model and checked predictions against its next unseen batch, with explicit training-identity exclusion. The manuscript reports undercoverage of nominal Gaussian intervals and diagnostic-boundary performance. Covariance-based and library variance-floor intervals are separated to avoid artificial apparent calibration in small physical units. Constant transmission does not permit validation of loss discrimination. Fitting recovery remains distinct from calibration, and the analysis does not turn model feasibility into a calibrated machine-reliability claim.
+
+**Locations:** Predictive checks on unseen batches; predictive appendix; C11 per-observation and aggregate evidence.
