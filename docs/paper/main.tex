@@ -35,7 +35,7 @@
 \newcommand{\eny}{\varepsilon_{n,y}}
 \newcommand{\umrad}{\si{\micro\metre\,rad}}
 
-\title{Multi-objective Bayesian optimization of a 200~MeV electron injector linac}
+\title{Multi-objective Bayesian optimization of a 200~MeV electron injector linac for the Korea Light Source}
 
 \author{Chong Shik Park}
 \affiliation{Department of Accelerator Science, Korea University,\\
@@ -47,20 +47,18 @@ Sejong 30019, Republic of Korea}
 \abstract{
 Optimization of an electron injector linac requires balancing transverse beam emittances and
 energy spread while satisfying beam transport and transmission constraints. We investigate
-multi-objective Bayesian optimization of a 200~MeV S-band injector linac using ASTRA space-charge
-tracking simulations. Six magnetic and RF parameters are varied to minimize the horizontal and
-vertical normalized RMS emittances and RMS energy spread, subject to limits on seven beam
-diagnostics. Constraint-aware and unconstrained Bayesian optimization with logarithmic noisy
-expected hypervolume improvement are compared with weighted-sum Bayesian optimization in ten
-paired runs per method, with 160 simulations per run. All 4,800 primary simulations were
-numerically valid. The median feasible fractions were 40.6\%, 15.0\% and 12.5\% for the
-constraint-aware, unconstrained and weighted-sum methods, respectively; the corresponding median
-numbers of feasible nondominated observations were 13.5, 7.0 and 4.0. The observed trade-offs are
-compared through projections of the three-objective feasible Pareto sets. A separate survey
-explores five scalarization weightings. All 600 sampled lattice-jitter simulations of selected
-operating points remained feasible. These results identify feasible trade-offs within the simulated injector model and
-show a higher feasible sampling fraction for constraint-aware acquisition. They do not establish
-global Pareto optimality or robustness to source fluctuations.}
+Bayesian optimization of the S-band injector-linac model developed for the Korea Light Source
+using ASTRA space-charge tracking simulations. Magnetic strengths and RF phases are varied to
+minimize the horizontal and vertical normalized RMS emittances and RMS energy spread.
+Constraint-aware and unconstrained multi-objective Bayesian optimization are compared with
+weighted-sum Bayesian optimization using matched simulation budgets and shared initial designs.
+All methods identify feasible nondominated operating points, revealing trade-offs between
+transverse beam quality and energy spread. Constraint-aware acquisition yields a higher feasible
+sampling fraction, while weighted-sum optimization completes campaigns faster. A survey of
+scalarization weightings explores additional operating modes, and sampled lattice perturbations
+preserve feasibility for the selected operating points. The results demonstrate the use of
+constraint-aware Bayesian optimization to identify feasible injector-linac settings and map
+beam-quality trade-offs for the Korea Light Source.}
 
 \keywords{Beam optics, Beam dynamics, Accelerator modelling and simulations, Optimization}
 \notoc
@@ -72,6 +70,14 @@ global Pareto optimality or robustness to source fluctuations.}
 %==========================================================================================
 \section{Introduction}
 \label{sec:introduction}
+
+The Korea Light Source (KLS) is a fourth-generation storage-ring light-source project led by
+the Korea Basic Science Institute, with a storage-ring energy of 4~GeV and a circumference of
+approximately 800~m~\cite{KLSProjectOverview}. Earlier injector studies refer to the project as
+Korea-4GSR~\cite{Kim2024KLSMOGA,Kim2025KLSError}. The injector chain uses an electron linac to
+provide the beam for subsequent acceleration in the booster. The present work considers the
+200~MeV S-band injector-linac reference model developed for that project and studies feasible
+trade-offs among its exit-beam emittances and energy spread.
 
 The electron injector sets the brightness available to the rest of a linear accelerator. X-ray
 free-electron lasers~\cite{Emma2010,Kang2017} and mega-electron-volt ultrafast electron
@@ -130,6 +136,12 @@ therefore needed before a performance difference can be claimed. The sensitivity
 operating points to machine errors also needs to be assessed,
 because nominal feasibility alone does not establish tolerance to realistic perturbations.
 
+Previous work on this injector established MOGA-based RF-cavity and beam-dynamics
+optimization~\cite{Kim2024KLSMOGA} and examined operating and installation errors for selected
+MOGA solutions~\cite{Kim2025KLSError}. These studies provide the design and tolerance context
+for the present comparison of constraint-aware, unconstrained and scalarized BO. Section~\ref{sec:previous_kls}
+compares their reported results with the present feasible operating points.
+
 Earlier weighted-sum BO studies of this injector linac were presented at ICABU 2025.
 The present simulation study makes three contributions.
 \begin{enumerate}
@@ -140,9 +152,9 @@ The present simulation study makes three contributions.
   paired, budget-matched simulation comparison over ten independent runs per method. Every simulation, including failed ones,
   counts against the budget. We compare the feasible nondominated solutions and feasible sampling
   fractions obtained by each method (section~\ref{sec:design}).
-\item We assess selected feasible nondominated settings under lattice jitter.
-  We provide analysis software and retain the campaign
-  records (sections~\ref{sec:audit} and~\ref{sec:data}).
+\item We assess selected feasible nondominated settings under lattice jitter
+  (section~\ref{sec:audit}) and relate the results to the earlier KLS optimization and error studies
+  (section~\ref{sec:previous_kls}).
 \end{enumerate}
 Section~\ref{sec:problem} describes the injector model and the optimization problem, and
 section~\ref{sec:methods} the surrogates and acquisition functions.
@@ -154,7 +166,8 @@ results, and section~\ref{sec:discussion} discusses them and their limitations.
 \label{sec:problem}
 
 \subsection{Beamline and simulation}
-Figure~\ref{fig:layout} shows the injector linac, which consists of an S-band RF photocathode gun, a gun solenoid, four 84-cell S-band
+The reference model follows the S-band injector configuration studied for Korea-4GSR~\cite{Kim2024KLSMOGA,Kim2025KLSError}.
+Figure~\ref{fig:layout} shows the fixed lattice used here, which consists of an S-band RF photocathode gun, a gun solenoid, four 84-cell S-band
 traveling-wave accelerating structures (ACC1--ACC4) and two quadrupoles, and is tracked with
 ASTRA~\cite{Floettmann2017Astra} through the \texttt{lume-astra} interface~\cite{LumeAstra}.
 Beam properties are evaluated at the exit plane $z = 16.2$~m. Field maps of the gun, the solenoid and the structures are used, with
@@ -491,6 +504,39 @@ with the objective projections exposing the trade-offs between transverse emitta
 The sampled lattice-jitter tests identify several operating points that remain feasible within
 the simulated tolerance model; this does not establish performance on the real machine.
 
+\subsection{Relation to previous KLS injector studies}
+\label{sec:previous_kls}
+Kim et al.\ reported MOGA optimization of the RF-cavity geometry and injector beam dynamics
+in JINST~\cite{Kim2024KLSMOGA}. Their published summary gives a horizontal normalized RMS
+emittance of approximately 3.79~\umrad\ and an RMS energy spread of 0.30737~MeV, using
+$1~\mathrm{mm\,mrad}=1~\umrad$. For comparison, the knee representative of the present
+primary constraint-aware run has $(\enx,\eny,\sigma_E)=(2.9983~\umrad,\ 3.5207~\umrad,\ 0.4034~\mathrm{MeV})$
+(table~\ref{tab:robustness_summary}). Its horizontal emittance is smaller but its energy spread
+is larger than the published MOGA summary values; this is a trade-off rather than uniform
+improvement. No MOGA campaign was rerun under the present paired-budget protocol, so this
+literature comparison does not establish an algorithm ranking or computational speedup over MOGA.
+
+The subsequent JKPS study~\cite{Kim2025KLSError} reports nominal energy spreads of
+0.34145--0.48248~MeV for its selected cases. Its tabulated emittances are geometric, whereas
+ours are normalized, so those emittance values are not directly compared. Its beam-size and
+bunch-length limits were 0.2~mm and 0.9~mm, respectively, compared with 1.0~mm for both here;
+JKPS also imposed a 0.5~MeV energy-spread limit, whereas here energy spread is an objective
+without an upper feasibility cutoff. Feasibility therefore has different meanings across the studies.
+
+The JKPS operating-error model used RF-gradient and phase standard deviations of 0.2\% and
+$0.2^\circ$, with 0.1\% magnet-strength errors. It also studied 100~\si{\micro\metre}
+position errors and 0.4~mrad rotations, using 1,000 samples per stage with a Gaussian distribution
+truncated at two standard deviations. Our tests use $0.1^\circ$ RF-phase and 0.1\% magnet-strength
+errors with 50 samples per representative, omitting RF-gradient and alignment errors. Thus the
+observed feasibility under lattice jitter complements the earlier tolerance study; it does not
+show greater robustness under its broader error model. The earlier study identified alignment
+errors as a principal sensitivity, supporting their inclusion in future assessments.
+
+\subsection{Limitations}
+The empirical Pareto sets do not establish global optimality. Source fluctuations are excluded
+from the perturbation tests, which also omit the RF-gradient and alignment errors considered in
+the earlier JKPS study. Their inclusion requires a separate robustness assessment.
+
 The originally designated fixed-reference hypervolume endpoint was uninformative: it was zero
 for all campaigns because the reporting reference $(1.5~\umrad,\ 1.5~\umrad,\ 1.5~\mathrm{MeV})$
 had emittance components below the observed values. This does not indicate an absence of feasible
@@ -498,9 +544,8 @@ solutions. We therefore omit this metric from the comparative figures and tables
 descriptive physical trade-offs and feasibility summaries, without claiming a hypervolume-based
 ranking. The original endpoint records and reference remain unchanged.
 
-The study has the following limitations. All results are simulations of one injector model with a
-fixed initial distribution; source fluctuations were not perturbed, and agreement with the
-machine has not been assessed. The space-charge model uses \num{10000} macroparticles and finite grids,
+All results are simulations of one injector model with a fixed initial distribution, and agreement
+with the machine has not been assessed. The space-charge model uses \num{10000} macroparticles and finite grids,
 whose numerical resolution limits the accuracy of absolute emittance values, although all
 algorithms are evaluated with the same model. Ten runs give a first estimate of run-to-run
 variability rather than a high-powered test. The constraint thresholds were fixed in advance;
@@ -511,7 +556,7 @@ noise model assumes that ASTRA returns identical results for identical inputs.
 \section{Conclusions}
 \label{sec:conclusions}
 We studied constraint-aware batch multi-objective Bayesian optimization for a six-parameter,
-three-objective, seven-constraint design problem of a 200~MeV electron injector linac, in a paired,
+three-objective, seven-constraint design problem of a 200~MeV electron injector linac for KLS, in a paired,
 budget-matched comparison over ten runs with failure-inclusive accounting. All simulations were
 valid, and each method identified feasible nondominated solutions. The pooled feasible fronts
 contained 49, 27 and 17 observations for the constraint-aware, unconstrained and weighted-sum
@@ -519,21 +564,12 @@ methods, respectively; these are empirical trade-offs, rather than certified glo
 fronts. Constraint-aware acquisition had a median
 feasible fraction of 40.6\%, compared with 15.0\% and 12.5\% for the two baselines. All sampled
 lattice perturbations were feasible, with source jitter explicitly excluded. The recorded data and analysis scripts support
-regeneration of these results; public archive identifiers remain to be assigned.
+regeneration of these results.
 Future work will extend the robustness analysis to source fluctuations with
 a validated distribution generator, distribute the simulations across compute nodes, and test the
 optimized settings on the machine.
 
 %==========================================================================================
-\section*{Data availability statement}
-\label{sec:data}
-The source repository is \url{https://github.com/cspark7701/mobo-linac}; its public archive
-identifier remains \pending{Zenodo DOI}. Complete campaign records (evaluation journals,
-attempt manifests with input hashes, checkpoints and surrogate states) are retained locally;
-their public deposit identifier remains \pending{campaign archive DOI}. The paper update includes
-derived figures, tables and per-seed aggregate endpoints rather than raw simulation files.
-The reproduction commands and data provenance are documented in \texttt{docs/paper/README.md}.
-
 \acknowledgments
 \pending{Funding and acknowledgments.}
 

@@ -63,7 +63,7 @@ latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex
 ```
 
 Do not edit generated tables to change observations. The main text still requires author
-completion of public archive identifiers, funding, and acknowledgments before submission.
+completion of funding and acknowledgments before submission.
 
 ## Journal and figure presentation
 
@@ -94,3 +94,24 @@ The nominal rerun tables and stored-versus-rerun figure remain available as inte
 validation evidence and reproduction outputs. They are excluded from the manuscript,
 along with the Independent verification subsection. The paper retains the lattice-jitter
 robustness analysis and its representative-selection and perturbation methods.
+
+## KLS context and comparison sources
+
+The manuscript identifies this reference injector model with KLS, formerly Korea-4GSR,
+and cites the official project overview and the prior injector studies:
+
+- KLS project overview: https://kls.kbsi.re.kr/sub0201
+- MOGA design study, JINST (2024): https://doi.org/10.1088/1748-0221/19/01/P01023
+- Error analysis, JKPS (2025): https://doi.org/10.1007/s40042-024-01232-2
+  (author-institution copy: https://kuacc.korea.ac.kr/bbs/kuacc/993/174430/download.do)
+
+The JINST numerical comparison uses its published summary values and the present primary
+knee representative, not independently pooled objective minima. The JKPS comparison distinguishes
+geometric and normalized emittance, different feasibility limits, perturbation channels and
+sample sizes. No matched MOGA benchmark or superior robustness under the JKPS error model
+is claimed. The abstract is qualitative without numerical values; limitations are discussed
+in Discussion. The Data availability statement is removed from the manuscript, while these
+local regeneration instructions and the underlying evidence remain available.
+
+The manuscript Pareto panels (Figures 2 and 5) retain scatter-only points and use visible
+major grid lines on both axes. Regeneration uses `paper_comparison` in the comparison script.

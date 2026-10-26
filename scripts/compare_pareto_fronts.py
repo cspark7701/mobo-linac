@@ -64,6 +64,9 @@ def paper_comparison(fronts, schema):
     for ax, pair, letter in zip(axes, combinations(range(3), 2), "abc"):
         draw(ax, fronts, schema, pair=pair, bounds=bounds)
         ax.set_title(f"({letter})", loc="left", fontsize=11)
+        ax.set_axisbelow(True)
+        ax.grid(visible=True, which="major", axis="both", color="0.65",
+                linestyle="--", linewidth=.65, alpha=.85)
     handles = [Line2D([], [], linestyle="", color=color, marker=marker, label=label)
                for label, (color, marker) in zip(LABELS, STYLES)]
     axes[0].legend(handles=handles, fontsize=8, loc="best")
