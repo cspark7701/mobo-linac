@@ -324,6 +324,20 @@ timestamps, levels and module names. Data-quality conditions that callers may as
 truncated journal tail, best-effort legacy resume, implicit run selection) are additionally
 raised as Python warnings.
 
+### Local validation
+
+Install the development dependencies with `pip install -e ".[dev]"`, then run:
+
+```bash
+python -m pytest -m "not integration" --tb=short \
+  --cov=mobo_linac --cov-report=term-missing --cov-fail-under=100
+```
+
+CI and `bash tools/check_github_actions.sh` require 100% package line coverage from
+the non-integration suite. Tests use temporary campaign directories, mock evaluators
+and recorded simulator fixtures; CUDA control paths are tested with mocks on CPU.
+Real ASTRA and GPU execution require separate integration or hardware validation.
+
 ## Development Roadmap
 
 - [x] **Phase 1: Scalarized BO**

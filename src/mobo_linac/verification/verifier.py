@@ -54,8 +54,6 @@ class ParetoVerifier(CandidateEvaluatorBase):
         if not (math.isfinite(self.tol_verified) and math.isfinite(self.tol_conditional)
                 and 0 <= self.tol_verified <= self.tol_conditional):
             raise ValueError('Verification tolerances must be finite, nonnegative and ordered')
-        if self.timeout <= 0 or self.num_workers <= 0:
-            raise ValueError('Verification timeout and worker count must be positive')
 
     def generate_evaluation_plan(self, candidates, roles=None):
         if roles is not None and len(roles) != len(candidates):

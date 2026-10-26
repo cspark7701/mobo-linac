@@ -44,7 +44,7 @@ jobs:
         run: python scripts/verify_docs_sync.py
       - name: Unit tests (package warnings are errors; no ASTRA binary required)
         run: |
-          pytest -m "not integration" --tb=short --cov=mobo_linac --cov-report=term --cov-fail-under=85
+          pytest -m "not integration" --tb=short --cov=mobo_linac --cov-report=term-missing --cov-fail-under=100
 
   wheel-smoke:
     runs-on: ubuntu-latest

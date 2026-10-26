@@ -5,6 +5,12 @@ __pycache__/
 *.pyo
 *.pyd
 
+# Local test coverage reports
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
 # Virtual environment
 env/
 venv/

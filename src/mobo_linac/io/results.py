@@ -213,8 +213,6 @@ def load_evaluation_results(
                 value = row.get(name)
                 if value is None or pd.isna(value):
                     return None
-                if isinstance(value, (bool, np.bool_)):
-                    return bool(value)
                 if isinstance(value, str) and value.lower() in ("true", "false"):
                     return value.lower() == "true"
                 raise ValueError(f"Invalid CSV boolean status: {name}")

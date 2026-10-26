@@ -9,7 +9,7 @@
 #   3. CLI entry point and argument parsing smoke test
 #   4. Documentation & configuration sync audit (scripts/verify_docs_sync.py)
 #   5. Ruff lint (configured in pyproject.toml)
-#   6. Pytest unit test suite without integration tests (pytest -v -m "not integration")
+#   6. Pytest unit test suite without integration tests, requiring 100% package line coverage
 #   7. Optional: Full integration test suite (--with-integration)
 # ==============================================================================
 
@@ -150,8 +150,8 @@ else
 fi
 
 # Step 6: Run CI Unit Test Suite (excluding integration tests requiring external tracking runs)
-step_header "Pytest: CI Unit Test Suite (pytest -m 'not integration')..."
-PYTEST_ARGS=(-v -m "not integration" --tb=short)
+step_header "Pytest: CI Unit Test Suite (100% package line coverage)..."
+PYTEST_ARGS=(-v -m "not integration" --tb=short --cov=mobo_linac --cov-report=term-missing --cov-fail-under=100)
 if [[ "${FAIL_FAST}" == "true" ]]; then
     PYTEST_ARGS+=(-x)
 fi

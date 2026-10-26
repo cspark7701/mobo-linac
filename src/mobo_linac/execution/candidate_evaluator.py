@@ -122,7 +122,7 @@ class CandidateEvaluatorBase(ABC):
         candidates: Sequence[EvaluationResult],
     ) -> List[EvaluationTask]:
         """Generates the list of evaluation tasks (reruns or perturbations) from candidates."""
-        pass
+        raise NotImplementedError("Candidate evaluators must define their evaluation plan.")
 
     def compute_relative_metric_deltas(
         self,
