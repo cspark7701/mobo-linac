@@ -188,3 +188,8 @@ Use the archived startup commit and hashed inputs together with the campaign man
 proposal history for reproduction: configuration defaults alone do not capture CLI overrides.
 Detailed seed mappings and absolute accounting durations remain in supporting CSVs, while
 manuscript text reports relative costs. Saved GP analysis restores models without refitting.
+
+C14 manuscript tables: `python scripts/prepare_revision_tables.py` after reproduction/copy steps.
+This regenerates survey extrema from feasible observations and avoids reintroducing archived
+all-valid case minima or internal project labels. The full executed weights remain in the
+supporting summary; displayed fractions/decimals are rounded.

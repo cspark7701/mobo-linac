@@ -1,22 +1,16 @@
 \begin{table}[htbp]
-\centering
-\caption{Operating-point survey. Extrema use feasible observations; feasibility rates use all evaluations. The scalarized suite has five times the budget of either MOBO campaign. All three-objective feasible trade-offs are retained.}
+\centering\small
+\caption{Operating-point survey: all extrema and Pareto sizes use feasible observations; rates use all evaluations. The scalarized suite pools five independent weightings and has five times the total budget of either MOBO campaign. Coordinate minima need not belong to one setting.}
 \label{tab:campaign_summary}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccc}
-\toprule
-Metric & Phase 1 (Scalarized) & Phase 2 (Unconstrained) & Phase 3 (Constrained) \\
+\begin{tabular}{lrrr}\toprule
+Metric & Scalarized suite & Unconstrained MOBO & Constrained MOBO \\
 \midrule
-Total ASTRA Evaluations & 880 & 176 & 176 \\
-Valid Simulations & 880 & 176 & 176 \\
-Feasible Evaluations & 106 & 19 & 69 \\
-All-Valid Pareto Size & 16 & 19 & 19 \\
-Feasible Pareto Size & 14 & 6 & 14 \\
-Simulation Validity (\%) & 100.0 & 100.0 & 100.0 \\
-Feasibility Rate, All Evaluations (\%) & 12.0 & 10.8 & 39.2 \\
-Best $\varepsilon_{n,x}$ [$\mu$m$\cdot$rad] & 2.7076 & 3.1141 & 2.6513 \\
-Best $\varepsilon_{n,y}$ [$\mu$m$\cdot$rad] & 3.1349 & 3.1712 & 3.0264 \\
-Best $\sigma_E$ [MeV] & 0.3393 & 0.3905 & 0.3467 \\
-\bottomrule
-\end{tabular}}
-\end{table}
+Evaluations & 880 & 176 & 176 \\
+Valid simulations & 880 & 176 & 176 \\
+Feasible observations & 106 & 19 & 69 \\
+Feasible Pareto size & 14 & 6 & 14 \\
+Feasible fraction (\%) & 12.0 & 10.8 & 39.2 \\
+Minimum $\varepsilon_{n,x}$ (\si{\micro\metre\radian}) & 2.7076 & 3.1141 & 2.6513 \\
+Minimum $\varepsilon_{n,y}$ (\si{\micro\metre\radian}) & 3.1349 & 3.1712 & 3.0264 \\
+Minimum $\sigma_E$ (\si{\mega\electronvolt}) & 0.3393 & 0.3905 & 0.3467 \\
+\bottomrule\end{tabular}\end{table}

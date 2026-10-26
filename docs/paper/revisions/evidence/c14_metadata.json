@@ -1,0 +1,33 @@
+{
+  "inputs": [
+    {
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/balanced/evaluations.csv",
+      "sha256": "c97a0744b2a5bb9043130046b276fca9e3bc8ebc581b3e642f26855d01c51430"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/high_brightness/evaluations.csv",
+      "sha256": "908e646df5a22e443f97ca09ebf7f911b13e1ff87b14eb6bc45d6a4115e3a381"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/low_energy_spread/evaluations.csv",
+      "sha256": "97da013a0a478e03143fbbbb5b852bd36a8cd47e429410147f9f4485e4053f81"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/x_dominant/evaluations.csv",
+      "sha256": "1382ae95876a8aa1801637084b9b1689e670d9ca780ef9e9bc690e55dc125b62"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/y_dominant/evaluations.csv",
+      "sha256": "d259a0d459e14a66206f1d21a9262d23d4c95663231805ff25316caf97119da9"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/phase2_unconstrained/evaluations.csv",
+      "sha256": "3276308dc4414c26cc29d654f58c688ca2349e67f843d2b52fd5ba46ce50941d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/phase3_constrained/evaluations.csv",
+      "sha256": "8d9e35a178422963273c6d9e438578f856815297f9b404611ab28e7bb999bc08"
+    }
+  ],
+  "population": "valid and jointly feasible; original flags unchanged"
+}

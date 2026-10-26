@@ -91,14 +91,14 @@ Entries are medians with 95\% percentile bootstrap intervals (1,000 resamples wi
 Pareto sizes count feasible observations nondominated jointly in all three objectives.
 First-feasible counts are omitted because they mix shared initialization with adaptive search.}
 \label{tab:primary}
-\resizebox{\textwidth}{!}{%
+\small
 \begin{tabular}{lccc}
 \toprule
- & Constraint-aware qLogNEHVI & Unconstrained qLogNEHVI & Weighted-sum qLogNEI \\
+ & Constrained MOBO & Unconstrained MOBO & Scalarized BO \\
 \midrule
 """ + "\n".join(rows) + r"""
 \bottomrule
-\end{tabular}}
+\end{tabular}
 \end{table}
 """
     (output / "primary_results_table.tex").write_text(text)

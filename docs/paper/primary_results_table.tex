@@ -6,14 +6,14 @@ Entries are medians with 95\% percentile bootstrap intervals (1,000 resamples wi
 Pareto sizes count feasible observations nondominated jointly in all three objectives.
 First-feasible counts are omitted because they mix shared initialization with adaptive search.}
 \label{tab:primary}
-\resizebox{\textwidth}{!}{%
+\small
 \begin{tabular}{lccc}
 \toprule
- & Constraint-aware qLogNEHVI & Unconstrained qLogNEHVI & Weighted-sum qLogNEI \\
+ & Constrained MOBO & Unconstrained MOBO & Scalarized BO \\
 \midrule
 Feasible fraction (\%) & 40.6 [35.6, 45.6] & 15.0 [12.8, 18.8] & 12.5 [11.2, 13.8] \\
 Feasible Pareto set size & 13.5 [11.5, 15.0] & 7.0 [4.0, 8.0] & 4.0 [3.0, 5.5] \\
 Invalid simulations & 0.0 [0.0, 0.0] & 0.0 [0.0, 0.0] & 0.0 [0.0, 0.0] \\
 \bottomrule
-\end{tabular}}
+\end{tabular}
 \end{table}

@@ -73,3 +73,9 @@ The revised Methods and supporting matrix identify the actual matched three-meth
 We quantify the original physical smoothing scales and evaluate frozen early/middle/late surrogates on common candidate/posterior samples. Equivalent raw-unit representations change acquisition ranks, whereas explicit dimensionless residuals preserve values to numerical precision. The highest-ranked candidate in this limited probe set is unchanged, so we do not overstate the sensitivity result. This is a q=1 offline comparison with an identical unpruned baseline, not production q=8 proposal replay or evidence of improved beam quality. At the author's explicit request we retain existing simulations and do not run a corrected arm. The paper therefore describes the original raw-residual implementation and limits its conclusions accordingly; the requested new physical-performance comparison remains unperformed.
 
 **Locations:** Constraint handling and smoothing; Offline sensitivity of constraint smoothing; C06 scales, acquisition values and rank comparisons.
+
+## Table populations, labels and units (C14)
+
+Survey case extrema now use feasible observations consistently with the aggregate table, with explicit population and coordinate-minimum captions. Unsupported operational/FEL labels and internal Phase names are replaced by weighting and method names. Stale reference-point text is removed. Main tables use readable layouts rather than whole-table resizing; units use siunitx, and the robustness table reports the C10 components and uncertainty. Original data and archived tables are preserved.
+
+**Locations:** Primary, survey, weighting-case and robustness tables; C14 derived population audit.

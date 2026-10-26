@@ -1,17 +1,13 @@
-\begin{table}[htbp]
-\centering
-\caption{Phase 1 Scalarized BO multi-case campaign summary across representative operational linac archetypes. Feasibility uses all evaluations; minima use all-valid observations. The shared fixed reporting reference point and objective units are recorded in reporting metadata.}
+\begin{table}[htbp]\centering\small
+\caption{Independent scalarized survey cases, each using 176 evaluations. All objective
+minima use feasible observations. Emittances are in \si{\micro\metre\radian} and
+energy spread in \si{\mega\electronvolt}. Weights act on scale-normalized objectives.}
 \label{tab:phase1_cases}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccccc}
-\toprule
-\textbf{Case} & \textbf{Operating Mode} & $\mathbf{w}$ & \textbf{Evals} & \textbf{Feas. (\%)} & \textbf{Min} $\varepsilon_{n,x}$ [$\mu$m$\cdot$rad] & \textbf{Min} $\varepsilon_{n,y}$ [$\mu$m$\cdot$rad] & \textbf{Min} $\sigma_E$ [MeV] \\
-\midrule
-\texttt{balanced} & Balanced Linac Operation & [0.33, 0.33, 0.33] & 176 & 21 (11.9\%) & 2.9102 & 3.0396 & 0.3665 \\
-\texttt{high\_brightness} & High-Brightness FEL Mode & [0.45, 0.45, 0.10] & 176 & 20 (11.4\%) & 2.7787 & 3.2016 & 0.2984 \\
-\texttt{low\_energy\_spread} & Low Energy Spread Mode & [0.10, 0.10, 0.80] & 176 & 29 (16.5\%) & 2.7076 & 2.9654 & 0.3047 \\
-\texttt{x\_dominant} & Horizontal-Dominant Optics & [0.60, 0.20, 0.20] & 176 & 18 (10.2\%) & 2.6553 & 3.2297 & 0.3300 \\
-\texttt{y\_dominant} & Vertical-Dominant Optics & [0.20, 0.60, 0.20] & 176 & 18 (10.2\%) & 3.2445 & 3.5359 & 0.3055 \\
-\bottomrule
-\end{tabular}}
-\end{table}
+\begin{tabular}{lcrrrr}\toprule
+Weighting & $(w_x,w_y,w_E)$ & Feasible & Min. $\varepsilon_{n,x}$ & Min. $\varepsilon_{n,y}$ & Min. $\sigma_E$ \\\midrule
+Equal weight & $(\frac13,\frac13,\frac13)$ & 21 & 3.0075 & 3.1349 & 0.3667 \\
+Emittance emphasis & $(0.45,0.45,0.10)$ & 20 & 2.7787 & 3.3732 & 0.3672 \\
+Spread emphasis & $(0.10,0.10,0.80)$ & 29 & 2.7076 & 3.3418 & 0.3969 \\
+Horizontal emphasis & $(0.60,0.20,0.20)$ & 18 & 3.0866 & 3.7410 & 0.3626 \\
+Vertical emphasis & $(0.20,0.60,0.20)$ & 18 & 3.3126 & 3.5604 & 0.3393 \\
+\bottomrule\end{tabular}\end{table}

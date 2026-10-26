@@ -253,13 +253,15 @@ Add the appropriate existing JINST and JKPS citations to this passage when editi
 
 ### C14. Make the tables scientific and consistent
 
+**Status:** Completed. [C14 report](evidence/c14_report.md) documents feasible-only extrema, method/weighting names, consistent units and readable table layouts.
+
 **Sources:** Reviewer 1 minor 1/2/4/6, R12; Reviewer 2 minor 1/2/13/15, R11/R14/R16.
 
-- [ ] Use feasible extrema consistently in the main comparison, or explicitly separate all-valid extrema. Keep raw observations unchanged.
-- [ ] Replace Phase 1/2/3 labels and unsupported operational-archetype/FEL-mode names with method and weighting names.
-- [ ] Remove stale reference-point wording where it no longer describes a reported metric.
-- [ ] Use consistent emittance/energy units and human-readable physical descriptions in captions.
-- [ ] Improve print-size legibility with suitable table layout rather than excessive resizing, and include the revised robustness quantities from C10.
+- [x] Use feasible extrema consistently in the main comparison, or explicitly separate all-valid extrema. Keep raw observations unchanged.
+- [x] Replace Phase 1/2/3 labels and unsupported operational-archetype/FEL-mode names with method and weighting names.
+- [x] Remove stale reference-point wording where it no longer describes a reported metric.
+- [x] Use consistent emittance/energy units and human-readable physical descriptions in captions.
+- [x] Improve print-size legibility with suitable table layout rather than excessive resizing, and include the revised robustness quantities from C10.
 
 **Done when:** Every table clearly identifies its population, units and physical interpretation.
 
