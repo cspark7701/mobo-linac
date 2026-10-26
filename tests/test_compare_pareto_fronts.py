@@ -51,32 +51,19 @@ def test_two_d_view_preserves_all_three_objective_pairs_without_3d_axes(sample_c
     plt.close(fig)
 
 
-def test_projected_guides_exclude_projection_dominated_points_but_keep_scatter(sample_config):
+def test_scatter_only_retains_points_dominated_in_a_projection(sample_config):
     tool = module()
     schema = PlotSchema.from_config(sample_config)
     frame = pd.DataFrame([[3e-6, 3e-6, .3e6], [2e-6, 4e-6, .4e6],
                           [5e-6, 2e-6, .5e6], [4e-6, 4e-6, .2e6]],
                          columns=[s.column for s in schema.objectives])
-    frame["evaluation_id"] = ["A", "B", "C", "D"]
-    # D remains a genuine 3D trade-off because it improves energy spread,
-    # but belongs to neither the x/y envelope nor its connecting guide.
-    boundary = tool.projected_envelope(frame, schema, (0, 1))
-    assert list(boundary.evaluation_id) == ["B", "A", "C"]
-    fig, ax = plt.subplots()
-    tool.draw(ax, [tool.Front(tool.ALGORITHMS[0], frame)], schema, pair=(0, 1))
-    assert len(ax.collections[0].get_offsets()) == 4
-    np.testing.assert_allclose(ax.lines[0].get_xydata(), [[2, 4], [3, 3], [5, 2]])
-    plt.close(fig)
-
-
-def test_projected_envelope_honors_mixed_directions_and_duplicate_coordinates(sample_config):
-    from dataclasses import replace
-    tool = module()
-    schema = PlotSchema.from_config(sample_config)
-    schema = replace(schema, objectives=(schema.objectives[0],
-                     replace(schema.objectives[1], sign=1), schema.objectives[2]))
-    frame = pd.DataFrame([[2e-6, 4e-6, .4e6], [3e-6, 3e-6, .3e6],
-                          [4e-6, 5e-6, .2e6], [2e-6, 4e-6, .1e6]],
-                         columns=[s.column for s in schema.objectives])
-    frame["evaluation_id"] = ["A", "dominated_xy", "B", "same_xy"]
-    assert list(tool.projected_envelope(frame, schema, (0, 1)).evaluation_id) == ["A", "B"]
+    # The last point improves energy spread even though it is dominated in x/y.
+    fronts = [tool.Front(tool.ALGORITHMS[0], frame)]
+    for fig in [tool.comparison(fronts, schema, "title", "subtitle", two_d=True),
+                tool.paper_comparison(fronts, schema)]:
+        for ax in fig.axes:
+            assert len(ax.lines) == 0
+            assert len(ax.collections[0].get_offsets()) == 4
+        np.testing.assert_allclose(fig.axes[0].collections[0].get_offsets(),
+                                   [[3, 3], [2, 4], [5, 2], [4, 4]])
+        plt.close(fig)

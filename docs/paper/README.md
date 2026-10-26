@@ -17,7 +17,9 @@ of the paper update. `main.pdf` and LaTeX build products are regenerated locally
   and feasible. Charge, laser-size, and laser-duration jitter were not physically applied.
 - Every primary hypervolume is zero against the fixed predeclared reference. The paper
   does not change that reference, assign a signed-rank p-value to all-zero differences,
-  or infer a hypervolume ranking. Feasibility results are descriptive secondary endpoints.
+  or infer a hypervolume ranking. One discussion paragraph retains the original endpoint
+  limitation; uninformative hypervolume plots and table rows are omitted from the paper.
+  Feasibility and physical trade-offs are presented descriptively.
 - `primary_results.json` retains per-seed aggregate endpoints and reproducible percentile
   bootstrap summaries (1,000 resamples with a fixed seed number). Its feasible Pareto sizes count the actual
   feasible nondominated observations; historical hypervolume-history counts only include
@@ -54,7 +56,7 @@ cp results/paper_production/07_paper_outputs/tables/benchmark_summary_table.csv 
 # Final manuscript presentation (run after the generic reproduction/copy steps).
 python scripts/prepare_paper_presentation.py
 python scripts/compare_pareto_fronts.py --two-d \
-  --output-dir results/paper_production/pareto_envelopes_NEW_DIRECTORY \
+  --output-dir results/paper_production/pareto_points_NEW_DIRECTORY \
   --paper-dir docs/paper/figures
 
 latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex
@@ -70,10 +72,9 @@ vendored unchanged from the publisher for reproducible builds:
 https://jinst.sissa.it/jinst/help/JINST_TeXclass.jsp
 The style files retain their upstream licensing headers.
 
-The primary and survey Pareto panels keep every measured feasible three-objective
-nondominated observation. Thin dashed segments join only the two-dimensional
-nondominated subset in each projection as visual guides. Intermediate positions
-are not simulated designs or evidence of feasibility. Pooling the ten primary
+The primary and survey Pareto panels are scatter-only and keep every measured feasible
+three-objective nondominated observation. No connecting lines, interpolation, or fitted
+curves are drawn. Pooling the ten primary
 runs yields 49, 27, and 17 points for constrained MOBO, unconstrained MOBO, and
 scalarized BO; the pooled survey yields 14, 6, and 14, with unequal survey budgets.
 Point counts alone do not rank physical trade-off quality.
@@ -81,7 +82,8 @@ Point counts alone do not rank physical trade-off quality.
 `prepare_paper_presentation.py` draws the beamline component order from `astra.in`
 and regenerates audit tables in configured display units without explicit seed
 values in captions. It also replaces the generic survey-table caption with the
-manuscript convention. Run it after the generic reproduction steps above.
+manuscript convention and removes the uninformative hypervolume rows from that display
+only. Run it after the generic reproduction steps above.
 `generate_primary_paper_table.py` retains timing and seed data in its JSON evidence
 but omits explicit timing from the manuscript table. The manuscript describes only
 the observed computational ordering.

@@ -79,8 +79,7 @@ def generate(root, output):
     output.mkdir(parents=True, exist_ok=True)
     (output / "primary_results.json").write_text(json.dumps(data, indent=2) + "\n")
     rows = []
-    for label, metric in [("Final feasible hypervolume", "feasible_hv"),
-                          ("Feasible fraction (\\%)", "feasible_percent"),
+    for label, metric in [("Feasible fraction (\\%)", "feasible_percent"),
                           ("Evaluations to first feasible point", "first_feasible"),
                           ("Feasible Pareto set size", "feasible_pareto_size"),
                           ("Invalid simulations", "invalid_count")]:
@@ -90,8 +89,7 @@ def generate(root, output):
 \centering
 \caption{Primary comparison over ten paired runs, 160 simulations per campaign.
 Entries are medians with 95\% percentile bootstrap intervals (1,000 resamples with a fixed seed number).
-Hypervolumes use the fixed reference and units of $\mu\mathrm{m}^2\,\mathrm{rad}^2\,\mathrm{MeV}$.
-Pareto sizes count feasible nondominated observations, including points outside that reference.}
+Pareto sizes count feasible observations nondominated jointly in all three objectives.}
 \label{tab:primary}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lccc}

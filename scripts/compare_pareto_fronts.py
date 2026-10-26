@@ -7,7 +7,7 @@ is used. Static PNGs and a multipage vector PDF preserve the comparison for shar
 
 import argparse
 from collections import defaultdict
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
 from itertools import combinations
 import json
 from pathlib import Path
@@ -57,18 +57,6 @@ def limits(fronts, schema):
     return list(zip(low - pad, high + pad))
 
 
-def projected_envelope(frame, schema, pair):
-    """Observed 2D nondominated subset, sorted for a piecewise linear visual guide.
-
-    This is not an interpolated physical solution or the entire 3D Pareto set.
-    Direction signs and units come from the recorded configuration.
-    """
-    projected = replace(schema, objectives=tuple(schema.objectives[i] for i in pair))
-    columns = [spec.column for spec in projected.objectives]
-    envelope = frame.loc[nondominated_mask(frame, projected)]
-    return envelope.drop_duplicates(columns).sort_values(columns[0], kind="stable")
-
-
 def paper_comparison(fronts, schema):
     """Readable portrait panels for a manuscript; all observed points stay visible."""
     fig, axes = plt.subplots(3, 1, figsize=(6.5, 8.5), layout="constrained")
@@ -78,8 +66,6 @@ def paper_comparison(fronts, schema):
         ax.set_title(f"({letter})", loc="left", fontsize=11)
     handles = [Line2D([], [], linestyle="", color=color, marker=marker, label=label)
                for label, (color, marker) in zip(LABELS, STYLES)]
-    handles.append(Line2D([], [], color="0.4", linestyle="--", linewidth=1,
-                          label="2D envelope (guide)"))
     axes[0].legend(handles=handles, fontsize=8, loc="best")
     return fig
 
@@ -95,9 +81,6 @@ def draw(ax, fronts, schema, is3d=False, pair=(0, 1), bounds=None, legend=False)
         if is3d:
             ax.scatter(xyz[:, 0], xyz[:, 1], xyz[:, 2], depthshade=False, **kwargs)
         else:
-            boundary = coordinates(projected_envelope(front.frame, schema, pair), schema)
-            ax.plot(boundary[:, pair[0]], boundary[:, pair[1]], color=color,
-                    linestyle="--", linewidth=1, alpha=.8, zorder=1)
             ax.scatter(xyz[:, pair[0]], xyz[:, pair[1]], **kwargs)
     if is3d:
         ax.set_xlabel(axis_label(schema.objectives[0]), labelpad=7)
@@ -115,9 +98,6 @@ def draw(ax, fronts, schema, is3d=False, pair=(0, 1), bounds=None, legend=False)
             ax.set_xlim(bounds[pair[0]]); ax.set_ylim(bounds[pair[1]])
     if legend:
         handles, labels = ax.get_legend_handles_labels()
-        if not is3d:
-            handles.append(Line2D([], [], color="0.4", linestyle="--", linewidth=1))
-            labels.append("2D envelope (guide)")
         ax.legend(handles, labels, fontsize=8, loc="best")
 
 
@@ -272,7 +252,7 @@ def generate(root, output, two_d=False, paper_dir=None):
                         "Survey comparison: all five scalarized weight cases", "176 evaluations per campaign; independently initialized weight cases; shared axes", 3)
     if paper_dir is not None:
         paper_dir.mkdir(parents=True, exist_ok=True)
-        for name, fronts in [("primary_pareto_envelopes", pooled), ("survey_pareto_envelopes", pooled_survey)]:
+        for name, fronts in [("primary_pareto_points", pooled), ("survey_pareto_points", pooled_survey)]:
             fig = paper_comparison(fronts, schema)
             fig.savefig(paper_dir / f"{name}.pdf")
             fig.savefig(paper_dir / f"{name}.png", dpi=200)
@@ -281,7 +261,7 @@ def generate(root, output, two_d=False, paper_dir=None):
     pd.DataFrame(summaries).to_csv(output / "campaign_front_summary.csv", index=False)
     for name, fronts in [("primary", pooled), ("survey", pooled_survey)]:
         pd.concat([f.frame for f in fronts], ignore_index=True).to_csv(output / f"{name}_pooled_pareto_points.csv", index=False)
-    notes = {"two_dimensional_only": two_d, "projected_envelope_guides": True, "reference_filter_used": False, "objectives": [{"column": s.column, "display_label": axis_label(s),
+    notes = {"two_dimensional_only": two_d, "projected_envelope_guides": False, "reference_filter_used": False, "objectives": [{"column": s.column, "display_label": axis_label(s),
              "physical_to_display_divisor": s.scale, "direction_sign": s.sign} for s in schema.objectives],
              "primary_pooled_front_sizes": {f.algorithm: len(f.frame) for f in pooled},
              "survey_pooled_front_sizes": {f.algorithm: len(f.frame) for f in pooled_survey},

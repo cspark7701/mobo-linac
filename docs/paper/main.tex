@@ -57,9 +57,7 @@ numerically valid. The median feasible fractions were 40.6\%, 15.0\% and 12.5\% 
 constraint-aware, unconstrained and weighted-sum methods, respectively; the corresponding median
 numbers of feasible nondominated observations were 13.5, 7.0 and 4.0. The observed trade-offs are
 compared through projections of the three-objective feasible Pareto sets. A separate survey
-explores five scalarization weightings. The fixed reporting hypervolume was zero for all methods
-because its reference emittances were below the observed values, preventing a hypervolume-based
-ranking. Twelve representative operating points reproduced their stored nominal results under
+explores five scalarization weightings. Twelve representative operating points reproduced their stored nominal results under
 independent simulation, and all 600 sampled lattice-jitter simulations remained feasible.
 These results identify reproducible feasible trade-offs within the simulated injector model and
 show a higher feasible sampling fraction for constraint-aware acquisition. They do not establish
@@ -142,8 +140,8 @@ The present simulation study makes three contributions.
   surrogates for the objectives and for each constraint diagnostic (section~\ref{sec:methods}).
 \item We compare constraint-aware qLogNEHVI, unconstrained qLogNEHVI and weighted-sum BO in a
   paired, budget-matched simulation comparison over ten independent runs per method. Every simulation, including failed ones,
-  counts against the budget, and hypervolume is measured over feasible evaluated points against
-  a fixed reference declared before the simulations (section~\ref{sec:design}).
+  counts against the budget. We compare the feasible nondominated solutions and feasible sampling
+  fractions obtained by each method (section~\ref{sec:design}).
 \item We audit selected feasible nondominated settings by independent re-simulation with recorded input
   hashes and by their response to lattice jitter. We provide analysis software and retain the campaign
   records (sections~\ref{sec:audit} and~\ref{sec:data}).
@@ -296,7 +294,7 @@ $g(\mathbf{x}) = \sum_m w_m f_m(\mathbf{x})/s_m$, where $s_m$ are the reporting 
 ($1~\umrad$, $1~\umrad$, $1$~MeV) and $w_m = 1/3$, and selects batches with the logarithmic
 noisy expected improvement (qLogNEI)~\cite{Ament2023}. It does not model the constraints.
 
-\subsection{Acquisition optimization and reference points}
+\subsection{Acquisition optimization}
 Batches are optimized jointly with multi-start L-BFGS-B~\cite{Byrd1995}: 1,024 quasi-random
 raw samples, 10 restarts and at most 200 iterations. If the optimizer fails or returns an invalid
 batch, it is retried with a reduced budget, and as a last resort the batch is drawn from the
@@ -304,18 +302,6 @@ campaign's scrambled Sobol sequence~\cite{Owen1998}; every such fallback is reco
 proposal and reported. The acquisition reference point $\mathbf{r}_\mathrm{acq}$ is recomputed at
 each iteration from the valid observations, offset from their worst values by 5\% of the observed
 range. It steers the search only and is never used to report results.
-
-Hypervolumes are reported against a fixed reference point declared before the simulation comparison,
-\begin{equation}
-  \mathbf{r} = \bigl(1.5~\umrad,\ 1.5~\umrad,\ 1.5~\mathrm{MeV}\bigr),
-\end{equation}
-in units of \si{\micro\metre^2\,rad^2\,MeV}; the survey tables and figures of
-section~\ref{sec:survey_results} use SI units, in which
-$1~\si{\micro\metre^2\,rad^2\,MeV} = 10^{-6}~\si{\metre^2\,rad^2\,eV}$. The \emph{feasible hypervolume} after $n$ evaluations is
-the hypervolume dominated by the feasible evaluated points (not by surrogate predictions) among
-the first $n$; points that do not dominate $\mathbf{r}$ contribute nothing. Because the reference
-is fixed and only evaluated points enter, the feasible hypervolume never decreases and is
-comparable across algorithms, runs and budgets.
 
 %==========================================================================================
 \section{Simulation study design}
@@ -330,22 +316,18 @@ in their acquisition strategy. The protocol (problem
 definition, budgets, seeds, reference point and endpoints) was fixed before the simulation comparison; pilot
 and screening runs used to validate the pipeline are not part of the reported comparison.
 
-\subsection{Endpoints and statistical analysis}
+\subsection{Reported quantities and statistical summaries}
 \label{sec:endpoints}
-The primary endpoint is the final feasible hypervolume after 160 evaluations. Secondary endpoints
-are the feasible hypervolume as a function of the number of evaluations, the fraction of feasible
-evaluations (with all evaluations, including failures, in the denominator), the number of
-evaluations until the first feasible point, the size of the feasible Pareto set, the failure
-counts by category and the computational cost. For each algorithm we report the median over runs
-with a 95\% percentile bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed
-seed number). Because the initial designs are paired, the algorithms are compared through the
-paired-run differences in final feasible hypervolume between constraint-aware qLogNEHVI and each
-baseline, summarized by their median with a bootstrap interval. The planned two-sided exact
-Wilcoxon signed-rank test~\cite{Wilcoxon1945}, with Holm correction~\cite{Holm1979} for the two
-comparisons, is not applied when every paired difference is zero: no nonzero signed ranks remain.
-That condition occurred for both hypervolume comparisons here. Feasible Pareto cardinality counts
-all feasible nondominated measured observations, including those outside the reporting reference;
-it is distinct from the reference-dominating point count in the hypervolume history.
+The comparison describes feasible nondominated observations and their trade-offs in physical
+objective units. Feasible Pareto cardinality is computed jointly in all three objectives and
+counts every feasible nondominated measured observation. Additional summaries are the fraction
+of feasible evaluations (with all evaluations, including failures, in the denominator), the
+number of evaluations until the first feasible point, invalid simulation counts and relative
+computational cost. For each algorithm we report the median over runs with a 95\% percentile
+bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed seed number).
+These are descriptive comparisons; no statistical significance or global optimality is claimed.
+The limitation of the originally designated reporting endpoint is addressed in
+section~\ref{sec:discussion}.
 
 \subsection{Independent audit of operating points}
 \label{sec:audit}
@@ -394,7 +376,7 @@ with the same protocol.
 % Campaign outputs (copied here after scripts/production/07_paper_outputs.sh):
 %   results_table.tex, phase1_cases_table.tex, verification_table.tex, figures/*.png
 %       scripts/reproduce_paper.sh with the Step 5 directories (printed by Step 7)
-%   figures/benchmark_hv_comparison.pdf, figures/benchmark_feasibility_comparison.pdf,
+%   figures/benchmark_feasibility_comparison.pdf,
 %   audit_verification_table.tex, robustness_table.tex
 %       copied from results/paper_production/07_paper_outputs/{figures,tables}
 % -----------------------------------------------------------------------------------------
@@ -420,55 +402,44 @@ ten runs separately for each method and recomputing nondominance jointly in all 
 The resulting sets contain 49, 27 and 17 observations for constraint-aware MOBO, unconstrained
 MOBO and weighted-sum BO, respectively. Pooling describes the combined search coverage at equal
 total budgets per method; it does not represent a single run or a globally optimal front.
-Markers retain every three-objective nondominated observation. Dashed lines join only the
-nondominated subset in each two-dimensional projection as visual guides, following the use of
-projected trade-off comparisons in accelerator MOBO~\cite{Roussel2021}. A point can appear
-dominated in a projection because it improves the omitted objective. Locations between markers
-are not additional simulated or validated settings. Neither a larger point count alone nor a
-visually lower projected envelope establishes superiority across all three objectives.
+Markers retain every three-objective nondominated observation in the pairwise projections,
+as used for accelerator MOBO comparisons~\cite{Roussel2021}. A point can appear dominated in a
+projection because it improves the omitted objective. Neither a larger point count alone nor
+an apparently better two-dimensional projection establishes superiority across all three objectives.
 
 \begin{figure}[htbp]
 \centering
-\datafigure{figures/primary_pareto_envelopes.pdf}{0.85\linewidth}
+\datafigure{figures/primary_pareto_points.pdf}{0.85\linewidth}
 \caption{Primary comparison: pairwise projections of the pooled feasible three-objective
 nondominated sets, using ten runs of 160 simulations per method. Markers are evaluated ASTRA
-settings; dashed segments connect the two-dimensional nondominated subsets as guides to the eye.
-Smaller objective values are preferred. No hypervolume-reference filter is applied.}
+settings. Smaller objective values are preferred. All feasible three-objective trade-offs are
+retained, including points that appear dominated in a two-dimensional projection.}
 \label{fig:primary_pareto}
 \end{figure}
 
-Table~\ref{tab:primary} summarizes the endpoints of the three algorithms and
-figure~\ref{fig:benchmark} shows the feasible hypervolume and the feasible fraction as functions of
-the number of evaluations. Every run had zero feasible hypervolume against the predeclared
-reference, with median and bootstrap interval $0\,[0,0]$ for all algorithms. Each paired
-hypervolume difference was also zero; no signed-rank $p$-value or Holm-adjusted significance
-claim is reported. This endpoint does not distinguish the algorithms, and the result does not
-establish equality of their physical trade-offs. The reference was not changed after observing
-the runs.
+Table~\ref{tab:primary} summarizes the measured feasible sampling fractions and Pareto set sizes;
+figure~\ref{fig:benchmark} shows the evolution of the feasible fraction during optimization.
 
 Median feasible fractions were 40.6\% [35.6\%, 45.6\%], 15.0\% [12.8\%, 18.8\%] and
 12.5\% [11.2\%, 13.8\%] for the constraint-aware, unconstrained and weighted-sum algorithms.
-These are descriptive secondary results; no separate significance test of feasibility is claimed.
+These are descriptive results; no separate significance test of feasibility is claimed.
 Median evaluations to the first feasible point were 12.5, 13.0 and 12.5, while median feasible
-Pareto cardinalities were 13.5, 7.0 and 4.0. Feasible fronts can exist without contributing to
-the fixed-reference hypervolume: the observed transverse emittances remain above its
-1.5~\umrad\ reference components.
+Pareto cardinalities were 13.5, 7.0 and 4.0. All three methods therefore identified feasible
+nondominated solutions.
 
 \input{primary_results_table}
 
 \begin{figure}[htbp]
 \centering
-\datafigure{figures/benchmark_hv_comparison.pdf}{0.45\linewidth}\hfill
-\datafigure{figures/benchmark_feasibility_comparison.pdf}{0.45\linewidth}
-\caption{Primary comparison. Left: feasible hypervolume against the fixed reference
-$\mathbf{r}$ versus the number of simulations. Right: fraction of feasible simulations. Lines
-are medians over ten runs and bands are 95\% bootstrap confidence intervals.}
+\datafigure{figures/benchmark_feasibility_comparison.pdf}{0.75\linewidth}
+\caption{Primary comparison: fraction of feasible simulations versus the number of evaluations.
+Lines are medians over ten runs and bands are 95\% bootstrap confidence intervals.}
 \label{fig:benchmark}
 \end{figure}
 
 \subsection{Operating points and trade-offs}
 \label{sec:survey_results}
-Table~\ref{tab:campaign_summary} and figures~\ref{fig:survey_hv}--\ref{fig:pareto} summarize the
+Table~\ref{tab:campaign_summary} and figures~\ref{fig:survey_feasible} and~\ref{fig:pareto} summarize the
 operating-point survey of section~\ref{sec:survey}, and table~\ref{tab:phase1_cases} the five
 weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
 106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
@@ -484,14 +455,7 @@ survey summary.}{tab:campaign_summary}}
 \IfFileExists{phase1_cases_table.tex}{\input{phase1_cases_table}}{\pendingtable{phase1_cases_table}{Weighted-sum
 survey by weighting.}{tab:phase1_cases}}
 
-\begin{figure}[htbp]
-\centering
-\datafigure{figures/hypervolume_comparison.png}{0.75\linewidth}
-\caption{Operating-point survey: feasible hypervolume (SI units) against the fixed reference
-versus the number of valid simulations. The weighted-sum aggregate uses five times the budget of
-each qLogNEHVI run.}
-\label{fig:survey_hv}
-\end{figure}
+
 
 \begin{figure}[htbp]
 \centering
@@ -503,9 +467,9 @@ simulations.}
 
 \begin{figure}[htbp]
 \centering
-\datafigure{figures/survey_pareto_envelopes.pdf}{0.85\linewidth}
+\datafigure{figures/survey_pareto_points.pdf}{0.85\linewidth}
 \caption{Operating-point survey: pairwise projections of the feasible three-objective
-nondominated sets. Markers denote evaluated settings; dashed lines are projected envelope guides.
+nondominated sets. Markers denote evaluated settings without interpolation or connecting lines.
 The scalarized set pools five weighting cases (880 simulations), whereas each MOBO set uses
 176 simulations. This descriptive comparison has unequal budgets and supports no algorithm ranking.}
 \label{fig:pareto}
@@ -554,21 +518,26 @@ robustness of the representatives.}{tab:robustness_summary}}
 \label{sec:discussion}
 Constraint-aware acquisition produced a larger feasible fraction and a larger feasible Pareto
 set in the descriptive summaries over ten runs, while completing campaigns more slowly than the
-unconstrained and weighted-sum methods. The predeclared primary endpoint nevertheless remains
-uninformative because the fixed reference lies beyond the observed emittances. Secondary
-feasibility results should therefore not be substituted for a positive primary hypervolume
-comparison. A future benchmark may predeclare a reference supported by independent operating
-data, but changing it retrospectively would answer a different question. The independent reruns
+unconstrained and weighted-sum methods. All methods identified feasible nondominated settings,
+with the objective projections exposing the trade-offs between transverse emittance and energy spread.
+The independent reruns
 support reproducibility, and the sampled lattice-jitter tests identify several feasible operating
 points within the simulated tolerance model; neither establishes performance on the real machine.
+
+The originally designated fixed-reference hypervolume endpoint was uninformative: it was zero
+for all campaigns because the reporting reference $(1.5~\umrad,\ 1.5~\umrad,\ 1.5~\mathrm{MeV})$
+had emittance components below the observed values. This does not indicate an absence of feasible
+solutions. We therefore omit this metric from the comparative figures and tables and present
+descriptive physical trade-offs and feasibility summaries, without claiming a hypervolume-based
+ranking. The original endpoint records and reference remain unchanged.
 
 The study has the following limitations. All results are simulations of one injector model with a
 fixed initial distribution; source fluctuations were not perturbed, and agreement with the
 machine has not been assessed. The space-charge model uses \num{10000} macroparticles and finite grids,
 whose numerical resolution limits the accuracy of absolute emittance values, although all
 algorithms are evaluated with the same model. Ten runs give a first estimate of run-to-run
-variability rather than a high-powered test. The constraint thresholds and the reference point
-were fixed in advance; other choices may change absolute hypervolumes. Finally, the deterministic
+variability rather than a high-powered test. The constraint thresholds were fixed in advance;
+other choices may change the set of feasible solutions. Finally, the deterministic
 noise model assumes that ASTRA returns identical results for identical inputs, which the
 verification reruns test directly.
 
@@ -577,9 +546,11 @@ verification reruns test directly.
 \label{sec:conclusions}
 We studied constraint-aware batch multi-objective Bayesian optimization for a six-parameter,
 three-objective, seven-constraint design problem of a 200~MeV electron injector linac, in a paired,
-budget-matched comparison over ten runs with failure-inclusive accounting and a fixed hypervolume
-reference. All simulations were valid. Hypervolume was zero in every primary campaign, so no
-hypervolume-based algorithm ranking is supported. Constraint-aware acquisition had a median
+budget-matched comparison over ten runs with failure-inclusive accounting. All simulations were
+valid, and each method identified feasible nondominated solutions. The pooled feasible fronts
+contained 49, 27 and 17 observations for the constraint-aware, unconstrained and weighted-sum
+methods, respectively; these are empirical trade-offs, rather than certified globally optimal
+fronts. Constraint-aware acquisition had a median
 feasible fraction of 40.6\%, compared with 15.0\% and 12.5\% for the two baselines. All audited
 representatives reproduced at stored output precision and all sampled lattice perturbations were
 feasible, with source jitter explicitly excluded. The recorded data and analysis scripts support

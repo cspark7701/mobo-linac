@@ -486,9 +486,9 @@ def test_manuscript_references_generated_figures(project_root):
     assert main_tex.exists(), "docs/paper/main.tex not found."
     content = main_tex.read_text()
     required_fig_refs = [
-        "hypervolume_comparison.png",
-        "primary_pareto_envelopes.pdf",
-        "survey_pareto_envelopes.pdf",
+        "benchmark_feasibility_comparison.pdf",
+        "primary_pareto_points.pdf",
+        "survey_pareto_points.pdf",
         "injector_linac_layout.pdf",
         "verification_rerun_comparison.png",
         "feasible_fraction.png",

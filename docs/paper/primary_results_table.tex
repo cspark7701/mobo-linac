@@ -3,15 +3,13 @@
 \centering
 \caption{Primary comparison over ten paired runs, 160 simulations per campaign.
 Entries are medians with 95\% percentile bootstrap intervals (1,000 resamples with a fixed seed number).
-Hypervolumes use the fixed reference and units of $\mu\mathrm{m}^2\,\mathrm{rad}^2\,\mathrm{MeV}$.
-Pareto sizes count feasible nondominated observations, including points outside that reference.}
+Pareto sizes count feasible observations nondominated jointly in all three objectives.}
 \label{tab:primary}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lccc}
 \toprule
  & Constraint-aware qLogNEHVI & Unconstrained qLogNEHVI & Weighted-sum qLogNEI \\
 \midrule
-Final feasible hypervolume & 0.0 [0.0, 0.0] & 0.0 [0.0, 0.0] & 0.0 [0.0, 0.0] \\
 Feasible fraction (\%) & 40.6 [35.6, 45.6] & 15.0 [12.8, 18.8] & 12.5 [11.2, 13.8] \\
 Evaluations to first feasible point & 12.5 [5.0, 19.5] & 13.0 [5.0, 19.5] & 12.5 [5.0, 27.0] \\
 Feasible Pareto set size & 13.5 [11.5, 15.0] & 7.0 [4.0, 8.0] & 4.0 [3.0, 5.5] \\

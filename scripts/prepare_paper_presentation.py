@@ -76,10 +76,13 @@ def prepare(root, paper, template):
     generate_verification_latex_table(survey / "analysis/verification/verification_summary.csv",
         paper / "verification_table.tex", config=survey_config,
         caption="Independent nominal reruns of the representatives of the constraint-aware MOBO survey.")
-    # Reformat the caption of the regenerated survey table; all numeric cells are retained.
+    # Keep the paper table focused on measured feasibility and physical objectives.
+    # Hypervolume evidence remains unchanged in the campaign records and JSON summary.
     table = paper / "results_table.tex"
     text = table.read_text()
-    text = re.sub(r"\\caption\{[^\n]*\}", lambda _: r"\caption{Operating-point survey. Extrema use feasible observations; feasibility rates use all evaluations. The scalarized suite has five times the budget of either MOBO campaign. The fixed reporting reference is defined in the text.}", text, count=1)
+    text = "\n".join(line for line in text.splitlines()
+                     if not line.startswith(("All-Point Hypervolume &", "Feasible Hypervolume &"))) + "\n"
+    text = re.sub(r"\\caption\{[^\n]*\}", lambda _: r"\caption{Operating-point survey. Extrema use feasible observations; feasibility rates use all evaluations. The scalarized suite has five times the budget of either MOBO campaign. All three-objective feasible trade-offs are retained.}", text, count=1)
     table.write_text(text)
 
 
