@@ -137,8 +137,12 @@ because nominal feasibility alone does not establish tolerance to realistic pert
 
 Previous work on this injector established MOGA-based RF-cavity and beam-dynamics
 optimization~\cite{Kim2024KLSMOGA} and examined operating and installation errors for selected
-MOGA solutions~\cite{Kim2025KLSError}. Earlier weighted-sum BO studies of the injector were
-presented at ICABU 2025. Together, these studies motivate a comparison that separates the search
+MOGA solutions~\cite{Kim2025KLSError}. A separate NAPAC publication compared scalarized BO
+with MOGA using eight independent controls and a fractional energy-spread
+objective~\cite{Park2025NAPAC}; ICABU contributions were presentations. The present paper
+focuses on MOBO, comparing its constraint-aware and unconstrained variants with scalarized BO.
+The completed MOGA study provides published design context; a new MOGA benchmark is outside
+this study's scope. Together, these studies motivate a comparison that separates the search
 for feasible operating points from the selection of trade-offs within that feasible set. The
 present work formulates the fixed-lattice injector problem with separate transverse-emittance
 and energy-spread objectives, compares constraint-aware and unconstrained MOBO with scalarized
@@ -693,15 +697,28 @@ the simulated tolerance model; this does not establish performance on the real m
 
 \subsection{Relation to previous KLS injector studies}
 \label{sec:previous_kls}
-Kim et al.\ reported MOGA optimization of the RF-cavity geometry and injector beam dynamics
-in JINST~\cite{Kim2024KLSMOGA}. Their published summary gives a horizontal normalized RMS
-emittance of approximately \SI{3.79}{\micro\metre\radian}\ and an RMS energy spread of \SI{0.30737}{\mega\electronvolt}, using
-$\SI{1}{\milli\metre\milli\radian}=\SI{1}{\micro\metre\radian}$. For comparison, the knee representative of the present
-primary constraint-aware run has $(\enx,\eny,\sigma_E)=(\SI{2.9983}{\micro\metre\radian},\ \SI{3.5207}{\micro\metre\radian},\ \SI{0.4034}{\mega\electronvolt})$
-(table~\ref{tab:robustness_summary}). Its horizontal emittance is smaller but its energy spread
-is larger than the published MOGA summary values; this is a trade-off rather than uniform
-improvement. No MOGA campaign was rerun under the present paired-budget protocol, so this
-literature comparison does not establish an algorithm ranking or computational speedup over MOGA.
+Kim et al.\ optimized RF-cavity geometry and injector beam dynamics with
+MOGA~\cite{Kim2024KLSMOGA}. Their abstract reports approximately
+\SI{3.79}{\micro\metre\radian} horizontal normalized emittance and
+\SI{0.30737}{\mega\electronvolt} energy spread. These summary values differ from the
+specific tracked setting in section 4.3, which gives horizontal and vertical normalized
+emittances of \SI{3.9586}{\micro\metre\radian} and \SI{3.9424}{\micro\metre\radian},
+and \SI{0.165}{\percent} RMS energy spread at \SI{201.79}{\mega\electronvolt}
+(approximately \SI{0.3330}{\mega\electronvolt}). The distinction matters when comparing
+individual operating points. The present primary knee has
+$(\enx,\eny,\sigma_E)=(\SI{2.9983}{\micro\metre\radian},\
+\SI{3.5207}{\micro\metre\radian},\ \SI{0.4034}{\mega\electronvolt})$.
+It exchanges lower transverse emittances for higher energy spread relative to that tracked
+example. Different acceptance limits and settings prevent attributing this exchange solely to
+the algorithm. The earlier source was specified by laser parameters, whereas the present study
+reuses one fixed distribution file; equality of their full initial distributions is not established.
+
+The NAPAC comparison~\cite{Park2025NAPAC} used independently varied cavity phases and
+normalized fractional energy spread, while this study uses paired cavity controls and absolute
+RMS energy spread. Its feasible-region and weighting conventions also differ. Consequently,
+those published results supply prior-work context rather than a matched-budget control for
+this study. No new MOGA/NSGA-II campaign or reevaluation of its published setting is included,
+and no MOGA speedup or superiority is inferred from the present comparisons.
 
 The subsequent JKPS study~\cite{Kim2025KLSError} reports nominal energy spreads of
 \SIrange{0.34145}{0.48248}{\mega\electronvolt} for its selected cases. Its tabulated emittances are geometric, whereas

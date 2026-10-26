@@ -207,13 +207,13 @@ These are proposed response dispositions consistent with the author's instructio
 
 **Sources:** Reviewer 1 M4/R7 and minor 5; Reviewer 2 M7/R8 and minor 9; subsequent author decision excluding MOGA simulations.
 
-**Scope decision:** The earlier MOGA simulation study is complete and published. No new MOGA/NSGA-II campaigns or MOGA-setting reevaluation runs are required or scheduled. Manuscript and literature work remain pending.
+**Scope decision:** The earlier MOGA simulation study is complete and published. No new MOGA/NSGA-II campaigns or MOGA-setting reevaluation runs are required or scheduled. Manuscript and literature work completed; see [C12 evidence](evidence/c12_prior_work.md) and the C12 portions of both reviewer response drafts.
 
-- [ ] State explicitly in the Introduction that the present study focuses on MOBO, comparing its constraint-aware and unconstrained variants with scalarized BO, building on the previously published MOGA injector study.
-- [ ] Cite the JINST MOGA optimization and JKPS error-analysis papers, and retain the separate published NAPAC2025 WECN03 BO/MOGA work when positioning the BO contribution. Do not confuse the NAPAC paper with the ICABU presentations.
-- [ ] Verify the previously published values and comparison conditions from the literature or existing records, including controls, source model, objective definitions and acceptance limits. Do not perform fresh ASTRA tracking for this MOGA comparison.
-- [ ] Interpret cross-paper differences as contextual trade-offs, with explicit differences in conditions. Do not claim matched-budget MOGA superiority, speedup or new reproduction of the published optimum.
-- [ ] Explain the exclusion of the requested new MOGA benchmarks and published-setting reevaluation in both response letters. Preserve the original reviewer requests as records; mark their simulation branches not adopted under the author-defined paper scope.
+- [x] State explicitly in the Introduction that the present study focuses on MOBO, comparing its constraint-aware and unconstrained variants with scalarized BO, building on the previously published MOGA injector study.
+- [x] Cite the JINST MOGA optimization and JKPS error-analysis papers, and retain the separate published NAPAC2025 WECN03 BO/MOGA work when positioning the BO contribution. Do not confuse the NAPAC paper with the ICABU presentations.
+- [x] Verify the previously published values and comparison conditions from the literature or existing records, including controls, source model, objective definitions and acceptance limits. Do not perform fresh ASTRA tracking for this MOGA comparison.
+- [x] Interpret cross-paper differences as contextual trade-offs, with explicit differences in conditions. Do not claim matched-budget MOGA superiority, speedup or new reproduction of the published optimum.
+- [x] Explain the exclusion of the requested new MOGA benchmarks and published-setting reevaluation in both response letters. Preserve the original reviewer requests as records; mark their simulation branches not adopted under the author-defined paper scope.
 
 Suggested manuscript wording for the revision:
 
