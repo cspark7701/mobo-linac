@@ -61,3 +61,9 @@ We restored every saved pre-proposal model and checked predictions against its n
 The supporting manifest now links the startup code, executable, static inputs, software, actual budgets, devices and worker settings to the saved campaigns and seed identities. Configuration defaults are distinguished from effective CLI/history settings. We report paired relative durations and an overlap-aware evaluation-interval union; summed parallel worker times are not used as wall-time fractions. The remainder is described as combined model/acquisition/orchestration overhead because the records do not separately time its components. Absolute durations remain outside the manuscript, and no universal speedup or GPU/CPU comparison is claimed.
 
 **Locations:** Simulation validity and computational comparison; C13 reproduction and timing manifest; paper README.
+
+## Baseline matrix and non-adopted controls (C07)
+
+The revised Methods and supporting matrix identify the actual matched three-method comparison and separate the independently initialized unequal-budget weighting survey. The scalarized baseline is explicitly the equal-weight strategy. At the author's request we retain the existing simulations and do not add constrained scalarized BO, a full-budget Sobol control, a corrected-method campaign or any MOGA run. Therefore no vector-over-constrained-scalarization advantage, BO-over-space-filling advantage or matched MOGA ranking is asserted. These missing controls limit the scope of inference; their requested execution is not claimed complete. Reclassified observations and offline acquisition ranks do not stand in for adaptive campaigns under changed definitions.
+
+**Locations:** Primary comparison protocol; C07 comparison matrix and scope report; Discussion limitations.

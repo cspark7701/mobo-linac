@@ -556,6 +556,15 @@ pointwise bootstrap intervals are conditional on the fixed empirical reference a
 multiplicity-adjusted.
 
 
+The matched comparison contains constraint-aware qLogNEHVI, unconstrained qLogNEHVI
+and equal-weight scalarized qLogNEI. The latter is a specific balanced scalarization,
+not a claim to cover all weighted-sum strategies. No constraint-aware scalarized or
+budget-matched space-filling arm is included. Consequently the results compare these
+implementations but do not isolate a benefit unique to vector-valued acquisition over
+constraint-aware scalarization, or establish an advantage over Sobol search. The separate
+multiweight survey has a larger aggregate budget and is not substituted for either missing
+control. Published MOGA results remain contextual rather than a new matched benchmark.
+
 \subsection{Robustness assessment of operating points}
 \label{sec:audit}
 To assess sensitivity to machine errors, we select operating points from the predeclared

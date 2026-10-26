@@ -1,0 +1,9 @@
+arm,status,constraint_aware,objective_acquisition,initial_design,total_evaluations_per_run,repeats,batch_size,physics,interpretation
+constrained_qlognehvi,completed,yes,vector qLogNEHVI,shared paired 16-point Sobol,160,10,8,archived fixed production model,recorded raw-residual implementation
+unconstrained_qlognehvi,completed,no,vector qLogNEHVI,shared paired 16-point Sobol,160,10,8,archived fixed production model,matched existing comparator
+scalarized_bo,completed,no,equal-weight scalar qLogNEI,shared paired 16-point Sobol,160,10,8,archived fixed production model,specific balanced weights only
+constrained_scalarized_bo,not adopted,yes,scalar qLogNEI,not executed,,,,not executed,no performance evidence
+sobol_search,not adopted,no,space filling,not executed,,,,not executed,no matched full-budget performance evidence
+corrected_scaled_mobo,offline sensitivity only,yes,vector qLogNEHVI,not executed,,,,not executed,no physical performance evidence
+multiweight_survey,completed descriptive,no,five scalar qLogNEI weights,independent per case,176,1,8,archived fixed production model,five-case aggregate 880 is not matched primary control
+MOGA,not adopted,not applicable,published context,not executed,,,,not executed,no new MOGA simulation or published-setting reevaluation

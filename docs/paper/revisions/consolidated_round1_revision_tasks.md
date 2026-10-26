@@ -147,15 +147,17 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C07. Define and evaluate the necessary BO and space-filling baselines
 
+**Status:** Closed by explicit author choice to retain existing simulations. [C07 report](evidence/c07_report.md) and comparison matrix distinguish measured arms from unrun controls. New constrained-scalarized, Sobol and MOGA arms are not adopted; their physical performance is not claimed.
+
 **Sources:** Reviewer 1 M4/R7; Reviewer 2 M3b/R4.
 
-- [ ] Specify a comparison matrix separating constraint awareness from multi-objective acquisition and fixing domain, initial design, total budget, batch size, fidelity and evaluation accounting.
-- [ ] Address the requested constrained scalarized qLogNEI baseline and matched Sobol/random-search control.
-- [ ] Limit the balanced scalarized baseline to that specified weighting, or add an equal-total-budget multiweight allocation. The five-times-larger survey is not the matched control.
-- [ ] Record the author decision excluding new MOGA/NSGA-II runs, including low-budget and larger-budget benchmark arms. Remove unsupported claims of a newly demonstrated MOGA speedup or superiority and explain the non-adoption in the reviewer responses.
-- [ ] Decide which historical arms remain comparable after any domain, model or physics changes. Do not pair results from incompatible problem definitions merely because their seed labels match.
+- [x] Specify a comparison matrix separating constraint awareness from multi-objective acquisition and fixing domain, initial design, total budget, batch size, fidelity and evaluation accounting.
+- [x] Address the requested constrained scalarized qLogNEI baseline and matched Sobol/random-search control.
+- [x] Limit the balanced scalarized baseline to that specified weighting, or add an equal-total-budget multiweight allocation. The five-times-larger survey is not the matched control.
+- [x] Record the author decision excluding new MOGA/NSGA-II runs, including low-budget and larger-budget benchmark arms. Remove unsupported claims of a newly demonstrated MOGA speedup or superiority and explain the non-adoption in the reviewer responses.
+- [x] Decide which historical arms remain comparable after any domain, model or physics changes. Do not pair results from incompatible problem definitions merely because their seed labels match.
 
-**Done when:** The BO comparison and any adopted space-filling controls have appropriate matched evidence, and the response explains the exclusion of MOGA simulations. No matched MOGA performance claim is made from a literature-only comparison. Any new BO/control campaigns are separately planned; this document launches none.
+**Scope disposition:** The BO comparison and any adopted space-filling controls have appropriate matched evidence, and the response explains the exclusion of MOGA simulations. No matched MOGA performance claim is made from a literature-only comparison. Any new BO/control campaigns are separately planned; this document launches none.
 
 ### C08. Explain the accelerator settings and trade-off mechanisms
 
