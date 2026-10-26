@@ -1,0 +1,2610 @@
+{
+  "audits": {
+    "primary": {
+      "trials": 300,
+      "distinct_vectors": 300,
+      "common_random_numbers_verified": true,
+      "specification": {
+        "lattice": [
+          {
+            "channel": "solenoid_field_relative_error",
+            "design_variable": "solenoid_field_T",
+            "kind": "relative",
+            "std": 0.001,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Solenoid power supply current ripple (0.1%)"
+          },
+          {
+            "channel": "quad1_gradient_relative_error",
+            "design_variable": "quad_1_gradient_T_m",
+            "kind": "relative",
+            "std": 0.001,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Quadrupole power supply stability and field gradient calibration (0.1%)"
+          },
+          {
+            "channel": "quad2_gradient_relative_error",
+            "design_variable": "quad_2_gradient_T_m",
+            "kind": "relative",
+            "std": 0.001,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Quadrupole power supply stability and field gradient calibration (0.1%)"
+          },
+          {
+            "channel": "gun_phase_error_deg",
+            "design_variable": "gun_phase_deg",
+            "kind": "absolute",
+            "std": 0.1,
+            "unit": "deg",
+            "distribution": "normal",
+            "basis": "RF phase stability of S-band gun klystron drive"
+          },
+          {
+            "channel": "cavity_phase_acc12_error_deg",
+            "design_variable": "acc1_acc2_phase_deg",
+            "kind": "absolute",
+            "std": 0.1,
+            "unit": "deg",
+            "distribution": "normal",
+            "basis": "RF phase stability of main accelerating structures"
+          },
+          {
+            "channel": "cavity_phase_acc34_error_deg",
+            "design_variable": "acc3_acc4_phase_deg",
+            "kind": "absolute",
+            "std": 0.1,
+            "unit": "deg",
+            "distribution": "normal",
+            "basis": "RF phase stability of main accelerating structures"
+          }
+        ],
+        "source": [
+          {
+            "channel": "bunch_charge_relative_jitter",
+            "setting": "bunch_charge_scale",
+            "std": 0.01,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Photocathode laser pulse energy fluctuation (1.0%)"
+          },
+          {
+            "channel": "laser_spot_size_relative_jitter",
+            "setting": "laser_spot_scale",
+            "std": 0.01,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Laser transport beam size jitter on cathode (1.0%)"
+          },
+          {
+            "channel": "laser_pulse_duration_relative_jitter",
+            "setting": "laser_pulse_duration_scale",
+            "std": 0.01,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Laser pulse duration fluctuation (1.0%)"
+          }
+        ],
+        "seed_policy": "common",
+        "fragility_threshold": 0.8,
+        "num_perturbations": 50,
+        "seed": 42
+      },
+      "interpretation": "Six separate 50-trial designs; no pooled reliability estimate. Pair phases are common controls; different channels independently sampled."
+    },
+    "survey": {
+      "trials": 300,
+      "distinct_vectors": 300,
+      "common_random_numbers_verified": true,
+      "specification": {
+        "lattice": [
+          {
+            "channel": "solenoid_field_relative_error",
+            "design_variable": "solenoid_field_T",
+            "kind": "relative",
+            "std": 0.001,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Solenoid power supply current ripple (0.1%)"
+          },
+          {
+            "channel": "quad1_gradient_relative_error",
+            "design_variable": "quad_1_gradient_T_m",
+            "kind": "relative",
+            "std": 0.001,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Quadrupole power supply stability and field gradient calibration (0.1%)"
+          },
+          {
+            "channel": "quad2_gradient_relative_error",
+            "design_variable": "quad_2_gradient_T_m",
+            "kind": "relative",
+            "std": 0.001,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Quadrupole power supply stability and field gradient calibration (0.1%)"
+          },
+          {
+            "channel": "gun_phase_error_deg",
+            "design_variable": "gun_phase_deg",
+            "kind": "absolute",
+            "std": 0.1,
+            "unit": "deg",
+            "distribution": "normal",
+            "basis": "RF phase stability of S-band gun klystron drive"
+          },
+          {
+            "channel": "cavity_phase_acc12_error_deg",
+            "design_variable": "acc1_acc2_phase_deg",
+            "kind": "absolute",
+            "std": 0.1,
+            "unit": "deg",
+            "distribution": "normal",
+            "basis": "RF phase stability of main accelerating structures"
+          },
+          {
+            "channel": "cavity_phase_acc34_error_deg",
+            "design_variable": "acc3_acc4_phase_deg",
+            "kind": "absolute",
+            "std": 0.1,
+            "unit": "deg",
+            "distribution": "normal",
+            "basis": "RF phase stability of main accelerating structures"
+          }
+        ],
+        "source": [
+          {
+            "channel": "bunch_charge_relative_jitter",
+            "setting": "bunch_charge_scale",
+            "std": 0.01,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Photocathode laser pulse energy fluctuation (1.0%)"
+          },
+          {
+            "channel": "laser_spot_size_relative_jitter",
+            "setting": "laser_spot_scale",
+            "std": 0.01,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Laser transport beam size jitter on cathode (1.0%)"
+          },
+          {
+            "channel": "laser_pulse_duration_relative_jitter",
+            "setting": "laser_pulse_duration_scale",
+            "std": 0.01,
+            "unit": "dimensionless",
+            "distribution": "normal",
+            "basis": "Laser pulse duration fluctuation (1.0%)"
+          }
+        ],
+        "seed_policy": "common",
+        "fragility_threshold": 0.8,
+        "num_perturbations": 50,
+        "seed": 42
+      },
+      "interpretation": "Six separate 50-trial designs; no pooled reliability estimate. Pair phases are common controls; different channels independently sampled."
+    }
+  },
+  "inputs": [
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/robustness_runs/robustness_481f98568fe1423296c6d58d4b22604f/robustness_requests.json",
+      "sha256": "e2ee608e4f8be1fb67d2502c952ae14e5401dac2e338c6b24ec45e72ef098f1e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/robustness_runs/robustness_481f98568fe1423296c6d58d4b22604f/robustness_summary.json",
+      "sha256": "4ef7dfbaf73809b9c728e5e221554af2d3beffd606741c324969ee0eabab7437"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_001/attempt_03ed5561a0234fada0f37f9547f54abc/manifest.json",
+      "sha256": "bba4f93478267924b51df02035444c09f7c7a281a3097b21aecef0bc5c579af8"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_002/attempt_305cf6091dc348419983275cd0266e8a/manifest.json",
+      "sha256": "6f4f9de85bee881eb98f4c6dea5cc49a8066fef72bc179b2c1abca527a31c177"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_003/attempt_c5eee9fc0ac341fba12865717c850283/manifest.json",
+      "sha256": "62aba13696099b4aa18e990580b1b84b5e6bd1beee573b815fde3986dd3da0ad"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_004/attempt_4954017e1a374346a20c487683f78df6/manifest.json",
+      "sha256": "e1af3fb4ea5f7426971964d7ca0356f675d5f6aff313a3fe4c3a672beff03287"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_005/attempt_32cc957c0b6342c6b8da728cdf44a938/manifest.json",
+      "sha256": "92be9707fd1e2429e31a7f3a470990d2ec3d4cf9af98da205833306fae4dfabe"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_006/attempt_c51275dfd23847e180a3ba924fabc2ae/manifest.json",
+      "sha256": "fb596526de029a86cd1c4cb7fea7460488816d92bc00a6d05922ea8502932422"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_007/attempt_9741bb2cb5204669af2dc2f1cc4b3d1d/manifest.json",
+      "sha256": "a3c269f5a234062929a8d979bde415cd404519cfd8a3e29fba23e5056e1dd441"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_008/attempt_de240fdb1557451e9bc0c19bda22178e/manifest.json",
+      "sha256": "b3039b809e299674f14187c585137b0d98ac56af9b4318aa331b9ca76626a916"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_009/attempt_b482bc1a77f74d27a8a33c7fec2c1406/manifest.json",
+      "sha256": "77fcb339962684c464d9e57659eb0990df3d7981865d7f8f6be8c862dbda24fb"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_010/attempt_80f1c8b81f864d89a6c5daf200978fc4/manifest.json",
+      "sha256": "37099698fb942e8712234bd03062ee0b29447350246c7de3df7cb7eda72b770d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_011/attempt_463fa2a723c345c1983088efaaa199f2/manifest.json",
+      "sha256": "53c9f89bc718ce8affe1fb30f46067f5041cbe0d282650720fe4a56fa953236d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_012/attempt_2fd735a6e8e740288cc1b52aa7e2bd35/manifest.json",
+      "sha256": "71fd61a256ce106a9247cb5d927917799f65e7cef4650d9f4ea470a292226809"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_013/attempt_78d6e77446524864ae2191842ce6bf46/manifest.json",
+      "sha256": "4f4244cfc87c5e60c5234e50f9c9ee44408766c5d90d086e86a8590d7f685082"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_014/attempt_c439e6e71492448aa1c65c4b9ce15eb4/manifest.json",
+      "sha256": "f27e43b93df80528b3e9fba81e35ba79770354488d3f9fb9ff2cefd7bfca6065"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_015/attempt_7c433b0fb65142e58d79709590661e57/manifest.json",
+      "sha256": "a69539a91624a160f927defc9851fcdeb1b117bdf403dc49f77cc2c09bb6c596"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_016/attempt_5f2992ce70f641e4a401b7c4e2d6b2b2/manifest.json",
+      "sha256": "e696b4df7fc57b1523106a796e4b326d1593c7ad49144347dab185974761eb2c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_017/attempt_44f4dfbfaae04eefb227dcb932c0ec0e/manifest.json",
+      "sha256": "24eb0f1357fd1e843ba0eb14372387e23445e9799e66e4a8a48396eb10bad23b"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_018/attempt_66f180759ed8401da3d7476250c05dbd/manifest.json",
+      "sha256": "99be4e50fe4d833cde28b19f70fcb73af7d4484570dbe976c90534be89032874"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_019/attempt_15b8f310761c4784b69c46753d70ef93/manifest.json",
+      "sha256": "f0f647b5c72c6e632f9199ab952bc3d762ebc165677053f8a825d7639c092cb4"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_020/attempt_8c66ff5640f247c59feb1d8ddebcb2c0/manifest.json",
+      "sha256": "bd86fa4240d3811f216a738b324178f6765b9a6e8304560898519c025d6411af"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_021/attempt_248859d082c04126b8aee3e47db949e6/manifest.json",
+      "sha256": "e30cbd31b3ca69ba67c507f5e201690e227053c771a61ef7a7c243e45b93b93f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_022/attempt_b02fbcb14ce042039a7cb76e4aee9ba9/manifest.json",
+      "sha256": "f4e0e8e59ba4e31b2c355738f7c78f8ec5528befae55dd4ee47a2e045e440dbe"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_023/attempt_c42b01066f2d4d38b07b492768a9d4a4/manifest.json",
+      "sha256": "43620cac1df306cc2304be776be9c5b08a623377c1a5a3d3e83d4557775fa67a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_024/attempt_15245dfc0d624bb8af2a43a26539568b/manifest.json",
+      "sha256": "04ac06f5c97762f46995cc7534ffef19823b25970b12414d3b9dbaffddf3fe1d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_025/attempt_7ca5a2d187a24fde9ffd49038e63ba72/manifest.json",
+      "sha256": "2243912a9a80fa3a81da5af58891fec817ed1b6b12ec82043ae1f2b9e3daccb6"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_026/attempt_554c5a51a61c4102b224f28020f6719a/manifest.json",
+      "sha256": "12141d6ed74d75371465b96f898ce03caff2872c9fd92a1db078fa4e1b97718e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_027/attempt_73d462532476479a96e1bd381ccebf27/manifest.json",
+      "sha256": "18d86fac5af3fc744e074dd8eb5ad519d2088f099ca86f9b5a5926b0f9eebcb3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_028/attempt_b290ab22aa80438fa5f816d45066ecf6/manifest.json",
+      "sha256": "0b9982401e19296d2f004a866655e4c4338478b77978ba3973bf11c74dae8427"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_029/attempt_fb80740a9aa64cdc80bf9e528cfca238/manifest.json",
+      "sha256": "e64e13f897882f6116061936565debee147bb004e958c905d6a3742b88433277"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_030/attempt_12f72b88ab94492b8849df48eee89dd3/manifest.json",
+      "sha256": "a0abd98c8d5dc7e1d511dcea5d98d05780b5a8f89669a5bcc886e0f6f6d6ad51"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_031/attempt_689576945ca74b109d3761ce7854bfb4/manifest.json",
+      "sha256": "1cb8916ab7a11ac46f55693cddedb0bca5926427f5d18f3648c531751774426f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_032/attempt_16a7e55ab92d441892a747a3afc414f7/manifest.json",
+      "sha256": "501a0b69fa623498e9373c2a4540c3680ce290e4fdcea79f2ef3e0d22944aa6c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_033/attempt_2f816bc4fdec4f96875087de6a8577bf/manifest.json",
+      "sha256": "87cb44533189392839756fb91757e21e5ab8c8cb72f2460f9c43ac910503e9c0"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_034/attempt_7022e8468b5c47feb1fc6222f49f1e1f/manifest.json",
+      "sha256": "b02ac6370561d4748d8144ab3316382886062bc3b947cf96e9e3b368ee2cca58"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_035/attempt_039c1fcded8e406a8bae439e2733ebe5/manifest.json",
+      "sha256": "8ee810e1a5e8e7a85f8b3fe1087274a979cb0545d62f4de44e67378fe11b529e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_036/attempt_9ddfd495621a4767a5f7ba5ab4406618/manifest.json",
+      "sha256": "b98aab182f0f4564e3f8ad9885f2b75c555268e1da12b9206626ca309bbadcea"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_037/attempt_bb24a3f70a794c759b6c5a9c2d438e42/manifest.json",
+      "sha256": "7ac85a73e6eeff29eec347c45a6756ca99d6a94bce8c5a2866ff142efe56ea1e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_038/attempt_877f1b874f5b42fc8669502632648a1b/manifest.json",
+      "sha256": "89c2384d80baa78b54e9e64439af38e082cedf889016243da1e6f0de6dd31c0c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_039/attempt_664cd7ed81644302ac4da7f62d87e4ff/manifest.json",
+      "sha256": "9724612a6243bb76e6546d686eed95e22ea04fb3c6b857f9aeb782e4d130246d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_040/attempt_f65262a78f68430485b8eaff46843817/manifest.json",
+      "sha256": "31491ec5c0ff218d2703369867aea9b15a168870e4921776b5ed7df7c4bf07dd"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_041/attempt_baef1d48cbc547dbbc9a4a1f20f581a3/manifest.json",
+      "sha256": "13e618efc1ec87bd394013d1d116ac7aebdfc89412a9db3bb31d285dbcb5c1ed"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_042/attempt_86f85bbf34b34b28b9a4516075a558b6/manifest.json",
+      "sha256": "2e98ba6aac057e29bb8387fa14ae97fb3d65313587ded96f498014f8a63fa47a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_043/attempt_459625062b734d7e887b24cdc7efdb14/manifest.json",
+      "sha256": "f9f26f05992a69dac67d3f449a9f0902ea21b4475a88c0ba1010f47a19cf23f3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_044/attempt_5f170013da154ac4845e38f9a79795a5/manifest.json",
+      "sha256": "0a8a7d3f25ec9c848f45adc3cb70f38275967e85c38f5436bae9bfcdf4cc4914"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_045/attempt_364c4dd5ba304db1b655590481b6d781/manifest.json",
+      "sha256": "52b29dbd619f138ae89773b3ae4511f933fef8fac6faa6e178560c84dfebf81c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_046/attempt_5ff9a987325b45a09544314e3cdf2e03/manifest.json",
+      "sha256": "6f60d2083df64b404b5e71405def2dff3c8615c4cae863e56dd29b84a5d5f343"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_047/attempt_6c8a23e8f57a4a228c2c4c91637b814a/manifest.json",
+      "sha256": "21264131e8a499fefb60cd00aa8e6c0d2a59b6d5697067f3aee5c086cc31af10"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_048/attempt_eef4ca44de74413f9b54d822700fde2f/manifest.json",
+      "sha256": "1f5ff5b8d044cb1de36be40a706a50fbbd90bba9d141bc731668ff73bb812cc9"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_049/attempt_030e9bfe29ea46d4a3db8c538a249673/manifest.json",
+      "sha256": "0c1b8bd28812f01c8418d07358d109376bf6d08eee3e0bd31063a8001c7f4a30"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_050/attempt_12c4ecb2e13d4441abcfc1bf6bae2e8f/manifest.json",
+      "sha256": "a1b0ed37f38a2c6dfaa2ffa2d775e516e192b2e4985c29c41c5ce1d877f90cdb"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_001/attempt_e0ecf3201fc8404688baab98452f5a58/manifest.json",
+      "sha256": "656ec991b77732c0dfc2748167cbb4a99ce494bec799025254bc3e6de4d2e48a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_002/attempt_775fca4650874844936de54d73e80753/manifest.json",
+      "sha256": "6424bf1c3037f2e719977dc2f765fceff9d81ff54f909902c6e4fe8962089eb5"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_003/attempt_661ae67ce40d497da988827fe9188fd4/manifest.json",
+      "sha256": "77932dd9dad190e5a42d6daf6c9772fd5ea89331348885912126a7dfb78006e9"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_004/attempt_cbda1c8e54874c0ebcf15659a664ce1e/manifest.json",
+      "sha256": "211cd4034c2b77db7d21f2a6efd77d2b7dcb5c204b2634956d9651aa97235ed2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_005/attempt_602ac7a3037545ca9af2c15ad60f1049/manifest.json",
+      "sha256": "b14987f26ec106d5ccc0cb35cff6ef7d101539b356147e6c30decbd07fca27ca"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_006/attempt_01bcfcca0d4d4fbb9d2005939c82a8d7/manifest.json",
+      "sha256": "6a288c1e2953111be1673a236dd0f23c4c595052739d1bdfbe11a6627a067a7e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_007/attempt_6e466f23f8604e82bb0f49eb37502261/manifest.json",
+      "sha256": "c90da65edd94539bcbe0d79bb3d2fbc17a7de3df424f7ba09119b10a03b3c1ec"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_008/attempt_1f9aa615b59149bda33113240224e735/manifest.json",
+      "sha256": "6f5cecdc16214f477b1e0956dee9719281f310ce636be5b90560376d6d2c7703"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_009/attempt_1843651b38854f5cbf087e515eb616a9/manifest.json",
+      "sha256": "e7cc0d887aacbe1cacec47adb4a7dd5e5a581184349e9a4d013722d3840681af"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_010/attempt_f4a623d32e5544be9167c94a992a49b3/manifest.json",
+      "sha256": "fba64b71b63d0dd867220887cba8374c8a85d9ed1a48ca63a19dcfe8754b18d5"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_011/attempt_9a54cfbfb9d4422795fd054c21bc3ef2/manifest.json",
+      "sha256": "ec2970aeaa8ccdfdcd8d224e486b4dce573cd3038cb7f5a9c1ec354db807f30a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_012/attempt_5f21e9a834b6430780c0eee7294d789d/manifest.json",
+      "sha256": "aa7ac5914a8f951bac9f29f4c6ee5fdcbfc4b1b8b851906e1092fa0aaa3207c9"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_013/attempt_d652c66e6ec24c1aa3e6ad872ffefe5d/manifest.json",
+      "sha256": "0bfc41d92aeb3f0ebc34937c2d789f7aa6d92f409f25de58587e7ea2dadfaaab"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_014/attempt_c2ff33791baa46b8977d1e0b9df5df0b/manifest.json",
+      "sha256": "4a6f82a513032566abcf7983ec0346e3fdef6f1a2fc8bf4c27e6e0532c103472"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_015/attempt_56e6136e77d84c2facc56342d773a81d/manifest.json",
+      "sha256": "05b5cee98c31ee57c7f137b80fcd674fe32951394499cef9824b50931e070921"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_016/attempt_1b1a49f528384faf9e091e45f932df59/manifest.json",
+      "sha256": "c288df09b40bab6c58f337ef071fb19eea30ee33cd382aad8efcfdb8434a2702"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_017/attempt_59b8e275ba0249909a047ac277791775/manifest.json",
+      "sha256": "f79aba8e6dc39c7a5b3493b14279be6068030b1fce3d7484c9c810b1128b2c1f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_018/attempt_c80715529efd440aa2aed35c0ed229a9/manifest.json",
+      "sha256": "da83c4c574e534d25b90799e8c798e15cb098e8e7bad919aa6bcc057635cdb10"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_019/attempt_21ee4711b0c5456a81a3bbd10f0545e6/manifest.json",
+      "sha256": "643efbd8089002e6364a7fe12d5e1d1521ca6ea25a5f9ba1dc18bc70afac7ec5"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_020/attempt_e1298866d1f8453b893d08e6b110f2a9/manifest.json",
+      "sha256": "d7189eccec01fb8f6a553c5b8edba4812c3558a3f150f7fb2cc56ef56ac8c187"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_021/attempt_38cf792e13724502bd1b3ea4d3a1d937/manifest.json",
+      "sha256": "4f8b6fde9f42d0118d602b46380a98871d50fec46609f2efff991efc0fe0901a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_022/attempt_e2d2d0d912354b44b1715b02b8dfbe8b/manifest.json",
+      "sha256": "d03ce032261ba3ea3005409b39aa87dfa732ce8e9255b6900d18d1d284f49f05"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_023/attempt_d47e2c44b3454539b5570aa56dd9fba5/manifest.json",
+      "sha256": "6eecb60cf8073200cdf73a1582c2cac57fc7e783ef46c652d8c2443bbef8b7f8"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_024/attempt_f455908549aa411a8de555fdb8cf32ef/manifest.json",
+      "sha256": "ce565092c734a1f580adf1592c2131a79e9aaa58d55c97e33c7ff535f4a25e00"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_025/attempt_cd48ce270bda44efbc0e7ce7d702e9c8/manifest.json",
+      "sha256": "0fd6569929947b67c4d559d0eb3324e99fe3b090f647eecd0f926a220ae72731"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_026/attempt_f7bc5ccb299d46768431c3615a0a36c0/manifest.json",
+      "sha256": "bb6ec1ecea125755a29bd5ac01a87721890109c2f3cab4d251b8037f70c5306f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_027/attempt_f92ab4c5a98042faa55d4bb345d8cc42/manifest.json",
+      "sha256": "119d3da987d4e57c15619a224b52868c9835f606790a790b2c2d1383beb1d7f0"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_028/attempt_e83957cf550a49e493b854402e954d50/manifest.json",
+      "sha256": "7fdf243fbf315c569311ce9594b5cf45b93b1198595b032d0ac1b751fe46e015"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_029/attempt_9034a60d066b4145899863180dfb6a12/manifest.json",
+      "sha256": "88a8d57d3a41d325cd53093780e56eb84c0d84b378f7310d66ee69abe7e0cfe3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_030/attempt_e9b9a6a13a59409e9b43105c1472276c/manifest.json",
+      "sha256": "d5ab9eec995eea7901a421e7c8183eab7502faaf6e92f032f31c111d049d7eae"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_031/attempt_091c1a7da5604415b0289d5a95589d8a/manifest.json",
+      "sha256": "3a7c7297553563d348a2f542faa1185886dcaa1f4b69af839eb1c3ee2aedee4d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_032/attempt_b13b173b98c94e2ca01c6cda129011f3/manifest.json",
+      "sha256": "d775491b08e7001c31888b2e4e220043a52eab794e17aa457d844bec65831c15"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_033/attempt_a3221d7757a64bcb8421176a17b43960/manifest.json",
+      "sha256": "d2b6ee20f9d81ef0a1cb0d14bbd94f0a7467cefa22ee45be00842410a00d33b3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_034/attempt_caa953d675004b4bbb52b95532da63ce/manifest.json",
+      "sha256": "a372368c44315e79741f61529f389e5bd6d2966fe54295450b59130c9f29bde4"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_035/attempt_ac38c693967447f8becfd3925971c526/manifest.json",
+      "sha256": "6ccaea156318b15313fb99a8df6b975c60944a7378e0876fed463399a1c28f69"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_036/attempt_b19a658bbf4240a38bdece1486e21d9d/manifest.json",
+      "sha256": "68f48db0cae73a72b034307eea125292668ffd030d36283d15f6e30385ff1ab3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_037/attempt_99d318c271444e71b2e07bc4ce9a2224/manifest.json",
+      "sha256": "7b8caf149564e79858853a8db28bc2115224ed542fccdebd489259656b30948a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_038/attempt_412bf69352314e01a48961f6c3d924d1/manifest.json",
+      "sha256": "9016ce1a96d16e6b34ea1cce6463ff53ecbb173ff778c9535b98d17707904287"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_039/attempt_a54b2df13e4346328887da3dc5f9fd4d/manifest.json",
+      "sha256": "8347436ca9c6851bbb959768fb357b3129cfeb7968f958ba84f8957a75e76845"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_040/attempt_23aea7e2e28f45198a39ce3f41afadd5/manifest.json",
+      "sha256": "f2acdc0c7904d561692f378212a27cae4453f480b272f770b1874054b9fc1821"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_041/attempt_f696ad333ad844b3bf234ed9b19e4043/manifest.json",
+      "sha256": "6dfbd1173cf2411d97e1120f6002b28a862b79de758238ee6e45915aa75d73fb"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_042/attempt_e358df0250374815b3110f7ddccb85c8/manifest.json",
+      "sha256": "5b945ce7b0ae04ea8339506078cd387473278881ea3b4476486525003651e342"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_043/attempt_0d7358fec5ed4104b58906ce6ed445bb/manifest.json",
+      "sha256": "2987d745f2ab43c0cc7c69047e88ae128c90aac93cc48b673e62242d8f996b11"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_044/attempt_f500ec2129c442c9965260294ea2f902/manifest.json",
+      "sha256": "675e45e495a26aeca6eca55dcbeb72efd026dd037fc88fb6b3bacf64befdb737"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_045/attempt_5b1c3389d97043fc99509942fc9e3521/manifest.json",
+      "sha256": "2330dbb8f2d1042eb2cf542f019c6cc77401ddb6ed5713c6a6eed03fdbf1b45c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_046/attempt_35c9d298e4314f9eb2140ef3d070c3f6/manifest.json",
+      "sha256": "e595b7bf0c9a4ba4b7122994f62375ff00126edc10485ebbea3d35f4c7fbe391"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_047/attempt_f6b981b3a36c47458c281ab3cfaa931d/manifest.json",
+      "sha256": "ea8df68ae21c3f650631544c16b8fc88ea24c7c266c0c1e4bbce657b94fc6e44"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_048/attempt_7be5dc8648d6434da98f0f3f05f7ff84/manifest.json",
+      "sha256": "7fea7067f6f22e79e4e4546302917761cbdba9270efc6085e24d6a1b2b885c38"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_049/attempt_b2543855c4764f8caf728e365bf30ba0/manifest.json",
+      "sha256": "e6c74319e15cc52b31fbcd15894378de9095c4061c92d6fddf5dc67e968349bf"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_050/attempt_9df1d2f08acb462b9a3cef8930e8a1a0/manifest.json",
+      "sha256": "1fa65c03c53186ac6e81a5303214d7378c323f94f2fa5f1f94c9a64ea44ee5ff"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_001/attempt_a873b1a963eb4ebf85a1adf250839b00/manifest.json",
+      "sha256": "698abdd27dbcd6b06cd3544f8087254da56af902b7da7742a44e73a4340ad00d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_002/attempt_365723141eec4a2bb3e56847f496addc/manifest.json",
+      "sha256": "b115f4f6f4d0423dfa478de10591b424d81c2588d29727eb25f59ec4315247f6"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_003/attempt_0878ca8c334b4916855dbe8c64674d81/manifest.json",
+      "sha256": "fbfac3d0f0e7e7cccf2d91f69dd91bbfd61f06f3f0b76ea26ac6ff82a2a7a6d3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_004/attempt_7d868e7f7b63465aa80eb31a9eeb874d/manifest.json",
+      "sha256": "ad365b49da11a92d87d40e18654f38bbaef692d1a68c0433ccc3fff1c357fa7d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_005/attempt_23e7ca68e66d47c9b1881de3f485d404/manifest.json",
+      "sha256": "3312070726cebde932f83e1976cee53556b908b94dad1750506bf1d82286da87"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_006/attempt_09f2faf935b842df9ee73e8f0dc0c0c7/manifest.json",
+      "sha256": "a656a7618140b48c916066fa1199a5b9c881e82f1dfbe6e1a1d6e0467e08ab77"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_007/attempt_bc0b43e7f1d444a28f98ba446eff7f2a/manifest.json",
+      "sha256": "f8f98c4c1a93940fc900cab669ed53eb0e4aa469c3f47660cc687787aff6bf8d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_008/attempt_6855f8a9fae849ce860e9e3648688553/manifest.json",
+      "sha256": "c6f344e0ae9baafe2cdf4d6f35c85562ea9e845f86ecad37bc7ce3128fadb0b0"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_009/attempt_6aabf75ed6f644858d356520fc4ecc1f/manifest.json",
+      "sha256": "029275bb3de7524c119324e31ef338b6d0298fa87d2e350d4c5e680ec7a4e774"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_010/attempt_3bdd59e2706c4c1398f13411e8a43c2f/manifest.json",
+      "sha256": "eefb54b3db661ddfa88516df9ea580630f3746ee80869a28c6d2e5e347fa1dc5"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_011/attempt_79d90b735c7246a59b216d7afc94022c/manifest.json",
+      "sha256": "02d1e76aee6166c0bb01074f7469c8ab18a7f7e79b2fc01eee993baf171350cd"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_012/attempt_64c37d66917e429db5afee0aeff499d1/manifest.json",
+      "sha256": "63910f1b4bf5e4e85eb875df6703c13d8768c9f71433e903ef5c946b208b90a3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_013/attempt_637e943ff5284f4aa1953381dcc0934d/manifest.json",
+      "sha256": "92ab459b97c420bd18abad7df64cd6d453083a24541a8764f591737e32dfbf76"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_014/attempt_b83cc515ef8d4ad288a1d8ae0b9f5ac8/manifest.json",
+      "sha256": "bc4be67bc09daaab65d8cc845454ad26a8be2b4bdce5cf7751b98167a52bf37f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_015/attempt_c175960bc1594d2e90e9c62e24b070ec/manifest.json",
+      "sha256": "c719b1f87c93bd1940ce0f2cca09deb69d998206bf90efafd6c5202111eefc60"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_016/attempt_745d3981c54844a7a9186fef66c876fc/manifest.json",
+      "sha256": "e011695a4a5663367e122d181886d0510bae7c0eabff6f8e6b819b987b4470c2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_017/attempt_a63db4135b4547b1b67ff5995e49f61b/manifest.json",
+      "sha256": "ef82ef5022dee4325ce6135e36b3adeb595303d45367b567f24c76b0ed0ce1b6"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_018/attempt_a8f2be5ca1dc4441b3499360dc4155c1/manifest.json",
+      "sha256": "4a2314dfcc5295d8a54177b66a18b37f8ca99e77e8c6ab4f9a13976eaedeae82"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_019/attempt_3364df80407f4cee8c30957d2e2f4320/manifest.json",
+      "sha256": "fbc0d0c06eeb88d535729d3e51db197d49b97a5b09d0b254518a66ef5dbc1a6a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_020/attempt_124f53be14ba4d2d8da8b3f228ff7910/manifest.json",
+      "sha256": "27e7a592a218595ef9472db1d9617fec73ab17b48a515c408ed8372d9406e0d1"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_021/attempt_fe3296531aed409ea87add2812c9d0ee/manifest.json",
+      "sha256": "eec3edd9e97df498e9fa0c887babfad48e53cf95c513ca7fc4d9418f61019a86"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_022/attempt_50224fa33be14ea284ac528e60d2efe2/manifest.json",
+      "sha256": "d21d95ebbfc5b3bb30b5ddade79feac4ba758491f1c870c7946906037f932b4d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_023/attempt_1e18d5fbe9c14091a42ad2477b6e885d/manifest.json",
+      "sha256": "6f809d619274469e180ea9a989c4959cb2c0e21f2bc560eb7b687b7dca5c415a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_024/attempt_60c9dc9a48db477a8864ce0455faf1ab/manifest.json",
+      "sha256": "73fa6d9ff3bb126379ea1e09931b1940a1d7be6c1669b63b2b592e0f2d9c6600"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_025/attempt_d6af5ba1c676477fb87b0ed186f2b21b/manifest.json",
+      "sha256": "b2e4bc0e93cff75a5fa45961a1bbe6578d3730b6bf26fa17e819e9e16238a364"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_026/attempt_1399cc6b8e7144d085fc3e17158bed63/manifest.json",
+      "sha256": "68ae92e674a758e57910cfe616c59458b60b4ab0b8ecc80ad0e0a9df20763921"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_027/attempt_bedfa6c5f44b422892004373c8f6d4bf/manifest.json",
+      "sha256": "156cbef403fd675c221b4d9b6263e37e54ad1060ace55f7dcb5a3e2abf219063"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_028/attempt_6431448ea0b64cc19dd827c5e630ca8e/manifest.json",
+      "sha256": "51393f4f9385946c7de256cad2ac769c8836412f9c8a8941da2d40e93395ce21"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_029/attempt_a99fbfc987b54637bd589553e9ab922c/manifest.json",
+      "sha256": "888ef3fe31268b1d88410cd7fb30d2f48aab2a477f05d73b924a649b4dda3fc5"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_030/attempt_3e8fc5fa4c3f4911b688b3ac53bbfbe6/manifest.json",
+      "sha256": "621130db6735c594aedc39f43ed21226e61ec993d79d81f9fbca221cb71445c3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_031/attempt_c2ef823c9e7242f49fb7d505e1103e0f/manifest.json",
+      "sha256": "05fb49b4ad119e425da523213bb690ab23e4a716236e8a2b6a472977085a3525"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_032/attempt_166a12c277854b168ab40ad55f44fb59/manifest.json",
+      "sha256": "87595b1a14bdf74686d71a8ebfd41283ebee526794a4bf582eea78ffc19d5abe"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_033/attempt_1a08590e221f4b3186b64e2995040424/manifest.json",
+      "sha256": "757ad56ba11ab4f3dee4a61a25cbab18e39a986ed393ddd08b43c2ef5772f3d0"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_034/attempt_1104629e00fb46539b7e99369cfcaeec/manifest.json",
+      "sha256": "c20173b86bad3a92ca7373b771981492dd493d592fc5627e9e612b229c744ee7"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_035/attempt_2fa1c8461bad4c22b1a23f17f4565d0f/manifest.json",
+      "sha256": "f8ec3356677cddada55c2c776089258fbfeb43dd3eff716ba7cabe281295de6e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_036/attempt_8baf286763f64be1b88d7b1ef2eb503a/manifest.json",
+      "sha256": "ca32c2e6d90cf271a4d63f1917d196864e3e7d209478e0323ee3115d6b908f4a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_037/attempt_29370e871aaa4ac2bb95403d24e9beb9/manifest.json",
+      "sha256": "e43b98131faa5f620c4630c5f64a1e53569ca1439e161b21af200e2fb3393d0a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_038/attempt_1647345d24a24f488b4f9279595fb793/manifest.json",
+      "sha256": "5434652121f4864590d005b102443a941c67829adc582b9439619694e2b4d994"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_039/attempt_bead858ef31541f6b5304eaf202be7b3/manifest.json",
+      "sha256": "cb5283b226a7291bc53fe036ef11acfadcd065bc77df62a15ab0d86f65e213e6"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_040/attempt_73677f6864fb4008b46c969426f4b5e9/manifest.json",
+      "sha256": "13ec677dfd724d2ed3c68559826e2b34cb92e3ad9a814cc13b9c548ae4197862"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_041/attempt_4ed775fd0ecc483fa4d01501ca8d37be/manifest.json",
+      "sha256": "127672f7a79bfd8400b170cb38aaa6b4edc4394fe316648d6123bddf1a0a0507"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_042/attempt_5b59818540ef41fd8224a163c74cc5f3/manifest.json",
+      "sha256": "cce19be12f17fcc0695f9ebad70b8684c778dce0517526139009b13f839b78ec"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_043/attempt_05cb3a0fa75a46229f89a4fa571542ca/manifest.json",
+      "sha256": "2131b148c2edb67ab1b8496b7eed42bdd3e5c4503412df7d637e0cdbbb6602d1"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_044/attempt_46fe2ed5dcef4636b9500954209e42f8/manifest.json",
+      "sha256": "bb9e33001379838d5c2fdcb4bc79d59b5c4a8070cb7dd0b6bb3d7ff0466c7bf9"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_045/attempt_845a637087b54e8b8a2e65ca634377f1/manifest.json",
+      "sha256": "fe0ab3d32f8541f7c828c835b07d5e3dfdaacae4cf592ec0688a842fb8a6c587"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_046/attempt_8cf75a52d51041d1b29589f4268e535d/manifest.json",
+      "sha256": "98bf1cc7c7f2419bf2eb6b867ccd18a18147d4f0b593afda997c819848b26b89"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_047/attempt_9c891b7f4b8e4efd8e91c8acdfe68803/manifest.json",
+      "sha256": "39bdff4218bcffc0997f58a85c8512fd48331d12a435a4b1532a10c01565f570"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_048/attempt_e1e7e34c90f548848f81245eb165a938/manifest.json",
+      "sha256": "a2fd0de78103daea56b4d3cefc1dcae2351609bf3272519c9843e7d4db34adc7"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_049/attempt_17eed2367e0e4ffdbae1098bc88d13a0/manifest.json",
+      "sha256": "7b3fbec8f10f8ba24d8b0b7ffb169c88a5a282e39005c452fe93ae93d0f92870"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_050/attempt_059872a0f4c84da6881cd279e9556146/manifest.json",
+      "sha256": "bd5369f91d14b5706d23941d2c5d459e37c57d407ac68d4c15cd43734696fa7f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_001/attempt_fe7d2d62435648508b786da0d39cb226/manifest.json",
+      "sha256": "65b3cb1b2f72c236950c2b293efbc0ada239e7741563c938ee8cc1d6a199a782"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_002/attempt_b7859c044b264546972fba9f1d9d8670/manifest.json",
+      "sha256": "57544c46304e54d11d39536d726e9aa7745328e1a84f24bb1607ed89d0922bdc"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_003/attempt_8ee3dc1a537f465b98d5bf5b92b41405/manifest.json",
+      "sha256": "3110a9e85a19815a6812ac723c2f056352abbcfd72d412939d5dc7d0e0d90bfa"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_004/attempt_d151eca129314bfabf48d20e4765dff3/manifest.json",
+      "sha256": "9eee1e66a026ba27952d80ceffc8cac27207dc058b11e8d5fcf2c99fb030739d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_005/attempt_db5f6ff6520449e6958226b3cf1cf631/manifest.json",
+      "sha256": "3a51e6bf6ce32a30170d13bd3bb6df9f86805efe5a3f223ced0f2fda539909f9"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_006/attempt_0e8b461d87f64030a6060bc27634dbe2/manifest.json",
+      "sha256": "ec5c4252d36282098067d24c62b9cb3c4177d44400af0b6a6979c66b3c2af709"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_007/attempt_0440eb2fcde7422da38cf5b01d5d3cd0/manifest.json",
+      "sha256": "b47a987151f8c9799acc353614b3450e568eb625f0d7591e51662037c55d013d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_008/attempt_33cae8f615ab4307bd54b69e70f97e10/manifest.json",
+      "sha256": "09d74b2c3740c581cfec93e347ac96be8dc42f2a43be2705a08188f5e77fc40a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_009/attempt_1ee1dca5183242bd92d3fd1bb4c9fcba/manifest.json",
+      "sha256": "08e2fcfe4af001a2965290b67ea2ce9fb25d32e639fa2d94bdd2ec0948c47df2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_010/attempt_9852d8613dd24cec87e2ebd409a42220/manifest.json",
+      "sha256": "6e59e2b7142831148e453114fa33fdc3ffc6257f1aa65303fa774b2e3a7f6d1c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_011/attempt_cff5416580a0499da8c2428f67147789/manifest.json",
+      "sha256": "fe74a56edc015f82e17c0be8977acd274e9f9942c668e2c83b01159a44bb1d28"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_012/attempt_7726f9a326f34c74a9c6c7754c0ba804/manifest.json",
+      "sha256": "043d29d2d384b3b530b5e34c3e35fc618ea96065151258fea1861671ed76e11b"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_013/attempt_82124dfcab14461c953ce89656ae8d8c/manifest.json",
+      "sha256": "80f81716a5c8f53a8b70b02cecb2d2b787da0294360b55b477ab9c1e52ca8c6c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_014/attempt_49c4ff0ca95f4103983352f2a88daadd/manifest.json",
+      "sha256": "0375c8153ed629e703ba2333d29fd675e0177b78ef190da4a0cfb0d080aa930b"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_015/attempt_70b8bb7ef76a47c486d4b534d5e60489/manifest.json",
+      "sha256": "67020f59d5660c183b907c58c19102bf374e9dd0b13b135839f84fa31f755441"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_016/attempt_84ba736243e34cf9a916677da1ef35cb/manifest.json",
+      "sha256": "194bbc54ddf98e3b218e0e231d639295557a2d10ac767c1228e69c9547a7d965"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_017/attempt_4d489749a8d14da9a8a478f544e2db8f/manifest.json",
+      "sha256": "6312b5b19e06ecb9061daa4099c33d7813d13ca2a69428e9a7824e98d68e79cd"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_018/attempt_d1a445d0d2b6434cb341fc9b20a48e5b/manifest.json",
+      "sha256": "98d2d864487915ed09770e87b23e3c38256a08b9ebe9a51c1a5428cd98e33689"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_019/attempt_5bebf6e433784485a69821f1b8bc551e/manifest.json",
+      "sha256": "40708e325c92069c21cae49c57e11f1dcfdb93ce37b83a82f88ed30dba0009a5"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_020/attempt_bf516c400d714a83b0ddf80e98b035dd/manifest.json",
+      "sha256": "9821b32a8f2b84003afadb209829c30c418a059ee8e0a796da65216a79e04893"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_021/attempt_fcd82d3d78d54730b1aad39bb56d96e4/manifest.json",
+      "sha256": "9ea5c4e07c537266a58b31a486d00161d20f63bcdabc5d9287d008b783f927f1"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_022/attempt_21b715343e7d4958aebaea17604e1a06/manifest.json",
+      "sha256": "482d3dba4c4b1205c166e023f1b171a8d0184647b54e14487ad9dbf514570f4a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_023/attempt_5dc76d2658ec4d1c9e92801d507cb232/manifest.json",
+      "sha256": "d6363f4f585389d258d917b1d033ac92bfb0081fa75848305a7407ceafae3f39"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_024/attempt_5446832962d44a878ba9f9f5cf2013c9/manifest.json",
+      "sha256": "eb55bb3652211bcc7e515f8d8b4a8396614d796f6d9d51d13f74842f7dc2a87d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_025/attempt_4d287bb03a714369861d02fa6da7a9d0/manifest.json",
+      "sha256": "707dd1340fe6e53a7b456f1d81c53cabea6441525933a1cbc373fed73211fb4e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_026/attempt_09118f7d0d134e328b8696f895e18243/manifest.json",
+      "sha256": "484f0b8a73426c637a00e51509afc940f40803bcb8d408d0282b88271319295a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_027/attempt_f3494d37f42042a5acf4f313c8d7497a/manifest.json",
+      "sha256": "11311ddaf310a854b1c40fb1264feb92b8598685480cd3a300cb63d6382ddd26"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_028/attempt_3f76affda2e843f3b6b7f7b37ec7cbba/manifest.json",
+      "sha256": "79d0169ac30e5468c4d40b525d505a0b0a10e7dea62233c04f1ce2a21e3221de"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_029/attempt_297c596e41734d76a7985ef3e6cfa2ca/manifest.json",
+      "sha256": "0d76e96d22db6b1098c5236a483059ec0acabe1cdab7820dcf998d2777a57e19"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_030/attempt_7f25a2dd6f8d4e26b469d58b414810f1/manifest.json",
+      "sha256": "128e183c63335b1af330bb596a8d0672089762e6e47e1271ab2ba23427d270f2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_031/attempt_80f91e7db3264382b9b1d5b841655871/manifest.json",
+      "sha256": "d0e4ef4bba77c33377fcbd30008cf3d253205a87a1276ae646bcdf2a9afb0d01"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_032/attempt_bf9ab9b75fd94dd09a1e454467d235a7/manifest.json",
+      "sha256": "59542ed366d52445d46a6552adf4763094cf1fff6dfee3465add4b40492fba9f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_033/attempt_84b9a71d8f4a41adba21cd1eb6dbd64f/manifest.json",
+      "sha256": "bfdb7adc24a7c6ab69a72f6b41467bb77a205cb1c39a2ff3ab6af1c5abe5b14d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_034/attempt_5b61e2d39e95432196d4a01fa0e0ec3e/manifest.json",
+      "sha256": "402d7fce76428fd0f86663f70d0f7b1d3d526edab8e73049be550f521a5ae9f2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_035/attempt_e5a47d2368a34641af11eaec397d303d/manifest.json",
+      "sha256": "b496e6f20b640f454b9bed68f5c705c201804d1d2e9c464e3cd6f1cb1ef900c0"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_036/attempt_357028a0ba5348a3882592a1000f1292/manifest.json",
+      "sha256": "ce607136dd850224a83f2e1aedcb975fd9b5d60ba21d063ea5e53107743423e2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_037/attempt_2149ace77d304e55a21a26a8ae9c1590/manifest.json",
+      "sha256": "84c838fc4d6d547b53f6e9ad93aed7032d1265c4547be5816879e3312f137bd7"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_038/attempt_44ddb672b8654fc4b8548e567698e9b0/manifest.json",
+      "sha256": "0301448be647a391433c44102296b7636174f3f91cc1449a6f4f011971b9ff4b"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_039/attempt_4367a8a6ea0645889995b68e0ef5269e/manifest.json",
+      "sha256": "beb3d937a65715eccfdbee80fcfa54d72c72d71ad257baf43cdc1b01a1a9430f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_040/attempt_1d4ceb41bda345069a105c876e999a2f/manifest.json",
+      "sha256": "0f90e6d86a07ce1b32a32155be8cc0b393b9d96cfdafdfbb613bee50111b9365"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_041/attempt_7ccff6b5b42846ba916a9ac6883be6c3/manifest.json",
+      "sha256": "f3155acd38dceb883a918f580d9999eb9289b110dec6580313e25d1cfbb90c61"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_042/attempt_5b36b08ab64842a4a2d9f14c8298d5dd/manifest.json",
+      "sha256": "47e299357650e96aa95e4fecf90c2ee77b1e9aeba44a6af7dc23691d02fdf627"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_043/attempt_2a395a11d07441b8a71f9e43117a6d1f/manifest.json",
+      "sha256": "7b3a3f8511357926ddbdb97dcf112cd661cb8062cad6491353cd66b42d9d2c71"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_044/attempt_4cfb2b44ecd34c6dad9152dff2c11c34/manifest.json",
+      "sha256": "c8bed707294c2102f862571239295a2f685f1f144b19cd621be74374cfe91c28"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_045/attempt_a772676abbde486d9b55de02a2d538a4/manifest.json",
+      "sha256": "28006ddaffcda6fd979ef99f6357d34446902df158cdfc7df3fc38cf04b280d2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_046/attempt_66f9f2ec29cb42cd99d5a07ea1d1a498/manifest.json",
+      "sha256": "7aabc325cd391c3500093e060d04045c62a3fa7b92da8e40e98949c16fba9689"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_047/attempt_cb3029c0de6643c4bb82cfb6d3c0c673/manifest.json",
+      "sha256": "34d0818cde2038208f2188500ffb8f3615a78c685e76b80987d8cd2b814b9810"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_048/attempt_3b716e32310e44989137bbf5f6fe2261/manifest.json",
+      "sha256": "d3938c1bbd3f829a896fd44f30369c3d5c3b15383ea78daef2182e6018f251c6"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_049/attempt_8c04650f506a45a0921741ffe30bb43f/manifest.json",
+      "sha256": "cbe5f725c564e530c22c99ca1b230f19c10232a71e5bb79875bcc2c6996d9c73"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_050/attempt_ef938baa265d4dbb98513705811e996f/manifest.json",
+      "sha256": "c98d97836dfad2947033afe7fd3921fcdaf6e1eee7f868573fc3b021e5ec8857"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_001/attempt_6ea9886825594fe28950875fa6f53a1f/manifest.json",
+      "sha256": "642231ff763277a84f4926c175372b844c8c9ca20a65a998aec41724717ddcbf"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_002/attempt_fdf1ec08418d4b1dad45cacafeb82261/manifest.json",
+      "sha256": "8346cee40e2eec6e8be98cf5bc28973ec2326708673939ffe20f74eaf2a8b55e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_003/attempt_471d0c90ca174a8b8c08325914c4eaba/manifest.json",
+      "sha256": "47b9e8bf8122d434316648e79f613c2507fe55a4198c0d54a4e5866fa453d4c4"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_004/attempt_a8b904c646244f5c8c8bb7edb8e32efa/manifest.json",
+      "sha256": "5ff76983c2a67a22d630c9fc5bcd8787a8ced1ea105a6c31450f402cce61f7ca"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_005/attempt_616c545ccee24c31beeef8cbc6b8461a/manifest.json",
+      "sha256": "3e575a0cbcf025e63f3be83e71da32c68cf73de7a3792e3c7d8a45491e57ad76"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_006/attempt_623d585944b24346a72455bc41ee6370/manifest.json",
+      "sha256": "dcfcd4fc96a327ceb1b98b1223ec3ebd91fe1e28895b71b3703f414d2b957efe"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_007/attempt_6951a0c9c8324887b7c5335024d8a0f2/manifest.json",
+      "sha256": "00cb3862d1b5de0c6c074bd812353219b4b904de4ecd5a80b44ba115901bd167"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_008/attempt_275e3bcb10f241a88074061acdfdffc4/manifest.json",
+      "sha256": "3ab4708cd3dd1c9b08a931f777d8f48b13d1591bc1bcdcc932304166a04e1dba"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_009/attempt_29415a977d874511935b38bac8df7e0d/manifest.json",
+      "sha256": "4f7b5c12f128257c5f932db071741b339b191b70a47cf0cf231668be60c9b5cd"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_010/attempt_142c50ebd6404879a7b9b0b728e35b60/manifest.json",
+      "sha256": "93be9be7ac9839e12dd4dc4ef6c127634b242e43420df774bdd3ddb549eb6c8c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_011/attempt_8fe08e7a204243c681f3e005f354ff69/manifest.json",
+      "sha256": "9457695b780b8e345f0885c0fe81a4024d00eb11a51a8862c06cc407927c59c8"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_012/attempt_a2781964fbd54c1aa416b468f060097d/manifest.json",
+      "sha256": "a83223a4ca905dc930770cbe70d1caa98207249980663ab8f0f4d300eead1ae2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_013/attempt_eef97e11285f49b8bdc3a5d097c749fd/manifest.json",
+      "sha256": "7d267be790c4338d92b3f7d258b0326cde61c7bdd5e7e7ce8f44fc6004151fe6"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_014/attempt_35022eb92fad4fa984c9c6ba0e966aa5/manifest.json",
+      "sha256": "ded985880a65e56b6a87baf1f4b713dc2ed987b3ab6d9927f977da3bb42a514d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_015/attempt_0fe36bec3e4247feba7f22cc37552bf0/manifest.json",
+      "sha256": "2a29ab105ea473f554422fffd47e7d63690f6737859842c48b0fa70e4681b1d4"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_016/attempt_bb42cd70bd7c424daa4d4f7fb9388e03/manifest.json",
+      "sha256": "08e5bbb4a7561c218e7d3db56dc001167ed5a15e1959eb80b2548a23cbaadeb5"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_017/attempt_2bab987695ec4f7888610b4964ddfb19/manifest.json",
+      "sha256": "5b62f4e6d0e3f3cf8b419b09afb7381e541c75871e56a566736af84b2e99161c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_018/attempt_ad691bf0c8924ed8a2002d17faab220d/manifest.json",
+      "sha256": "cfeaef96927714610c6ed36dffc1b3144282e15eb1234c9d1ff60d3d8e975b92"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_019/attempt_ee39a68268de474cb85793c6e2cb1dbf/manifest.json",
+      "sha256": "cfb6e87e8ee4d6b07aadcc0ea04908c25bf3d0dde05096f0c95b0839c6b3018f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_020/attempt_f7585e3f5ce64f4798e4a7545e407f6c/manifest.json",
+      "sha256": "b34c76efcfff692def30404f6aa1321a2462ecc6e5db462bb44f3d9db223409a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_021/attempt_68cd87bc7e294762aa56ef554753bc98/manifest.json",
+      "sha256": "9cf8e1cca26b007f2a12a0c6a66634ad54cf42bbbd58a885bf1ea0c630d5c6ae"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_022/attempt_531e13eb36464203a070cce57681e6f0/manifest.json",
+      "sha256": "71938228a54fc12690a11b83904ae28bf0e016cdb95f907717f14b777170f507"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_023/attempt_17271b1c41924ab5a1e786344fdf3192/manifest.json",
+      "sha256": "4a26016cf3c88b32c413b2023b515f2c5077b11c4d6e6bba36b0b8977b95f194"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_024/attempt_6c20189ab72a418dae417f574175336b/manifest.json",
+      "sha256": "40066e5c321b1f2bcc295277cd8eeab6d68c30941f4668d9ed09c0e8d9cc8872"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_025/attempt_3768fabcc60046eab1007cd2b0213d1f/manifest.json",
+      "sha256": "f90a5ff253dd96813791faa39b0bcb919d9576997e7ab598243aa68c9b41d6da"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_026/attempt_470d76ec90084da191cb5d8d3b3c5aa0/manifest.json",
+      "sha256": "4fbfeaee07a26bae01bf0e849a0eae37541940815911916022bf76fe877c3752"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_027/attempt_d95c4560e18e45a5a551a7993163d7aa/manifest.json",
+      "sha256": "25fd82ee71d098e10da025917175bfdf2549ce057b481da8d6ec0cfab1b6c3fb"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_028/attempt_614c544dee06414aa1a2ad7dba97eac0/manifest.json",
+      "sha256": "badf5ca78c38e9c5fc7d145ab09a56062f948d046267d82956956155c5bddb40"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_029/attempt_ee022f1fc7554c15b87e31892261b4a4/manifest.json",
+      "sha256": "a45287c191652979b8bb84e40c7c2e5ed532737825cd29550145b05d587b94ed"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_030/attempt_29f197c88866430d9649785f6fa2b645/manifest.json",
+      "sha256": "49cc5c200e63dcc7af9df6f592fd30f452df122ba5ffec4e8ba0e974ca5f2f16"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_031/attempt_9c1c79af9ae64c0e86d4b732a47a9d7a/manifest.json",
+      "sha256": "3b1e4eec502722c93844c70ae852a8a952bd027609cf003e52f903a0e13f3bc3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_032/attempt_0afd9d0e18994954bde4b3a52eae035a/manifest.json",
+      "sha256": "2daba68defe6189965eaedfb9379414cf87d1aa3043668338b020b0a668ebfcd"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_033/attempt_e816a10bc56c4e12851662453d28a8a1/manifest.json",
+      "sha256": "03580a3be30df921a93691a2561e99a12c4537ea25b8b163d47414895f1f843c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_034/attempt_9f3e6ffe3c024c26a9246f617932d6e6/manifest.json",
+      "sha256": "2d5c9ed77b14b486ef1e5975fa5a012e66ee3fa3962f1ee4268dab963e0d969e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_035/attempt_4795494e37e54d52900e4ecfb3afd2e6/manifest.json",
+      "sha256": "9dc9822163a0eb0770fe67c50253b3f2edf1dac043c56524a472ecc3f17cfe8a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_036/attempt_82531d13b5914718beaaf01528f9eded/manifest.json",
+      "sha256": "584ad74fd9d08d243c45a1022b96ea62b7370675f2e2672a2c9dc789a5cea705"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_037/attempt_9fe87393680b4b2da68417a564d910a9/manifest.json",
+      "sha256": "23c3a6162ec188ce96547a753163ffcd10c664d392f63b4742dd8fbcafeab903"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_038/attempt_1021c624187e406fac1cc3a265836394/manifest.json",
+      "sha256": "50dac800ab8393a98b482202936c796f1cec260b1dad168c2040e7a1e120f94f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_039/attempt_5d9b3d50702f43c484fbaee7724039cd/manifest.json",
+      "sha256": "d83923bf679fa87420a331b22472edf33d37924484863b2b2f7f96356d87341c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_040/attempt_80d9b0187604404aac508870cb5e5eaf/manifest.json",
+      "sha256": "d69784b8b2e5f8a8d894fe3ac234030b84e495431331343a26c02facdd28285c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_041/attempt_b7894b7f2b0047d5b523df163e313442/manifest.json",
+      "sha256": "ef880877532f6a84ff5c4910735458ef87270b7ec6a424d38250bd77701d552d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_042/attempt_e1096843f96342d2bc78017df76b3a4e/manifest.json",
+      "sha256": "301849df2fde4068f3b007d8c670a4d318fc142123da4ce8367e90207947c7ed"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_043/attempt_d9268f081ee94e58a83f2b2b654979af/manifest.json",
+      "sha256": "940ea574a2a83bda172e9329e985a6232a0624ddbfc1743612426c6ecfb50d96"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_044/attempt_f5d0f86ca0464a328e0b424a5520ab84/manifest.json",
+      "sha256": "6f856047e97050cb7a1cf2c52747c3dc3d2c875a69926265448a5736c25f8043"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_045/attempt_329ad744bd4744f2a56b30b6a325a913/manifest.json",
+      "sha256": "f968727387c71263c77007378e5520a0bd0b4ff0aa28140cf710f027e8348bf0"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_046/attempt_6967bd2d73944d93bb088ee56ae56b0c/manifest.json",
+      "sha256": "53df17715ec5c6a6d900cd94f16bcb0785a68d0c43d545982490ab41f2d72426"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_047/attempt_131676e1345d493ea9a1e0ac3de6efcc/manifest.json",
+      "sha256": "8de94e2ee3821f2a00b739ecfdaecee1788bc956fef66e1690108c8a7a2754ec"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_048/attempt_3a021a23c1274a3288a32d63aeba18e9/manifest.json",
+      "sha256": "fc5982ae97a35961415b44b485009aeb826dc0bc8bc8c50ba03658550547748c"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_049/attempt_f3961dae5f1540308c606afd357d2fa4/manifest.json",
+      "sha256": "86ac144523c1017ff83ae088b9b2dadd60a079693df51d90576531b070b7655a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_balanced_sample_050/attempt_89d55c061cb24a1791a1332e862f7c60/manifest.json",
+      "sha256": "f889f063029e598c91791b83ae5abebb9e5391f8aa14b5c05eb5d6e19359d85d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_001/attempt_7de0f7a60f33451aa17a8de56724b359/manifest.json",
+      "sha256": "8ee73420790eb17959f55b6d98ead87a7b9639ac052bf2f9eb18b7a2c297e158"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_002/attempt_bcfabc53fb6e40a4bdd8413fb181af41/manifest.json",
+      "sha256": "6ee053336e2336033ec19296769eb32238f0eca6aed2fd7cd98692b5efd5f8fd"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_003/attempt_577c65f1d6ea4349bfce297134108f3b/manifest.json",
+      "sha256": "1ccb74d660f7bc25f17870abd9e62c537a60ec0f5f0c3c6dab2f0dead98f6437"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_004/attempt_49112aa6372d4f5da1bcea4864740144/manifest.json",
+      "sha256": "adaf1db3d273e139aec685c376ac1c318fd081652c19939e6f050a2fd7c13cbc"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_005/attempt_8932a7a54f634275a59bea1c871796f0/manifest.json",
+      "sha256": "047c808ab58a0165587262dc520c897be191d92d732bd2fb6f577cc3c3928d3a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_006/attempt_d7f81b66d18549e2bdbd5d15dabc0c8c/manifest.json",
+      "sha256": "fff80afe1633d8c94dd2aad7caa14c8b144d073a42a72b4b1b1ba7303500ab80"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_007/attempt_ddd567bb4ded454fb04306598b9abced/manifest.json",
+      "sha256": "a80a78bd90eb41c194af906c968f79e5c5dbf975a301b9dc5d0b9dbb5bd968bb"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_008/attempt_45544d4a1df1499a8c4b229935739120/manifest.json",
+      "sha256": "ac18a5ccded036c3b28f255d2fbfc3b2d9325f7b0e2617ba3ba6236ecef3ecd0"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_009/attempt_d86f2d81a44d454cb21e1c2cc202cd30/manifest.json",
+      "sha256": "a6064323ab9cf9c0d384c19df83049a87605cc9ed2f66d3cd59c7c715c8d275e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_010/attempt_617d46b8f40443b9a71809e07128b394/manifest.json",
+      "sha256": "d3a0ab70a8ecda6d9a47180e8db63cb427943550a4b3d3c6e967175d96309178"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_011/attempt_eb2ed77142ba40dbaaeb434ff8763eae/manifest.json",
+      "sha256": "cfb88532197e26a5808aabf3f3246a511781ad570b8c3750f62289a69a75c7ad"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_012/attempt_5f2bdddc409b4154989dc7e4330bc6b9/manifest.json",
+      "sha256": "74e02d9479eee7d73628c8908576cd5e15a9cff58c50d95959d8b57fe3ef7b7b"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_013/attempt_f048bb0c1cc346a7bb4384e0d0430a50/manifest.json",
+      "sha256": "cebd517fd0c6c988386888fbe6b30376743682b9ccf76ff1292ea7093a8e7f58"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_014/attempt_1250e6ef58e446e1834e510247722bb0/manifest.json",
+      "sha256": "78ffacfd77594002ecbe1ccb2ed5062554a11dafcae648051ac0f641c3c59c32"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_015/attempt_f139973c393b449ba428ae91b7701e04/manifest.json",
+      "sha256": "50ba2672ec458912dd397440d4bda732dbaf5275c592ea06aa6e97abb1d6982f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_016/attempt_8a889b78673a4264976c217988e9f090/manifest.json",
+      "sha256": "c1310dcc2e1f5888e8f2dfa62bd7d9e52c1691c5b8f341db7281fd24bf25f68d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_017/attempt_e2ceb6bbf6c94ebeb451a8237d928644/manifest.json",
+      "sha256": "057db969587764b3e9932edaf83eb2e572868d3adf7596a948e349d1d7948492"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_018/attempt_d8bd7b5e41824ae099c5c927c681a8f4/manifest.json",
+      "sha256": "51522516dbc244af5eaf1c745b0cecdefe0361371cc3f45ce2b9069116ad210f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_019/attempt_30cd2bbfb1864cebaa27d7e18c117ed9/manifest.json",
+      "sha256": "8e60aedbdec2fd51e7369dd727cad961587cf54ca33e0b1bdf38925f2faad7cd"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_020/attempt_6e4ddfaa399b468c9b5a30f70d0c16df/manifest.json",
+      "sha256": "848db32bbb8cec5f49e17db9b9425e2e1ccccf863d7d37c9b4c189e76aa0aff6"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_021/attempt_02238e9399be43fe816b17c8976e1762/manifest.json",
+      "sha256": "f6c7fc72ff708913f263408943bf2367afdeb6ee38b3bc4b4e2055f97d89c3f2"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_022/attempt_ee92de3a8ce64dbcb96c2df359c2bcd2/manifest.json",
+      "sha256": "8e8497e90b96d03da05cb625e9c4df93c799f04dd197d8b0c030c58d9ce96a77"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_023/attempt_c726e04ccad444148d8475e88e9b0531/manifest.json",
+      "sha256": "7e735ea4f5297fdf2df504997de50eba2a269d652d572e00e072218067f4a52f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_024/attempt_eefe1aeb0e5549a2892d81a801ac70e0/manifest.json",
+      "sha256": "1834b4bbd36fbf578abcc7e05c34c265221eac359b1f6990fb49e6b57e22819b"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_025/attempt_eac6eb9143a4463997beaa82d5a19718/manifest.json",
+      "sha256": "f152c1c21d2265e073e1e4f972715a1e2f6b9368e268b7bc24a1ea2052e0ef74"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_026/attempt_506816f34b94462990f857cfed727455/manifest.json",
+      "sha256": "bd9c7539534307be64344eab4a27354c286909448c72b88ada3ca325047970be"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_027/attempt_faf9abdd87ec41c880dda3a8ddb0a534/manifest.json",
+      "sha256": "981cbb3b5c897f9744125fb43fc2e8d9c8bd67ec46fbfea7d196aaa2bd8cf7f4"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_028/attempt_caf93395baa946ebb095541b3cb7fd75/manifest.json",
+      "sha256": "2de23d3c8052963213217af8ce04c61175f93c67a0495d0b2e24eb5b0861a495"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_029/attempt_4458930243e042e5a802842b60ba4434/manifest.json",
+      "sha256": "0620b169a1f4c511cb68eb904e217150c4737b8bb277d83e342ddf389588268a"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_030/attempt_a3ead78de75140adbd3fd7eb2b26f723/manifest.json",
+      "sha256": "8f774b1e6074cdb92920afcfcfa45518373d019d8a0c7931c1dd9668fb82b300"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_031/attempt_7c0fd2bd48e44ff9841b5d61ed45f674/manifest.json",
+      "sha256": "c3a8cc5b718aa1bd57b4571b5f516f75b228d0f083ec091c03c204a3e75e54a3"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_032/attempt_dd6a2878bb234492a7817f70acfc1690/manifest.json",
+      "sha256": "884a866b76a412911cb31401e22834a902e482abf8290f3057085bf76b895211"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_033/attempt_f582a444d0a44bdeae8e70e19f3dc2d7/manifest.json",
+      "sha256": "1a51087e69c78bc97e76301e17d6f02c38c63ccf81552c471fc6fa072cf6c082"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_034/attempt_7e4bcb43da484241977d6b488f38115d/manifest.json",
+      "sha256": "c1eaadca4c9d55a964812d00bb10d558e8997711121d2702ad3ddd8972bbaa50"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_035/attempt_5f31af48086149a3aaa82c580cd13e5d/manifest.json",
+      "sha256": "a20c66abc9dbc69474ae41c30e1fdb35ad47fbd6e0a12971e83f9a034a618da0"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_036/attempt_dd41ff09b77b4793b2ac5be1f3938579/manifest.json",
+      "sha256": "76fa7c179ee7c1947e32852463e66b8fee03777420be2ce6dba97ac7911445de"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_037/attempt_408be8dae21c43b59076db265aefab93/manifest.json",
+      "sha256": "611234bc50f15f5d73d706478ae10a9f8b666ed04c30deb4c62e7717f4c0d140"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_038/attempt_e4aa217595ce40e89580790c604fb0a2/manifest.json",
+      "sha256": "c9c4dd42c3e8269802ce405a1c46413b9b31d172e0c6fb7c34d829cb728bfa9f"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_039/attempt_696d914c9df34e259e2e64e2afe87c62/manifest.json",
+      "sha256": "0b46df396bc5f84d6e9fdd1bd4995ae0587bdf6b495bf9e6fc42a5754b3861e1"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_040/attempt_0096c13824c84d4db738a0a5d81c5da2/manifest.json",
+      "sha256": "7c1e0f66c317bbc1651a861e4238c9dedf88ca049d3dbdf5a1c899d3a7086ffe"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_041/attempt_52bcb00131fd410c8985f8aa2eebadab/manifest.json",
+      "sha256": "244ef70d490dc7220e2bb9b0d16cabde85c5a2d7bcb1b33a417420d09e9d7957"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_042/attempt_183602a06e0145a5b32bb8492e507e73/manifest.json",
+      "sha256": "3f86b6c120cd553de23f6160fa491efabcbe96892d5960c4da9b1b05b440aa9e"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_043/attempt_02ac55a395744516bb42fd517f493961/manifest.json",
+      "sha256": "bd45351dc19ad79dbdf93f73e721d75964a8e11970daf110371f60f923b27efe"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_044/attempt_7f2077884f234c67bed87beb4926b0de/manifest.json",
+      "sha256": "335dadd9ad30ecba066cc273613e62bf9044105db49a034ec1eda828e50c98b1"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_045/attempt_b8647c70d8e8476fbcfbfc8b84270dbc/manifest.json",
+      "sha256": "ff7f4e7272de405b5d774cc213b545650258742180b54be34589b3fd028cb0ce"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_046/attempt_acf7ca57f22248b283d4fda080c30a6b/manifest.json",
+      "sha256": "f7fb740f1cb107b0462c95af0040d1e2d53f3d1e9dfaeb80940cdbccdd8ce66d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_047/attempt_390a98a11fba429a946fc986b5a6e475/manifest.json",
+      "sha256": "97ad9a3c054a503bdad43ee2cf5f0098922f5e505cb8049c3f3ea3e107d5598d"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_048/attempt_a5648ff14e8f42eca92d36de1ae3441c/manifest.json",
+      "sha256": "8c0ee378cdeadc258b81d8eac5574b12fd302b10819f07590554529d81c61630"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_049/attempt_14042d25930e49eda4fc6df9604dad40/manifest.json",
+      "sha256": "e8a1223c624a281141e093e06d642ef0628254cd0f6d9382a93637c659c9d120"
+    },
+    {
+      "path": "results/paper_production/06_candidate_audit/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_050/attempt_c276b29dfc0145a490e3d5d88324f522/manifest.json",
+      "sha256": "524a2b220b11c1ba12e04b7ae648fa4f9ecc5a662a48360e75eceb65deac637c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/robustness_runs/robustness_e253def46ac0444e81d8f5b35d6524f1/robustness_requests.json",
+      "sha256": "4b388c23e2b50bc39bfab88199f01fa32a359fb0a837d9ad6766b4dc2e9a00ed"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/robustness_runs/robustness_e253def46ac0444e81d8f5b35d6524f1/robustness_summary.json",
+      "sha256": "042154a946a3959b475fc1b27ef84103ddb2500d036e1507da624df55a55c258"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_001/attempt_af2bb14570da4e0d8eee9906f7ada153/manifest.json",
+      "sha256": "97d39ec4c92f26b3ab585d07f227a98e1a4579c24b41bb76d516382bb6eef129"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_002/attempt_086fe5f244294d91947834dc2f1e2e32/manifest.json",
+      "sha256": "fb3118dfb136a13b60fc43cb90da071a8c28bf4bd0bdfaa92be7f6e7f1268b65"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_003/attempt_6fb27fd0b1404ef0a73ede6e0fe695d3/manifest.json",
+      "sha256": "ef642efc400ce30f9981f2a8eff355a0ce89b8fcce760c2920a42dbf1cc88662"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_004/attempt_13c558c70010404082e7309d297ff1b6/manifest.json",
+      "sha256": "5ae5989da364ce06fcaa7296e2bc80ed2facb62335d93d977f6786215dafd5c8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_005/attempt_42d484225ed947bfafbbe2f9160aec73/manifest.json",
+      "sha256": "97047b85f69415b4dd36a646fdce7674a0ecf087da1348f582a06babd76bbd6f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_006/attempt_f4241c378c0246d5afd5f16a961eee23/manifest.json",
+      "sha256": "4a039130372943405bb92672351ebb6d14be41d4f87769dc06fc5841f5eb4b7d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_007/attempt_766f542e93b1419c8608d73341e36776/manifest.json",
+      "sha256": "fb230cb13428fb2e96e3f512b671e3d470d8c1081a2a5ea487cf9ae33e98cfee"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_008/attempt_5ddf1ef970ac4fd995d291776cb38bd9/manifest.json",
+      "sha256": "a73f8792769acdaefb4a54a7a71902b0546d63e522c7e72562070cd719a6c83f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_009/attempt_9ac15e25f8db473eb3a6a040bc6a9988/manifest.json",
+      "sha256": "c50465a3c41fb2fd59faeaa4d0dbe2a5d4f27c7bd15c00296ef56e3b68dfaa1d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_010/attempt_e0bfd413841c4dbfa865c96ebdfa0e82/manifest.json",
+      "sha256": "f9d97caf552643eedaad233a9d41ba0191fd45429108414d0ac63728fe406be2"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_011/attempt_5a6b8620d14840468870aefd7fba9e79/manifest.json",
+      "sha256": "8b5538175c2aeb35185327d176addc72fae716bcb8be451610a1ada4a2f3fbfc"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_012/attempt_13318616dbd6452984d3b85e684695ad/manifest.json",
+      "sha256": "b835c4f91c5c30ee80456beff425464516b5d74a09afacd99c532ae6903ecf8a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_013/attempt_f090d14019394b4383640ec682681d69/manifest.json",
+      "sha256": "296e7ce25bd0589961013cd54fa5db9a7eed4be995513db387e01f1dedf03b2d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_014/attempt_948526175b764333bab2d04c755b19c4/manifest.json",
+      "sha256": "f8362bdbfe0f4460111f8507c66fa156d4d37f260f6a778f047b6ae7ab4a0776"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_015/attempt_aa33259a177a4a8d803341527bc6bd45/manifest.json",
+      "sha256": "8110cec946724ca60f55a6239779beca6e532ed731c99cd431c3ef8cb0c28fb2"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_016/attempt_88e4442fefa74d1889695160cee6126d/manifest.json",
+      "sha256": "ac3a48b078ec176359a8e59def33fb55cb416fbe4ec41e825ba50d76f1b30ea7"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_017/attempt_87a314a5d2704fa4838c568993b88dca/manifest.json",
+      "sha256": "e24d99acc99af3cc871103998ddaaaa10ab3e922f02ea4345fc92519e0119171"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_018/attempt_9c7e52904e274e3898384848ba13a8d4/manifest.json",
+      "sha256": "f24f16983d625aa77697bc35c595108335823f0564ae314d87b2212476cb7f17"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_019/attempt_51b45e1d12794ad7913191898514e208/manifest.json",
+      "sha256": "5ed3a24e33f029161288938a0be6d4fb745d449a3307ec9fee43f5a76ce3464c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_020/attempt_7c950db6d80a4f2592dc013b23e90f89/manifest.json",
+      "sha256": "9cc51b6e7316e3e25b486e3240fbee7be39626496316318a2c67604c792e5f90"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_021/attempt_68517fcd4ac74eb68d83723ac80cda49/manifest.json",
+      "sha256": "3040549637d79253d7c763204d11ebd94d20b764161973bff02b2236952a00b8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_022/attempt_966d5ad7f1504b78a71ca35e4e4fffd1/manifest.json",
+      "sha256": "5c153b0e52cf651ad9be8fbf2841fdddef84cad2893807957da31fbb75c9c5fa"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_023/attempt_89ab74bb56b84d539eff500466bec551/manifest.json",
+      "sha256": "9cd714a76c38bfa2aac297eb03e4c3b8a454f4bbd4fc0b0571bc91f4991a128d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_024/attempt_64ce83b7087c46ddaf7dd17c1d13cb35/manifest.json",
+      "sha256": "f08d47d9093424b37cabc228db03b55b6c16270ca7e06a3e9f15e5102d915613"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_025/attempt_2f25a1e4f9eb452bb7852d562a068c25/manifest.json",
+      "sha256": "7ee388a786c3f80b9f3a20e5ae600756bf8468f30f745275c9a5139c5b2cd952"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_026/attempt_22609760e13d49868625b62f453593cc/manifest.json",
+      "sha256": "2d8d7eb8ed3bbb74f92d7ad61304ba75b35ccecdc074c5d2cc1d2ae6f7f71a27"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_027/attempt_1865c901b4a7400d877866dd3368aa34/manifest.json",
+      "sha256": "ae621df0fb83343b02a1ffeebc87cc679580db549f0438b42301a5faa8adf3f8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_028/attempt_3c241f52f71746eb9b3242d22447dae8/manifest.json",
+      "sha256": "8fc602089c6b9360e5ec2d52157700fbc9808c92ffa278c90ddef1864feb142c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_029/attempt_c2ecc3ab66cd4804bc5895487138ee32/manifest.json",
+      "sha256": "c54486f8968a151a51ce3ca140379b73530d9a47c5043dc96cff2760f46b16c8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_030/attempt_f787129cec2744db9320a2ae69428a8b/manifest.json",
+      "sha256": "14a6452033ee152c8d3f4140645b9675cad5793e08a1a166699e77e257476d3f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_031/attempt_a9ff7d01d8194ae9a8fb6899ba536163/manifest.json",
+      "sha256": "8e94b7f42387e8c6ff209ecee291f5ff9fb17c5932b385d33521c4c4ab11ee02"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_032/attempt_be379795a2a34bca891ff4473fedc911/manifest.json",
+      "sha256": "abb986c7a29bb0e13c5031d4930447d2cabe6f9431a47d3971077fb74605fcc1"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_033/attempt_a529dc9a986343a981aaae5e4e0873db/manifest.json",
+      "sha256": "c441a82fdb897f40b75cdab2ffa4594f77c776f346fca77c9e42469a366ca621"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_034/attempt_4675cccbed4148b28481d88bc6d58f48/manifest.json",
+      "sha256": "d2285aa0dc5f4aa12af93578e72f183a08ffb31070540ce0718e29b3cb5e4e3f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_035/attempt_1e7a49a598a5483b8377c7fa0156cd58/manifest.json",
+      "sha256": "ee8289d89fc915fd9325da14d7ffb790a0c00a419f410f89c8faabe11644a4c8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_036/attempt_822e2909aaad4ed58722c10605e54d8a/manifest.json",
+      "sha256": "25859a514c3fe4662b58e892e621c405dd55e85f3cb10f82758f0d90bea0c733"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_037/attempt_cb72693d153b4cba86a42d42c0443a88/manifest.json",
+      "sha256": "2fea17e9d4b581e0eeadd89ba0304d84a266362ce278d1e4e60028f9236cc0a3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_038/attempt_cf72da8301034bf2be7344c6e79f8584/manifest.json",
+      "sha256": "2bdf453283990c268aac4d289f4b6aceab2f919093d28d2429a21a1414ddaed5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_039/attempt_467bb3a0a1f84b85aa6552b99efb2e0f/manifest.json",
+      "sha256": "631c108536b88f935c028cb72af8d5c2419094fabf2c043c4f3ee817ac9950fc"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_040/attempt_96f44cf8bb254fa19ebbc9b176775f0c/manifest.json",
+      "sha256": "cdda2607ffe8676d63e368995cc289206ad4a31ffd50123fba9a9326b7ada7f9"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_041/attempt_32586462a8eb4cd19dea038918a5b238/manifest.json",
+      "sha256": "410c787f19f548825c600e09390a489032e3a066cfe3b4a9073840ca445d6e7b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_042/attempt_f64caa6cc9604ef7b42bbebae29acab2/manifest.json",
+      "sha256": "d70d72e59cb1a14b1b5315b9b990997d5477870dd5f07d505218b6d106785ff4"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_043/attempt_6c063ab58e754f499591e6384dde5938/manifest.json",
+      "sha256": "9f3dc88cebfb115f91f75e96ecebf569d0167d9c614a09bf055a0424b1d8068e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_044/attempt_8b4a99f5056446e3843f6a22627cf5b8/manifest.json",
+      "sha256": "ae6d4d406f29d392de65bdaf646701f195b6ed92eadb4c832da54df0def8e976"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_045/attempt_23cc49d736234100aee1969550aaa019/manifest.json",
+      "sha256": "160f9c4ea82408e773fa25e256f95121a96b0cd9da0427d1db1ce14100fe786d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_046/attempt_7fdacbfd6afc4a32840044bac158ae90/manifest.json",
+      "sha256": "eb603d5f8e6457b9127b681795cf124b1691836201116a7d8b05332626c3a433"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_047/attempt_90486d26d45844feba33bf4017e1336b/manifest.json",
+      "sha256": "6a1494c038b3dbb450d9eac3e728db2d9227ea18ebea6bc3abe2fb2450155b14"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_048/attempt_fe9825d9fab54e1f91ee4b7b4c9ab1b3/manifest.json",
+      "sha256": "bb33f8ab78a4dcf341f489e9370835abf8ff47f4c493ef6aace72f47ffec31a2"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_049/attempt_b6063b6c734f4af3b69f91f5517ddaaa/manifest.json",
+      "sha256": "61826b971bbc7ff33b54877bd208c6ef49d7d9e8a814773cc9c332da3c85a884"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_x_sample_050/attempt_98a1d729ece34ec49371b913a827df96/manifest.json",
+      "sha256": "e9f63b0728b0efe8e4a67b3eee9ab6c2bebc2e206e6104e0abdbb6ffcb07f5e5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_001/attempt_166027b4c50e4c38ac7b197d369fda1b/manifest.json",
+      "sha256": "5d6d116a1209a3bdf8df9562f187fbdce168cc8cfb91f250ed60f9fb8f85e9bb"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_002/attempt_f30f325a3259491ebea3ffc30ad31c07/manifest.json",
+      "sha256": "80728051fd9a0594f65c44f4718bd4857a56d71e7caafdb35979d78d62c1cfee"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_003/attempt_5424131d4aab481cb713c9f4b0012609/manifest.json",
+      "sha256": "2d93d9e47f89462144020372ac19261cff4fb2f09fd7e064fee74c7c22ea9b4a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_004/attempt_2d55f4c415524344a5e13ad35518413f/manifest.json",
+      "sha256": "5e154be5670f423bb992fad98788fe1254eb4d011b6cc51e4257cb06c4f38434"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_005/attempt_44e6b64b952b4d79bec6c09a66d1671a/manifest.json",
+      "sha256": "da8fa684a90b13426cd63b3a0b81805eef196a02ad6217c78c119f8365df83c0"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_006/attempt_a020e620ec46496a9b7c8be884542a50/manifest.json",
+      "sha256": "061bac66220ef2166b5e2ed485befeb48ab3b66c21de7738b5f0d9deb9accbaf"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_007/attempt_8d0bde4017fb4fa1921a1b135e1e28e4/manifest.json",
+      "sha256": "7928128ec79561167b6d0e0ba00c4e64a5a57906a6fe67cc69bc789fd2a732d6"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_008/attempt_4073866e2ef747109bb1e27dda7ae69b/manifest.json",
+      "sha256": "999948f743d652d421dac9bb306cd6127d617d5c30fa7c88bc563f6a75dad7b8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_009/attempt_0280ecf0fd644cdc96b5eb4d341cedcf/manifest.json",
+      "sha256": "6c605fe99196a9c92e859b0adb4fb9a272b5bf169a47b4904dfcd2f4984bd36c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_010/attempt_225dcd0488714cbda10fe9b138dbd6a5/manifest.json",
+      "sha256": "bb2fee1b80e5e8921960619bd0ea1377c81f8ecc4fc32bd052dea3ac26737c8b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_011/attempt_e34858f4636c43c4adab564517879bf9/manifest.json",
+      "sha256": "05cfd19daeae67be18e339f02b6ed27c98a709fd40fecba050efb30dc875ab5c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_012/attempt_b005c979931d40d68fbf3dc868df2940/manifest.json",
+      "sha256": "f118401567eba935cff0d233280ae9269dedce0ea347fc1a610b7b44939533c5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_013/attempt_fabb03f540dd495da07114fd8da70496/manifest.json",
+      "sha256": "7f69175d51d727c38c5d50f2e02160a584dff6de2ae0c5e48bf87ef894456c5f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_014/attempt_22327c85305d487084fb30c280ece03c/manifest.json",
+      "sha256": "cd2d0bed508d1785dd8f75ede4eb6a337b6c9386093c666ac68702478b899001"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_015/attempt_df254ea743ad4f71bf89a2b5da0307d2/manifest.json",
+      "sha256": "88ea1491f17a9a0d8c1ecd305e9f9d8583474afdd0588ae87a591bb17d669301"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_016/attempt_8ca9449df204479e9003c43dceb741a4/manifest.json",
+      "sha256": "6cddcd36ebd41bd774a173e4d342c197b50d51c63b5119cb1d4d067fd9ed3ce1"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_017/attempt_fb89af00cd6c40d387b6c320e4209d65/manifest.json",
+      "sha256": "70f92a1f92283db765a78177194141307134248814b98db99d3e309079fc02d1"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_018/attempt_14a01950383448f298f57627535686a8/manifest.json",
+      "sha256": "d635e7848a1e49667147056f394d9564c468df97fd43abafe17ddfe758f42d49"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_019/attempt_8c4ee5b4cd79408e9b25f44bcd644efa/manifest.json",
+      "sha256": "76000907c72389286af1e868ca3c4b3283c90fa86f3f5e0b48f64d72df9f103a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_020/attempt_5c7aac6d68fd4aef917b1bf1d2f09fd7/manifest.json",
+      "sha256": "7689df91f6a968773f54d08061eaa79052e3e1fa7ec73a2e3fc9322b9f4f175a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_021/attempt_3b3fe0bfedee4a83b4193e73ce00c919/manifest.json",
+      "sha256": "0aa41dc3caea8b9b57ef83b03ee8dfc13eb1c3a408d6adf89d9d125ea3141915"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_022/attempt_0b13040be64947eb89bfc9d02e32949d/manifest.json",
+      "sha256": "cd9e723688682579c02966114e93e3d7709a93a9a380d8aa4175546e805a24b7"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_023/attempt_10de5b3899ed4db394997165ce50a769/manifest.json",
+      "sha256": "a5dc8f2987bb3dea7985b757a34dcfb16bfbbeec715e9eee02f1dc33933e7b5e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_024/attempt_ca0ac6447d2047b99841a6faae974647/manifest.json",
+      "sha256": "b7a20b595bb614ecc3846c5968da468f0389aea9655e24b440be606a1c1c87c3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_025/attempt_476548baed81438eb1d9976f33e16cbd/manifest.json",
+      "sha256": "3fc34acd9e22805712c18bcb35ac02990e0a115f36e3b2303f1ce5e593b4ab56"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_026/attempt_2ec8e0ea5f284464aab444a8dc56129e/manifest.json",
+      "sha256": "7e09fdeaf0bfca7b6698df4f19a9aadb304c24bee45dfc717dbb2415d1844057"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_027/attempt_2d5fb5fd1d5243de9bb66d63b6f8b75a/manifest.json",
+      "sha256": "51472358872d480c14d156c52ede6d5adbce400ac0a883d6306c6a014fac8198"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_028/attempt_2a60d3de38074bd4be130bc0a2bb8806/manifest.json",
+      "sha256": "3124dd4d53879d04c5323a9c53261f961aff60033487dad7700000431e92d3c7"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_029/attempt_78c5faeeb5884de9829c30c01431e4f1/manifest.json",
+      "sha256": "533d516a0187cc6fdd7dd7a2bf71c4931a6697eca5e56713eda085fc42fca315"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_030/attempt_57ab5e1ecd3f4f08bc506aebb79bcce4/manifest.json",
+      "sha256": "cbe7f32b7f1f975afe131f7d1b2782b503c60c04d86565c31b8715fcd46a12ae"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_031/attempt_3a96144936064c6e88274d82214e0176/manifest.json",
+      "sha256": "256ca27620a83d63f8c6d578d96a4bcd17381fe6377ed5f50de633381ce43f63"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_032/attempt_a3e34879b19b4e21ba69114d941a4c91/manifest.json",
+      "sha256": "b4372edc833e08699569a062fec2b53144ae27209f64214ada5a564c342f17a5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_033/attempt_c7e262eceeef4c6eb182bc4a7f4e3d1b/manifest.json",
+      "sha256": "4ede67d39baad46d1470d3a0c65d4d2e785ab6854524bb6b507cf48a8a0304c4"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_034/attempt_76c32e0c13d34753aef7e4655496d7fb/manifest.json",
+      "sha256": "7baf9ba8f7172066b095186effcd6f2dc44e620800ad992d907ebde3764bb09a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_035/attempt_b28cbb37b8294b2cb04c1c854e15cb82/manifest.json",
+      "sha256": "87bd4e4f5d1eb35b1cbac34e722714b651aa96ecaacb5d040048dd1a736cfeb3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_036/attempt_72da764bdff545e0a4bb38905bb8195b/manifest.json",
+      "sha256": "f4ed8af73ab6568e7096fce014b4a850635dbcf5ed62a13ac10379612c6b7e08"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_037/attempt_48e9cf6f62924bb4b6981cc1207c4bdf/manifest.json",
+      "sha256": "a43a6b69b1a5911760c9c0717acbac24804888bfc61c40371a91d3fc148ee21b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_038/attempt_714b7ce087014a34997fff43e9260e72/manifest.json",
+      "sha256": "d6b5acb9a18a1d7a2b4c1fb34c58aea937d70ca7d912c9051390f725f192796b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_039/attempt_e66a261972e944d1bdbe81597dd2e83f/manifest.json",
+      "sha256": "fec3bb6411aab3547bb65a0415c2267a0e9ec85c70b43a2d56dc9a5a6446ca2a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_040/attempt_942624dcf1ff4788be30433e788b025e/manifest.json",
+      "sha256": "834fa543928a0e6fd58be7d0176ccf642f0c75c7759a33918a55abe032c80900"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_041/attempt_13b4dd7fb9d94d269e9393c8dde0fab5/manifest.json",
+      "sha256": "82388a04bd8879c59e6a42c428fb782bebb615a05f6e504a760eb4298d646456"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_042/attempt_baa5a08c9951460b98ef7546fca65d1c/manifest.json",
+      "sha256": "447ce4c2d99b37da56b9c4ba4578645e67f3bb36b3d264f901066896914a841b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_043/attempt_866d75ffd5814f7dbd28e7079caab668/manifest.json",
+      "sha256": "2f7df06306cb459bc39f0329797a7a8882acfb1751c7c15562bfaf7cefa0ad24"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_044/attempt_fdf0b5a76ce64d27b136746aae0d6fa9/manifest.json",
+      "sha256": "21124708cd5d10b83d4d6aa797bde911fb4501f79d8286d162f49d8b6db6a0a6"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_045/attempt_22b7241876e14d3da78b3003747bef0f/manifest.json",
+      "sha256": "9181dae7ffcb87184b960104f719b60836649ad3365f9f7730e4188934240009"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_046/attempt_5ee67ff1360e4b0fa8f0a34221fde19c/manifest.json",
+      "sha256": "3faf1cdd8b2c699a36e117407f0c0aaffdcb78094ca6230081fbd7509c8ca2a8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_047/attempt_8ae2040764d94e84ae4102cf8a4647b7/manifest.json",
+      "sha256": "ec4359dcb4025b43e06d7bef57265e5cb7f9543a45954f04d0f5d6a3f52c28c3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_048/attempt_54d6f30d80bf419db117802bd477fdaa/manifest.json",
+      "sha256": "fbf4047330434f52f9e9c70d9dfd3a0b8622fb534c3aecc960db713e440610fb"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_049/attempt_7e97a1aec8d54238beb7a84a4dea3bb7/manifest.json",
+      "sha256": "73415e9c661953814a4a715c074d0701c7a65ddb666720770a44656c77470652"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_emit_y_sample_050/attempt_9973e855521644f1b9e8177aaabb3aa1/manifest.json",
+      "sha256": "7855284e98f5a5592396b0cadd3c6cab2bd771faca0a12913db4feccc4ca661c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_001/attempt_d6f02a249e0e40d1baf91d07c41dd8ef/manifest.json",
+      "sha256": "e6d7e7faa8c7dce66c28bbfe84659ff5516c87a9aa5262ede5ad8ba88e7afda9"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_002/attempt_f4feb00c422444868b08dd838b575a88/manifest.json",
+      "sha256": "2ac3bfddf3574e204de5f8cd52d6d80db2947315b3e6ba6a40180c6a8d105eb9"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_003/attempt_e90b43b34deb4de8894a3de661fbe312/manifest.json",
+      "sha256": "243f00f4c15885617280eef607700d7e230f53764f81a678c137f9d904a493f3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_004/attempt_b3d7b104bb5c475b9a253c0c56b1c243/manifest.json",
+      "sha256": "84cf39d6f56b7474b95ca1330bcf5464761d843180597d6cce6a04af6c2eb35b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_005/attempt_9f70bea8a1b44c73be6912ddb7fd7d0a/manifest.json",
+      "sha256": "31f7dd4931002be529f0deae56d2ca8dd4af6c28033d3d81aad1962687dfc3b1"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_006/attempt_9114c850ae514d21a175f21361532e46/manifest.json",
+      "sha256": "6e42bad188a6c805ad20f68ce6dfa7e3e2f9aba7e923f9c63b65158a4a0549b1"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_007/attempt_a8e0a6fefd254e1b9777692c5e0ca0dc/manifest.json",
+      "sha256": "8467864b107c809f63f048f0b3e7902faaaa3e9b766a71402c9b44d5fc6d2d90"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_008/attempt_3521682c47f4465fa87974b12288aa88/manifest.json",
+      "sha256": "7ebf03e159ce4ce357ca069105065bb67fc983f3e9cd10a16a406609dc00c191"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_009/attempt_5bccdb4a85e54c75ac41bfe0edc4f278/manifest.json",
+      "sha256": "ca8314cd959049bf553a618d64f0e6aa42d9ca28b7e680c397abbd3d62812ff0"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_010/attempt_f3bc3f220af64085bd3d93d39d068857/manifest.json",
+      "sha256": "96c9df247058466f13283ea002a7aaf32c2497c7d9f8949877bb8d5dc1040426"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_011/attempt_bfe13c618ebc46c6b33bef8f845d6ee2/manifest.json",
+      "sha256": "3673bcff4413b71f6216d724cb8cea987e9371d34784a66085f1fdb549fb0d0d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_012/attempt_c1dbca5e90ac4f058b06725cfa1aecff/manifest.json",
+      "sha256": "a3167bc84706327236483b4a1c8b53b6b5f4d02bfa0787ca6cb2ed6304e4a895"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_013/attempt_f131b5df413d4914b46dd6a022ff90af/manifest.json",
+      "sha256": "b7b8ad8a6fd4db6eed81659dc4cefa750fba927414d680dce665de5e5320d9a0"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_014/attempt_171f12bdf32d4531a18703a75b8e06b6/manifest.json",
+      "sha256": "c1a821c58aee1645bea5ed7a5f5eb2f1eb1433e02e321d7f1298fa0bdbb54a32"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_015/attempt_7e9806fa61f049ec917f9daf5ae4c2b0/manifest.json",
+      "sha256": "52ac179c8f5f42464b8488633ec93b29b415ece2bad6e0824ec8f95e406a8c2e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_016/attempt_892b1b07e0be43369e84d1524e430c60/manifest.json",
+      "sha256": "4ba50a35e11ac0c8f89361f1215a93b4a4e9529a1cfb2686689a85e4cdc03af2"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_017/attempt_cc05ff8470ce48bcb221851c477de5b1/manifest.json",
+      "sha256": "48c83040da296278ac8c5af2ae9dcfa6e155c46ec4940c94b5a7f0c7b67aaed4"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_018/attempt_fa8d42b1d006482bae329c32098a471d/manifest.json",
+      "sha256": "c0461c0a0d51c258ccf538ac9a818d3c1d8913793c137a3dfcc39bcb7ff2f626"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_019/attempt_cf461aac1a57451e8166f7df5a5de019/manifest.json",
+      "sha256": "9c10ee15761c71572b8ce1ef36e884fdca9cb7ce16795094282f48acdb08db31"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_020/attempt_c34aefacc30b4f64adb9092e2fbad6c2/manifest.json",
+      "sha256": "e7f13ad7bc84dbf24a6d84611a731991f72d535437e19abc32e315622cc45d94"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_021/attempt_0eba74626be1494dab9563266ba5c5b3/manifest.json",
+      "sha256": "ec601854977ca48f7ff4203189f8b5c947d1d652054d004d71918f0641d31e00"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_022/attempt_6ef1615282f6440cadf2757525eed39e/manifest.json",
+      "sha256": "c47fb3859621d72329c0668c6695fcf6e0c1960b3cc7ba6d29d1c7c55412611b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_023/attempt_5d924d4fb20d4a2aa28609be0832c50b/manifest.json",
+      "sha256": "2f49b17dfe8ce3996b802d242559618d094da57977aee8715d38aeca8fd28c30"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_024/attempt_652f6a445cec4e888ed594aec12a4ab1/manifest.json",
+      "sha256": "cdb4db3d963389c571aafe7bdc51668140e86d1237d141a6cb81f3b508d13422"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_025/attempt_ce2b292ff37045e2b846390dbe82ea8c/manifest.json",
+      "sha256": "559de65fa39d0775b05b8fa76452428ad11835d06e7fced4b9bbd2e1d3a12b97"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_026/attempt_ebdbdff7124849d194edccc1e9e9f971/manifest.json",
+      "sha256": "6011bcf412cbb90876ee087c34bd76c09ffb3349f010f7789edf60c1cce104ae"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_027/attempt_7bbac89942b84a749463e738b7f9621d/manifest.json",
+      "sha256": "36b81dcfbdecf83b7b80c347eac2dc23facceed35aece2d8cbffaf62ce048633"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_028/attempt_37f2f188d0164f48b6a6a0ef8203c731/manifest.json",
+      "sha256": "7cb5df23efab8bdeaf4d42dcb651a4d9435d04507226d76fbfbb00704b838dfb"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_029/attempt_bf9e406175124845aa41dfa64037f0df/manifest.json",
+      "sha256": "e8b5afcd8c66541fc8fb58cd7ec0e4fac0dd14ebcc2605bf70e79b8e6163e77e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_030/attempt_7e04566297344492ae790d72cb95a8b9/manifest.json",
+      "sha256": "a786fe392f07c1390146812d08654d967c411c43601fcc416e82120faf8a4409"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_031/attempt_efc13ca0e56d4f6cbdea30433499abd2/manifest.json",
+      "sha256": "b1d550d9b3c990d9e19101b329bacd3265a8256f9ed02526e038f860b9de5ea1"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_032/attempt_66969e6918ed4ed4b1ca16a8bc99ed37/manifest.json",
+      "sha256": "b77d434759fd5a751cd3204c1038199bc2dbe036ab263f88f728f57ec77b854e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_033/attempt_4613bbf9a6894ba0ad2fa15d4c56ecf1/manifest.json",
+      "sha256": "a88eb2ddae22e1f0f68acfda7599f28a47b169aa6b188d195da69271c15f7348"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_034/attempt_e408140dee8a4e6394bccd8adda1091b/manifest.json",
+      "sha256": "ae46fbacf7c00270fb6335d02b3020d532d2452184f16e3c94b62bb43c88a910"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_035/attempt_7a9c008ec4e245188467a32bc8b3110f/manifest.json",
+      "sha256": "7f6c22e762cf414b98614d04661163105086f7463f791625fe2a4f1fc2061567"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_036/attempt_cc9f47efe8a549a7b2e387afbebe570c/manifest.json",
+      "sha256": "196dc0ca13c010b3df0ab83e9ef9e611f9e6e18446877ac79a835ee7787a27aa"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_037/attempt_976f249b46ba4c1d948914303bc329d9/manifest.json",
+      "sha256": "9c58b9f6a7f75e9fa1c7032382f673292fd71c67a95ae73f9ad4c1b1af8d2c36"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_038/attempt_7995c58927c94e1eb829006c1d501e85/manifest.json",
+      "sha256": "583d03aee82056e72a8bd26d5814bfbdc89c7265149d2c59f72859811a00a734"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_039/attempt_c369a7f0b4b8404fac7e10619a952ea5/manifest.json",
+      "sha256": "8c014410e87bc3e0f4d129bba16117348d4737cda8f2aaaccc1363a28a9b251b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_040/attempt_eb22a9b628f8472ebe2eb06c680def47/manifest.json",
+      "sha256": "da75cb17dbe74024d40107aebc8206877fb5b76232796bb2fb2875d627c6d357"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_041/attempt_73a85b9af0414441a41a27cf6f7409a5/manifest.json",
+      "sha256": "9e86a47fa0dc69fa01b817a241439be76fd077d3626ae87f44fc381bdf658e2f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_042/attempt_74c9332c852e453fb2e66012333ba245/manifest.json",
+      "sha256": "ac14eafc4856241a2ca3acb61064e4d1f3f01682aae8af2c934b3620b6d2049f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_043/attempt_044943f2ceea4444a503d8a7af017f9c/manifest.json",
+      "sha256": "b7cc501c807fe7e936ce61842b2649d1244ea563c9baa2bcd737ae079b36d96a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_044/attempt_4aeed9c1ec194a4c9ccaf7778c41bd4d/manifest.json",
+      "sha256": "bdccba0db9bcf3c7513c67a9c789bc42561448e20b13f2152e785b96591a4f24"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_045/attempt_74b54445a4af4fdd93cd98d8c1012367/manifest.json",
+      "sha256": "059ce7fcaeed60d3b8a1e3b2cddfdc8ab09036466005cacc33aaf59e4893dcf2"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_046/attempt_0d5bd8d7b7ed459b9fe0d2878dd6e5fd/manifest.json",
+      "sha256": "c8fc55e73323b06b915f3aac4320087eea43c7cdf5fc50142fb2b9793a588435"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_047/attempt_1789c29ac56b4b328a25ac0fe97f07af/manifest.json",
+      "sha256": "2d3ff339b4b64664aac664427d68be1ddb54bd49d09c33c00fb0bd464224695e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_048/attempt_27c73c17f1034af28a04c75c2d682128/manifest.json",
+      "sha256": "40f6fc07e115c8d96aeef44fe5b5c650e6d1009ca9cecf204f7f965a7f88cc84"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_049/attempt_204e183f1eb843acbe88b4db62b3ea97/manifest.json",
+      "sha256": "56c703710f91f5bed38705fa37916845398308c148943e35669fe8630d9d1223"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_min_sigma_energy_sample_050/attempt_128acd487ed14c6ba0984ff1eeb24c2a/manifest.json",
+      "sha256": "a2fcf83789b18398513c6ca7e00a27c3c344e2a04a834bc5ff74f82764127fdb"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_001/attempt_edd0289728234e1b9047e9b24749f025/manifest.json",
+      "sha256": "805a08c7cf7756c74b27ab9f79174b4cba9631b60015cf43d1a67f63af87e839"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_002/attempt_5863ce63cbde4678a0374d08ae793998/manifest.json",
+      "sha256": "192babd507b10275355b385132b549dcc1a3ed7fe9fe0b6a5d096b15ea0218bb"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_003/attempt_ce9aae1090bc47bb891d1d82a5a7b338/manifest.json",
+      "sha256": "fe61d9e02f9e6159a581ab5328a5855aaf91fecd2ee6a207670e7fc30e945311"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_004/attempt_36c8193ed7224ab487617eaac73cdd8c/manifest.json",
+      "sha256": "ca73b1cd512486f1e7797ddd95fe3d57da09bae459a360b720601d2191fdfe9c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_005/attempt_743c057ac56949438fc57dd1a9e6b284/manifest.json",
+      "sha256": "00fc0f6ab7d9e4744921c46e809ec950d2ba7c19d96efc3bee91c4e1b0c12b25"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_006/attempt_82e1fb7774ac4930bb1e28fe331970b9/manifest.json",
+      "sha256": "935d4ca0f3282b5371b08af6fd8de8d76e386708a0581cb98aa6551d6ca97f90"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_007/attempt_7be37f8f49c74cc3965ed18aad9e4547/manifest.json",
+      "sha256": "7a1eda7344e550d8363e87584e922f956d9516744319bd50bc0d68dafcbb1b51"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_008/attempt_b0dece4a97594ff598fad6b76db78a41/manifest.json",
+      "sha256": "93316284c93b51a7a6aad5ac0d640b87270b69aba31b431ded30ab67708990b8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_009/attempt_a714035a89864e1f99b0fd42da8c1da1/manifest.json",
+      "sha256": "a091f1be884501e9781f63364db7c2c388781516de0e77564322863d6413dde8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_010/attempt_e84eee08bb1f4a949f9c99ca56783e91/manifest.json",
+      "sha256": "d2f4c49f464b5f179635bee9087f6f990be92ddad1bbf83f2c84f6ddbb209bea"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_011/attempt_29dff25136144bf09e14e171d6b45802/manifest.json",
+      "sha256": "680195c8f302d202528b9596476d3e1fc7e80b98ef95de8ee0ec817ef16e8b5b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_012/attempt_1c8a01d3a4db46f0b4e785e9c9cea6b6/manifest.json",
+      "sha256": "fb5d1cb6c8244469b3261acc8e01f46d9870285fc275a54542db770efad3f2ad"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_013/attempt_2060332aa7e34dae817c7ec27e37d20b/manifest.json",
+      "sha256": "70c32d8451c324b1db1a6cd0d945efe7e5659bba1bb5cfd52d78b0f16f0955bb"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_014/attempt_723b0e8cf8924794858f06d374286c60/manifest.json",
+      "sha256": "46e9c290cd30355c1e4ed47a9960a790a032418df721d2dd5b68ac0231bc4bc1"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_015/attempt_31245b1fef9c4ad091b02ef083ba21ae/manifest.json",
+      "sha256": "4f9ea323ab2739523b1d89d1a96f3b049d1fb27497f7f3ead40be658cc283354"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_016/attempt_804d5788bd74409988ad1deca6960824/manifest.json",
+      "sha256": "71e036bc13dd5ab671e0becd7913b9af9da725993a2a916e73d7ed007e339000"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_017/attempt_89cd2711e90b4bccb827b81d27f0076b/manifest.json",
+      "sha256": "cb49f986965bf3ca1fa1785dea106ec5f3079a20efb201bd34eaa0b19257ed7d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_018/attempt_3248214855674744bdfa75f19308b6f5/manifest.json",
+      "sha256": "5829a0bf09a4cf37e46e1b8fd02f7adefbf91e8041be32ddd5025098a7dfdc05"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_019/attempt_a44e9dcfb26a4198b5fe4dc02474b662/manifest.json",
+      "sha256": "049c2009e637fc2d31c7fd086ad50ec50b150f445b497873650f7ff092e07316"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_020/attempt_feb49b9117794fd780c552d17a883baf/manifest.json",
+      "sha256": "1621bdfce7d5d676c69ce400478613173386ea84354e7d6b45866f07fd26327b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_021/attempt_61409a98520f4ee5a3a24265eb953fc6/manifest.json",
+      "sha256": "61c6ebdea978b91125f7d94e27264320d0a4bb0e628e1e7f93472e2730e750c3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_022/attempt_52864c4cdd7a4c989dc4bda5516bb241/manifest.json",
+      "sha256": "7b2c4914241d154d42ace92135eba86de699c1fdc919518152e23a7cd6a82473"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_023/attempt_5f64a9db482a4662b1ef3329bf50db55/manifest.json",
+      "sha256": "19c16cb669beabbb916fe1036c23fc2842d972ac1274bb6ad7d4dc356c830a9e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_024/attempt_8fe2cad2b79844f4a53f149b06145597/manifest.json",
+      "sha256": "7db76473ff876f16a253d6c581679663f1a4264f8ec077fab455ccc5ec90028a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_025/attempt_6e9fe8daed254595af9920d320f880fb/manifest.json",
+      "sha256": "84217f5ee82ee3a3bfb376acdf57807e2f3e693bc2ecd2038b27cfbacd049ca8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_026/attempt_971bf66044ee45a1b10bbddf5193fc85/manifest.json",
+      "sha256": "970b15800bf60c07f2a811a304221bfa761030c2c77c3dae3806be1d23164a0c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_027/attempt_a88bbb1c09ad41b89bd5bd29e63f4bfd/manifest.json",
+      "sha256": "d2a1e7e72710d0357819b5233327a0f3fb9aee80d484aee27cddb21fa053aa3c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_028/attempt_6ee0b1fc60144005a1e94dd91610e7f4/manifest.json",
+      "sha256": "8466df97dadb84a14070e12e28032360afa703bee0e55910cc8acc5cd45ef797"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_029/attempt_f802b4d05b484016bc307a2769da06d8/manifest.json",
+      "sha256": "8c53c7d6a9c14d7963a61c5d6d49bdce30d8d81de78032b19ed5296c669b1e7e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_030/attempt_6ea692fa587a44cd850bce381ba5f1f5/manifest.json",
+      "sha256": "be8a15d86acc3193eaeb20df7207160e0f6ffec27f7e918a6128f9fc7e48c8f3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_031/attempt_5e73945a1e87467bba5e69029caf6dbf/manifest.json",
+      "sha256": "fe82c25d99ee23b2100efdcb33d5a487114a303082a2152c3e2abcef1c796409"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_032/attempt_3bb4a5cae4014775a953dc747bfea334/manifest.json",
+      "sha256": "9939165feede240055377b893f7a755e0c278c0d83d10601deb347b3eab762ca"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_033/attempt_a97de24cdf6c4c8cadfac2993b90d9e0/manifest.json",
+      "sha256": "b33ef51d1d6a03decb441675e3cab2c9884e9f0fdf7d40e2b82962bf638418c7"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_034/attempt_ed22341aedbb40988450c56b99bffe53/manifest.json",
+      "sha256": "b54af9fe20b0d56833a1b27f11aea888c57a444e21f81c20dbbd9048f66aad1d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_035/attempt_78fdcc41cbc5476d8f0f6b1e876bc61c/manifest.json",
+      "sha256": "29edb6394db11b2b25bc9f38a6021b10134c1094fce6840e4d51354a2ede3b64"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_036/attempt_865b9271646a4fcd898d124d57ce61da/manifest.json",
+      "sha256": "ef5ede92dc0702899a426cddc8de566b9bc7b593250172e873767b32cba119fd"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_037/attempt_c2d7ea623fe14b35a05e27cba98a1cc3/manifest.json",
+      "sha256": "5ba9ace90e82e7012675e35502452333bafdcf24849d72df5759d618dc03b00d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_038/attempt_1f226d66560f421ebb83b79480571763/manifest.json",
+      "sha256": "555b2f3d97deb1c0364ae0eb2706ae11b5d28069e2221430ca64021b1a10d29f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_039/attempt_804fd409326e4e6fb951a6d968ff7cdd/manifest.json",
+      "sha256": "35305983b1f16baee928120232e364666db8280af9bc88082856dfb082ce445c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_040/attempt_d2c9e8f1bde746f38830c159213d8570/manifest.json",
+      "sha256": "7290a6a29fcf59e16ad8e3c224bdfd380dff41e760b855025ce7629104a94ba4"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_041/attempt_bc84c9ea252e47ab89369290413d08af/manifest.json",
+      "sha256": "7fd0610146402efd0b11d39f2973af4e2df768a8ec9496e2f8a0d1689e42a471"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_042/attempt_d2842e95f6284684ae363b961b7d9420/manifest.json",
+      "sha256": "f3eb7e2de630bf2104a43ac429dbb4a4fc35a7c5e6d59ad22016d88807b9230f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_043/attempt_5dcd58a84de64badbac968b5df1894ce/manifest.json",
+      "sha256": "ff783dafba648d0f4bb6ff8deccd26779e23a729a0a5cb2a75ee29f2cd6b9702"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_044/attempt_0892770d722a40c0974b7b5e5894871b/manifest.json",
+      "sha256": "4c1319aad3388ccd6f3b6f5c64728a8598bdd892a91ea268bddaac3f61cb6c40"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_045/attempt_6bced0221d6f45de8e6ed4414e833d32/manifest.json",
+      "sha256": "acbede78dce9a2d08f74d61c5c20b6b2124c11989a09b311fda92014458106ee"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_046/attempt_126c576621ff472a8b564fef918e0c49/manifest.json",
+      "sha256": "83b6b7c931940d01bba70090d29ec5f2341d641dce2e746c06cba83974da957b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_047/attempt_683f2405d5e0424596ec0bec075fe6fc/manifest.json",
+      "sha256": "3fb5a1e36bb303c9f69ac6c255ebbdd086e0146ddcedc6755b3617e18d02bd4c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_048/attempt_2245ccabb7eb4647bdae6b1aa733c1c1/manifest.json",
+      "sha256": "087db419a039879cc388356a3a83c01e67730cdbe5566974416861a419ea7bfe"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_049/attempt_d630d82e7d0f42b198e0aefce621c154/manifest.json",
+      "sha256": "ec1d927058340760132ca16815862ba550674a9da8d3008b8bb1f12868e8dd1d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_knee_point_sample_050/attempt_0d2e2fda81044308aa13a5b584e34b34/manifest.json",
+      "sha256": "d446dd2cc0232052718182b1e5bd7a82541b5573702a9105880c697f4557f07e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_001/attempt_de368e27aecf4cf5a3f09c8191f6626d/manifest.json",
+      "sha256": "dcf954e7baab4af25584b617a1dc75f9a91728891a3d087537a02b3f09ec3668"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_002/attempt_cfa34bf3a79c4122a74142ebddf3ceca/manifest.json",
+      "sha256": "2a792f0719217efb461f11a58543e4e340d6d11f55861395f5e20d9b0b31617e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_003/attempt_85fe712851704040bffb7650d08a2972/manifest.json",
+      "sha256": "569df8c2e3f96833a4feed4f3d8d7636bc417aeed4854b81917628e2e0564cac"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_004/attempt_1402ec409e114229bcda5c94b2058cbd/manifest.json",
+      "sha256": "3cb0db9582c89a7dc7e8a267786b328af5fd50704801b08847672e2cb879756a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_005/attempt_c683065cf1ad4590999fd14591351983/manifest.json",
+      "sha256": "bdde514c7f7ba024e0b3391a5f0a70ca80f003689e0e6e38719ee251aed7ee33"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_006/attempt_dcf94180104d4ade8e3f005eccd3b3cc/manifest.json",
+      "sha256": "82444f49d175a45acf33caea45a4a0096cd7af8dce10706f88e035b11e998426"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_007/attempt_073eec6b6dfb4c09a5fbfae81d9eede6/manifest.json",
+      "sha256": "0c7b8b7c4f084ae5a573a3f7145c96bf6a320b7e8e52b250a5eb24f9467d4f7f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_008/attempt_29e814b987e74e4e84277390a6e227c7/manifest.json",
+      "sha256": "96e43ea39fbb4bb4724f9e4a7d59c26db63210423ada4842bd91802bea3b4f98"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_009/attempt_81b2edb3d679468ca2fcbf615fcfe857/manifest.json",
+      "sha256": "ae75a2b9fd240990a3f993a96b61d769bf1a8d286991b640cfeb4e2b21ed5450"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_010/attempt_375814998bf147199501583f5fe66823/manifest.json",
+      "sha256": "aa520996e9ce900020bc6b845321d300add65bc2c957a4601fc7bff81a828040"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_011/attempt_4612d09300f74c0cb4904bd2198f37f9/manifest.json",
+      "sha256": "3970c8c736e38121841354781ef8c7ea14dccd1a03bc52a0ee29b0484352cc6c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_012/attempt_5d5d5271a1b643c082dc53b8f8e8a33d/manifest.json",
+      "sha256": "440c8c333918e616ee7a01f5df45cbade9457572d9203931034f515d23d9bfeb"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_013/attempt_d8b537fea0ee481d977bf82dc4bb3640/manifest.json",
+      "sha256": "7b3f3e53314464d38ac21cfba5646d8156f1d3f05529dbc65fbcddcafe8c38d5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_014/attempt_492ca8b0db224e669a0f48e18c59daad/manifest.json",
+      "sha256": "e249f31124920b82c63c6f8686dc9e1808169584a07b48984557e497d18a409f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_015/attempt_85e119c130ef497980fc47cf66dd3206/manifest.json",
+      "sha256": "add397e32fdb88a6e30d27ca4bc89430fe95f2945ba8d4794e5cfa83ddbdf6af"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_016/attempt_dca6c385d77c455885947735690d0a98/manifest.json",
+      "sha256": "22d1087b98f4fe9393e333da3e6141c7bd8afafc5d67252ef6f05750f7fe8239"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_017/attempt_7f06af4303cc43c8a90ee8eb4fe9e866/manifest.json",
+      "sha256": "ee4f082eeeec447a1f651e9ab6c1b79dd8429580b2226171071f95b9802aa28a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_018/attempt_79b16ea86e9c41d7983a28fe3e037522/manifest.json",
+      "sha256": "d3dba7711d86909f77a84c37cb4b8f99972ba148c14abaa02b4b64acc60605b5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_019/attempt_7e986545a80a4c4388c78f9235070631/manifest.json",
+      "sha256": "8bae4059fd1b3d7613828eeb1787e0def193002566885c0ddf4a01537f42ed4b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_020/attempt_b01ea81d601e47b6a40b7798f43d77ae/manifest.json",
+      "sha256": "00f4e8f6a29632ea977610a442c7f4038ca916a81f000715c36e91f299494817"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_021/attempt_0ca75bebc5694a508471b4bb88f7afb5/manifest.json",
+      "sha256": "4493dec560f2bc9ab25646605161a11ef24f76a8e17ec85bf46fe92dd0aeddd8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_022/attempt_e220a25e2254442a8d53da93cf7eb4c4/manifest.json",
+      "sha256": "50ec65082b58f30668ddf636d3d1fff013e895aab1325476f449117c37ce4a74"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_023/attempt_d7cc980726f14a3a9784c8edfb513317/manifest.json",
+      "sha256": "e7f81264e85ae43c721e200f6c95d499840ce91e775a4716e36f5693c97e60a6"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_024/attempt_24ea614e2fe94cbd9d62339ef660cb86/manifest.json",
+      "sha256": "199001e28ec11a60f2a0e3827d2e8047cf7716397377187c63de5f188c2a2516"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_025/attempt_3062cd7efc2c44d2ba04f583c87fa90f/manifest.json",
+      "sha256": "7733b0f8b25ba8e5ab0431bb400981bba854c49569eec33ff6919af903481a76"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_026/attempt_44f8c1d3f30a4161b97d695486bc8dfe/manifest.json",
+      "sha256": "ccc8e675d2593803e1c72ce0463df2af1a66cade3b56e71dde4474d7a573db77"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_027/attempt_03aa2a5f54ae42a8a4d4ec6025d016d4/manifest.json",
+      "sha256": "eb7f6f9aab6eb8ceb7b1810f8f2d6186c8a834c443f2843fc495e6f97fb22342"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_028/attempt_3fcb3567b4fe457c80c4e047daf98054/manifest.json",
+      "sha256": "83f84d242bbb20310b434d8ab53b6499dae6f0622c598cb4a642d6aa5fc51fe2"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_029/attempt_1e1c80d98bd348a589430a403b764fb2/manifest.json",
+      "sha256": "51f0172fbf5ad765f4ddb8f978be05b8bf31aa6b2800421b4f210bb86a38b55f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_030/attempt_6d5d431e27ac425bb9943df9649c7ed4/manifest.json",
+      "sha256": "2d4396ec7466136c8760d73275af22189e4f2946979e00262189396127c9a915"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_031/attempt_c6528504c4a141d48ff28dc9a2579ab5/manifest.json",
+      "sha256": "d7d30841b4e345a88b40f74e0b9fd00b9c2cfa10a6efb3c9fd2786d909023464"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_032/attempt_356061a83667415e89d3068d0fb70e8a/manifest.json",
+      "sha256": "cedd30bf493102093932ce8d30c2b8291dd6962cf763bb0fbcf36476099381e2"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_033/attempt_41225a7b18c64670948cd0ff16c50751/manifest.json",
+      "sha256": "16873f6f05a108d22edb12b84f4921ab5f674d9ee880cd168c811315fbc2f602"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_034/attempt_13aed9c61e8d44f7911064031e4438d1/manifest.json",
+      "sha256": "91917eb19469d62a928fa589790ba055391a93fdca3b2922b9fcaaae15b6329e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_035/attempt_bc1ac0f275504834b32a36eca885e6fe/manifest.json",
+      "sha256": "0794c1aab565233036d8954b2d83530fae746286aa557f67292d0d69aaafd553"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_036/attempt_6e68cd839cce405db5f01971147c39b9/manifest.json",
+      "sha256": "59bc5308ea0a58858811620dbb4e1c740b984590275194562c723d181050070b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_037/attempt_df046c6289b04ce98a10efaaf4dfbf66/manifest.json",
+      "sha256": "d6500470c5ffe8f68f282293047bdd05d3b2d0e3b03192c4c950a8d82972d3ee"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_038/attempt_0c7fd602889e4d48a5f2ee4bfb63afca/manifest.json",
+      "sha256": "da3345e18d26b237ce29e81b6ef6a6e832422ad764125279e5026e3cb7dff30f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_039/attempt_8d980cbd48eb420681f0480d72620d50/manifest.json",
+      "sha256": "bfce8aeb0c288d2a2eb1ed6b9e8ca9f51e7f3781354f019ca915b575ccedbf37"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_040/attempt_5349d326430241c98e382a9c4404a3e0/manifest.json",
+      "sha256": "e74e35a4682b479e1b29f33e0baf456d0c38f6e87fd4d600d90470d4e6950cd3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_041/attempt_a694115acc0f4ab783377de8b448f7f0/manifest.json",
+      "sha256": "662eedb38076304b34cb8b64550aeb6fefc099cd542ed942102ec945fdb6f932"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_042/attempt_9672c8f183d64bcda877dca0ce1137f7/manifest.json",
+      "sha256": "b4d769aef860e9b476522b511b32520f0a2ba1709cfe1fed31cac805b1eb7ca8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_043/attempt_a7b4f5b6d2f1423ba7b7eeaba7fc0b93/manifest.json",
+      "sha256": "c4b8621249b3030b0313eab6f912070fc7b8625cd616f07346d9bab5a73b00b6"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_044/attempt_dc1bd9e7e9194bc8b39e9ab4418f0ecb/manifest.json",
+      "sha256": "8a7876f253301f8df52bad995faf71162926390cd460e699d8659cc59f9ec5f4"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_045/attempt_87a2e0fe977443779cf6edcab79477e0/manifest.json",
+      "sha256": "6f58b74d1766119544f914142f7c50489b843352d8fa2c102e9c7fcadfbbecb5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_046/attempt_f3ed67d30ed54fb888834c146e6d5289/manifest.json",
+      "sha256": "61c9c692abea84144030d9ed7b51fc6c139313474d2c1a61888ea3851432da7d"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_047/attempt_28f7186e0dce4e65ae84f69dd8ce7f7a/manifest.json",
+      "sha256": "ca532682a2488a3008949b0236d5888256fb65fc333847164ec50466147b2c94"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_048/attempt_d7293803a2334605a8b4c923903fd7ff/manifest.json",
+      "sha256": "4c3b771910dcf134cfdaef1da6ec0039e0181c75865937efbee8c734fd5b2e11"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_049/attempt_0db34fb4e83340b9965782bf3d6b1c57/manifest.json",
+      "sha256": "3f4cf1195ded5fb07ebbc27cc486eb0012a845254cbf3ff3eafc385bcbcba9c6"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_balanced_sample_050/attempt_15d538475358405d97c429b0efad6a18/manifest.json",
+      "sha256": "64f7d4d80166dc1acca3c4fd24aec3eec78d15b31aeda3078482521b34b878d0"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_001/attempt_ebb48441fb5b40a882b93dda40812994/manifest.json",
+      "sha256": "47d7fd9819f09637853a7dcfc5aa40ac459ad68db080ac2e7962349e95c767f8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_002/attempt_81c2f59b219f4e4ca803d9deb3d08261/manifest.json",
+      "sha256": "8a726c5d43770af9cad923def90c04056b647e8f3f4a99789a1c65a4b8ba52f3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_003/attempt_704debf68b61409eb9e2b17d5d05afba/manifest.json",
+      "sha256": "fb6dcdf6b966ef52c1104c21f8b6289aa1584662116dde56ef14ee28c0130aa9"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_004/attempt_0878f7f197a94112b3df7d49d3114eb7/manifest.json",
+      "sha256": "18873778211a97c7339100ae51232fe1b7c0cef6d794882f129b52dfa43afda5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_005/attempt_eb0ff3faaafb4c538fed824125d8c6b4/manifest.json",
+      "sha256": "1763fe97d478f3214a1841417760a946a160d410baaba4d92bea740a6c88196c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_006/attempt_f65752b61644438cbe63d1f7c2c44267/manifest.json",
+      "sha256": "bb0cc217b76379e8ea2f0c7ae3dba2ad56bd167802a01e99b3e69fe97d32f347"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_007/attempt_8b04692e2f104428b74d1c25b1f262d5/manifest.json",
+      "sha256": "744a58c31194dd6b1662a53f6318cf5822eeae0935b2126c1400fe346bedab8b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_008/attempt_de1ce847ff994491888c89c4bde714cb/manifest.json",
+      "sha256": "7de906c1b00c51d99d251a54b26050879bd99cb36a012dc9b5975a95108f4029"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_009/attempt_a6434d8761684d359a59ec750b052f3a/manifest.json",
+      "sha256": "409fd98f96b1f563f061108c635e29b8818600f5154d070e7eaf9fcbccbd3f55"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_010/attempt_f02dc4c5dbb64cc3a6eb7d7ede335b8a/manifest.json",
+      "sha256": "2eb987d6873e8aa2be876741318454b0cc2e92c25c1f2691d197fe84b523b3f7"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_011/attempt_c829637ed1bb4ed58672505851ad0e3f/manifest.json",
+      "sha256": "64e9539028d41e4642c4acffd17e0b3c27809f2a6bccb4e9b3e8ecaf15ed9bc4"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_012/attempt_8ee7cbacd99543edaaa3241247367bc6/manifest.json",
+      "sha256": "c1aace45de6532d2a34cd8c3103bd10cdbeceede7994ca88f49a601e1f74fdf8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_013/attempt_3970dd703808418cabb92af2bb4a594e/manifest.json",
+      "sha256": "6022bd778849ffd965774ddd15a61d37fa3765182a668af8c2ff66b95ec0d525"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_014/attempt_482ce941d6414bcbb0ccc78369efe706/manifest.json",
+      "sha256": "cc7c8136c31d2c02bc0acd833cdea4bbfe5c583c54c741e5ff2b2aac0c880c00"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_015/attempt_3eb409fb9777494e9bd77d917dfbe14f/manifest.json",
+      "sha256": "ebaaaa0a1eb5a6658debe236955b9ceb50418d14e76371ead76c3097d017d150"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_016/attempt_87f9aef52c5242718acfe94a46edf6ee/manifest.json",
+      "sha256": "1ad9ad2a394182e27845b150d55f9cc6f4cad775c30ff8be8d8131b38cc074ad"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_017/attempt_7c35789b90534e53981666953bff7a2a/manifest.json",
+      "sha256": "bfc8097621d2efc589b94fb4cd23a6bdb13584d8b3908584183d913931f8c10a"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_018/attempt_3256d85ab74f4fa5b7ce2f47f0bfcbfe/manifest.json",
+      "sha256": "71c3d7ce5a8fef33e69636e0a63f72075cf6bda1bb7a2d149dc129cf130295a4"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_019/attempt_0eec20aa03384fa4a88118af5bf4addf/manifest.json",
+      "sha256": "ba50bab7dac1772c20eb251f0b6e1b7011dff5cf3aa3c8553f161525e0cd1f82"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_020/attempt_89c68acbe6d944c493879b3e28f53102/manifest.json",
+      "sha256": "9d6b2cef0b701c46c1854d12ade726ac0507fc1d1276e13b9cff84dbbee9004f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_021/attempt_27bbda9faeae40bf95658f9de92f5979/manifest.json",
+      "sha256": "061091392c5bc84c40e23903839c4335b107e04279802d33110c464a740a9de8"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_022/attempt_ea63b5091faf449bb02e5fb2f524b470/manifest.json",
+      "sha256": "c6a59bcf71ebf7ebbfe2e8833d5a1731fa848b7934beee8df9655780c4dad6a3"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_023/attempt_b47f0201204349e4a1162e3c13ee86ab/manifest.json",
+      "sha256": "235d0b91277fea14d6f010071c8d0933989b231c0ccf7a28c94f0707121e081f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_024/attempt_2a545e20cf8b4678ac84f73f386021af/manifest.json",
+      "sha256": "8454d22eb6de8cfb7238f706383fefad8a7f033266e09f08bf44a54a97b5285f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_025/attempt_70fba916f0cc4b329b98cb8c49f347c0/manifest.json",
+      "sha256": "ed4b73d05089bad6898bede216951243a707ff540ad342886e01dbf164496ba4"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_026/attempt_84c5e3dcaa874afc82b75c6c7dfbd5b5/manifest.json",
+      "sha256": "609b0b0393d0d8958589c1d6d81f0a7bbb0ed12400e9c6635980812ecb53cf2b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_027/attempt_ab07d50cba014358802e91a666f1d546/manifest.json",
+      "sha256": "7e6e091db49301b6e6d94680c1aa6bb72ab29ff63f307ff65b5660a40b278191"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_028/attempt_aca2bd3b29b64be89e286b6ede005822/manifest.json",
+      "sha256": "376c8c6637004a7f314c5febd7ee48fc8a433fef275e7edbba58f2d242d991f5"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_029/attempt_7a9eeabffd304aa780200657c98bdf70/manifest.json",
+      "sha256": "72d5e1466d39086c3063333aa416613c1c7b702148adce231c074c06ceba7842"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_030/attempt_e74d54d2aba84357ad2285416631f0a0/manifest.json",
+      "sha256": "737a6fa1a986b65917d5781f6e8674da8abb4ed5ea1f99a716909bcf46a72206"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_031/attempt_32d476672f9248adbd5eb27cd3706647/manifest.json",
+      "sha256": "b847f9d4fd7756eb11f77f9e9e252337bc46c4a64c607ca185d81387dd155c9b"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_032/attempt_836f9c203cef44e0a6d210944f03039b/manifest.json",
+      "sha256": "1285a3c78033a443b07e2f1ab6c43e827ee5eb11220a4f8e71d362b9c3e914af"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_033/attempt_e619f6f7ce1a4387b79ae2d0ec29680f/manifest.json",
+      "sha256": "22900dac605627beb3aa6a382474bad652ad19d4cb14f8c642b5f0108b830b2c"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_034/attempt_c968d4fcfe6e4b4cab68d672ea5774f8/manifest.json",
+      "sha256": "97ddd49835627feac45ab4491e68b8c6f6da0c9ab6c62abe9cd725fadafb9896"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_035/attempt_b4cbe6bee0884023a5c0fcedb57b56dc/manifest.json",
+      "sha256": "ac28874f7f52c82513e8ed216ca22ace0d5a5f222e70850f2cc3649930593644"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_036/attempt_47db03e70a9647ee88c7390e6476d7f3/manifest.json",
+      "sha256": "caafe8e9ea5dfc34cfd32d688a527b30d068945031ec8686d7dec18aed3c3069"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_037/attempt_c039ed2aa2024f07864657a254fbddb2/manifest.json",
+      "sha256": "073c2d14dd5fbc94137fa6c042724bce060283936adf2b503125a4ea24c4108e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_038/attempt_6718eae175514bcaac4377d423d68025/manifest.json",
+      "sha256": "948df98e7b12fabb321eb427101b61c1f7e9d7a6915e9f10b3ad5971d770c430"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_039/attempt_59d6030875ec49daaf655dd666d2a160/manifest.json",
+      "sha256": "a3f8bd777e2e0c576948f3adec2248afe59fccb17b173f2de383e8f17336dd22"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_040/attempt_da3f458df7f94554b4fb8aa0c2deb89b/manifest.json",
+      "sha256": "866f53f1c594e44278902fb76d0d194a6b2dfcecd08d5c17e7ba28693e37af5e"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_041/attempt_d41c39f633ef44afb7ab64d937b0443e/manifest.json",
+      "sha256": "71afbb2efa6841b603f1ff56c6ffea1083894b6ac45ee60edb062d51a57ec3d6"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_042/attempt_088d752d3f0f469fa666015c659c586f/manifest.json",
+      "sha256": "e843901af29f92b976711903bc551e36d8542d781ea44d4d3cf3d0377867bbb1"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_043/attempt_6ebc30a2e708485b9a3374e32c06697a/manifest.json",
+      "sha256": "8a255486ee1e6e242a8b1f4c44a5930bffdfb031f229402d3b88305dc1099f46"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_044/attempt_994103a7f0b84324bcc078be5ed55f63/manifest.json",
+      "sha256": "bbfc2441a6ce547976f117fc41ef493a42a6e8a93cb575d750dc9d0047891565"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_045/attempt_d62c2ded0fce4a49b74717f0ad88172b/manifest.json",
+      "sha256": "91f726e1d936a06b349dfd02984507a43d77440b513201ec96d6b6648efdb740"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_046/attempt_da21cad77d71433b9f405b6a62201879/manifest.json",
+      "sha256": "f955ca244d511128836f1de408f4d2a989db3ccb2af9e272040f312b00b1a953"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_047/attempt_cf0ab4d235aa4b4787c5f5a6d29548f7/manifest.json",
+      "sha256": "5b1e58e7cb51e8de540879df27b9067594d8b1ddcdaef654aec38728c57c84db"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_048/attempt_e22267bf531c48eca9fe699f109b6a0b/manifest.json",
+      "sha256": "0895268d24eee01604c811ae94819e7ddc01cd655db489840dfab4906811ee26"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_049/attempt_0a7d1640a1e24974b96f5ff708843e89/manifest.json",
+      "sha256": "fc76254a1409766dbc3673757ef543d5c71d4b1546815f5771716d6f406cc36f"
+    },
+    {
+      "path": "results/paper_production/05_operating_points/campaign/analysis/robustness/candidate_eval/provenance/eval_pert_crowding_distance_max_sample_050/attempt_7e274e838c4f4e70acfae5abe498f68f/manifest.json",
+      "sha256": "66372c15e189b103703dc5a0a63fb4daeaf02ad3f5b1e0a5bc5b58ae315439e5"
+    }
+  ]
+}

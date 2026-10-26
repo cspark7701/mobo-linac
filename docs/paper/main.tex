@@ -564,20 +564,36 @@ the knee point, closest to the ideal point after min--max normalization of the f
 balanced point, closest to the normalized front's centroid; and the point of largest crowding
 distance~\cite{Deb2002}. A role may select the same setting as another.
 
-Robustness is evaluated with 50 perturbed simulations per representative, drawn with a fixed seed number.
-Magnet settings are perturbed by Gaussian relative errors with standard deviation \SI{0.1}{\percent}, and the
-gun and structure-pair phases by Gaussian errors of \SI{0.1}{\degree}. Fluctuations of the bunch charge,
-laser spot size and pulse duration cannot be applied to the fixed initial distribution and are
-therefore not included; the scores describe lattice jitter only. For each representative we
-report the probability of feasibility $P_\mathrm{feas}$ (feasible perturbed simulations over all
-perturbed simulations), the mean degradation
-$D = \frac{1}{3}\sum_m \langle f_m\rangle / f_m^\mathrm{nom}$ and the smallest normalized
-constraint margin $\mu_\mathrm{min}$ over channels and perturbations (positive inside the feasible
-region), combined into the score
-\begin{equation}
-  S = P_\mathrm{feas}\, \frac{\max(0.5,\ 1 + \mu_\mathrm{min})}{\max(1,\ D)}.
-\end{equation}
-A representative with $P_\mathrm{feas} < 0.8$ is classified as fragile.
+Robustness is evaluated with 50 perturbed simulations per representative, drawn with a fixed
+seed number. Magnet settings receive independent Gaussian relative errors with standard
+deviation \SI{0.1}{\percent}, while the gun and the two common structure-pair phases receive
+independent Gaussian errors of \SI{0.1}{\degree}. Within each structure pair the two cavity
+phase errors are identical, rather than independent. The same standardized draws are reused
+across representatives (common random numbers), while their nominal parameter vectors differ.
+Thus six sets of 50 trials produce 300 distinct perturbed settings, not 300 independent trials
+of one design. The primary run is the first prescribed member of the primary campaign list,
+not a run selected retrospectively for its robustness outcome; the supporting manifest retains
+its exact identity. The survey assessment is recorded separately.
+
+For each design we report the observed feasibility fraction and exact Clopper--Pearson
+binomial limits, conditional on independent trials from the stated error model. Objective
+changes are described by the mean ratio
+$D = \frac{1}{3}\sum_m \langle f_m\rangle/f_m^{\mathrm{nom}}$, along with separate
+objective means, population standard deviations and empirical fifth/ninety-fifth percentiles
+in the supporting data. Signed margins are $(u-y)/|u|$ for an upper threshold and
+$(y-l)/|l|$ for a lower threshold. The reported $\mu_{\min}$ is the minimum over all
+channels and trials. In particular, the two energy margins use \SI{195}{\mega\electronvolt}
+and \SI{205}{\mega\electronvolt} as denominators, not the \SI{5}{\mega\electronvolt}
+half-width of the acceptance band. Physical-unit margins are supplied alongside them.
+This normalization is a reporting convention and does not define a probability or a
+universal measure of tolerance across unlike channels.
+
+The historical composite score is retained in the archived evidence, but is not used to rank
+operating settings in the revised paper. Reporting its components avoids conflating sampled
+feasibility, relative objective changes and threshold-normalized margins. Source fluctuations,
+RF-amplitude errors and alignment errors are outside this assessment. No error-amplitude
+scan or comparative robustness superiority over the baseline algorithms is inferred from
+these small-jitter tests; expanded error models would be needed for those claims.
 
 \subsection{Operating-point survey}
 \label{sec:survey}
@@ -814,15 +830,25 @@ this does not remove any required diagnostic or establish inactivity throughout 
 
 \subsection{Robustness to lattice jitter}
 \label{sec:robustness_results}
-Table~\ref{tab:robustness_summary} reports the lattice-jitter statistics of the six representatives
-of the selected primary run. Each of its six distinct representatives retained feasibility in all
-50 sampled perturbations; no representative was classified as fragile. The mean objective
-ratio $D$ ranged from 0.988 to 1.064, and the robustness score ranged from 0.959 to 1.019.
-The smallest normalized constraint margin was 0.01595, associated with the lower energy limit;
-other representatives were limited by bunch length or the upper energy limit. All 300 survey
-perturbations were also valid and feasible. Each robustness assessment used 300 distinct perturbed
-parameter vectors. Finite samples with no infeasible outcome do not establish zero population failure
-probability, and these results do not cover charge or laser-distribution fluctuations.
+Table~\ref{tab:robustness_summary} reports the six distinct settings from the selected
+primary constraint-aware run. Each retained feasibility in all 50 trials. For each design,
+the exact two-sided \SI{95}{\percent} feasibility interval is $[0.9289,1]$; the corresponding
+one-sided \SI{95}{\percent} upper bound on failure probability is \SI{5.82}{\percent}.
+These bounds are design-specific and not simultaneous guarantees. Common random numbers
+also preclude interpreting the combined count as independent tests of a universal reliability.
+The survey's six settings likewise each passed their 50 trials and have the same individual
+binomial bounds under their stated error model.
+
+For the primary settings, $D$ ranges from 0.988 to 1.064. This average conceals differences
+between objectives: at the horizontal extreme, the mean horizontal and vertical emittances
+increase by approximately \SI{2.73}{\percent} and \SI{6.61}{\percent}, while mean energy
+spread changes by less than \SI{0.01}{\percent}. At the crowding-distance point, the vertical
+mean increases by approximately \SI{14.74}{\percent}. The smallest threshold-normalized
+margin, 0.01595 at the lower energy bound, corresponds to a physical headroom of
+\SI{3.11}{\mega\electronvolt}, or 0.622 of the energy half-band; it is not a
+\SI{1.595}{\percent} probability of failure. Other primary settings are limited in this
+normalization by bunch length or the upper energy bound. All classifications refer to the
+original production profile, not certification against all TDR specifications.
 
 \IfFileExists{robustness_table.tex}{\input{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
 robustness of the representatives.}{tab:robustness_summary}}

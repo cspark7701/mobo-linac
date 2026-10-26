@@ -175,3 +175,9 @@ C01 now uses the official October 2025 KLS TDR (4GSR-I-DE-TDR-001), Tables 2.1.4
 baselines; both also meet the separate relative-spread specification. These post-hoc checks
 preserve the production labels and do not certify full machine acceptance. Exact source pages,
 PDF hash, profile definitions and candidate identities are recorded in the C01 evidence files.
+
+C08 source/setting evidence is regenerated with `python scripts/analyze_revision_settings.py`.
+C10 design-specific robustness evidence and the revised main robustness table are regenerated
+with `python scripts/analyze_revision_robustness.py`. Run this after copying stage-07 tables:
+the archived stage-07 score table is preserved, while the revised manuscript reports its
+components and exact binomial uncertainty. No new simulations are involved.

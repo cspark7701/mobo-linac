@@ -187,15 +187,17 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C10. Make robustness results interpretable and resolve the expanded-error request
 
+**Status:** Completed for the explicitly retained lattice-only scope. [C10 report](evidence/c10_report.md) independently audits both assessments, reports per-design intervals and component statistics, and records non-adoption of broader error-model/scan requests without claiming them performed.
+
 **Sources:** Reviewer 1 M7/R9; Reviewer 2 M6/R5 and minor 11/14.
 
-- [ ] Report design-specific binomial uncertainty, objective degradation/spreads and limiting margins from existing records; do not pool heterogeneous settings into one universal reliability estimate.
-- [ ] Define margin normalization, especially the two-sided energy band, and audit the composite score at full precision. Identical rounded scores are not proof of a bug; verify calculation, clipping and rounding before changing anything.
-- [ ] Justify the score or replace its presentation with interpretable components. Preserve historical scores and explain any new convention separately.
-- [ ] Identify selected runs through stable identities/manifest mappings, state phase-pair correlations and clarify the six-times-fifty accounting and distinct parameter vectors.
-- [ ] Address Reviewer 2's explicit RF-amplitude/JKPS-error-model and alignment requests. If added, validate parameter mappings and use isolated outputs with the full physical checks. Source jitter requires a physically valid source-generation model.
-- [ ] Resolve the tolerance-scan ambiguity: Reviewer 2's report and task list express amplitudes differently. Fix a table of physical standard deviations and corresponding multipliers before any new run; do not infer the intended levels silently.
-- [ ] Decide whether larger samples or baseline-representative tests are needed for the chosen reliability/comparative claims. If keeping the narrower existing scope, justify the departure from Reviewer 2's request explicitly.
+- [x] Report design-specific binomial uncertainty, objective degradation/spreads and limiting margins from existing records; do not pool heterogeneous settings into one universal reliability estimate.
+- [x] Define margin normalization, especially the two-sided energy band, and audit the composite score at full precision. Identical rounded scores are not proof of a bug; verify calculation, clipping and rounding before changing anything.
+- [x] Justify the score or replace its presentation with interpretable components. Preserve historical scores and explain any new convention separately.
+- [x] Identify selected runs through stable identities/manifest mappings, state phase-pair correlations and clarify the six-times-fifty accounting and distinct parameter vectors.
+- [x] Address Reviewer 2's explicit RF-amplitude/JKPS-error-model and alignment requests. If added, validate parameter mappings and use isolated outputs with the full physical checks. Source jitter requires a physically valid source-generation model.
+- [x] Resolve the tolerance-scan ambiguity: Reviewer 2's report and task list express amplitudes differently. Fix a table of physical standard deviations and corresponding multipliers before any new run; do not infer the intended levels silently.
+- [x] Decide whether larger samples or baseline-representative tests are needed for the chosen reliability/comparative claims. If keeping the narrower existing scope, justify the departure from Reviewer 2's request explicitly.
 
 **Done when:** Reliability, score meaning and tested error coverage are clear. Wider robustness claims have wider-model evidence, and numeric conditions remain in Methods/Results rather than the abstract.
 

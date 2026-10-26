@@ -1,18 +1,16 @@
 \begin{table}[htbp]
 \centering
-\caption{Machine tolerance robustness with lattice jitter. Source jitter (bunch\_charge\_relative\_jitter, laser\_pulse\_duration\_relative\_jitter, laser\_spot\_size\_relative\_jitter) is unsupported for the fixed source distribution.}
+\caption{Primary lattice-jitter results, evaluated against the production profile. Each setting
+has 50 feasible outcomes in 50 trials; its two-sided exact 95\% binomial interval is
+$[0.929,1]$. $D$ is the mean objective ratio and $\mu_{\min}$ is the minimum
+threshold-normalized margin; neither is a reliability probability.}
 \label{tab:robustness_summary}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{lccccc}
-\toprule
-Candidate Role & Nominal $\varepsilon_{n,x}$ [$\mu$m$\cdot$rad] & Nominal $\varepsilon_{n,y}$ [$\mu$m$\cdot$rad] & Nominal $\sigma_E$ [MeV] & Feasibility $P_{\mathrm{feas}}$ & Robust Score \\
-\midrule
-min\_emit\_x & 2.8061 & 6.8492 & 1.6049 & 1.00 & 0.9891 \\
-min\_emit\_y & 3.1614 & 3.0276 & 0.4417 & 1.00 & 0.9592 \\
-min\_sigma\_energy & 4.8130 & 4.7533 & 0.3629 & 1.00 & 1.0191 \\
-knee\_point & 2.9983 & 3.5207 & 0.4034 & 1.00 & 0.9871 \\
-balanced & 3.4067 & 5.2244 & 0.3818 & 1.00 & 1.0191 \\
-crowding\_distance\_max & 2.8459 & 3.2703 & 0.7446 & 1.00 & 0.9592 \\
-\bottomrule
-\end{tabular}}
-\end{table}
+\begin{tabular}{lrrl}\toprule
+Setting & $D$ & $\mu_{\min}$ & Limiting inequality \\\midrule
+Horizontal extreme & 1.0311 & 0.01991 & $\sigma_z$ upper \\
+Vertical extreme & 1.0591 & 0.01595 & $E$ lower \\
+Spread extreme & 0.9880 & 0.01912 & $E$ upper \\
+Ideal-distance point & 1.0344 & 0.02105 & $\sigma_z$ upper \\
+Centroid-distance point & 0.9985 & 0.01912 & $E$ upper \\
+Crowding-distance point & 1.0645 & 0.02109 & $\sigma_z$ upper \\
+\bottomrule\end{tabular}\end{table}
