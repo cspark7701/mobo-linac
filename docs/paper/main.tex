@@ -482,6 +482,31 @@ counted in the campaign summary but receive no invented diagnostic coordinates. 
 views and pooled views use the same definitions, with pooled views describing combined coverage
 rather than the trajectory of a single campaign.
 
+% C03: post-hoc front-quality analysis; generated from archived stage-04 outcomes.
+To assess objective-space quality beyond feasible sampling and set cardinality, we performed
+an exploratory analysis of the archived per-run fronts. Objectives were divided by
+\SI{1}{\micro\metre\radian}, \SI{1}{\micro\metre\radian} and \SI{1}{\mega\electronvolt}.
+A common empirical reference set contained the 53 unique nondominated feasible observations
+obtained after pooling all methods and runs. For a measured front $A$ and this reference $R$,
+we evaluated the additive epsilon indicator~\cite{Zitzler2003Assessment} and
+IGD+~\cite{Ishibuchi2015IGD}:
+\begin{align}
+I_{\epsilon+}(A,R)&=\max_{r\in R}\min_{a\in A}\max_j(a_j-r_j),\\
+\mathrm{IGD}^{+}(A,R)&=|R|^{-1}\sum_{r\in R}\min_{a\in A}\|\max(a-r,0)\|_2,
+\end{align}
+where the maximum with zero is componentwise. Smaller values are preferred. Exact objective
+duplicates were collapsed for set indicators. Empty measured fronts were assigned infinite
+distance and zero dominated volume, retaining every evaluation in the budget.
+
+
+Directional coverage $C(A,B)$ is the fraction of unique vectors in $B$ weakly dominated
+by a vector in $A$; both directions are reported. We also examine the across-run probability
+of attaining each target $r+\delta\mathbf{1}$, for $r\in R$ and normalized relaxations
+$\delta\in\{0.05,0.10,0.25,0.50\}$. These are empirical probabilities of attaining specified
+observed trade-offs, with no implied global-front guarantee. Quality histories are evaluated
+at full-batch checkpoints, including initialization. Supporting plots and a separate post-hoc
+reference-sensitivity analysis appear in appendix~\ref{app:front_quality}.
+
 \subsection{Robustness assessment of operating points}
 \label{sec:audit}
 To assess sensitivity to machine errors, we select operating points from the predeclared
@@ -581,6 +606,21 @@ nondominated solutions.
 Lines are medians over ten runs and bands are \SI{95}{\percent} bootstrap confidence intervals.}
 \label{fig:benchmark}
 \end{figure}
+
+At the terminal budget, median epsilon values were 0.334, 0.628 and 0.615 for constraint-aware
+MOBO, unconstrained MOBO and scalarized BO, respectively; the corresponding median IGD+
+values were 0.094, 0.282 and 0.230. Excluding the evaluated matched group when constructing
+the IGD+ reference gave medians of 0.098, 0.285 and 0.230. Thus the median ordering persisted
+in this sensitivity analysis. The empirical reference remains sampling-dependent and the
+full-reference calculation contains self-inclusion bias; neither analysis establishes distance
+to the true Pareto front. The scales and empirical reference are explicit analysis conventions,
+so these indicators are not independent of reference construction or unit weighting.
+
+Within matched groups, median directional coverage from constraint-aware to unconstrained
+MOBO is 0.464, compared with 0.156 in the reverse direction. The corresponding values for
+constraint-aware and scalarized BO are 0.625 and 0.050. These directional summaries describe
+coverage of the comparator's sampled set; they do not imply uniform dominance of all
+three-objective trade-offs.
 
 \subsection{Operating points and trade-offs}
 \label{sec:survey_results}
@@ -766,9 +806,10 @@ remain to be established.
 The originally designated fixed-reference hypervolume endpoint was uninformative: it was zero
 for all campaigns because the reporting reference $(\SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\mega\electronvolt})$
 had emittance components below the observed values. This does not indicate an absence of feasible
-solutions. We therefore omit this metric from the comparative figures and tables and present
-descriptive physical trade-offs and feasibility summaries, without claiming a hypervolume-based
-ranking. The original endpoint records and reference remain unchanged.
+solutions. We therefore omit the original endpoint from the comparative figures and tables.
+The exploratory reference-sensitivity analysis in appendix~\ref{app:front_quality} uses new,
+explicitly post-hoc conventions and cannot retrospectively replace that endpoint. The original
+records and reference remain unchanged.
 
 %==========================================================================================
 \section{Conclusions}
@@ -790,6 +831,47 @@ optimized settings on the machine.
 %==========================================================================================
 \acknowledgments
 \pending{Funding and acknowledgments.}
+
+\appendix
+\section{Exploratory front-quality and attainment analyses}
+\label{app:front_quality}
+As a separate sensitivity analysis, feasible hypervolume was recomputed against the pooled
+empirical-front nadir plus \SI{10}{\percent}, \SI{25}{\percent} and \SI{50}{\percent} of its
+coordinate spans. These fixed post-hoc references were shared by methods and checkpoints;
+they are data-derived analysis bounds rather than engineering acceptance limits.
+Constraint-aware MOBO had the largest median volume for each reference. At the middle
+reference, medians were 68.890, 63.461 and 61.190 in the normalized coordinates. The baseline
+ordering differed from the epsilon and IGD+ ordering, illustrating dependence on the quality
+indicator. These exploratory analyses supplement the original endpoint and do not replace it
+retrospectively. Batch-checkpoint quality traces and relaxed-target empirical attainment
+summaries are supplied as supporting analyses.
+
+Figure~\ref{fig:revision_quality} compares quality at successive batch checkpoints.
+Figure~\ref{fig:revision_attainment} reports target attainment at the terminal budget.
+The target index follows the lexicographically sorted empirical-reference vectors in the
+supporting data. Increasing relaxation expands the objective target region; it does not relax
+physical feasibility. The same original constraint profile is used throughout.
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/revision_front_quality.pdf}{\linewidth}
+\caption{Exploratory per-run front quality versus evaluations. Curves show medians over ten
+matched runs, and bands show nearest-rank interquartile ranges. Empty fronts retain infinite
+distance scores and zero hypervolume; nonfinite aggregate distances appear as gaps. The
+hypervolume reference is the pooled-front nadir plus \SI{25}{\percent} of each coordinate span.
+These are metric histories, not interpolated objective-space Pareto fronts.}
+\label{fig:revision_quality}
+\end{figure}
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/revision_attainment.pdf}{\linewidth}
+\caption{Empirical terminal attainment probability for each pooled-front target across ten
+runs per method. Each row applies the indicated componentwise relaxation in normalized
+objective coordinates. Colors give the fraction of runs with a feasible point weakly dominating
+the relaxed target. Targets and relaxations are post-hoc analysis conventions.}
+\label{fig:revision_attainment}
+\end{figure}
+\FloatBarrier
 
 \bibliographystyle{JHEP}
 \bibliography{references}

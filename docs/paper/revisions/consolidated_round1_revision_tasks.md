@@ -92,14 +92,16 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C03. Measure feasible-front quality and convergence
 
+**Status:** Completed. [C03 report](evidence/c03_report.md) and reproducible per-run summaries cover epsilon, IGD+, directional coverage, reference sensitivity and attainment. Main text and supporting appendix identify the exploratory scope and empirical-reference bias.
+
 **Sources:** Reviewer 1 M1/R2; Reviewer 2 M1/R1 and minor 5/R12.
 
-- [ ] Fix objective scales, minimization conventions, duplicate policy, empty-set handling and evaluation checkpoints before producing comparative summaries.
-- [ ] Add complementary set-quality indicators, such as directional coverage and normalized additive epsilon, with per-run histories rather than pooled cardinality alone.
-- [ ] Address Reviewer 2's post-hoc feasible-HV request using separate metadata and several justified reference choices. A pooled-nadir reference is data-derived, not automatically an engineering requirement; example bounds suggested by a reviewer are not approved machine limits.
-- [ ] If using IGD+, document its empirical reference set, finite coverage and possible self-inclusion bias. IGD+ avoids an HV reference point but is not reference-free: it still requires a reference set.
-- [ ] Add empirical attainment summaries and sample-efficiency curves, preserving all feasible nondominated observations even when some do not contribute to a selected indicator.
-- [ ] Label new analyses as post hoc/exploratory. Preserve the original reference and concise zero-endpoint disclosure; place useful new results in the main text or supporting material without resurrecting redundant historical plots.
+- [x] Fix objective scales, minimization conventions, duplicate policy, empty-set handling and evaluation checkpoints before producing comparative summaries.
+- [x] Add complementary set-quality indicators, such as directional coverage and normalized additive epsilon, with per-run histories rather than pooled cardinality alone.
+- [x] Address Reviewer 2's post-hoc feasible-HV request using separate metadata and several justified reference choices. A pooled-nadir reference is data-derived, not automatically an engineering requirement; example bounds suggested by a reviewer are not approved machine limits.
+- [x] If using IGD+, document its empirical reference set, finite coverage and possible self-inclusion bias. IGD+ avoids an HV reference point but is not reference-free: it still requires a reference set.
+- [x] Add empirical attainment summaries and sample-efficiency curves, preserving all feasible nondominated observations even when some do not contribute to a selected indicator.
+- [x] Label new analyses as post hoc/exploratory. Preserve the original reference and concise zero-endpoint disclosure; place useful new results in the main text or supporting material without resurrecting redundant historical plots.
 
 **Done when:** Reproducible per-run metrics, histories and sensitivity results distinguish feasible sampling, objective quality and diversity. Counts and visual density do not substitute for quality.
 

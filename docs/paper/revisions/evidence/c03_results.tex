@@ -1,0 +1,32 @@
+% C03: post-hoc front-quality analysis; generated from archived stage-04 outcomes.
+To assess objective-space quality beyond feasible sampling and set cardinality, we performed
+an exploratory analysis of the archived per-run fronts. Objectives were divided by
+\SI{1}{\micro\metre\radian}, \SI{1}{\micro\metre\radian} and \SI{1}{\mega\electronvolt}.
+A common empirical reference set contained the 53 unique nondominated feasible observations
+obtained after pooling all methods and runs. For a measured front $A$ and this reference $R$,
+we evaluated the additive epsilon indicator
+$I_{\epsilon+}(A,R)=\max_{r\in R}\min_{a\in A}\max_j(a_j-r_j)$ and
+$\mathrm{IGD}^{+}(A,R)=|R|^{-1}\sum_{r\in R}\min_{a\in A}\|\max(a-r,0)\|_2$,
+where the maximum with zero is componentwise. Smaller values are preferred. Exact objective
+duplicates were collapsed for set indicators. Empty measured fronts were assigned infinite
+distance and zero dominated volume, retaining every evaluation in the budget.
+
+At the terminal budget, median epsilon values were 0.334, 0.628 and 0.615 for constraint-aware
+MOBO, unconstrained MOBO and scalarized BO, respectively; the corresponding median IGD+
+values were 0.094, 0.282 and 0.230. Excluding the evaluated matched group when constructing
+the IGD+ reference gave medians of 0.098, 0.285 and 0.230. Thus the median ordering persisted
+in this sensitivity analysis. The empirical reference remains sampling-dependent and the
+full-reference calculation contains self-inclusion bias; neither analysis establishes distance
+to the true Pareto front. The scales and empirical reference are explicit analysis conventions,
+so these indicators are not independent of reference construction or unit weighting.
+
+As a separate sensitivity analysis, feasible hypervolume was recomputed against the pooled
+empirical-front nadir plus \SI{10}{\percent}, \SI{25}{\percent} and \SI{50}{\percent} of its
+coordinate spans. These fixed post-hoc references were shared by methods and checkpoints;
+they are data-derived analysis bounds rather than engineering acceptance limits.
+Constraint-aware MOBO had the largest median volume for each reference. At the middle
+reference, medians were 68.890, 63.461 and 61.190 in the normalized coordinates. The baseline
+ordering differed from the epsilon and IGD+ ordering, illustrating dependence on the quality
+indicator. These exploratory analyses supplement the original endpoint and do not replace it
+retrospectively. Batch-checkpoint quality traces and relaxed-target empirical attainment
+summaries are supplied as supporting analyses.
