@@ -1,4 +1,4 @@
-# Task Execution Summary: TASK_95 — Simulation Verbose Formatting with Blank Line Separators
+# Task Execution Summary: TASK_226 — Simulation Verbose Formatting with Blank Line Separators
 
 ## 1. Overview & Objectives
 - **Goal**: Format the simulation campaign verbose output across steps and iterations with clean blank line separators to enhance console readability and distinguish iteration transitions during optimization runs.
@@ -26,4 +26,4 @@
 - `src/mobo_linac/campaigns/runner.py`
 - `src/mobo_linac/campaigns/benchmark.py`
 - `scripts/run_comparison_and_verification.py`
-- `docs/exec-plans/completed/TASK_95_blank_lines_simulation_verbose.md`
+- `docs/exec-plans/completed/TASK_226_blank_lines_simulation_verbose.md`

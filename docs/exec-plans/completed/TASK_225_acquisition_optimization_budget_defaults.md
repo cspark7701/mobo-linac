@@ -1,4 +1,4 @@
-# Task Execution Summary: TASK_94 — Acquisition Multi-Restart Optimization Defaults & Fallback Routing
+# Task Execution Summary: TASK_225 — Acquisition Multi-Restart Optimization Defaults & Fallback Routing
 
 ## 1. Overview & Objectives
 - **Problem**: During Phase 1 execution, BoTorch triggered `scipy.optimize.minimize` status 2 (`ABNORMAL`) warnings in `gen_candidates_scipy` / `_optimize_acqf_batch` when `raw_samples` was too small, causing initial conditions to land in vanishing gradient regions.
@@ -46,4 +46,4 @@
 - `src/mobo_linac/config.py`
 - `src/mobo_linac/campaigns/runner.py`
 - `tests/test_gp_and_acquisition.py`
-- `docs/exec-plans/completed/TASK_94_acquisition_optimization_budget_defaults.md`
+- `docs/exec-plans/completed/TASK_225_acquisition_optimization_budget_defaults.md`
