@@ -34,9 +34,9 @@
 \setlength{\emergencystretch}{2em}
 \newcommand{\enx}{\varepsilon_{n,x}}
 \newcommand{\eny}{\varepsilon_{n,y}}
-\newcommand{\umrad}{\si{\micro\metre\,rad}}
+\newcommand{\umrad}{\si{\micro\metre\radian}}
 
-\title{Multi-objective Bayesian optimization of a 200~MeV electron injector linac for the Korea Light Source}
+\title{Multi-objective Bayesian optimization of a \SI{200}{\mega\electronvolt} electron injector linac for the Korea Light Source}
 
 \author{Chong Shik Park}
 \affiliation{Department of Accelerator Science, Korea University,\\
@@ -73,11 +73,11 @@ beam-quality trade-offs for the Korea Light Source.}
 \label{sec:introduction}
 
 The Korea Light Source (KLS) is a fourth-generation storage-ring light-source project led by
-the Korea Basic Science Institute, with a storage-ring energy of 4~GeV and a circumference of
-approximately 800~m~\cite{KLSProjectOverview}. Earlier injector studies refer to the project as
+the Korea Basic Science Institute, with a storage-ring energy of \SI{4}{\giga\electronvolt} and a circumference of
+approximately \SI{800}{\metre}~\cite{KLSProjectOverview}. Earlier injector studies refer to the project as
 Korea-4GSR~\cite{Kim2024KLSMOGA,Kim2025KLSError}. The injector chain uses an electron linac to
 provide the beam for subsequent acceleration in the booster. The present work considers the
-200~MeV S-band injector-linac reference model developed for that project and studies feasible
+\SI{200}{\mega\electronvolt} S-band injector-linac reference model developed for that project and studies feasible
 trade-offs among its exit-beam emittances and energy spread.
 
 The electron injector sets the brightness available to the rest of a linear accelerator. X-ray
@@ -165,15 +165,15 @@ The reference model follows the S-band injector configuration studied for Korea-
 Figure~\ref{fig:layout} shows the fixed lattice used here, which consists of an S-band RF photocathode gun, a gun solenoid, four 84-cell S-band
 traveling-wave accelerating structures (ACC1--ACC4) and two quadrupoles, and is tracked with
 ASTRA~\cite{Floettmann2017Astra} through the \texttt{lume-astra} interface~\cite{LumeAstra}.
-Beam properties are evaluated at the exit plane $z = 16.2$~m. Field maps of the gun, the solenoid and the structures are used, with
-peak field amplitudes of $100$~MV/m in the gun and $22.26$~MV/m (ACC1, ACC2) and
-$24.47$~MV/m (ACC3, ACC4) in the structures. ASTRA's automatic phasing is disabled, so RF phases
+Beam properties are evaluated at the exit plane $z = \SI{16.2}{\metre}$. Field maps of the gun, the solenoid and the structures are used, with
+peak field amplitudes of \SI{100}{\mega\volt\per\metre} in the gun and \SI{22.26}{\mega\volt\per\metre} (ACC1, ACC2) and
+\SI{24.47}{\mega\volt\per\metre} (ACC3, ACC4) in the structures. ASTRA's automatic phasing is disabled, so RF phases
 are absolute.
 
 The initial distribution is a fixed file of \num{10000} macroparticles with a total charge of
-$1.0$~nC. Space charge is computed on a cylindrically symmetric grid of $32\times32$ cells up to
-$z = 5.25$~m and with a three-dimensional solver on a $32^3$ grid downstream, including the image
-charge of the cathode. A circular aperture of radius 20~mm defines particle loss. The same source
+\SI{1.0}{\nano\coulomb}. Space charge is computed on a cylindrically symmetric grid of $32\times32$ cells up to
+$z = \SI{5.25}{\metre}$ and with a three-dimensional solver on a $32^3$ grid downstream, including the image
+charge of the cathode. A circular aperture of radius \SI{20}{\milli\metre} defines particle loss. The same source
 file, field maps and space-charge settings are used for every algorithm, so the optimization
 comparison does not mix changes in numerical fidelity with changes in candidate selection.
 Keeping the initial distribution fixed also makes the present search a study of machine settings
@@ -183,7 +183,7 @@ while retaining that source distribution.
 \begin{figure}[htbp]
 \centering
 \datafigure{figures/injector_linac_layout.pdf}{\linewidth}
-\caption{Schematic layout of the simulated 200~MeV injector linac. A photocathode RF gun and
+\caption{Schematic layout of the simulated \SI{200}{\mega\electronvolt} injector linac. A photocathode RF gun and
 solenoid feed four S-band accelerating structures and two quadrupoles. The six optimization
 variables are indicated; each downstream RF phase controls a pair of structures. Beam objectives
 and constraint diagnostics are evaluated at the exit plane. Component symbols are not to scale.}
@@ -194,7 +194,7 @@ and constraint diagnostics are evaluated at the exit plane. Component symbols ar
 The six design variables (table~\ref{tab:variables}) are the solenoid peak field $B_\mathrm{sol}$,
 the two quadrupole gradients $G_{q1}$ and $G_{q2}$, the gun phase $\phi_\mathrm{gun}$ and two
 common phases, $\phi_\mathrm{acc1/2}$ applied to ACC1 and ACC2 and $\phi_\mathrm{acc3/4}$ applied to
-ACC3 and ACC4. Magnetic settings may vary by $\pm50\%$ and phases by $\pm10\%$ around the
+ACC3 and ACC4. Magnetic settings may vary by \SI{\pm50}{\percent} and phases by \SI{\pm10}{\percent} around the
 nominal machine setting. These bounds define the common search domain for all algorithms.
 The drift lengths, RF-field amplitudes and field-map geometry remain fixed, so each candidate
 represents a different focusing and phasing configuration of the same reference lattice. The
@@ -203,19 +203,19 @@ independent controls, keeping the optimization dimension consistent with the cho
 
 \begin{table}[htbp]
 \centering
-\caption{Design variables. Bounds are $\pm50\%$ (magnets) and $\pm10\%$ (phases) of the nominal
+\caption{Design variables. Bounds are \SI{\pm50}{\percent} (magnets) and \SI{\pm10}{\percent} (phases) of the nominal
 setting. Coupled phases are written to both structures of a pair.}
 \label{tab:variables}
 \begin{tabular}{llrrrl}
 \toprule
 Variable & ASTRA parameter & Nominal & Lower & Upper & Unit \\
 \midrule
-$B_\mathrm{sol}$ & \texttt{MaxB(1)} & 0.1948 & 0.0974 & 0.2922 & T \\
-$G_{q1}$ & \texttt{Q\_grad(1)} & 1.2865 & 0.6433 & 1.9298 & T/m \\
-$G_{q2}$ & \texttt{Q\_grad(2)} & $-2.8867$ & $-4.3300$ & $-1.4433$ & T/m \\
-$\phi_\mathrm{gun}$ & \texttt{phi(1)} & 35.62 & 32.06 & 39.19 & deg \\
-$\phi_\mathrm{acc1/2}$ & \texttt{phi(2)}, \texttt{phi(3)} & $-39.51$ & $-43.46$ & $-35.56$ & deg \\
-$\phi_\mathrm{acc3/4}$ & \texttt{phi(4)}, \texttt{phi(5)} & 310.05 & 279.05 & 341.06 & deg \\
+$B_\mathrm{sol}$ & \texttt{MaxB(1)} & 0.1948 & 0.0974 & 0.2922 & \si{\tesla} \\
+$G_{q1}$ & \texttt{Q\_grad(1)} & 1.2865 & 0.6433 & 1.9298 & \si{\tesla\per\metre} \\
+$G_{q2}$ & \texttt{Q\_grad(2)} & $-2.8867$ & $-4.3300$ & $-1.4433$ & \si{\tesla\per\metre} \\
+$\phi_\mathrm{gun}$ & \texttt{phi(1)} & 35.62 & 32.06 & 39.19 & \si{\degree} \\
+$\phi_\mathrm{acc1/2}$ & \texttt{phi(2)}, \texttt{phi(3)} & $-39.51$ & $-43.46$ & $-35.56$ & \si{\degree} \\
+$\phi_\mathrm{acc3/4}$ & \texttt{phi(4)}, \texttt{phi(5)} & 310.05 & 279.05 & 341.06 & \si{\degree} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -225,7 +225,7 @@ RMS energy spread $\sigma_E$ at the exit plane,
 \begin{equation}
   \mathbf{f}(\mathbf{x}) = \bigl(\enx(\mathbf{x}),\ \eny(\mathbf{x}),\ \sigma_E(\mathbf{x})\bigr).
 \end{equation}
-For reporting they are expressed in \umrad, \umrad\ and MeV. The surrogates work with the negated
+For reporting they are expressed in \umrad, \umrad\ and \si{\mega\electronvolt}. The surrogates work with the negated
 values, because the acquisition functions are formulated for maximization. An observation is
 nondominated if no other observation is at least as good in every objective and strictly better
 in at least one. This definition retains settings that improve one emittance or the energy
@@ -251,10 +251,10 @@ macroparticles that reach the exit plane.}
 \toprule
 Diagnostic & Symbol & Requirement \\
 \midrule
-RMS beam sizes & $\sigma_x$, $\sigma_y$ & $\le 1.0$~mm \\
-RMS divergences & $\sigma_{x'}$, $\sigma_{y'}$ & $\le 1.0$~mrad \\
-RMS bunch length & $\sigma_z$ & $\le 1.0$~mm \\
-Mean kinetic energy & $E_\mathrm{kin}$ & $195$--$205$~MeV \\
+RMS beam sizes & $\sigma_x$, $\sigma_y$ & $\le \SI{1.0}{\milli\metre}$ \\
+RMS divergences & $\sigma_{x'}$, $\sigma_{y'}$ & $\le \SI{1.0}{\milli\radian}$ \\
+RMS bunch length & $\sigma_z$ & $\le \SI{1.0}{\milli\metre}$ \\
+Mean kinetic energy & $E_\mathrm{kin}$ & \SIrange{195}{205}{\mega\electronvolt} \\
 Transmission & $T$ & $\ge 0.90$ \\
 \bottomrule
 \end{tabular}
@@ -264,7 +264,7 @@ Transmission & $T$ & $\ge 0.90$ \\
 \label{sec:failures}
 Numerical validity and physical feasibility are kept separate. An evaluation is \emph{valid} if
 ASTRA completes within its configured time limit, its output can be parsed, all objectives and
-diagnostics are finite, and the particle set reaches the exit plane to within 0.1~m; a beam that
+diagnostics are finite, and the particle set reaches the exit plane to within \SI{0.1}{\metre}; a beam that
 is lost earlier is recorded as a premature loss. Invalid evaluations are never replaced by
 artificial penalty values: they are excluded from surrogate training, recorded with their failure
 category, charged to the evaluation budget and counted as infeasible. Failed simulations are not
@@ -316,7 +316,7 @@ changed during or after the campaigns. The unconstrained variant omits the produ
 
 The weighted-sum baseline fits a single GP to the scalar cost
 $g(\mathbf{x}) = \sum_m w_m f_m(\mathbf{x})/s_m$, where $s_m$ are the reporting scales
-($1~\umrad$, $1~\umrad$, $1$~MeV) and $w_m = 1/3$, and selects batches with the logarithmic
+(\SI{1}{\micro\metre\radian}, \SI{1}{\micro\metre\radian}, \SI{1}{\mega\electronvolt}) and $w_m = 1/3$, and selects batches with the logarithmic
 noisy expected improvement (qLogNEI)~\cite{Ament2023}. The scales keep the weighted combination
 from being determined simply by the different physical units of emittance and energy spread.
 Equal weights define the balanced baseline used in the primary comparison, while the survey
@@ -331,7 +331,7 @@ raw samples, 10 restarts and at most 200 iterations. If the optimizer fails or r
 batch, it is retried with a reduced budget, and as a last resort the batch is drawn from the
 campaign's scrambled Sobol sequence~\cite{Owen1998}; every such fallback is recorded with the
 proposal and reported. The acquisition reference point $\mathbf{r}_\mathrm{acq}$ is recomputed at
-each iteration from the valid observations, offset from their worst values by 5\% of the observed
+each iteration from the valid observations, offset from their worst values by \SI{5}{\percent} of the observed
 range. It steers the search only and is never used to report results.
 
 %==========================================================================================
@@ -354,7 +354,7 @@ objective units. Feasible Pareto cardinality is computed jointly in all three ob
 counts every feasible nondominated measured observation. Additional summaries are the fraction
 of feasible evaluations (with all evaluations, including failures, in the denominator), the
 number of evaluations until the first feasible point, invalid simulation counts and relative
-computational cost. For each algorithm we report the median over runs with a 95\% percentile
+computational cost. For each algorithm we report the median over runs with a \SI{95}{\percent} percentile
 bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed seed number).
 These are descriptive comparisons; no statistical significance or global optimality is claimed.
 The limitation of the originally designated reporting endpoint is addressed in
@@ -377,8 +377,8 @@ balanced point, closest to the normalized front's centroid; and the point of lar
 distance~\cite{Deb2002}. A role may select the same setting as another.
 
 Robustness is evaluated with 50 perturbed simulations per representative, drawn with a fixed seed number.
-Magnet settings are perturbed by Gaussian relative errors with standard deviation 0.1\%, and the
-gun and structure-pair phases by Gaussian errors of $0.1^\circ$. Fluctuations of the bunch charge,
+Magnet settings are perturbed by Gaussian relative errors with standard deviation \SI{0.1}{\percent}, and the
+gun and structure-pair phases by Gaussian errors of \SI{0.1}{\degree}. Fluctuations of the bunch charge,
 laser spot size and pulse duration cannot be applied to the fixed initial distribution and are
 therefore not included; the scores describe lattice jitter only. For each representative we
 report the probability of feasibility $P_\mathrm{feas}$ (feasible perturbed simulations over all
@@ -451,8 +451,8 @@ retained, including points that appear dominated in a two-dimensional projection
 
 Table~\ref{tab:primary} summarizes the measured feasible sampling fractions and Pareto set sizes,
 while figure~\ref{fig:benchmark} shows how the feasible fraction evolves during optimization.
-Median feasible fractions were 40.6\% [35.6\%, 45.6\%], 15.0\% [12.8\%, 18.8\%] and
-12.5\% [11.2\%, 13.8\%] for the constraint-aware, unconstrained and weighted-sum algorithms.
+Median feasible fractions were \SI{40.6}{\percent} [\SI{35.6}{\percent}, \SI{45.6}{\percent}], \SI{15.0}{\percent} [\SI{12.8}{\percent}, \SI{18.8}{\percent}] and
+\SI{12.5}{\percent} [\SI{11.2}{\percent}, \SI{13.8}{\percent}] for the constraint-aware, unconstrained and weighted-sum algorithms.
 These are descriptive results; no separate significance test of feasibility is claimed.
 Median evaluations to the first feasible point were 12.5, 13.0 and 12.5, while median feasible
 Pareto cardinalities were 13.5, 7.0 and 4.0. All three methods therefore identified feasible
@@ -464,7 +464,7 @@ nondominated solutions.
 \centering
 \datafigure{figures/benchmark_feasibility_comparison.pdf}{0.75\linewidth}
 \caption{Primary comparison: fraction of feasible simulations versus the number of evaluations.
-Lines are medians over ten runs and bands are 95\% bootstrap confidence intervals.}
+Lines are medians over ten runs and bands are \SI{95}{\percent} bootstrap confidence intervals.}
 \label{fig:benchmark}
 \end{figure}
 
@@ -474,9 +474,9 @@ Table~\ref{tab:campaign_summary} and figures~\ref{fig:survey_feasible} and~\ref{
 operating-point survey of section~\ref{sec:survey}, and table~\ref{tab:phase1_cases} the five
 weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
 106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
-feasible horizontal emittances were 2.7076, 3.1141 and 2.6513~\umrad, and the best feasible
-vertical emittances were 3.1349, 3.1712 and 3.0264~\umrad. Their minimum feasible energy spreads
-were 0.3393, 0.3905 and 0.3467~MeV. These coordinate-wise extrema need not occur at the same
+feasible horizontal emittances were \SI{2.7076}{\micro\metre\radian}, \SI{3.1141}{\micro\metre\radian} and \SI{2.6513}{\micro\metre\radian}, and the best feasible
+vertical emittances were \SI{3.1349}{\micro\metre\radian}, \SI{3.1712}{\micro\metre\radian} and \SI{3.0264}{\micro\metre\radian}. Their minimum feasible energy spreads
+were \SI{0.3393}{\mega\electronvolt}, \SI{0.3905}{\mega\electronvolt} and \SI{0.3467}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
 operating point. Table~\ref{tab:phase1_cases} instead labels its coordinate minima as all-valid
 observations; an infeasible setting can therefore improve a value in that table. The differing
 budgets and independently initialized cases prevent interpreting this descriptive survey as an algorithm ranking.
@@ -585,25 +585,25 @@ the simulated tolerance model; this does not establish performance on the real m
 \label{sec:previous_kls}
 Kim et al.\ reported MOGA optimization of the RF-cavity geometry and injector beam dynamics
 in JINST~\cite{Kim2024KLSMOGA}. Their published summary gives a horizontal normalized RMS
-emittance of approximately 3.79~\umrad\ and an RMS energy spread of 0.30737~MeV, using
-$1~\mathrm{mm\,mrad}=1~\umrad$. For comparison, the knee representative of the present
-primary constraint-aware run has $(\enx,\eny,\sigma_E)=(2.9983~\umrad,\ 3.5207~\umrad,\ 0.4034~\mathrm{MeV})$
+emittance of approximately \SI{3.79}{\micro\metre\radian}\ and an RMS energy spread of \SI{0.30737}{\mega\electronvolt}, using
+$\SI{1}{\milli\metre\milli\radian}=\SI{1}{\micro\metre\radian}$. For comparison, the knee representative of the present
+primary constraint-aware run has $(\enx,\eny,\sigma_E)=(\SI{2.9983}{\micro\metre\radian},\ \SI{3.5207}{\micro\metre\radian},\ \SI{0.4034}{\mega\electronvolt})$
 (table~\ref{tab:robustness_summary}). Its horizontal emittance is smaller but its energy spread
 is larger than the published MOGA summary values; this is a trade-off rather than uniform
 improvement. No MOGA campaign was rerun under the present paired-budget protocol, so this
 literature comparison does not establish an algorithm ranking or computational speedup over MOGA.
 
 The subsequent JKPS study~\cite{Kim2025KLSError} reports nominal energy spreads of
-0.34145--0.48248~MeV for its selected cases. Its tabulated emittances are geometric, whereas
+\SIrange{0.34145}{0.48248}{\mega\electronvolt} for its selected cases. Its tabulated emittances are geometric, whereas
 ours are normalized, so those emittance values are not directly compared. Its beam-size and
-bunch-length limits were 0.2~mm and 0.9~mm, respectively, compared with 1.0~mm for both here;
-JKPS also imposed a 0.5~MeV energy-spread limit, whereas here energy spread is an objective
+bunch-length limits were \SI{0.2}{\milli\metre} and \SI{0.9}{\milli\metre}, respectively, compared with \SI{1.0}{\milli\metre} for both here;
+JKPS also imposed a \SI{0.5}{\mega\electronvolt} energy-spread limit, whereas here energy spread is an objective
 without an upper feasibility cutoff. Feasibility therefore has different meanings across the studies.
 
-The JKPS operating-error model used RF-gradient and phase standard deviations of 0.2\% and
-$0.2^\circ$, with 0.1\% magnet-strength errors. It also studied 100~\si{\micro\metre}
-position errors and 0.4~mrad rotations, using 1,000 samples per stage with a Gaussian distribution
-truncated at two standard deviations. Our tests use $0.1^\circ$ RF-phase and 0.1\% magnet-strength
+The JKPS operating-error model used RF-gradient and phase standard deviations of \SI{0.2}{\percent} and
+\SI{0.2}{\degree}, with \SI{0.1}{\percent} magnet-strength errors. It also studied \SI{100}{\micro\metre}
+position errors and \SI{0.4}{\milli\radian} rotations, using 1,000 samples per stage with a Gaussian distribution
+truncated at two standard deviations. Our tests use \SI{0.1}{\degree} RF-phase and \SI{0.1}{\percent} magnet-strength
 errors with 50 samples per representative, omitting RF-gradient and alignment errors. Thus the
 observed feasibility under lattice jitter complements the earlier tolerance study; it does not
 show greater robustness under its broader error model. The earlier study identified alignment
@@ -624,7 +624,7 @@ define the scope in which the observed feasible trade-offs and relative sampling
 be interpreted.
 
 The originally designated fixed-reference hypervolume endpoint was uninformative: it was zero
-for all campaigns because the reporting reference $(1.5~\umrad,\ 1.5~\umrad,\ 1.5~\mathrm{MeV})$
+for all campaigns because the reporting reference $(\SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\micro\metre\radian},\ \SI{1.5}{\mega\electronvolt})$
 had emittance components below the observed values. This does not indicate an absence of feasible
 solutions. We therefore omit this metric from the comparative figures and tables and present
 descriptive physical trade-offs and feasibility summaries, without claiming a hypervolume-based
@@ -634,13 +634,13 @@ ranking. The original endpoint records and reference remain unchanged.
 \section{Conclusions}
 \label{sec:conclusions}
 We studied constraint-aware batch multi-objective Bayesian optimization for a six-parameter,
-three-objective, seven-constraint design problem of a 200~MeV electron injector linac for KLS, in a paired,
+three-objective, seven-constraint design problem of a \SI{200}{\mega\electronvolt} electron injector linac for KLS, in a paired,
 budget-matched comparison over ten runs with failure-inclusive accounting. All simulations were
 valid, and each method identified feasible nondominated solutions. The pooled feasible fronts
 contained 49, 27 and 17 observations for the constraint-aware, unconstrained and weighted-sum
 methods, respectively; these are empirical trade-offs, rather than certified globally optimal
 fronts. Constraint-aware acquisition had a median
-feasible fraction of 40.6\%, compared with 15.0\% and 12.5\% for the two baselines. All sampled
+feasible fraction of \SI{40.6}{\percent}, compared with \SI{15.0}{\percent} and \SI{12.5}{\percent} for the two baselines. All sampled
 lattice perturbations were feasible, with source jitter explicitly excluded. The recorded data and analysis scripts support
 regeneration of these results.
 Future work will extend the robustness analysis to source fluctuations with
