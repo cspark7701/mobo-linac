@@ -170,12 +170,12 @@ These are proposed response dispositions consistent with the author's instructio
 
 **Sources:** Reviewer 1 M5/R6, superseded in part; Reviewer 2 minor 16/R15; Tasks 220–221.
 
-**Underlying scientific work: completed, as confirmed by the author. Manuscript documentation: pending. No new convergence simulations are scheduled.**
+**Status:** Partially documented. The author identifies Kim et al., JINST 19 P01023 as the prior reference. [C09 evidence](evidence/c09_convergence_report.md) verifies its particle/grid/image settings in part, but no quantitative refinement bound or full solver-transition equivalence was found. The author confirmation of completed underlying work is retained; no repeat convergence simulations are scheduled.
 
 - [ ] Locate and cite the previous injector study and the specific convergence evidence.
 - [ ] Document equivalence of the present macroparticle, space-charge-grid, transition and image-charge settings to those validated previously.
 - [ ] Quote the existing residual objective uncertainty and compare it with reported method differences and feasibility margins. If values cannot yet be located, obtain the source information rather than inventing an uncertainty estimate.
-- [ ] Revise the numerical-resolution discussion consistently and explain the relation of deterministic fixed-noise regularization to residual numerical uncertainty, keeping effective library floors separate under C05.
+- [x] Revise the numerical-resolution discussion consistently and explain the relation of deterministic fixed-noise regularization to residual numerical uncertainty, keeping effective library floors separate under C05.
 
 **Done when:** Readers can locate the prior validation and judge the accuracy relevant to this study. The older Reviewer 1 request is answered with the later clarification and evidence, not another convergence campaign. Source characterization and surrogate validation remain separate open tasks.
 

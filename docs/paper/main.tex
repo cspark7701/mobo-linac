@@ -170,8 +170,8 @@ peak field amplitudes of \SI{100}{\mega\volt\per\metre} in the gun and \SI{22.26
 \SI{24.47}{\mega\volt\per\metre} (ACC3, ACC4) in the structures. ASTRA's automatic phasing is disabled, so RF phases
 are absolute.
 
-The initial distribution is a fixed file of \num{10000} macroparticles with a total charge of
-\SI{1.0}{\nano\coulomb}. Space charge is computed on a cylindrically symmetric grid of $32\times32$ cells up to
+The initial distribution is a fixed \SI{1.0}{\nano\coulomb} file with \num{10000} records,
+including the reference record; the evaluation journals count \num{9999} initial particles for transmission. Space charge is computed on a cylindrically symmetric grid of $32\times32$ cells up to
 $z = \SI{5.25}{\metre}$ and with a three-dimensional solver on a $32^3$ grid downstream, including the image
 charge of the cathode. A circular aperture of radius \SI{20}{\milli\metre} defines particle loss. The same source
 file, field maps and space-charge settings are used for every algorithm, so the optimization
@@ -179,6 +179,18 @@ comparison does not mix changes in numerical fidelity with changes in candidate 
 Keeping the initial distribution fixed also makes the present search a study of machine settings
 for a specified source condition; the separate perturbation assessment changes lattice parameters
 while retaining that source distribution.
+
+% C09: verified resolution correspondence; quantitative refinement error remains unresolved.
+The injector model builds on the earlier study of Kim et al.~\cite{Kim2024KLSMOGA}, whose
+section 4.3 reports \num{10000} macroparticles, 32 radial and at most 32 longitudinal
+space-charge cells, and mirror image charges. The present calculation uses the same reported
+particle-count scale, cylindrical grid dimensions and image-charge treatment. Its archived
+inputs additionally specify a Cartesian \(32^3\) grid and a solver transition at
+\SI{5.25}{\metre}; these details are not established by that published description.
+For a fixed distribution the calculations are deterministic. The fixed GP observation variance
+provides regularization and does not measure tracking-discretization uncertainty.
+% An existing refinement-error estimate is still required for quantitative numerical-accuracy claims.
+
 
 \begin{figure}[htbp]
 \centering
@@ -712,8 +724,10 @@ The empirical Pareto sets characterize the settings observed within the sampled 
 and do not establish global optimality. Their extent depends on both the finite evaluation
 budget and the selected beam-quality limits, which were fixed before the campaigns. All results
 use one injector model and a fixed source distribution, with finite macroparticle and grid
-resolution; the numerical resolution limits absolute emittance accuracy even though it is
-common to every method. The perturbation tests exclude source fluctuations, RF-gradient errors
+resolution. The cited JINST settings establish partial correspondence with the earlier model,
+but the inspected source supplies no particle/grid refinement error bound or full solver-transition
+equivalence. Absolute numerical uncertainty relative to the method differences and constraint
+margins is therefore not quantified here, even though all methods use common tracking settings. The perturbation tests exclude source fluctuations, RF-gradient errors
 and alignment errors, so the retained feasibility applies to the stated lattice-jitter model.
 The earlier JKPS results motivate extending this assessment to the omitted error channels.
 Ten repeated runs provide an estimate of variation with initialization, rather than a high-powered
