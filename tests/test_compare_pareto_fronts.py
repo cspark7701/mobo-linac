@@ -6,6 +6,7 @@ import sys
 
 import numpy as np
 import pandas as pd
+import matplotlib.pyplot as plt
 
 from mobo_linac.plotting.common import PlotSchema
 
@@ -33,3 +34,18 @@ def test_pooling_retains_three_objective_tradeoffs_and_removes_dominated_points(
     assert set(result.evaluation_id) == {"A", "B"}
     np.testing.assert_allclose(tool.coordinates(result.iloc[[0]], schema), [[3., 3., .3]])
     assert list(first.evaluation_id) == ["A", "dominated"]
+
+
+def test_two_d_view_preserves_all_three_objective_pairs_without_3d_axes(sample_config):
+    tool = module()
+    schema = PlotSchema.from_config(sample_config)
+    frame = pd.DataFrame([[3e-6, 3e-6, .3e6], [2e-6, 4e-6, .4e6]],
+                         columns=[s.column for s in schema.objectives])
+    fig = tool.comparison([tool.Front(tool.ALGORITHMS[0], frame)], schema, "title", "subtitle", two_d=True)
+    assert len(fig.axes) == 3
+    assert all(ax.name != "3d" for ax in fig.axes)
+    assert all(len(ax.collections[0].get_offsets()) == 2 for ax in fig.axes)
+    assert [(ax.get_xlabel(), ax.get_ylabel()) for ax in fig.axes] == [
+        (tool.axis_label(schema.objectives[i]), tool.axis_label(schema.objectives[j]))
+        for i, j in [(0, 1), (0, 2), (1, 2)]]
+    plt.close(fig)

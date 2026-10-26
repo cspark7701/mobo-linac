@@ -87,19 +87,42 @@ def draw(ax, fronts, schema, is3d=False, pair=(0, 1), bounds=None, legend=False)
         ax.legend(fontsize=8, loc="best")
 
 
-def comparison(fronts, schema, title, subtitle):
-    fig = plt.figure(figsize=(12, 9), layout="constrained")
-    grid = fig.add_gridspec(2, 2)
+def comparison(fronts, schema, title, subtitle, two_d=False):
+    fig = plt.figure(figsize=(16, 5) if two_d else (12, 9), layout="constrained")
+    grid = fig.add_gridspec(1, 3) if two_d else fig.add_gridspec(2, 2)
     bound = limits(fronts, schema)
-    ax = fig.add_subplot(grid[0, 0], projection="3d")
-    draw(ax, fronts, schema, is3d=True, bounds=bound)
-    ax.set_title("Three-objective view", fontsize=11)
-    for position, pair in zip([(0, 1), (1, 0), (1, 1)], combinations(range(3), 2)):
+    if not two_d:
+        ax = fig.add_subplot(grid[0, 0], projection="3d")
+        draw(ax, fronts, schema, is3d=True, bounds=bound)
+        ax.set_title("Three-objective view", fontsize=11)
+    positions = [(0, 0), (0, 1), (0, 2)] if two_d else [(0, 1), (1, 0), (1, 1)]
+    for position, pair in zip(positions, combinations(range(3), 2)):
         ax = fig.add_subplot(grid[position])
         draw(ax, fronts, schema, pair=pair, bounds=bound, legend=position == (0, 1))
         ax.set_title("Projection of the same 3D nondominated points", fontsize=10)
     fig.suptitle(title + "\n" + subtitle, fontsize=13)
     return fig
+
+
+def pairwise_small_multiples(groups, schema, path, title, notes, columns):
+    rows = int(np.ceil(len(groups) / columns))
+    bounds = limits([f for _, fronts in groups for f in fronts], schema)
+    for pair in combinations(range(3), 2):
+        fig, axes = plt.subplots(rows, columns, figsize=(4.4 * columns, 3.7 * rows + 1), squeeze=False)
+        for ax, (label, fronts) in zip(axes.flat, groups):
+            draw(ax, fronts, schema, pair=pair, bounds=bounds)
+            ax.set_title(label, fontsize=10)
+        for ax in list(axes.flat)[len(groups):]:
+            ax.set_visible(False)
+        handles = [Line2D([], [], linestyle="", color=color, marker=marker, label=label)
+                   for label, (color, marker) in zip(LABELS, STYLES)]
+        fig.legend(handles=handles, loc="lower center", ncol=3, frameon=False)
+        fig.suptitle(title + "\n" + notes, fontsize=13)
+        fig.tight_layout(rect=(0, .055, 1, .92))
+        target = path.parent / f"{path.name}_pair_{pair[0]+1}{pair[1]+1}"
+        fig.savefig(target.with_suffix(".png"), dpi=180)
+        fig.savefig(target.with_suffix(".pdf"))
+        plt.close(fig)
 
 
 def small_multiples(groups, schema, path, title, notes, columns):
@@ -125,7 +148,7 @@ def small_multiples(groups, schema, path, title, notes, columns):
     plt.close(fig)
 
 
-def generate(root, output):
+def generate(root, output, two_d=False):
     if output.exists() and any(output.iterdir()):
         raise FileExistsError("Select a fresh comparison directory; existing outputs are preserved")
     manifest = pd.read_csv(root / "04_primary/benchmark/campaign_manifest.csv")
@@ -184,7 +207,7 @@ def generate(root, output):
     pooled_survey = [*survey_mobo, Front(ALGORITHMS[2], pooled_front(scalar_fronts, schema))]
     with PdfPages(output / "all_pareto_comparisons.pdf") as book:
         def page(fronts, title, subtitle, filename):
-            fig = comparison(fronts, schema, title, subtitle)
+            fig = comparison(fronts, schema, title, subtitle, two_d=two_d)
             fig.savefig(output / f"{filename}.png", dpi=180)
             book.savefig(fig)
             plt.close(fig)
@@ -203,15 +226,21 @@ def generate(root, output):
         page(pooled_survey, "Survey: descriptive aggregate of feasible fronts",
              "Scalarized: 5 × 176 = 880 evaluations; each MOBO: 176. Unequal budgets — no algorithm ranking.",
              "survey_pooled_fronts")
-    small_multiples(primary, schema, output / "primary_all_seeds_3d",
-                    "Primary comparison: all paired seeds", "160 evaluations per method/seed; shared axes; all objectives minimized", 5)
-    small_multiples(survey, schema, output / "survey_all_cases_3d",
-                    "Survey comparison: all five scalarized weight cases", "176 evaluations per campaign; MOBO seed 42; unpaired case seeds; shared axes", 3)
+    if two_d:
+        pairwise_small_multiples(primary, schema, output / "primary_all_seeds_2d",
+                                "Primary comparison: all paired seeds", "160 evaluations per method/seed; shared axes; all objectives minimized", 5)
+        pairwise_small_multiples(survey, schema, output / "survey_all_cases_2d",
+                                "Survey comparison: all scalarized weight cases", f"176 evaluations per campaign; MOBO seed {base_seed}; unpaired case seeds; shared axes", 3)
+    else:
+        small_multiples(primary, schema, output / "primary_all_seeds_3d",
+                        "Primary comparison: all paired seeds", "160 evaluations per method/seed; shared axes; all objectives minimized", 5)
+        small_multiples(survey, schema, output / "survey_all_cases_3d",
+                        "Survey comparison: all five scalarized weight cases", f"176 evaluations per campaign; MOBO seed {base_seed}; unpaired case seeds; shared axes", 3)
     pd.concat(all_rows, ignore_index=True).to_csv(output / "all_per_run_pareto_points.csv", index=False)
     pd.DataFrame(summaries).to_csv(output / "campaign_front_summary.csv", index=False)
     for name, fronts in [("primary", pooled), ("survey", pooled_survey)]:
         pd.concat([f.frame for f in fronts], ignore_index=True).to_csv(output / f"{name}_pooled_pareto_points.csv", index=False)
-    notes = {"reference_filter_used": False, "objectives": [{"column": s.column, "display_label": axis_label(s),
+    notes = {"two_dimensional_only": two_d, "reference_filter_used": False, "objectives": [{"column": s.column, "display_label": axis_label(s),
              "physical_to_display_divisor": s.scale, "direction_sign": s.sign} for s in schema.objectives],
              "primary_pooled_front_sizes": {f.algorithm: len(f.frame) for f in pooled},
              "survey_pooled_front_sizes": {f.algorithm: len(f.frame) for f in pooled_survey},
@@ -225,5 +254,6 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--production-root", type=Path, default=Path("results/paper_production"))
     parser.add_argument("--output-dir", type=Path, required=True)
+    parser.add_argument("--two-d", action="store_true", help="Only 2D objective pairs; omit every 3D axis")
     args = parser.parse_args()
-    generate(args.production_root, args.output_dir)
+    generate(args.production_root, args.output_dir, two_d=args.two_d)
