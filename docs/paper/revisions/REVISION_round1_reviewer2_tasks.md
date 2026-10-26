@@ -1,6 +1,6 @@
-# Revision Task List — Response to Reviewer 2 (Review 01)
+# Revision Task List — Response to Reviewer 2 (Round 1)
 
-**Source review:** `docs/paper/reviews/REVIEW_01_reviewer2.md`
+**Source review:** `docs/paper/reviews/REVIEW_round1_reviewer2.md`
 **Decision:** Major revision
 **Manuscript:** `docs/paper/main.tex` (as of commit `fe459f2`)
 
@@ -8,6 +8,12 @@ Each task lists the review item(s) it answers, the work involved, and what count
 Priority: **P0** must be done for resubmission, **P1** strongly expected, **P2** editorial.
 Tasks that need new ASTRA campaigns are marked 🖥. Archived production results must not be
 rewritten; new campaigns go in new run directories.
+
+> **Update (2026-10-26).** The former P0 task on a numerical convergence study is withdrawn,
+> because convergence of the ASTRA settings was established in the previous study of this
+> injector. It is replaced by the documentation-only task R15, following minor comment 16 of
+> the revised review. The tasks have been renumbered. The major-comment references follow the
+> revised review (M1–M7).
 
 ---
 
@@ -66,19 +72,7 @@ rewritten; new campaigns go in new run directories.
       proposals only.
 - **Done when:** Table 4 and Fig. 4 include the new baselines.
 
-### R5. Numerical convergence and fidelity check 🖥 (M4)
-- [ ] Run convergence scans at the nominal point and the knee point: particle number 10⁴,
-      5×10⁴, 2×10⁵; grid 32 and 64 (both the r–z and 3D solvers).
-- [ ] Measure the local numerical noise: ε_n and σ_E at about 20 inputs within 10⁻⁴ (normalized)
-      of the knee.
-- [ ] Re-evaluate the six representatives at high fidelity, and check that their order and
-      feasibility are preserved.
-- [ ] Discuss whether η = 10⁻⁶ fixed noise is appropriate. Optionally, compare against a
-      fitted-noise GP on the archived data.
-- **Done when:** a new subsection or appendix with a convergence table exists, and section 6.2
-  is updated.
-
-### R6. Strengthen the robustness assessment 🖥 (M7)
+### R5. Strengthen the robustness assessment 🖥 (M6)
 - [ ] Add RF-amplitude jitter. Rerun the tests with the JKPS error model (0.2 %, 0.2°, 0.1 %
       magnets), and alignment errors if they are feasible in ASTRA.
 - [ ] Run a tolerance-amplitude scan (×1, ×2, ×5 the nominal errors) and plot P_feas against the
@@ -98,7 +92,7 @@ rewritten; new campaigns go in new run directories.
 
 ## P1 — Strongly expected
 
-### R7. Physics interpretation (M5)
+### R6. Physics interpretation (M4)
 - [ ] Explain the ε_n,x ≠ ε_n,y asymmetry. Identify the mechanism with ASTRA runs at the
       representatives: quadrupoles off, the 3D solver switched at a different z, a check of the
       initial-distribution symmetry, and Larmor-frame coupling.
@@ -114,7 +108,7 @@ rewritten; new campaigns go in new run directories.
       generator settings of `pal_photo2.ini`.
 - [ ] State that the transmission constraint and the upper energy bound were never active.
 
-### R8. Paired statistical analysis (M6)
+### R7. Paired statistical analysis (M5)
 - [ ] Compute per-seed paired differences for all method pairs: feasible %, post-hoc HV, IGD+
       and Pareto size.
 - [ ] Report Wilcoxon signed-rank p-values with a multiplicity correction (Holm), and paired
@@ -122,25 +116,25 @@ rewritten; new campaigns go in new run directories.
 - [ ] Align the language of the abstract and conclusions with the tested statements, and remove
       the redundant "no ranking" hedges.
 
-### R9. Revisit the comparison with the KLS MOGA study (M8)
+### R8. Revisit the comparison with the KLS MOGA study (M7)
 - [ ] Obtain the published MOGA setting from ref. [Kim2024] and evaluate it in the present
       model.
 - [ ] Discuss why the present feasible σ_E minimum (0.339 MeV) exceeds the MOGA value
       (0.307 MeV): domain, constraints, source, or variables.
 
-### R10. Report wall-clock and overhead honestly (minor 7)
+### R9. Report wall-clock and overhead honestly (minor 7)
 - [ ] Add the median campaign times (3.4 h, 2.4 h, 1.2 h, with CIs) to Table 4, split into ASTRA
       time and surrogate/acquisition time.
 - [ ] Revise the abstract sentence accordingly, or remove it.
 
-### R11. Clarify the acquisition reference point (minor 8)
+### R10. Clarify the acquisition reference point (minor 8)
 - [ ] State whether r_acq uses infeasible observations, and in which space it is computed.
 
 ---
 
 ## P2 — Editorial and presentation
 
-### R12. Remove internal jargon and fix the tables (minor 1, 2)
+### R11. Remove internal jargon and fix the tables (minor 1, 2)
 - [ ] Replace "Phase 1/2/3" labels with method names in `results_table.tex`, the
       `phase1_cases_table.tex` caption and the figure legends (fix them in the generator
       scripts).
@@ -148,7 +142,7 @@ rewritten; new campaigns go in new run directories.
 - [ ] Use feasible minima consistently in Table 5, and remove the stale mention of the
       reference point.
 
-### R13. Figure fixes (minor 3, 4, 5)
+### R12. Figure fixes (minor 3, 4, 5)
 - [ ] Fig. 6: per-weighting curves or a band, no embedded title, vector PDF, and the same colour
       mapping as Figs. 3 and 7.
 - [ ] Fig. 7: zoomed insets of the feasible region in (a) and (b). Replace panel (d), where
@@ -156,9 +150,9 @@ rewritten; new campaigns go in new run directories.
 - [ ] Fig. 3: consistent axis ranges, the six representatives marked, and attainment surfaces
       (from R1).
 
-### R14. Shorten or move the survey to an appendix (minor 6)
+### R13. Shorten or move the survey to an appendix (minor 6)
 
-### R15. Prose consolidation (minor 10, 11, 12, 13, 14)
+### R14. Prose consolidation (minor 10, 11, 12, 13, 14)
 - [ ] State each limitation once, in section 6.2. Move the plotting conventions from
       sections 4.2 and 5.4 into the captions.
 - [ ] Abstract: give the jitter amplitudes and the sample size.
@@ -166,6 +160,18 @@ rewritten; new campaigns go in new run directories.
 - [ ] Use one emittance unit convention throughout (mm·mrad or µm).
 - [ ] Say whether any representative roles coincided.
 - [ ] Target a length reduction of about 20 %.
+
+### R15. Document the numerical resolution (minor 16)
+No new simulations are needed; this is a documentation task.
+- [ ] In section 2.1, cite the previous study that established convergence for 10⁴
+      macroparticles and the 32×32 / 32³ space-charge grid, and state that the present settings
+      are identical.
+- [ ] Quote the residual numerical uncertainty in ε_n and σ_E from that study, and relate it to
+      the size of the differences between methods.
+- [ ] Revise the sentence in section 6.2 ("the numerical resolution limits absolute emittance
+      accuracy") so it is consistent with the cited validation.
+- [ ] Add one sentence explaining why fixed observation noise with η = 10⁻⁶ suits the residual
+      numerical noise.
 
 ### R16. Front matter and compliance (minor 9, 15)
 - [ ] Add the ICABU 2025 citation.
@@ -176,13 +182,13 @@ rewritten; new campaigns go in new run directories.
 
 ### R17. Response letter
 - [ ] Write a point-by-point response to Reviewer 2 in
-      `docs/paper/reviews/RESPONSE_01_reviewer2.md`, with a latexdiff against `fe459f2`.
+      `docs/paper/reviews/RESPONSE_round1_reviewer2.md`, with a latexdiff against `fe459f2`.
 
 ---
 
 ## Suggested order of work
-1. Analysis-only work on the archived data: R1, R8, R10, R11, and R6's score check.
-2. Short simulation studies: R3's crest scan, R5, R9.
-3. New campaigns: R2, R3's rerun if needed, R4, R6.
-4. Physics and writing: R7, R12–R16.
+1. Analysis-only work on the archived data: R1, R7, R9, R10, and R5's score check.
+2. Documentation and short simulation studies: R15, R3's crest scan, R8.
+3. New campaigns: R2, R3's rerun if needed, R4, R5.
+4. Physics and writing: R6, R11–R14, R16.
 5. R17 last.

@@ -1,10 +1,16 @@
-# Referee Report — Reviewer 2
+# Referee Report — Reviewer 2 (Round 1)
 
 **Manuscript:** *Multi-objective Bayesian optimization of a 200 MeV electron injector linac for the Korea Light Source*
 **Author:** C. S. Park (Korea University)
 **Target journal:** JINST
 **Source reviewed:** `docs/paper/main.tex` (commit `fe459f2`), with the generated tables and figures it includes
-**Date:** 2026-10-26
+**Date:** 2026-10-26 (revised 2026-10-26)
+
+> **Revision note.** The original major comment on numerical fidelity (a macroparticle and
+> space-charge-grid convergence study) is withdrawn. The author has confirmed that numerical
+> convergence of these ASTRA settings was established in the previous study of this injector.
+> What remains is a minor request (minor comment 16) to document this in the manuscript.
+> Major comments M5–M8 have been renumbered M4–M7.
 
 ---
 
@@ -143,22 +149,7 @@ of the shared Sobol initial design. The first feasible point is therefore usuall
 initial design, which is identical across methods. This row tells us nothing about the
 algorithms. It should be removed or explained.
 
-### M4. Numerical fidelity versus the size of the reported differences
-
-The model uses 10⁴ macroparticles and a 32×32 (r–z) / 32³ space-charge grid, and the surrogate
-treats ASTRA as noise-free (η = 10⁻⁶). At 1 nC, the emittance computed from 10⁴ particles on a
-32³ grid has a resolution error, and probably a non-smooth dependence on the inputs, at the
-level of several percent. Many of the trade-off differences in Fig. 3 and Table 4 are of the
-order of 0.1 µm·rad (3 %). Please provide:
-
-- a convergence study at the nominal point and at the knee representative, varying the
-  particle number (10⁴, 5×10⁴, 2×10⁵) and the grid (32, 64);
-- an estimate of the numerical "noise" in ε_n and σ_E between nearby inputs, and a check of
-  whether the fixed-noise assumption holds against it (or a comparison with inferred noise);
-- a re-evaluation of the six representatives at higher fidelity, to show that their order and
-  feasibility survive.
-
-### M5. The physics behind the trade-offs is not explained
+### M4. The physics behind the trade-offs is not explained
 
 The paper is close to a black-box benchmark. For a JINST readership, the physics needs to be
 discussed:
@@ -190,7 +181,7 @@ discussed:
   approached. Say this explicitly, because it reduces the problem to about six active
   inequalities.
 
-### M6. Statistical treatment
+### M5. Statistical treatment
 
 - With n = 10, a percentile bootstrap of the median gives poorly calibrated, discrete intervals
   (for example 0.0 [0.0, 0.0], and bounds such as 4.975). The paired design is the study's
@@ -200,7 +191,7 @@ discussed:
   rank the methods on feasible fraction. With a paired analysis, the author could make a
   justified quantitative statement instead of hedging.
 
-### M7. Robustness assessment
+### M6. Robustness assessment
 
 - **The error budget is too small.** It is smaller than in the earlier study it is compared
   with: 0.1° phase errors versus 0.2° in JKPS, with no RF-amplitude, alignment or source
@@ -224,7 +215,7 @@ discussed:
   vectors" is unclear when read next to "50 perturbed simulations per representative". Is 300
   equal to 6 × 50?
 
-### M8. Comparison with the earlier KLS MOGA study
+### M7. Comparison with the earlier KLS MOGA study
 
 The MOGA solution in ref. [Kim2024] has σ_E = 0.307 MeV. This is lower than any feasible
 energy spread found here: the minimum is 0.339 MeV in the survey and 0.363 MeV at the
@@ -299,6 +290,16 @@ question and is a cheap, high-value addition.
 15. **Layout.** The `\resizebox` on Tables 4–6 makes the fonts inconsistent. Use `\small` or a
     `tabularx` layout instead. The `hyperref` `pagecolor` warning in the build log is harmless
     but should be cleaned up.
+16. **Numerical resolution.** Section 2.1 gives 10⁴ macroparticles and a 32×32 / 32³
+    space-charge grid without justification. Section 6.2 also says that "the numerical
+    resolution limits absolute emittance accuracy". Read together, these invite doubt about
+    whether differences of about 0.1 µm·rad between methods are resolved. If convergence of
+    these settings was established in previous work on this injector, cite it in section 2.1.
+    State that the present settings are identical, and quote the residual emittance and
+    energy-spread uncertainty, so that readers can judge the trade-off differences against
+    it. Then revise the sentence in section 6.2. Please also state briefly why fixed,
+    near-zero observation noise (η = 10⁻⁶) suits the residual numerical noise at these
+    settings.
 
 ---
 
@@ -307,9 +308,9 @@ question and is a cheap, high-value addition.
 | Criterion | Assessment |
 |---|---|
 | Originality | Moderate. Constrained qNEHVI for injectors is established (e.g. Roussel et al. 2021). The contribution is the application to KLS and the paired, failure-inclusive protocol. |
-| Technical soundness | Not yet adequate: failed endpoint (M1), arbitrary phase bounds (M2), mis-scaled constraint smoothing (M3a), and no fidelity check (M4). |
+| Technical soundness | Not yet adequate: failed endpoint (M1), arbitrary phase bounds (M2), and mis-scaled constraint smoothing (M3a). |
 | Fair comparison | Partly. Budgets and seeds are matched, but the baselines are mismatched (M3b). |
-| Physics content | Thin for JINST (M5). |
+| Physics content | Thin for JINST (M4). |
 | Reproducibility | Strong in principle (provenance, checksums, fixed seeds). A public archive and code statement are still missing. |
 | Presentation | Readable but repetitive and defensive. Internal jargon in tables and figures. |
 
@@ -320,7 +321,7 @@ study's limits. But the central claims rest on a failed endpoint, a search domai
 percentages of absolute phases, and a constraint-smoothing scheme that leaves most channels
 almost unconstrained. In the end the paper shows only that a method which sees the constraints
 samples more feasible points than methods that do not. I recommend **major revision**. The
-essential items are M1–M4 and M7, with M5 strongly encouraged. I would be happy to review a
+essential items are M1–M3 and M6, with M4 strongly encouraged. I would be happy to review a
 revised version.
 
 *— Reviewer 2*
