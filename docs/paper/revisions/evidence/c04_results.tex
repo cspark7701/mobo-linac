@@ -1,0 +1,28 @@
+% C04: run-level paired inference conditional on the C03 analysis conventions.
+Five of the ten shared initial designs already contained a feasible setting. First-feasible
+counts within those initial designs therefore cannot be credited to an acquisition function.
+Using only the subsequent 144 evaluations, while retaining all ten groups, median feasible
+fractions were \SI{45.1}{\percent}, \SI{16.3}{\percent} and \SI{13.2}{\percent} for
+constraint-aware MOBO, unconstrained MOBO and scalarized BO, respectively.
+
+Exploratory inference used the ten matched groups as the sampling units. Paired bootstrap
+intervals resampled complete groups jointly across methods, with 10,000 resamples.
+We applied exact two-sided signed-rank tests~\cite{Wilcoxon1945} to four terminal endpoints---feasible fraction,
+additive epsilon, IGD+ and the middle post-hoc hypervolume reference---and used Holm correction~\cite{Holm1979}
+across all twelve pairwise comparisons. Zero differences were excluded from the signed ranks,
+tied absolute differences received midranks, and all sign assignments were enumerated.
+The tests assume independent groups and sign-symmetric differences under the null; the
+pointwise bootstrap intervals are conditional on the fixed empirical reference and are not
+multiplicity-adjusted.
+
+Mean paired feasible-fraction differences for constraint-aware MOBO relative to unconstrained
+and scalarized BO were 0.248 (\SI{95}{\percent} interval 0.206--0.293) and
+0.280 (0.249--0.313), respectively; both Holm-adjusted $p$-values were 0.0234.
+For epsilon and IGD+, comparisons with scalarized BO had adjusted $p$-values of 0.0234 and
+0.0410, whereas comparisons with unconstrained MOBO had adjusted $p$-values of 0.0586 and
+0.0977. At the middle hypervolume reference, mean paired differences were 5.202 (3.062--7.441)
+and 7.104 (5.132--9.315), with adjusted $p$-values of 0.0313 and 0.0234. None of the four
+baseline-to-baseline comparisons passed the specified 0.05 threshold after correction.
+These post-hoc results support a feasible-sampling advantage under the archived profile;
+objective-quality evidence depends on the endpoint and comparator and does not establish
+uniform algorithm superiority or global optimality.

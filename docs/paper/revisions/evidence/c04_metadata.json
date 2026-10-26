@@ -1,0 +1,38 @@
+{
+  "input_sha256": {
+    "c03_metadata.json": "7749582c3bac1721fd8f0b7fb54fcd76918fad684dd5ebe84a085d64456ec9d6",
+    "c03_run_histories.csv": "e099add6477d4e7463ae9e703a76eecbda61febcc88d8be0e2d4731156a85dd7"
+  },
+  "protocol": "c04_protocol.md",
+  "bootstrap_resamples": 10000,
+  "analysis_rng": 20261026,
+  "groups": [
+    "42",
+    "43",
+    "44",
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50",
+    "51"
+  ],
+  "n_groups": 10,
+  "endpoints": [
+    "feasible_fraction",
+    "epsilon",
+    "igd_plus",
+    "hv_25"
+  ],
+  "family_size": 12,
+  "test": "exact two-sided signed-rank with zero exclusion and tied midranks",
+  "multiplicity": "Holm",
+  "effect": "mean paired first minus second",
+  "initial_groups_feasible": 5,
+  "post_initial_median_fractions": {
+    "constrained_qlognehvi": 0.4513888888888889,
+    "scalarized_bo": 0.13194444444444445,
+    "unconstrained_qlognehvi": 0.16319444444444445
+  }
+}

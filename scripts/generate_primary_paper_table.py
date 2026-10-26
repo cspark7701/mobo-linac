@@ -80,7 +80,6 @@ def generate(root, output):
     (output / "primary_results.json").write_text(json.dumps(data, indent=2) + "\n")
     rows = []
     for label, metric in [("Feasible fraction (\\%)", "feasible_percent"),
-                          ("Evaluations to first feasible point", "first_feasible"),
                           ("Feasible Pareto set size", "feasible_pareto_size"),
                           ("Invalid simulations", "invalid_count")]:
         rows.append(label + " & " + " & ".join(tex_interval(data["algorithms"][a][metric]) for a in ALGORITHMS) + r" \\")
@@ -89,7 +88,8 @@ def generate(root, output):
 \centering
 \caption{Primary comparison over ten paired runs, 160 simulations per campaign.
 Entries are medians with 95\% percentile bootstrap intervals (1,000 resamples with a fixed seed number).
-Pareto sizes count feasible observations nondominated jointly in all three objectives.}
+Pareto sizes count feasible observations nondominated jointly in all three objectives.
+First-feasible counts are omitted because they mix shared initialization with adaptive search.}
 \label{tab:primary}
 \resizebox{\textwidth}{!}{%
 \begin{tabular}{lccc}

@@ -30,7 +30,7 @@
 \newcommand{\pendingtable}[3]{%
   \begin{table}[htbp]\centering\caption{#2}\label{#3}\pending{Pending table: \texttt{\detokenize{#1}.tex}}\end{table}}
 
-\sisetup{range-phrase=--, range-units=single, group-separator={,}, group-minimum-digits=4}
+\sisetup{range-phrase=--, range-units=single, group-separator={,}, group-minimum-digits=4, group-digits=integer}
 \setlength{\emergencystretch}{2em}
 \newcommand{\enx}{\varepsilon_{n,x}}
 \newcommand{\eny}{\varepsilon_{n,y}}
@@ -54,8 +54,9 @@ minimize the horizontal and vertical normalized RMS emittances and RMS energy sp
 Constraint-aware and unconstrained multi-objective Bayesian optimization are compared with
 weighted-sum Bayesian optimization using matched simulation budgets and shared initial designs.
 All methods identify feasible nondominated operating points, revealing trade-offs between
-transverse beam quality and energy spread. Constraint-aware acquisition yields a higher feasible
-sampling fraction, while weighted-sum optimization completes campaigns faster. A survey of
+transverse beam quality and energy spread. Paired analyses support a higher feasible
+sampling fraction for constraint-aware acquisition, while weighted-sum optimization completes campaigns faster.
+Objective-quality comparisons depend on the indicator and comparator. A survey of
 scalarization weightings explores additional operating modes, and sampled lattice perturbations
 preserve feasibility for the selected operating points. The results demonstrate the use of
 constraint-aware Bayesian optimization to identify feasible injector-linac settings and map
@@ -470,7 +471,8 @@ of feasible evaluations (with all evaluations, including failures, in the denomi
 number of evaluations until the first feasible point, invalid simulation counts and relative
 computational cost. For each algorithm we report the median over runs with a \SI{95}{\percent} percentile
 bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed seed number).
-These are descriptive comparisons; no statistical significance or global optimality is claimed.
+These intervals summarize individual methods; exploratory paired inference is described below.
+Neither pooled coverage nor these intervals establish global optimality.
 The limitation of the originally designated reporting endpoint is addressed in
 section~\ref{sec:discussion}. Constraint-space figures use every numerically valid observation,
 including physically infeasible settings, rather than only the Pareto subset. Their limits and
@@ -506,6 +508,17 @@ $\delta\in\{0.05,0.10,0.25,0.50\}$. These are empirical probabilities of attaini
 observed trade-offs, with no implied global-front guarantee. Quality histories are evaluated
 at full-batch checkpoints, including initialization. Supporting plots and a separate post-hoc
 reference-sensitivity analysis appear in appendix~\ref{app:front_quality}.
+
+Exploratory inference used the ten matched groups as the sampling units. Paired bootstrap
+intervals resampled complete groups jointly across methods, with 10,000 resamples.
+We applied exact two-sided signed-rank tests~\cite{Wilcoxon1945} to four terminal endpoints---feasible fraction,
+additive epsilon, IGD+ and the middle post-hoc hypervolume reference---and used Holm correction~\cite{Holm1979}
+across all twelve pairwise comparisons. Zero differences were excluded from the signed ranks,
+tied absolute differences received midranks, and all sign assignments were enumerated.
+The tests assume independent groups and sign-symmetric differences under the null; the
+pointwise bootstrap intervals are conditional on the fixed empirical reference and are not
+multiplicity-adjusted.
+
 
 \subsection{Robustness assessment of operating points}
 \label{sec:audit}
@@ -592,10 +605,17 @@ Table~\ref{tab:primary} summarizes the measured feasible sampling fractions and 
 while figure~\ref{fig:benchmark} shows how the feasible fraction evolves during optimization.
 Median feasible fractions were \SI{40.6}{\percent} [\SI{35.6}{\percent}, \SI{45.6}{\percent}], \SI{15.0}{\percent} [\SI{12.8}{\percent}, \SI{18.8}{\percent}] and
 \SI{12.5}{\percent} [\SI{11.2}{\percent}, \SI{13.8}{\percent}] for the constraint-aware, unconstrained and weighted-sum algorithms.
-These are descriptive results; no separate significance test of feasibility is claimed.
-Median evaluations to the first feasible point were 12.5, 13.0 and 12.5, while median feasible
-Pareto cardinalities were 13.5, 7.0 and 4.0. All three methods therefore identified feasible
-nondominated solutions.
+Median feasible Pareto cardinalities were 13.5, 7.0 and 4.0. All three methods therefore
+identified feasible nondominated solutions.
+
+% C04: run-level paired inference conditional on the C03 analysis conventions.
+Five of the ten shared initial designs already contained a feasible setting. First-feasible
+counts within those initial designs therefore cannot be credited to an acquisition function.
+Using only the subsequent 144 evaluations, while retaining all ten groups, median feasible
+fractions were \SI{45.1}{\percent}, \SI{16.3}{\percent} and \SI{13.2}{\percent} for
+constraint-aware MOBO, unconstrained MOBO and scalarized BO, respectively.
+
+
 
 \input{primary_results_table}
 
@@ -621,6 +641,18 @@ MOBO is 0.464, compared with 0.156 in the reverse direction. The corresponding v
 constraint-aware and scalarized BO are 0.625 and 0.050. These directional summaries describe
 coverage of the comparator's sampled set; they do not imply uniform dominance of all
 three-objective trade-offs.
+
+Mean paired feasible-fraction differences for constraint-aware MOBO relative to unconstrained
+and scalarized BO were 0.248 (\SI{95}{\percent} interval 0.206--0.293) and
+0.280 (0.249--0.313), respectively; both Holm-adjusted $p$-values were 0.0234.
+For epsilon and IGD+, comparisons with scalarized BO had adjusted $p$-values of 0.0234 and
+0.0410, whereas comparisons with unconstrained MOBO had adjusted $p$-values of 0.0586 and
+0.0977. At the middle hypervolume reference, mean paired differences were 5.202 (3.062--7.441)
+and 7.104 (5.132--9.315), with adjusted $p$-values of 0.0313 and 0.0234. None of the four
+baseline-to-baseline comparisons passed the specified 0.05 threshold after correction.
+These post-hoc results support a feasible-sampling advantage under the archived profile;
+objective-quality evidence depends on the endpoint and comparator and does not establish
+uniform algorithm superiority or global optimality.
 
 \subsection{Operating points and trade-offs}
 \label{sec:survey_results}
@@ -729,8 +761,11 @@ robustness of the representatives.}{tab:robustness_summary}}
 \section{Discussion}
 \label{sec:discussion}
 Constraint-aware acquisition produced a larger feasible fraction and a larger feasible Pareto
-set in the descriptive summaries over ten runs, while completing campaigns more slowly than the
-unconstrained and weighted-sum methods. All methods identified feasible nondominated settings,
+set over ten runs, while completing campaigns more slowly than the unconstrained and
+weighted-sum methods. The exploratory paired analysis supports its feasible-sampling advantage
+over both baselines. Evidence for objective quality is more selective: epsilon and IGD+
+comparisons with unconstrained MOBO do not pass the chosen multiplicity correction. A larger
+feasible set therefore should not be read as uniform superiority of the observed Pareto front. All methods identified feasible nondominated settings,
 with the objective projections exposing the trade-offs between transverse emittance and energy spread.
 The sampled lattice-jitter tests identify several operating points that remain feasible within
 the simulated tolerance model; this does not establish performance on the real machine.
@@ -822,7 +857,9 @@ contained 49, 27 and 17 observations for the constraint-aware, unconstrained and
 methods, respectively; these are empirical trade-offs, rather than certified globally optimal
 fronts. Constraint-aware acquisition had a median
 feasible fraction of \SI{40.6}{\percent}, compared with \SI{15.0}{\percent} and \SI{12.5}{\percent} for the two baselines. All sampled
-lattice perturbations were feasible, with source jitter explicitly excluded. The recorded data and analysis scripts support
+lattice perturbations were feasible, with source jitter explicitly excluded. Paired analysis
+supports improved feasible sampling under the stated profile, while evidence for objective-space
+quality depends on the comparator and endpoint. The recorded data and analysis scripts support
 regeneration of these results.
 Future work will extend the robustness analysis to source fluctuations with
 a validated distribution generator, distribute the simulations across compute nodes, and test the

@@ -107,12 +107,14 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C04. Use the paired design and interpret initialization correctly
 
+**Status:** Completed. [C04 report](evidence/c04_report.md) gives paired effects, pointwise bootstrap intervals, exact signed-rank tests and a twelve-comparison Holm family. Initialization is separated and manuscript claims reflect endpoint-dependent evidence.
+
 **Sources:** Reviewer 1 M1/M8, R2/R3; Reviewer 2 M3c/M5, R4/R7.
 
-- [ ] Compute paired method effects with run-level uncertainty, resampling matched groups rather than individual adaptive evaluations.
-- [ ] Resolve Reviewer 2's request for paired tests and multiplicity correction. State the comparison family, handle ties/zero differences correctly, and avoid unsupported significance claims; do not manufacture a test for an all-zero endpoint.
-- [ ] Explain that five common initial designs already contain a feasible point. Remove or qualify the first-feasible row and distinguish initialization from post-initialization search without treating a conditional subgroup as an unbiased new benchmark.
-- [ ] Align abstract/conclusion statements with the supported comparisons and distinguish pooled coverage from a typical run.
+- [x] Compute paired method effects with run-level uncertainty, resampling matched groups rather than individual adaptive evaluations.
+- [x] Resolve Reviewer 2's request for paired tests and multiplicity correction. State the comparison family, handle ties/zero differences correctly, and avoid unsupported significance claims; do not manufacture a test for an all-zero endpoint.
+- [x] Explain that five common initial designs already contain a feasible point. Remove or qualify the first-feasible row and distinguish initialization from post-initialization search without treating a conditional subgroup as an unbiased new benchmark.
+- [x] Align abstract/conclusion statements with the supported comparisons and distinguish pooled coverage from a typical run.
 
 **Done when:** Comparative effects have appropriate paired evidence and the first-feasible metric is not credited to acquisition when it arose during shared initialization.
 

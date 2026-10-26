@@ -109,8 +109,8 @@ and cites the official project overview and the prior injector studies:
 - Error analysis, JKPS (2025): https://doi.org/10.1007/s40042-024-01232-2
   (author-institution copy: https://kuacc.korea.ac.kr/bbs/kuacc/993/174430/download.do)
 
-The JINST numerical comparison uses its published summary values and the present primary
-knee representative, not independently pooled objective minima. The JKPS comparison distinguishes
+The JINST numerical comparison distinguishes its abstract summary from the tracked setting in
+section 4.3 and compares the latter with the present primary knee representative. The JKPS comparison distinguishes
 geometric and normalized emittance, different feasibility limits, perturbation channels and
 sample sizes. No matched MOGA benchmark or superior robustness under the JKPS error model
 is claimed. The abstract is qualitative without numerical values; limitations are discussed
@@ -139,3 +139,32 @@ remain counted without invented coordinates. All thresholds and scales come from
 recorded configurations, and joint feasibility is checked against the recorded flags.
 The paper includes the pooled primary and survey panels; the complete companion PDFs
 retain every individual case. Figures 2 and 5 remain scatter-only Pareto views.
+
+## Round1 evidence and paired analyses
+
+The consolidated revision list records completion of C03, C04, C05 and C12, plus the specific
+remaining engineering/calibration/source-evidence items under C01, C02 and C09. The original
+production labels and outputs remain authoritative. New profile filters and quality metrics
+are post hoc, with source hashes, protocols and limitations under `revisions/evidence/`.
+
+Run from the repository root using the production Python environment:
+
+```bash
+python scripts/analyze_revision_acceptance.py
+python docs/paper/revisions/evidence/c02_audit.py
+python docs/paper/revisions/evidence/c05_audit.py
+python scripts/analyze_revision_fronts.py
+python scripts/analyze_revision_pairs.py
+python scripts/generate_primary_paper_table.py --benchmark-dir results/paper_production/04_primary/benchmark
+latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex
+```
+
+C03 must precede C04. The paired analysis checks the C03 source hashes, resamples entire
+matched groups and applies Holm correction to one family of twelve comparisons. Its pointwise
+bootstrap intervals condition on the empirical reference and are not simultaneous intervals.
+The first-feasible table row is omitted because it mixes shared initialization with acquisition.
+The underlying first-feasible records are retained in the JSON and initialization audit.
+
+The new appendix contains metric histories and target-attainment heatmaps. Objective-space
+Pareto plots remain scatter-only. Manuscript source, compact derived analyses and figures are
+versioned; raw simulations, model artifacts and generated LaTeX build products are not added.

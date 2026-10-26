@@ -558,8 +558,11 @@ def test_manuscript_qlognehvi_description_present(project_root):
     content = main_tex.read_text()
     # Should contain the log-expectation form, not just plain EI
     assert r"\log" in content, "main.tex missing log in qLogNEHVI formula."
-    assert "q\\text{LogNEHVI}" in content or r"q\text{LogNEHVI}" in content, (
-        "main.tex missing qLogNEHVI acquisition function label."
+    assert "qLogNEHVI" in content and r"\alpha_{\mathrm{ideal}}" in content, (
+        "Manuscript must distinguish qLogNEHVI from its ideal mathematical target."
+    )
+    assert r"\mathcal{F}(\boldsymbol{\xi},\mathbf{X})" in content, (
+        "The ideal batch criterion must identify the feasible candidate subset."
     )
 
 
