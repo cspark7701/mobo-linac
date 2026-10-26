@@ -1,7 +1,7 @@
 # C09 — Previous numerical-convergence evidence
 
 ## Status
-Partially addressed: the production settings and completed-study author clarification are documented; the cited JINST settings are verified in part, while refinement evidence, exact solver-transition equivalence and residual uncertainty remain unavailable. No new convergence simulations were run or scheduled.
+Closed by explicit author instruction on 2026-10-26, with the unresolved scientific limitations retained. The author closes C09 with the cited JINST resolution correspondence and an explicit absence of a traceable numerical-error bound. No repeat convergence campaign or full solver-equivalence claim is adopted. Closure is administrative scope disposition, not new validation evidence.
 
 ## Identified reference and source boundary
 The author identifies C. Kim et al., JINST 19 (2024) P01023, DOI [10.1088/1748-0221/19/01/P01023](https://doi.org/10.1088/1748-0221/19/01/P01023), as the prior study. Its bibliographic entry `Kim2024KLSMOGA` is already in the manuscript. The actual paper text in [the hosted article copy](https://www.scribd.com/document/883194285/iop-mo), section 4.3, printed page 13, specifies 10,000 macroparticles, 32 radial cells, at most 32 longitudinal cells and mirror charges. These are consistent with the corresponding current settings. This comparison uses the paper body, not the host's AI summary.
@@ -31,7 +31,7 @@ Repeatable outputs from a fixed particle distribution justify treating this pipe
 
 No residual numerical uncertainty is quoted here because a traceable value has not been found. It is not scientifically valid to infer that value from the physical jitter spread, the number of decimal places in ASTRA outputs, the configured GP noise, or a method-to-method difference.
 
-## Required source information to close C09
+## Evidence needed for stronger future claims
 Locate the existing numerical-validation record underlying the author confirmation, with particle/mesh scans and a residual uncertainty estimate, together with enough input settings to establish the remaining solver equivalence. The cited article provides baseline resolution, but no quantitative refinement bound was found there. Then compare those existing uncertainty values with reported method effects and representative constraint margins. No repeat convergence campaign is requested.
 
-The [manuscript snippet](c09_convergence.tex) cites the identified prior injector study and documents the verified resolution correspondence while deliberately not claiming an unverified uncertainty bound or full solver equivalence. C09 remains open until those source details are supplied.
+The [manuscript snippet](c09_convergence.tex) cites the identified prior injector study and documents the verified resolution correspondence while deliberately not claiming an unverified uncertainty bound or full solver equivalence. C09 is closed by scope decision; quantitative accuracy remains unestablished unless those source details become available.

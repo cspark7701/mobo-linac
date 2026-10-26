@@ -1,6 +1,6 @@
 # Reviewer 1 — round1 response draft
 
-**Status:** Partial response covering C01, C02 and C12. Other comments remain tracked in the consolidated revision list; this is not a completed submission response.
+**Status:** Partial response covering C01, C02, C09 and C12. Other comments remain tracked in the consolidated revision list; this is not a completed submission response.
 
 ## Prior work, paper scope and MOGA comparison (C12)
 
@@ -27,3 +27,11 @@ The archived decks use absolute phases with automatic phasing disabled. The manu
 The author has closed this revision item with these limitations explicitly retained. The original validation request is not represented as fulfilled, and reviewer acceptance of this scope decision is not presumed.
 
 **Locations:** Methods and Discussion, Limitations; C02 evidence report and consolidated disposition.
+
+## Numerical-resolution evidence (C09)
+
+The manuscript cites Kim et al., JINST 19 P01023 for the reported particle-count scale, cylindrical grid and image-charge treatment. The inspected publication does not supply a refinement-error bound or establish all current Cartesian/transition settings. We retain the author confirmation of prior convergence work without inventing missing quantitative evidence. No repeat convergence study is undertaken. Numerical uncertainty relative to objective differences or narrow feasibility margins remains unquantified; GP regularization is not an error estimate.
+
+The author has closed this revision item with these limitations explicitly retained. The original validation request is not represented as fulfilled, and reviewer acceptance of this scope decision is not presumed.
+
+**Locations:** Methods and Discussion, Limitations; C09 evidence report and consolidated disposition.
