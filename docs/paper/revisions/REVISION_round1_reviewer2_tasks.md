@@ -162,7 +162,11 @@ rewritten; new campaigns go in new run directories.
 - [ ] Target a length reduction of about 20 %.
 
 ### R15. Document the numerical resolution (minor 16)
-No new simulations are needed; this is a documentation task.
+**Status of the underlying work: already done.** Convergence for the ASTRA settings used here
+was established in the previous study of this injector: 10⁴ macroparticles, a 32×32 r–z
+space-charge grid up to z = 5.25 m, a 32³ 3D grid downstream, and cathode image charge. No
+new convergence simulations are needed. This task only updates the manuscript so that it
+reports the existing validation.
 - [ ] In section 2.1, cite the previous study that established convergence for 10⁴
       macroparticles and the 32×32 / 32³ space-charge grid, and state that the present settings
       are identical.
