@@ -159,14 +159,16 @@ These are proposed response dispositions consistent with the author's instructio
 
 ### C08. Explain the accelerator settings and trade-off mechanisms
 
+**Status:** Completed within existing-evidence scope; [C08 report](evidence/c08_report.md) supplies source moments, full representative settings, geometry, trajectories and constraint activity. Generator provenance and isolated causal mechanisms are explicitly unestablished.
+
 **Sources:** Reviewer 1 M2/M5/M6, R1/R6/R8; Reviewer 2 M4/R6 and minor 14/R14.
 
-- [ ] Describe source spatial/temporal distributions, charge, intrinsic-emittance/momentum assumptions and distribution-generation/diagnostic conventions.
-- [ ] Give complete parameter vectors, objectives and margins for reproducibly identified compromises and extremes; compare with an evaluated nominal reference where available.
-- [ ] Explain horizontal/vertical emittance asymmetry and phasing effects using existing trajectories, source checks and sensitivity evidence. GP ARD lengths are surrogate diagnostics, not causal proof by themselves.
-- [ ] Check actual quadrupole positions before adopting Reviewer 2's conditional downstream-of-linac explanation. Add geometry in the schematic or an appendix instead of restoring the sentence the author removed.
-- [ ] Plan isolated diagnostic counterfactuals only where existing evidence is insufficient. Changes such as quadrupoles off or altered solver transition are labelled mechanism studies, not replacements for production physics or a new mandatory resolution study.
-- [ ] State which constraints were inactive in the observed sample, without asserting they are inactive throughout the whole design domain, and clarify representative uniqueness and selection.
+- [x] Describe source spatial/temporal distributions, charge, intrinsic-emittance/momentum assumptions and distribution-generation/diagnostic conventions.
+- [x] Give complete parameter vectors, objectives and margins for reproducibly identified compromises and extremes; compare with an evaluated nominal reference where available.
+- [x] Explain horizontal/vertical emittance asymmetry and phasing effects using existing trajectories, source checks and sensitivity evidence. GP ARD lengths are surrogate diagnostics, not causal proof by themselves.
+- [x] Check actual quadrupole positions before adopting Reviewer 2's conditional downstream-of-linac explanation. Add geometry in the schematic or an appendix instead of restoring the sentence the author removed.
+- [x] Plan isolated diagnostic counterfactuals only where existing evidence is insufficient. Changes such as quadrupoles off or altered solver transition are labelled mechanism studies, not replacements for production physics or a new mandatory resolution study.
+- [x] State which constraints were inactive in the observed sample, without asserting they are inactive throughout the whole design domain, and clarify representative uniqueness and selection.
 
 **Done when:** The optimized settings have an engineering interpretation supported by simulation evidence, not only an objective-space label. Nominal-rerun verification tables/figures need not be restored.
 

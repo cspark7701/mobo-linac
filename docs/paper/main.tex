@@ -187,6 +187,19 @@ Keeping the initial distribution fixed also makes the present search a study of 
 for a specified source condition; the separate perturbation assessment changes lattice parameters
 while retaining that source distribution.
 
+The retained cathode file has six probe records in addition to the reference and ordinary
+particles. Excluding the reference and probes for source characterization gives RMS transverse
+sizes of \SI{0.483}{\milli\metre} in both planes and an RMS emission-time width of
+\SI{2.551}{\pico\second}. The corresponding Gaussian-equivalent FWHM is
+\SI{6.008}{\pico\second}; this conversion does not establish the distribution's functional
+form. Ordinary-particle radii extend to \SI{0.9995}{\milli\metre}. Their transverse
+momentum moments imply initial normalized RMS emittances of approximately
+\SI{0.427}{\micro\metre\radian} in each plane, with nearly monoenergetic
+\SI{0.600}{\electronvolt} initial kinetic energy. These are properties measured from the
+fixed file, not a verified cathode-temperature model. The original generator recipe and
+cathode material are not established by the retained input, so we do not equate this source
+with the published study's laser specification merely because their durations are similar.
+
 % C09: verified resolution correspondence; quantitative refinement error remains unresolved.
 The injector model builds on the earlier study of Kim et al.~\cite{Kim2024KLSMOGA}, whose
 section 4.3 reports \num{10000} macroparticles, 32 radial and at most 32 longitudinal
@@ -765,6 +778,40 @@ must therefore be interpreted with these unequal budgets in mind.}
 \end{figure}
 
 \FloatBarrier
+\subsection{Interpretation of selected settings}
+\label{sec:settings}
+Appendix~\ref{app:settings} gives the complete controls and objectives of the six distinct
+settings selected from the primary constraint-aware front. The horizontal-emittance extreme
+has \SI{2.8061}{\micro\metre\radian} horizontal and \SI{6.8492}{\micro\metre\radian}
+vertical emittance, whereas the energy-spread extreme trades larger, nearly equal emittances
+for \SI{0.36286}{\mega\electronvolt} spread. These roles describe different compromises
+within one selected front; they are not six independently optimized operational modes. No
+primary observation exactly matches the nominal input vector, so a measured improvement
+relative to that nominal lattice is not claimed.
+
+The quadrupole centers are at \SI{8.70046}{\metre} and \SI{12.50092}{\metre}, each with
+\SI{0.065}{\metre} effective length. They lie between ACC2/ACC3 and ACC3/ACC4,
+respectively, rather than after the complete linac. For the horizontal-emittance extreme,
+the saved normalized emittances are nearly equal near \SI{5.2}{\metre}
+(\SI{3.2985}{\micro\metre\radian} and \SI{3.3001}{\micro\metre\radian}), but are
+\SI{2.9298}{\micro\metre\radian} and \SI{4.1003}{\micro\metre\radian} near
+\SI{12.4}{\metre}. The initially similar source moments and growing downstream asymmetry
+are consistent with differing transport through the quadrupole lattice. They do not isolate
+quadrupole chromaticity, solenoid coupling, space charge or numerical effects as the cause;
+ideal uncoupled linear focusing alone is not an emittance-growth explanation. Such causal
+attribution would require controlled diagnostic calculations and is not claimed here.
+
+The energy-spread objective is the projected RMS spread of the full tracked bunch from
+ASTRA's longitudinal moment output, including correlated chirp. It is neither a slice spread
+nor a dechirped value. The horizontal-emittance extreme has a longitudinal position--energy
+correlation of approximately $-0.968$ at the exit, showing that correlation contributes to
+its spread. RF phases and upstream focusing vary together across selected points, so their
+trade-offs cannot be attributed to a single phase control from these observations alone.
+Finally, transmission is unity throughout the primary sample, and the largest mean energy is
+\SI{201.41}{\mega\electronvolt}, below the production upper bound. These two inequalities
+are unviolated in the observed sample, while each other inequality is violated at least once;
+this does not remove any required diagnostic or establish inactivity throughout the domain.
+
 \subsection{Robustness to lattice jitter}
 \label{sec:robustness_results}
 Table~\ref{tab:robustness_summary} reports the lattice-jitter statistics of the six representatives
@@ -931,6 +978,9 @@ objective coordinates. Colors give the fraction of runs with a feasible point we
 the relaxed target. Targets and relaxations are post-hoc analysis conventions.}
 \label{fig:revision_attainment}
 \end{figure}
+\FloatBarrier
+
+\input{revisions/evidence/c08_settings}
 \FloatBarrier
 
 \bibliographystyle{JHEP}

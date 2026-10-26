@@ -35,3 +35,9 @@ The manuscript cites Kim et al., JINST 19 P01023 for the reported particle-count
 The author has closed this revision item with these limitations explicitly retained. The original validation request is not represented as fulfilled, and reviewer acceptance of this scope decision is not presumed.
 
 **Locations:** Methods and Discussion, Limitations; C09 evidence report and consolidated disposition.
+
+## Source, geometry and operating-setting interpretation (C08)
+
+We characterize the actual retained source file rather than assuming an undocumented generator model, and provide complete representative controls, objectives and all constraint margins. Both quadrupoles lie between accelerating structures. Saved trajectories show downstream growth of transverse asymmetry from nearly symmetric source moments, but cannot isolate chromatic, coupling, space-charge or discretization mechanisms. The projected energy spread includes chirp. Transmission and the upper energy bound were unviolated in the sample; neither is removed from validation. No measured nominal-lattice improvement or causal mechanism claim is made. Missing source-generation provenance and the need for controlled calculations for stronger causal claims remain explicit.
+
+**Locations:** Beamline and simulation; Interpretation of selected settings; Selected operating settings appendix; C08 supporting records.
