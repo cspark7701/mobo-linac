@@ -17,6 +17,12 @@ The reviewer documents assess manuscript revision `fe459f2`; this consolidation 
 
 All consolidated tasks below remain open unless a status explicitly refers to completed underlying work. P0 identifies central scientific revisions, P1 supporting scientific analysis/documentation, and P2 presentation or response preparation. Work categories distinguish analysis of existing records, manuscript changes and conditional new tracking.
 
+## Author-defined scope: MOBO, with published MOGA context
+
+The author has confirmed that the MOGA simulation study has already been completed and published. This paper focuses on MOBO, with constraint-aware and unconstrained multi-objective BO compared against scalarized BO. **No new MOGA/NSGA-II optimization campaigns, larger-budget MOGA baselines or new ASTRA reevaluations of published MOGA settings are included in this revision plan.** Published MOGA results and any compatible evidence already available may be discussed as literature context; they do not form a new matched benchmark.
+
+C12 requires an explicit statement of this scope in the manuscript Introduction. The response letters must explain why the reviewers' requests for new MOGA simulations are not adopted, without claiming that the requested simulations were performed or that reviewers have already accepted the scope decision. Other BO, space-filling and robustness calculations remain proposed tasks, not runs authorized by this document.
+
 ## Preserve the evidence and resolve conflicting requests explicitly
 
 Keep the original campaign outputs, physical validation, seeds, budgets, precision, provenance, feasibility labels and reporting reference immutable. New classifications and post-hoc metrics belong in separate derived outputs; changed methods, domains or error models require separately identified runs. Do not replace historical results with outcomes from a method that was not actually run, discard awkward Pareto points, reduce physical validation or change physics merely to pass a gate.
@@ -25,7 +31,8 @@ Keep the original campaign outputs, physical validation, seeds, budgets, precisi
 |---|---|---|
 | Numerical convergence | Reviewer 1 originally requested new resolution calculations; Reviewer 2 withdrew that request after author clarification. | Underlying study completed. Document the existing evidence under C09; do not schedule another convergence campaign. |
 | Hypervolume | Reviewer 1 emphasizes reference-point-independent set comparisons; Reviewer 2 also requests post-hoc HV and sensitivity. | C03 retains both analysis requests, with new metadata and clear post-hoc labels. Preserve the original endpoint. Do not automatically restore the repetitive zero-HV panels removed by the author; decide main-text versus supporting placement from the usefulness of the new analysis. |
-| Corrected acquisition and new baselines | Reviewer 2 explicitly requests reruns/new arms; Reviewer 1 permits narrower claims in some cases. | C06–C07 retain the stronger requests and a claim-scope decision. Analysis or narrower wording must not be presented as reviewer agreement to omit requested runs. New performance claims for changed methods require new evidence. |
+| Corrected acquisition and new baselines | Reviewer 2 explicitly requests reruns/new arms; Reviewer 1 permits narrower claims in some cases. | C06–C07 retain the BO and space-filling baseline requests. New MOGA/NSGA-II simulations are excluded by the author-defined scope, and that non-adoption must be explained in the response. New performance claims for changed BO methods still require new evidence. |
+| MOGA comparison | Reviewer 2 requests new NSGA-II/MOGA benchmarks and reevaluation of a published MOGA setting. | The MOGA study is already published. Cite and discuss those results only; do not schedule new MOGA-related tracking. State the MOBO focus in the manuscript and explain this scope decision to the reviewers. |
 | Robustness scope | Reviewer 2 requests broader errors; Reviewer 1 accepts a restricted claim with explicit limits. | C10 separates improvements possible from current records from the proposed expanded tests. Broader tests remain an unresolved request unless completed or addressed by a reasoned response. |
 | Numbers in the abstract | Reviewer 2 requests jitter amplitudes/sample counts; the author explicitly wants no numbers in the abstract. | Keep the abstract qualitative and place quantitative conditions in Methods/Results/captions. Qualify or remove unsupported abstract claims. Explain this response rather than silently ignoring the request. |
 | Absolute runtime and seed values | Reviewer 2 requests explicit values; the author excludes them from the main text. | C13 uses relative cost ratios and overhead analysis. Stable run identities and seed mappings remain in the reproducibility manifest. |
@@ -44,12 +51,12 @@ These are proposed response dispositions consistent with the author's instructio
 | C04 | P1 | Paired statistical inference and initialization | Existing histories | C03 |
 | C05 | P0 | Acquisition equation, effective noise and reference audit | Code/configuration/checkpoint analysis | None |
 | C06 | P0 | Constraint-smoothing sensitivity and revised-method evidence | Offline analysis; conditional new campaigns | C05; C01–C02 for any new domain |
-| C07 | P0 | Fair baselines and claim scope | Protocol decision; conditional new campaigns | C01–C02, C05–C06 |
+| C07 | P0 | Fair BO and space-filling baselines | Protocol decision; conditional new BO/control campaigns | C01–C02, C05–C06 |
 | C08 | P1 | Optimized settings, source description and beam physics | Existing diagnostics; conditional targeted studies | C01–C02 |
 | C09 | P1 | Cite and report completed numerical convergence | Documentation; underlying study already done | Existing study/source supplied |
 | C10 | P0 | Robustness uncertainty, score and proposed error extensions | Existing records; conditional expanded tracking | C01, C08; protocol before new tests |
 | C11 | P1 | Surrogate validation and constant-channel handling | Existing models and observations | C05 |
-| C12 | P0 | Novelty and previous BO/MOGA comparison | Literature/record analysis; conditional reevaluation | C01–C02, C08 |
+| C12 | P0 | MOBO scope and published MOGA context | Manuscript and literature/available-record analysis only | C01–C02, C08 |
 | C13 | P1 | Reproducibility and relative computational cost | Existing metadata and timings | C05, C07 |
 | C14 | P2 | Scientific tables and units | Presentation/generator changes | C01, C03, C10 |
 | C15 | P2 | Consistent figures and survey placement | Presentation/generator changes | C03, C08, C10 |
@@ -128,17 +135,17 @@ These are proposed response dispositions consistent with the author's instructio
 
 **Done when:** Scaling and interpretation are defensible, and every performance claim about a revised method has corresponding new evaluation evidence. Do not relabel historical outcomes as corrected-method results.
 
-### C07. Define and evaluate the necessary matched baselines
+### C07. Define and evaluate the necessary BO and space-filling baselines
 
 **Sources:** Reviewer 1 M4/R7; Reviewer 2 M3b/R4.
 
 - [ ] Specify a comparison matrix separating constraint awareness from multi-objective acquisition and fixing domain, initial design, total budget, batch size, fidelity and evaluation accounting.
 - [ ] Address the requested constrained scalarized qLogNEI baseline and matched Sobol/random-search control.
 - [ ] Limit the balanced scalarized baseline to that specified weighting, or add an equal-total-budget multiweight allocation. The five-times-larger survey is not the matched control.
-- [ ] Resolve the NSGA-II/MOGA request: a matched low-budget comparison and a separately identified larger-budget arm require a defined protocol; if omitted, remove unsupported GA-efficiency claims and explain the non-adoption.
+- [ ] Record the author decision excluding new MOGA/NSGA-II runs, including low-budget and larger-budget benchmark arms. Remove unsupported claims of a newly demonstrated MOGA speedup or superiority and explain the non-adoption in the reviewer responses.
 - [ ] Decide which historical arms remain comparable after any domain, model or physics changes. Do not pair results from incompatible problem definitions merely because their seed labels match.
 
-**Done when:** The revised claim scope and baseline evidence answer the distinct reviewer requests. New campaigns are planned and identified separately; consolidation itself launches none.
+**Done when:** The BO comparison and any adopted space-filling controls have appropriate matched evidence, and the response explains the exclusion of MOGA simulations. No matched MOGA performance claim is made from a literature-only comparison. Any new BO/control campaigns are separately planned; this document launches none.
 
 ### C08. Explain the accelerator settings and trade-off mechanisms
 
@@ -190,16 +197,25 @@ These are proposed response dispositions consistent with the author's instructio
 
 **Done when:** A reproducible diagnostics summary supports the surrogate interpretation and identifies unassessed calibration. This is model validation, not a request to repeat the completed ASTRA convergence study.
 
-### C12. Establish novelty and compare previous BO/MOGA results fairly
+### C12. State the MOBO scope and use published MOGA results as context
 
-**Sources:** Reviewer 1 M4/R7 and minor 5; Reviewer 2 M7/R8 and minor 9.
+**Sources:** Reviewer 1 M4/R7 and minor 5; Reviewer 2 M7/R8 and minor 9; subsequent author decision excluding MOGA simulations.
 
-- [ ] Cite the published NAPAC2025 WECN03 BO/MOGA work and distinguish its controls, objective conventions, requirements and contribution from the present study. It is not an ICABU proceeding.
-- [ ] Verify JINST values against the full article's tracked setting and identify which reported quantities are being compared.
-- [ ] Obtain the published MOGA settings where available and address Reviewer 2's requested present-model reevaluation. Map independent versus paired RF controls explicitly; do not average, clip or silently project an unrepresentable setting into the current domain.
-- [ ] If a setting cannot be reproduced, report the missing information or incompatibility. Explain the energy-spread difference without claiming a mechanism or algorithm advantage not established by the evidence.
+**Scope decision:** The earlier MOGA simulation study is complete and published. No new MOGA/NSGA-II campaigns or MOGA-setting reevaluation runs are required or scheduled. Manuscript and literature work remain pending.
 
-**Done when:** The application/methodological contribution is explicit and cross-paper comparisons do not confuse different problems, coordinate extrema or source models.
+- [ ] State explicitly in the Introduction that the present study focuses on MOBO, comparing its constraint-aware and unconstrained variants with scalarized BO, building on the previously published MOGA injector study.
+- [ ] Cite the JINST MOGA optimization and JKPS error-analysis papers, and retain the separate published NAPAC2025 WECN03 BO/MOGA work when positioning the BO contribution. Do not confuse the NAPAC paper with the ICABU presentations.
+- [ ] Verify the previously published values and comparison conditions from the literature or existing records, including controls, source model, objective definitions and acceptance limits. Do not perform fresh ASTRA tracking for this MOGA comparison.
+- [ ] Interpret cross-paper differences as contextual trade-offs, with explicit differences in conditions. Do not claim matched-budget MOGA superiority, speedup or new reproduction of the published optimum.
+- [ ] Explain the exclusion of the requested new MOGA benchmarks and published-setting reevaluation in both response letters. Preserve the original reviewer requests as records; mark their simulation branches not adopted under the author-defined paper scope.
+
+Suggested manuscript wording for the revision:
+
+> The injector-linac design has previously been optimized using MOGA, and its error sensitivity has been examined in a separate published study. The present work focuses on multi-objective Bayesian optimization, comparing constraint-aware and unconstrained multi-objective BO with scalarized BO. The published MOGA results provide design context for interpreting the observed trade-offs.
+
+Add the appropriate existing JINST and JKPS citations to this passage when editing the manuscript.
+
+**Done when:** The manuscript clearly states the MOBO focus, accurately cites the completed MOGA work and limits the MOGA comparison to published or already available evidence. The revision queue contains no new MOGA-related simulation work, and the responses give the reasoned non-adoption.
 
 ### C13. Substantiate reproducibility and relative cost
 
@@ -255,7 +271,7 @@ These are proposed response dispositions consistent with the author's instructio
 **Sources:** Both reports; Reviewer 1 R12; Reviewer 2 R17.
 
 - [ ] Prepare `reviewer1_round1_response.md` and `reviewer2_round1_response.md` under `docs/paper/reviews/`, mapping every major/minor comment to C tasks, manuscript changes, evidence or a reasoned non-adoption.
-- [ ] Include the completed-convergence clarification in the response to the older Reviewer 1 request. Do not imply that Reviewer 2's broader robustness/baseline requests were withdrawn when they were not.
+- [ ] Include the completed-convergence clarification in the response to the older Reviewer 1 request. Explain the author decision not to adopt Reviewer 2's new MOGA/NSGA-II benchmarks and MOGA-setting reevaluation because the current paper focuses on MOBO and the MOGA work is already published. Do not imply reviewer withdrawal or agreement; other BO/broader-robustness requests remain separately open.
 - [ ] Produce the requested revision diff against the reviewed manuscript baseline, separating new code/results from narrative edits.
 - [ ] Regenerate affected assets, build JINST, inspect the PDF and run focused checks after artifact generation finishes. Verify preserved historical evidence and traceability of new derived outputs and simulation variants.
 
@@ -285,11 +301,11 @@ The mappings below retain every original task group. A mapping records where a r
 | R1 | C03, C04, C15 |
 | R2 | C05, C06 |
 | R3 | C02 |
-| R4 | C04, C07 |
+| R4 | C04, C07; MOGA/NSGA-II simulation branch not adopted |
 | R5 | C10, C16 |
 | R6 | C01, C08, C15 |
 | R7 | C04 |
-| R8 | C12 |
+| R8 | C12; new MOGA-setting reevaluation not adopted |
 | R9 | C13, C16 |
 | R10 | C05 |
 | R11 | C14 |
@@ -304,5 +320,5 @@ The mappings below retain every original task group. A mapping records where a r
 
 1. Establish the physical definitions, recorded-method audit and prior-work context: C01, C02, C05, C09, C12.
 2. Complete analysis possible from existing histories/models: C03, C04, C08, C10's statistical/score audit, C11 and C13. Freeze any new metric/experiment protocols before interpreting comparative results.
-3. Resolve the claim-scope decisions and undertake only the justified, separately planned additions under C02, C06, C07, C08, C10 or C12. Do not rerun the completed convergence study.
+3. Resolve the remaining BO/validation scope decisions and undertake only justified, separately planned additions under C02, C06, C07, C08 or C10. Do not run new MOGA/NSGA-II simulations or published-MOGA-setting reevaluations, and do not rerun the completed convergence study. C12 is manuscript/literature work only.
 4. Integrate the results, revise tables/figures/prose under C14–C16 and finish both point-by-point responses under C17.
