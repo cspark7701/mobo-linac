@@ -769,7 +769,7 @@ def test_custom_objective_figures_keep_recorded_units_and_close_figures(tmp_path
 def test_revision_front_matter_and_author_deferred_content(project_root):
     import re
     text=(project_root / "docs/paper/main.tex").read_text()
-    abstract=text.split(r"\abstract{",1)[1].split(r"\keywords",1)[0]
+    abstract=text.split(r"\begin{abstract}",1)[1].split(r"\end{abstract}",1)[0]
     assert not re.search(r"\d|\b(one|two|three|four|five|six|seven|eight|nine|ten|fifty)\b",abstract,re.I)
     assert r"\finalfalse" in text
     assert "Funding and acknowledgments to be supplied by the author." in text

@@ -1,4 +1,4 @@
-% Manuscript prepared with the official JINST jinstpub package and JHEP bibliography style.
+% Generic article manuscript with keywords, contents and numbered references.
 %
 % Results are produced by scripts/production/01_preflight.sh ... 07_paper_outputs.sh.
 % Campaign values are generated from the completed October 2026 production runs.
@@ -8,13 +8,17 @@
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage{jinstpub}
+\usepackage[margin=25mm]{geometry}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage[numbers,sort&compress]{natbib}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{xcolor}
 \usepackage{siunitx}
 \usepackage{lineno}
 \usepackage{placeins}
+\usepackage[hidelinks]{hyperref}
 
 \newif\iffinal
 \finalfalse
@@ -38,14 +42,17 @@
 
 \title{Multi-objective Bayesian optimization of a \SI{200}{\mega\electronvolt} electron injector linac for the Korea Light Source}
 
-\author{Chong Shik Park}
-\affiliation{Department of Accelerator Science, Korea University,\\
-Sejong 30019, Republic of Korea}
-\affiliation{Center for Accelerator Research, Korea University,\\
-Sejong 30019, Republic of Korea}
-\emailAdd{kuphy@korea.ac.kr}
+\author{Chong Shik Park\\[0.5em]
+\small Department of Accelerator Science, Korea University\\
+\small Center for Accelerator Research, Korea University\\
+\small Sejong 30019, Republic of Korea\\
+\small \href{mailto:kuphy@korea.ac.kr}{kuphy@korea.ac.kr}}
+\date{}
 
-\abstract{
+\begin{document}
+\maketitle
+
+\begin{abstract}
 Optimization of an electron injector linac requires balancing transverse beam emittances and
 energy spread while satisfying beam transport and transmission constraints. We investigate
 Bayesian optimization of the S-band injector-linac model developed for the Korea Light Source
@@ -60,14 +67,16 @@ Objective-quality comparisons depend on the indicator and comparator. A survey o
 scalarization weightings explores additional trade-offs, and a limited lattice-jitter assessment
 retains feasibility for the selected operating points. The results demonstrate the use of
 constraint-aware Bayesian optimization to identify feasible injector-linac settings and map
-beam-quality trade-offs within the stated injector model and acceptance profile.}
+beam-quality trade-offs within the stated injector model and acceptance profile.
+\end{abstract}
 
-\keywords{Beam dynamics, Accelerator modelling and simulations, Multi-Objective Bayesian Optimization}
-\notoc
+\noindent\textbf{Keywords:} Beam dynamics; Accelerator modelling and simulations;
+Multi-Objective Bayesian Optimization
 
-\begin{document}
-\maketitle
-\flushbottom
+\clearpage
+\tableofcontents
+\clearpage
+\raggedbottom
 
 %==========================================================================================
 \section{Introduction}
@@ -985,7 +994,8 @@ a validated distribution generator, distribute the simulations across compute no
 optimized settings on the machine.
 
 %==========================================================================================
-\acknowledgments
+\section*{Acknowledgments}
+\addcontentsline{toc}{section}{Acknowledgments}
 \pending{Funding and acknowledgments to be supplied by the author.}
 
 \appendix
@@ -1087,7 +1097,10 @@ transverse units; the constant-transmission annotation retains that required dia
 \input{revisions/evidence/c08_settings}
 \FloatBarrier
 
-\bibliographystyle{JHEP}
+\clearpage
+\phantomsection
+\addcontentsline{toc}{section}{References}
+\bibliographystyle{unsrtnat}
 \bibliography{references}
 
 \end{document}

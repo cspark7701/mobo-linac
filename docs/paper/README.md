@@ -69,12 +69,14 @@ latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex
 Do not edit generated tables to change observations. The main text still requires author
 completion of funding and acknowledgments before submission.
 
-## Journal and figure presentation
+## Manuscript and figure presentation
 
-The manuscript uses the official JINST `jinstpub.sty` package and `JHEP.bst`,
-vendored unchanged from the publisher for reproducible builds:
-https://jinst.sissa.it/jinst/help/JINST_TeXclass.jsp
-The style files retain their upstream licensing headers.
+The manuscript uses a generic LaTeX `article` layout with 25 mm margins, separate
+affiliation lines, an abstract, keywords and a linked table of contents. Numbered
+citations use `natbib` with the standard `unsrtnat` bibliography style. The historical
+publisher files `jinstpub.sty` and `JHEP.bst` remain available but are not loaded.
+Build with `latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex`
+from the repository root; repeated passes resolve the contents and references.
 
 The primary and survey Pareto panels are scatter-only and keep every measured feasible
 three-objective nondominated observation. No connecting lines, interpolation, or fitted
