@@ -98,3 +98,16 @@ MOGA-derived setting under either profile is not yet known.
 5. If a real MOGA comparison is wanted later, the NSGA-II code would first need its I/O bug
    and mutation typo fixed, and its problem redefined to match the present domain, fields and
    constraints. That would be a new campaign, not reuse.
+
+## Outcome of the authorized re-evaluation (2026-10-27, task C2-07)
+- **Single re-evaluation** (`results/revision_round2/references/moga_nominal/`, production pipeline):
+  - reproduced the notebook values exactly: (3.4728, 3.2968) µm·rad, 0.39419 MeV, 200.19 MeV, transmission 1;
+  - the stored output that stopped at 15.727 m is now superseded by a complete exit-plane evaluation.
+- **Feasibility of the nominal setting:**
+  - feasible under the production and NAPAC profiles;
+  - fails the TDR optimization requirements only in vertical divergence (0.2690 against 0.2663 mrad).
+- **Comparison with the primary runs:** no feasible observation of any primary run dominates the setting. The median additive epsilon to it is 0.039 (constraint-aware), 0.195 (unconstrained) and 0.134 (scalarized). Evidence: `evidence/r2_moga_reference_comparison.csv`.
+- **Lattice jitter** (50 trials, common seed 42):
+  - all 50 trials are production-feasible, with D = 1.030;
+  - 12 of 50 meet the TDR inequalities.
+  - Evidence: `evidence/r2_moga_jitter_summary.csv` and `evidence/r2_moga_jitter_trials.csv`.

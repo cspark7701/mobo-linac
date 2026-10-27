@@ -57,18 +57,30 @@ def limits(fronts, schema):
     return list(zip(low - pad, high + pad))
 
 
-def paper_comparison(fronts, schema):
-    """Readable portrait panels for a manuscript; all observed points stay visible."""
+def paper_comparison(fronts, schema, reference=None):
+    """Readable portrait panels for a manuscript; all observed points stay visible.
+
+    ``reference`` optionally marks one measured setting, ``{"label": ..., "objectives": {column: SI value}}``.
+    """
     fig, axes = plt.subplots(3, 1, figsize=(6.5, 8.5), layout="constrained")
     bounds = limits(fronts, schema)
+    point = None
+    if reference is not None:
+        point = np.array([reference["objectives"][s.column] / s.scale for s in schema.objectives])
     for ax, pair, letter in zip(axes, combinations(range(3), 2), "abc"):
         draw(ax, fronts, schema, pair=pair, bounds=bounds)
+        if point is not None:
+            ax.scatter(point[pair[0]], point[pair[1]], marker="*", s=190, color="black",
+                       edgecolors="white", linewidths=.6, zorder=5)
         ax.set_title(f"({letter})", loc="left", fontsize=11)
         ax.set_axisbelow(True)
         ax.grid(visible=True, which="major", axis="both", color="0.65",
                 linestyle="--", linewidth=.65, alpha=.85)
     handles = [Line2D([], [], linestyle="", color=color, marker=marker, label=label)
                for label, (color, marker) in zip(LABELS, STYLES)]
+    if point is not None:
+        handles.append(Line2D([], [], linestyle="", color="black", marker="*", markersize=11,
+                              label=reference["label"]))
     axes[0].legend(handles=handles, fontsize=8, loc="best")
     return fig
 
@@ -165,7 +177,7 @@ def small_multiples(groups, schema, path, title, notes, columns):
     plt.close(fig)
 
 
-def generate(root, output, two_d=False, paper_dir=None):
+def generate(root, output, two_d=False, paper_dir=None, reference=None):
     if output.exists() and any(output.iterdir()):
         raise FileExistsError("Select a fresh comparison directory; existing outputs are preserved")
     manifest = pd.read_csv(root / "04_primary/benchmark/campaign_manifest.csv")
@@ -256,7 +268,7 @@ def generate(root, output, two_d=False, paper_dir=None):
     if paper_dir is not None:
         paper_dir.mkdir(parents=True, exist_ok=True)
         for name, fronts in [("primary_pareto_points", pooled), ("survey_pareto_points", pooled_survey)]:
-            fig = paper_comparison(fronts, schema)
+            fig = paper_comparison(fronts, schema, reference if name == "primary_pareto_points" else None)
             fig.savefig(paper_dir / f"{name}.pdf")
             fig.savefig(paper_dir / f"{name}.png", dpi=200)
             plt.close(fig)
@@ -280,5 +292,11 @@ if __name__ == "__main__":
     parser.add_argument("--output-dir", type=Path, required=True)
     parser.add_argument("--two-d", action="store_true", help="Only 2D objective pairs; omit every 3D axis")
     parser.add_argument("--paper-dir", type=Path, help="Also export portrait manuscript panels to this figure directory")
+    parser.add_argument("--reference-json", type=Path,
+                        help="Mark a measured reference setting (moga_reference.json) in the primary manuscript panels")
     args = parser.parse_args()
-    generate(args.production_root, args.output_dir, two_d=args.two_d, paper_dir=args.paper_dir)
+    reference = None
+    if args.reference_json is not None:
+        record = json.loads(args.reference_json.read_text())
+        reference = {"label": "MOGA-derived nominal", "objectives": record["objectives"]}
+    generate(args.production_root, args.output_dir, two_d=args.two_d, paper_dir=args.paper_dir, reference=reference)

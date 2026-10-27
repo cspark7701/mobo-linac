@@ -236,8 +236,12 @@ and constraint diagnostics are evaluated at the exit plane. Component symbols ar
 The six design variables (table~\ref{tab:variables}) are the solenoid peak field $B_\mathrm{sol}$,
 the two quadrupole gradients $G_{q1}$ and $G_{q2}$, the gun phase $\phi_\mathrm{gun}$ and two
 common phases, $\phi_\mathrm{acc1/2}$ applied to ACC1 and ACC2 and $\phi_\mathrm{acc3/4}$ applied to
-ACC3 and ACC4. Magnetic settings may vary by \SI{\pm50}{\percent} around the
-nominal machine setting. The RF inputs are absolute wave phases at the start of tracking because automatic phasing is
+ACC3 and ACC4. The nominal machine setting is a MOGA-derived operating point from the earlier
+injector work, adapted to the present field amplitudes. Its ASTRA deck is identical to the
+template used here, but it is not the tracked solution published in
+ref.~\cite{Kim2024KLSMOGA}, which used a different gun field, cavity gradients, phase ranges
+and constraints. Magnetic settings may vary by \SI{\pm50}{\percent} around this
+nominal setting. The RF inputs are absolute wave phases at the start of tracking because automatic phasing is
 switched off~\cite{Floettmann2017Astra}. They are not calibrated off-crest angles. The recorded
 gun-phase interval is \SIrange{32.0625}{39.1875}{\degree}; the common ACC1/ACC2 phase spans
 \SIrange{-43.4599}{-35.5581}{\degree}, and the common ACC3/ACC4 phase spans
@@ -702,7 +706,8 @@ an apparently better two-dimensional projection establishes superiority across a
 \caption{Primary comparison: pairwise projections of the pooled feasible three-objective
 nondominated sets, using ten runs of 160 simulations per method. Markers are evaluated ASTRA
 settings. Smaller objective values are preferred. All feasible three-objective trade-offs are
-retained, including points that appear dominated in a two-dimensional projection.}
+retained, including points that appear dominated in a two-dimensional projection. The star
+marks the re-evaluated MOGA-derived nominal setting (section~\ref{sec:moga_reference}).}
 \label{fig:primary_pareto}
 \end{figure}
 
@@ -846,7 +851,8 @@ Filled markers pass all constraints, while open markers fail at least one channe
 shaded projection alone does not imply joint feasibility. Colors and marker shapes identify
 algorithms; full-range panels retain all measured coordinates and insets show the transverse
 acceptance region in the same units. Constant transmission is stated in the annotation rather
-than repeated as an empty scatter panel.}
+than repeated as an empty scatter panel. The star marks the re-evaluated MOGA-derived nominal
+setting.}
 \label{fig:primary_constraints}
 \end{figure}
 
@@ -914,9 +920,9 @@ settings selected from the primary constraint-aware front. The horizontal-emitta
 has \SI{2.8061}{\micro\metre\radian} horizontal and \SI{6.8492}{\micro\metre\radian}
 vertical emittance, whereas the energy-spread extreme trades larger, nearly equal emittances
 for \SI{0.36286}{\mega\electronvolt} spread. These roles describe different compromises
-within one selected front; they are not six independently optimized operational modes. No
-primary observation exactly matches the nominal input vector, so a measured improvement
-relative to that nominal lattice is not claimed.
+within one selected front; they are not six independently optimized operational modes. The
+nominal setting itself was re-evaluated separately and is compared with these fronts in
+section~\ref{sec:moga_reference}.
 
 The quadrupole centers are at \SI{8.70046}{\metre} and \SI{12.50092}{\metre}, each with
 \SI{0.065}{\metre} effective length. They lie between ACC2/ACC3 and ACC3/ACC4,
@@ -966,6 +972,37 @@ original production profile, not certification against all TDR specifications.
 \IfFileExists{robustness_table.tex}{\input{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
 robustness of the representatives.}{tab:robustness_summary}}
 
+\subsection{The MOGA-derived nominal setting as a reference point}
+\label{sec:moga_reference}
+The nominal setting at the centre of the search domain was re-evaluated once with the
+production pipeline. The run reproduced the values previously recorded for the same deck,
+with $(\enx,\eny,\sigma_E)=(\SI{3.4728}{\micro\metre\radian},\
+\SI{3.2968}{\micro\metre\radian},\ \SI{0.39419}{\mega\electronvolt})$ at
+\SI{200.19}{\mega\electronvolt} and full transmission. It satisfies all eight production
+inequalities and the NAPAC profile. Against the TDR optimization requirements it fails only the
+vertical divergence, with \SI{0.2690}{\milli\radian} against \SI{0.2663}{\milli\radian}.
+
+No feasible observation of any primary run Pareto-dominates this setting. The searches found
+feasible settings with smaller horizontal emittance (247, 40 and 42 observations for the
+constraint-aware, unconstrained and scalarized pipelines), smaller vertical emittance (65, 8
+and 9) or smaller energy spread (67, 32 and 10), but none improved all three objectives
+simultaneously. The additive epsilon by which a run's feasible front must be relaxed to weakly
+dominate the setting had medians of 0.039, 0.195 and 0.134 in the normalized units, with
+ranges 0.003--0.088, 0.025--0.634 and 0.024--0.293. The constraint-aware fronts therefore came
+closest to this reference, but within 160 evaluations no pipeline exceeded it. The empirical
+fronts map trade-offs around the earlier operating point; they do not demonstrate an
+improvement on it.
+
+Under the same lattice-jitter protocol as the representatives, all 50 perturbed settings
+satisfied the production profile (exact \SI{95}{\percent} interval 0.929--1). The mean
+objective ratio was $D=1.030$, with mean emittances of 3.60 and
+\SI{3.47}{\micro\metre\radian} and a mean energy spread of \SI{0.3948}{\mega\electronvolt}. The
+smallest normalized margin was at the upper energy bound. Twelve of the 50 perturbed settings
+met the TDR optimization inequalities (0.131--0.382), mostly failing the vertical divergence or
+horizontal size limits. The nominal setting therefore lies close to the TDR boundary. This is a
+single reference from a differently posed earlier optimization; it is not a MOGA benchmark and
+supports no statement about MOGA sample efficiency.
+
 %==========================================================================================
 \section{Discussion}
 \label{sec:discussion}
@@ -980,7 +1017,10 @@ unconstrained MOBO do not pass the multiplicity correction. A larger
 feasible set therefore should not be read as uniform superiority of the observed Pareto front.
 The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
 infeasible upper ACC3/ACC4 phase region: it persists among energy-acceptable evaluations and
-comes largely from the transverse size and divergence limits. All methods identified feasible nondominated settings,
+comes largely from the transverse size and divergence limits. None of the pipelines found a
+feasible setting that dominates the MOGA-derived nominal setting at the centre of the search
+domain, so the reported fronts describe trade-offs around that earlier operating point rather
+than an improvement on it. All methods identified feasible nondominated settings,
 with the objective projections exposing the trade-offs between transverse emittance and energy spread.
 The sampled lattice-jitter tests identify several operating points that remain feasible within
 the simulated tolerance model; this does not establish performance on the real machine.
@@ -1008,7 +1048,10 @@ normalized fractional energy spread, while this study uses paired cavity control
 RMS energy spread. Its feasible-region and weighting conventions also differ. Consequently,
 those published results supply prior-work context rather than a matched-budget control for
 this study. No new MOGA/NSGA-II campaign or reevaluation of its published setting is included,
-and no MOGA speedup or superiority is inferred from the present comparisons.
+and no MOGA speedup or superiority is inferred from the present comparisons. The only MOGA-derived
+quantity used here is the nominal setting of section~\ref{sec:moga_reference}, which the earlier
+work adapted to the present field amplitudes; it is a reference point, not the output of a
+matched MOGA search.
 
 The subsequent JKPS study~\cite{Kim2025KLSError} reports nominal energy spreads of
 \SIrange{0.34145}{0.48248}{\mega\electronvolt} for its selected cases. Its tabulated emittances are geometric, whereas

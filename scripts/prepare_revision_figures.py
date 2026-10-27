@@ -14,6 +14,9 @@ from mobo_linac.plotting.common import PlotSchema
 from compare_constraint_spaces import Campaign,ALGORITHMS,LABELS,STYLES,PHYSICAL,display_domain,plot_bounds,measured_constraints
 from prepare_revision_tables import CASES
 ROOT=Path(__file__).resolve().parents[1];PAPER=ROOT/'docs/paper';BASE=ROOT/'results/paper_production'
+# Round2 C2-07: the re-evaluated MOGA-derived nominal setting, when its record is present.
+_MOGA=ROOT/'results/revision_round2/references/moga_nominal/moga_reference.json'
+MOGA_REFERENCE=json.loads(_MOGA.read_text())['result']['diagnostics'] if _MOGA.exists() else None
 
 
 def cumulative_feasible(frame):
@@ -24,7 +27,8 @@ def save(fig,name,png=False):
     if png:fig.savefig(PAPER/'figures'/f'{name}.png',dpi=170,bbox_inches='tight')
     plt.close(fig)
 
-def constraint_view(campaigns,schema):
+def constraint_view(campaigns,schema,reference=None):
+    """``reference``: optional diagnostics of one measured setting, drawn as a black star."""
     specs={s.column:s for s in schema.constraints};bounds=plot_bounds(campaigns,schema)
     fig,axes=plt.subplots(3,1,figsize=(7.2,8.6))
     pairs=[('sigma_x_m','sigma_y_m'),('sigma_xp_rad','sigma_yp_rad'),('mean_kinetic_energy_eV','sigma_z_m')]
@@ -41,6 +45,9 @@ def constraint_view(campaigns,schema):
                 ax.scatter(f.loc[mask,x.column]/x.scale,f.loc[mask,y.column]/y.scale,
                     s=11 if local else 13,marker=marker,facecolors=color if filled else 'none',edgecolors=color,
                     linewidths=.35,alpha=.8 if filled else .16,zorder=3 if filled else 2)
+        if reference is not None:
+            ax.scatter(reference[x.column]/x.scale,reference[y.column]/y.scale,marker='*',s=70 if local else 110,
+                       color='black',edgecolors='white',linewidths=.5,zorder=6)
         ax.grid(alpha=.35,linestyle=':',lw=.6);ax.set_axisbelow(True)
     for letter,ax,(xn,yn) in zip('abc',axes,pairs):
         x,y=specs[xn],specs[yn];draw(ax,x,y)
@@ -54,6 +61,8 @@ def constraint_view(campaigns,schema):
             inset.set_title('Acceptance zoom (same units)',fontsize=7)
     handles=[Line2D([],[],color=c,marker=m,ls='',label=label) for label,(c,m) in zip(LABELS,STYLES)]
     handles += [Line2D([],[],color='.2',marker='o',ls='',label='All constraints pass'),Line2D([],[],color='.2',marker='o',mfc='none',ls='',label='At least one fails'),Patch(facecolor='#d8efdc',label='Shown limits satisfied')]
+    if reference is not None:
+        handles.append(Line2D([],[],color='black',marker='*',ms=9,ls='',label='MOGA-derived nominal'))
     fig.legend(handles=handles,loc='upper center',ncol=3,fontsize=8,frameon=False)
     count=sum(len(c.frame) for c in campaigns)
     assert all(np.all(c.frame.transmission_fraction==1) for c in campaigns)
@@ -76,7 +85,8 @@ def main():
         campaigns=[]
         for a,frame in groups.items():
             valid,_=measured_constraints(frame,schema);campaigns.append(Campaign(a,valid))
-        save(constraint_view(campaigns,schema),scope+'_constraint_spaces',png=True)
+        reference=MOGA_REFERENCE if scope=='primary' and MOGA_REFERENCE is not None else None
+        save(constraint_view(campaigns,schema,reference),scope+'_constraint_spaces',png=True)
     fig,axes=plt.subplots(1,2,figsize=(8,3.8),sharex=True,sharey=True)
     for case,style in zip(CASES,['-', '--', ':', '-.', (0,(3,1,1,1,1,1))]):
         y=cumulative_feasible(scalar[case]);axes[0].plot(np.arange(1,len(y)+1),y,color=STYLES[2][0],ls=style,lw=1.4,label=CASES[case])

@@ -1,0 +1,72 @@
+{
+  "amplitude_error_rms": 0.002,
+  "analysis": "C2-07/C2-08 jitter checks",
+  "moga_derived_reference": {
+    "deck": {
+      "moga_deck": "/home/cspark/Work/projects/linac/beam_tracking/astra.in",
+      "moga_deck_sha256": "f1deda7db0f4bc45e48ddbdd28194db5a51a22d74111842472425098ac805f96",
+      "template_sha256": "f1deda7db0f4bc45e48ddbdd28194db5a51a22d74111842472425098ac805f96"
+    },
+    "diagnostics": {
+      "mean_kinetic_energy_eV": 200190000.0,
+      "sigma_x_m": 0.00027846,
+      "sigma_xp_rad": 4.2958000000000004e-05,
+      "sigma_y_m": 0.00024649,
+      "sigma_yp_rad": 0.00026901000000000003,
+      "sigma_z_m": 0.00095691,
+      "transmission_fraction": 1.0
+    },
+    "objectives": {
+      "norm_emit_x_m_rad": 3.4727999999999996e-06,
+      "norm_emit_y_m_rad": 3.2968e-06,
+      "sigma_energy_eV": 394190.0
+    },
+    "previous_record": {
+      "cells": [
+        12,
+        15
+      ],
+      "source": "/home/cspark/Work/projects/linac/beam_tracking/linac_optimization-parallel2.ipynb",
+      "values": {
+        "mean_kinetic_energy_eV": 200190000.0,
+        "norm_emit_x_m_rad": 3.4728e-06,
+        "norm_emit_y_m_rad": 3.2968e-06,
+        "sigma_energy_eV": 394190.0
+      }
+    },
+    "profiles": {
+      "jinst2024_necessary_subset": false,
+      "jkps2025_necessary_subset": false,
+      "kls_tdr_optimization": false,
+      "kls_tdr_optimization_plus_spread": false,
+      "napac2025": true,
+      "production": true
+    },
+    "recorded_production_feasible": true,
+    "relative_rms_energy_spread": 0.0019690793745941355,
+    "reproduces_previous_record": true,
+    "tdr_vertical_divergence_excess_urad": 2.710000000000006
+  },
+  "reference_inputs": {
+    "results/revision_round2/references/moga_jitter/robustness_runs/robustness_5dba436ff0674e6299191fec9f9e7f50/robustness_requests.json": "4fe02461f6a5212af4c77c63e538f46f40e60b8cce35e52318f18e91d6d46624"
+  },
+  "rf_amplitude_estimate": {
+    "amplitude_error_rms": 0.002,
+    "gun_exit_MeV": 4.0928,
+    "mean_energy_shift_rms_MeV": {
+      "fully_correlated": 0.40038,
+      "independent_pairs": 0.2776530109574899
+    },
+    "pair_gain_MeV": {
+      "ACC1/2": 93.2662,
+      "ACC3/4": 102.831
+    },
+    "source": "results/revision_round2/references/moga_nominal/round2_moga_reference/work/eval_moga_derived_nominal/attempt_ae13e014007940f08c140f86c7b0c153/astra.Zemit.001",
+    "structure_gain_MeV": {
+      "ACC1": 46.0022,
+      "ACC2": 47.263999999999996,
+      "ACC3": 51.94100000000002,
+      "ACC4": 50.889999999999986
+    }
+  }
+}
