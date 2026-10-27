@@ -850,6 +850,20 @@ those channels receive the softest weights. This attribution describes the execu
 raw-residual pipeline on the recorded domain. It does not predict the behaviour of a
 normalized-residual method or of a campaign in a restricted phase window.
 
+The shared initial designs provide a space-filling reference for the same domain. Only 5 of
+their 160 scrambled-Sobol points are feasible, a rate of \SI{3.1}{\percent} (exact
+\SI{95}{\percent} interval \SIrange{1.0}{7.1}{\percent}). This reference covers initialization
+only and is not a matched arm. Even the constraint-blind pipelines therefore raise the
+feasible fraction well above uniform sampling, to \SI{17.1}{\percent} and \SI{13.5}{\percent}
+of their pooled post-initialization evaluations. The same channel classification shows why.
+Transverse violations fall from \SI{95.6}{\percent} of the Sobol points to
+\SI{76}{\percent}, and bunch-length violations from \SI{55.0}{\percent} to
+\SIrange{32}{33}{\percent}. Energy-band violations change little, from \SI{40.0}{\percent} to
+\SI{32.2}{\percent} and \SI{42.6}{\percent}. Minimizing emittance and energy spread thus favours
+smaller transverse sizes, divergences and bunch lengths, whereas nothing in the baselines'
+targets steers the mean energy. No advantage over a full budget-matched space-filling search
+is inferred from this initialization-only reference.
+
 \begin{figure}[htbp]
 \centering
 \datafigure{figures/revision_attribution.pdf}{\linewidth}
