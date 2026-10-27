@@ -48,7 +48,8 @@
     "tdr_vertical_divergence_excess_urad": 2.710000000000006
   },
   "reference_inputs": {
-    "results/revision_round2/references/moga_jitter/robustness_runs/robustness_5dba436ff0674e6299191fec9f9e7f50/robustness_requests.json": "4fe02461f6a5212af4c77c63e538f46f40e60b8cce35e52318f18e91d6d46624"
+    "results/revision_round2/references/moga_jitter/robustness_runs/robustness_5dba436ff0674e6299191fec9f9e7f50/robustness_requests.json": "4fe02461f6a5212af4c77c63e538f46f40e60b8cce35e52318f18e91d6d46624",
+    "results/revision_round2/references/tdr_candidate_jitter/robustness_runs/robustness_c2c81c15006641fe8cf95e7ff4c62971/robustness_requests.json": "eeeca29177df87de3ca50e115cca8e37b329166e971cc36ca95cdc2f28ec0f26"
   },
   "rf_amplitude_estimate": {
     "amplitude_error_rms": 0.002,
