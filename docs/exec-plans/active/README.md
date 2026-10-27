@@ -4,7 +4,7 @@ This directory (`docs/exec-plans/active/`) contains execution plans, task specif
 
 ## Current Repository Status
 
-All 10 milestone tasks for Phase 2 / Phase 3 refactoring and Pareto verification have been **completed** and archived in [`docs/exec-plans/completed/`](../completed/00_milestone_refactor_summary.md).
+All 10 milestone tasks for Phase 2 / Phase 3 refactoring and Pareto verification have been **completed** and archived in [`docs/exec-plans/completed/`](../completed/TASK_00001_milestone_refactor_summary.md).
 
 ## Future Planned Phases (Active Queue)
 

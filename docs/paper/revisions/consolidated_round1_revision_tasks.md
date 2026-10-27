@@ -10,8 +10,8 @@
 
 - [Reviewer 1 report](../reviews/reviewer1_round1_report.md) and [revision tasks](reviewer1_round1_revision_tasks.md).
 - [Reviewer 2 revised report](../reviews/reviewer2_round1_report.md) and [revision tasks](reviewer2_round1_revision_tasks.md).
-- [Task 220: convergence comment withdrawn](../../exec-plans/completed/TASK_220_withdraw_convergence_review_comment.md) and [Task 221: convergence study already completed](../../exec-plans/completed/TASK_221_record_completed_convergence_study.md).
-- [Task 222: current Reviewer 2 filenames](../../exec-plans/completed/TASK_222_match_reviewer2_document_names.md).
+- [Task 220: convergence comment withdrawn](../../exec-plans/completed/TASK_00226_withdraw_convergence_review_comment.md) and [Task 221: convergence study already completed](../../exec-plans/completed/TASK_00227_record_completed_convergence_study.md).
+- [Task 222: current Reviewer 2 filenames](../../exec-plans/completed/TASK_00229_match_reviewer2_document_names.md).
 
 The reviewer documents assess manuscript revision `fe459f2`; this consolidation uses their current round1 versions, including Reviewer 2's later corrections. Reviewer 1's older request for a new numerical-convergence study is superseded by the author clarification recorded in Tasks 220–221. The author reports prior convergence work, but C09 closes with resolution correspondence and an explicit absence of a traceable numerical-error bound. Neither review's recommendation is thereby automatically resolved.
 

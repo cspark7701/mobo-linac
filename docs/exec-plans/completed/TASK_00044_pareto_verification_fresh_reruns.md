@@ -30,4 +30,4 @@ Task 43 implemented an independent, reproducible **Pareto Candidate Verification
 
 ## Status
 
-**Completed**. Independent Pareto candidate rerun verification implemented and verified. Summary saved to `docs/exec-plans/completed/TASK_43_pareto_verification_fresh_reruns.md`.
+**Completed**. Independent Pareto candidate rerun verification implemented and verified. Summary saved to `docs/exec-plans/completed/TASK_00044_pareto_verification_fresh_reruns.md`.

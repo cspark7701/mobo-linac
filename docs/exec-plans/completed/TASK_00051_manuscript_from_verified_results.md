@@ -84,4 +84,4 @@ Created canonical verification_summary.csv (7 candidates, all VERIFIED, max_diff
 
 ## Status
 
-**Completed**. Summary saved to `docs/exec-plans/completed/TASK_50_manuscript_from_verified_results.md`.
+**Completed**. Summary saved to `docs/exec-plans/completed/TASK_00051_manuscript_from_verified_results.md`.

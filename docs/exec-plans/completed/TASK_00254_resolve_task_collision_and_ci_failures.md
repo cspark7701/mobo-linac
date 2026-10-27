@@ -4,7 +4,7 @@
 Resolved the duplicate Task 209 review record, fixed the five reported Ruff findings, and reproduced the repository's GitHub Actions checks locally. The complete local test run exposed five additional notebook failures caused by an unrelated registered Jupyter interpreter; the notebook tests now use a temporary kernel tied to the active CI interpreter.
 
 ## Key Changes
-- Renamed my later-added `TASK_209_recent_production_and_paper_update_review.md` to `TASK_248_recent_production_and_paper_update_review.md` and corrected its title. The original reporting-reference Task 209 and existing task history remain intact. Including this summary, task numbers 1 through 249 are consecutive and unique.
+- Renamed my later-added `TASK_209_recent_production_and_paper_update_review.md` to `TASK_00214_recent_production_and_paper_update_review.md` and corrected its title. The original reporting-reference Task 209 and existing task history remain intact. Including this summary, task numbers 1 through 249 are consecutive and unique.
 - Removed unused NumPy from `scripts/analyze_revision_cost.py`, unused importlib.util from `tests/test_revision_pairs.py`, and unused sys/NumPy from `tests/test_revision_robustness.py`.
 - Removed the unused `cfg` assignment while retaining JSON parsing of the archived configuration, preserving the previous validation/error behavior.
 - Updated notebook execution tests to create an isolated `mobo-tests` kernel spec under pytest's temporary directory, using `sys.executable`. JUPYTER_PATH is set only through the test's monkeypatch fixture; registered user kernels are unchanged. This makes notebook execution follow the active Python environment, including each CI matrix interpreter.

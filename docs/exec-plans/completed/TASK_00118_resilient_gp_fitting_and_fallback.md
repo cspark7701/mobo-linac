@@ -64,4 +64,4 @@ tests/test_gp_models.py::test_build_scalarized_gp_model PASSED           [100%]
 - Modified: [`src/mobo_linac/cli/commands/resume.py`](file:///home/cspark/Work/projects/mobo-linac/src/mobo_linac/cli/commands/resume.py)
 - Modified: [`src/mobo_linac/cli/common.py`](file:///home/cspark/Work/projects/mobo-linac/src/mobo_linac/cli/common.py)
 - Modified: [`scripts/run_full_production.sh`](file:///home/cspark/Work/projects/mobo-linac/scripts/run_full_production.sh)
-- Created: [`docs/exec-plans/completed/TASK_113_resilient_gp_fitting_and_fallback.md`](file:///home/cspark/Work/projects/mobo-linac/docs/exec-plans/completed/TASK_113_resilient_gp_fitting_and_fallback.md)
+- Created: [`docs/exec-plans/completed/TASK_00118_resilient_gp_fitting_and_fallback.md`](file:///home/cspark/Work/projects/mobo-linac/docs/exec-plans/completed/TASK_00118_resilient_gp_fitting_and_fallback.md)

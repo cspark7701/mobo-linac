@@ -46,4 +46,4 @@
 - `src/mobo_linac/config.py`
 - `src/mobo_linac/campaigns/runner.py`
 - `tests/test_gp_and_acquisition.py`
-- `docs/exec-plans/completed/TASK_225_acquisition_optimization_budget_defaults.md`
+- `docs/exec-plans/completed/TASK_00098_acquisition_optimization_budget_defaults.md`

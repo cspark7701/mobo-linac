@@ -30,4 +30,4 @@ Task 47 corrected observation noise treatment for GP surrogate modeling across d
 
 ## Status
 
-**Completed**. Fixed-noise GP treatment implemented with non-trainable `train_Yvar` observation variance. Summary saved to `docs/exec-plans/completed/TASK_47_fixed_noise_gp_treatment.md`.
+**Completed**. Fixed-noise GP treatment implemented with non-trainable `train_Yvar` observation variance. Summary saved to `docs/exec-plans/completed/TASK_00048_fixed_noise_gp_treatment.md`.

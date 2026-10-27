@@ -39,7 +39,7 @@ with the next phase extending to qEHVI/qNEHVI-based MOBO.
   - Follow the existing Git log's commit-message format: an imperative subject, a blank line, concise explanatory paragraphs, then a `Files:` section listing paths with status letters (`A`, `M`, `D`). Use this format when providing commit messages as well.
   - Whenever a task completion document is created, automatically commit it together with the task's other modified files using this format. Do not request separate confirmation for the local commit.
 - **Task Summary & Execution Plan Persistence**:
-  - All executed tasks must be summarized and saved into `docs/exec-plans/completed/` following continuous numerical ordering (e.g., `TASK_01_...` through `TASK_20_...`, `TASK_21_...`, `TASK_22_...`, `TASK_23_...`, etc.).
+  - All executed tasks must be summarized and saved into `docs/exec-plans/completed/` using unique five-digit filenames (`TASK_00001_*.md`, `TASK_00002_*.md`, etc.) in chronological order. For new summaries, use the next available number. The historical filename migration is recorded in `docs/exec-plans/task_filename_migration.csv`; original task identifiers inside historical prose remain historical identifiers.
   - Every completed task must follow the structured markdown summary format established in `docs/exec-plans/completed/`.
 - **Web Interface & Document Design Standard**:
   - Created HTML documents should follow a github.io project webpage style (dark mode glassmorphism UI, Outfit/Inter typography, MathJax formulas, Chart.js visualizations), adhering to existing project templates where available.

@@ -31,4 +31,4 @@ Task 46 enforced normalized fixed-reference publication metrics across the prima
 
 ## Status
 
-**Completed**. Normalized fixed-reference publication metrics fully integrated into campaign runner and visualization suite. Summary saved to `docs/exec-plans/completed/TASK_46_fixed_reference_publication_metrics.md`.
+**Completed**. Normalized fixed-reference publication metrics fully integrated into campaign runner and visualization suite. Summary saved to `docs/exec-plans/completed/TASK_00047_fixed_reference_publication_metrics.md`.

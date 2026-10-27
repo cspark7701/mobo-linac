@@ -9,7 +9,7 @@ The author identifies C. Kim et al., JINST 19 (2024) P01023, DOI [10.1088/1748-0
 No particle/grid refinement sweep or residual numerical-error estimate was found in the inspected article text. Its discussion of increasing optimizer generations concerns algorithm convergence and cannot be substituted for tracking-discretization convergence. The paper does not establish the Cartesian grid or the 2D/3D transition settings used here.
 The [JKPS author-hosted full text](https://kuacc.korea.ac.kr/bbs/kuacc/993/174430/download.do) reports tracking and physical error propagation, not a particle/grid numerical-convergence dataset. It cannot establish the missing settings equivalence or residual-error values. Physical error amplitudes are not numerical uncertainty estimates.
 
-[Task 221](../../../exec-plans/completed/TASK_221_record_completed_convergence_study.md) records the author's confirmation that the numerical-convergence work is already done. That confirmation is retained. It does not include the exact source passage, uncertainty values or original input files, so those details must not be inferred from it.
+[Task 221](../../../exec-plans/completed/TASK_00227_record_completed_convergence_study.md) records the author's confirmation that the numerical-convergence work is already done. That confirmation is retained. It does not include the exact source passage, uncertainty values or original input files, so those details must not be inferred from it.
 
 ## Verified current settings
 The read-only [C02 audit](c02_phase_audit.json) checked all 4,800 archived primary input decks; all use the following settings:

@@ -39,4 +39,4 @@ Task 48 updated candidate selection logic across robustness analysis, independen
 
 ## Status
 
-**Completed**. Representative candidate selection restricted strictly to the feasible Pareto set with duplicate detection and enhanced 3-objective robustness scoring. Summary saved to `docs/exec-plans/completed/TASK_48_feasible_pareto_candidate_selection.md`.
+**Completed**. Representative candidate selection restricted strictly to the feasible Pareto set with duplicate detection and enhanced 3-objective robustness scoring. Summary saved to `docs/exec-plans/completed/TASK_00049_feasible_pareto_candidate_selection.md`.

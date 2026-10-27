@@ -11,11 +11,11 @@ unpushed commits.
 
   | Old name | New name |
   |---|---|
-  | `TASK_93_repository_review_documentation.md` | `TASK_224_repository_review_documentation.md` |
-  | `TASK_94_acquisition_optimization_budget_defaults.md` | `TASK_225_acquisition_optimization_budget_defaults.md` |
-  | `TASK_95_blank_lines_simulation_verbose.md` | `TASK_226_blank_lines_simulation_verbose.md` |
-  | `TASK_96_repository_refactor_review_and_task_definitions.md` | `TASK_227_repository_refactor_review_and_task_definitions.md` |
-  | `TASK_219_reviewer1_round1_manuscript_review.md` | `TASK_228_reviewer1_round1_manuscript_review.md` |
+  | `TASK_93_repository_review_documentation.md` | `TASK_00097_repository_review_documentation.md` |
+  | `TASK_94_acquisition_optimization_budget_defaults.md` | `TASK_00098_acquisition_optimization_budget_defaults.md` |
+  | `TASK_95_blank_lines_simulation_verbose.md` | `TASK_00099_blank_lines_simulation_verbose.md` |
+  | `TASK_96_repository_refactor_review_and_task_definitions.md` | `TASK_00101_repository_refactor_review_and_task_definitions.md` |
+  | `TASK_219_reviewer1_round1_manuscript_review.md` | `TASK_00228_reviewer1_round1_manuscript_review.md` |
 
 - Updated the task number in each moved file's title and self-reference.
 - Rewrote the 16 unpushed commits (from `origin/main` to `main`):

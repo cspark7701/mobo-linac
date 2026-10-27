@@ -24,4 +24,4 @@ Task 45 upgraded all `mobo-linac` CLI subcommands (`run-benchmark`, `run-robustn
 
 ## Status
 
-**Completed**. CLI commands made fully operational with dry-run and mock mode support. Summary saved to `docs/exec-plans/completed/TASK_45_operational_cli_workflows.md`.
+**Completed**. CLI commands made fully operational with dry-run and mock mode support. Summary saved to `docs/exec-plans/completed/TASK_00046_operational_cli_workflows.md`.

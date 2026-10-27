@@ -30,4 +30,4 @@ Task 44 repaired and aligned the checkpoint writing, path resolution, configurat
 
 ## Status
 
-**Completed**. Checkpoint resume behavior repaired and verified. Summary saved to `docs/exec-plans/completed/TASK_44_checkpoint_resume_repair.md`.
+**Completed**. Checkpoint resume behavior repaired and verified. Summary saved to `docs/exec-plans/completed/TASK_00045_checkpoint_resume_repair.md`.

@@ -23,4 +23,4 @@ Task 42 verified and enhanced real transmission fraction extraction, diagnostic 
 
 ## Status
 
-**Completed**. Transmission computation, diagnostic validation, and test suite verified. Saved summary in `docs/exec-plans/completed/TASK_42_transmission_and_diagnostics_integration.md`.
+**Completed**. Transmission computation, diagnostic validation, and test suite verified. Saved summary in `docs/exec-plans/completed/TASK_00043_transmission_and_diagnostics_integration.md`.
