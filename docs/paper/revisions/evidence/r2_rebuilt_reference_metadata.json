@@ -1,0 +1,233 @@
+{
+  "analysis": "C2-06 exploratory sensitivity; reference front and HV(25%) reference rebuilt in each group resample",
+  "estimand": "mean paired difference (first minus second) of terminal indicators over matched groups",
+  "resamples": 2000,
+  "analysis_rng": 20261027,
+  "nonfinite_draws_dropped": 0,
+  "groups": [
+    "42",
+    "43",
+    "44",
+    "45",
+    "46",
+    "47",
+    "48",
+    "49",
+    "50",
+    "51"
+  ],
+  "no_p_values": true,
+  "inputs": [
+    {
+      "run": "constrained_qlognehvi_seed_42",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "e605b04071a24fbb1600cd9ebb028a7694019680ebf7af85da4681ba35fa477c",
+      "valid": 160,
+      "feasible": 65
+    },
+    {
+      "run": "constrained_qlognehvi_seed_43",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/evaluations.csv",
+      "sha256": "d631bc4b2362f5428d9d2f611fed94742e56781595b407fa4e20e81b22e67d46",
+      "valid": 160,
+      "feasible": 60
+    },
+    {
+      "run": "constrained_qlognehvi_seed_44",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/evaluations.csv",
+      "sha256": "3e4545b2592fa2f91b2bc51fbfb8e3a4568bf4462fce9a0ff03ab8070517ce1c",
+      "valid": 160,
+      "feasible": 54
+    },
+    {
+      "run": "constrained_qlognehvi_seed_45",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/evaluations.csv",
+      "sha256": "4f72459ebc6a9b7f33d1ddfb99bd63fd4b1833fc9b69da79a528da57f3910fe3",
+      "valid": 160,
+      "feasible": 65
+    },
+    {
+      "run": "constrained_qlognehvi_seed_46",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/evaluations.csv",
+      "sha256": "0263a9bba9482e0daea82d8c86754be80bd2166ce2a92ca8c35e0713e052f33b",
+      "valid": 160,
+      "feasible": 57
+    },
+    {
+      "run": "constrained_qlognehvi_seed_47",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/evaluations.csv",
+      "sha256": "226d4af16ed71c14637384e56ae5ff1225f1d26ca6ecf7a2eb3f86d99067ac1b",
+      "valid": 160,
+      "feasible": 78
+    },
+    {
+      "run": "constrained_qlognehvi_seed_48",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/evaluations.csv",
+      "sha256": "f20db91fa2af5e2dc5cdbc2b90b2a21d71253d79e3e6f0570e8f930b2f43ffa8",
+      "valid": 160,
+      "feasible": 77
+    },
+    {
+      "run": "constrained_qlognehvi_seed_49",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/evaluations.csv",
+      "sha256": "84b9988f8522cd4fcb601f3002db1a79b950a22fd19ab6c538547c12db122d06",
+      "valid": 160,
+      "feasible": 56
+    },
+    {
+      "run": "constrained_qlognehvi_seed_50",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/evaluations.csv",
+      "sha256": "dfb115e1b0f69c162b6be8f8dc5a5782e8bf86ec692bd636e60e9712febb2645",
+      "valid": 160,
+      "feasible": 69
+    },
+    {
+      "run": "constrained_qlognehvi_seed_51",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/evaluations.csv",
+      "sha256": "8c4646c95aa5915634cbce7be4da52c0af63e7a4f31dcfc2ab784dba11e7a6fa",
+      "valid": 160,
+      "feasible": 67
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_42",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "ab2c36a67ff68a6c3d86816be4bbb3d9dfeba56907c1153566752181a92f6eab",
+      "valid": 160,
+      "feasible": 34
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_43",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/evaluations.csv",
+      "sha256": "d8d2dfd758e5a6cfe0f125776f118cc00bb589193cac800e0ad405fe2b4c553c",
+      "valid": 160,
+      "feasible": 30
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_44",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/evaluations.csv",
+      "sha256": "3064c257b6031f9fa46d7507aeb376200c51b98544134a67e85ce0b1d5ffab44",
+      "valid": 160,
+      "feasible": 25
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_45",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/evaluations.csv",
+      "sha256": "9224f82b46726d885a0f4a13328a0940477f2fad394fa9e416dcad1dae1e2ac1",
+      "valid": 160,
+      "feasible": 18
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_46",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/evaluations.csv",
+      "sha256": "0e670dc3175674c6a32ed1bd3c672a29bc257cb06456448c4084bd32be287b31",
+      "valid": 160,
+      "feasible": 22
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_47",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/evaluations.csv",
+      "sha256": "3779a69114fdca61f2f0b3eb902e724b3a9f26cebddd19363281e7036126e5e6",
+      "valid": 160,
+      "feasible": 23
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_48",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/evaluations.csv",
+      "sha256": "36de757d0a3dd0a1ed6a39c10ae2abf6d3a39f229de978169951aa8680c70745",
+      "valid": 160,
+      "feasible": 18
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_49",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/evaluations.csv",
+      "sha256": "5555ff0776abc483f74ac7d4f309a9822ccedf914e01a70e56506fd28d58a2d2",
+      "valid": 160,
+      "feasible": 33
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_50",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/evaluations.csv",
+      "sha256": "98620096b63206431db4eb6def2c0fa2932455067aaab2c0fbd256c11b04fb4a",
+      "valid": 160,
+      "feasible": 26
+    },
+    {
+      "run": "unconstrained_qlognehvi_seed_51",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/evaluations.csv",
+      "sha256": "5db9bedbf444b0e1f3e167bc8833735a959542dabc7d76fb66a1e14d5c712884",
+      "valid": 160,
+      "feasible": 22
+    },
+    {
+      "run": "scalarized_bo_seed_42",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/evaluations.csv",
+      "sha256": "37133332cb48a34a7dfd2d8b43c01093be6f28454cdd8f759a4d27cd036656a3",
+      "valid": 160,
+      "feasible": 27
+    },
+    {
+      "run": "scalarized_bo_seed_43",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/evaluations.csv",
+      "sha256": "c66bd1d0b27cbb7fe01ed031a117b8f3ff2bc4839f6c7912c44c969eddadc02d",
+      "valid": 160,
+      "feasible": 17
+    },
+    {
+      "run": "scalarized_bo_seed_44",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/evaluations.csv",
+      "sha256": "f26a143e92ee3a4f0e8c404cab56489af4d82103beb059a4c94ad40c7e9729b5",
+      "valid": 160,
+      "feasible": 18
+    },
+    {
+      "run": "scalarized_bo_seed_45",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/evaluations.csv",
+      "sha256": "3c6a0e394f27a305e4b56a17ac8bd95945819d0e56ef26a12e7173ac62fb4081",
+      "valid": 160,
+      "feasible": 20
+    },
+    {
+      "run": "scalarized_bo_seed_46",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/evaluations.csv",
+      "sha256": "2f3caba5f254e949c08df98ac89516f77be41bef8778ef5de8db19b04cdb989b",
+      "valid": 160,
+      "feasible": 21
+    },
+    {
+      "run": "scalarized_bo_seed_47",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/evaluations.csv",
+      "sha256": "769a10d06a9136f3a6b270f41ca8db27049725dafc7a1abe6307080ccb439935",
+      "valid": 160,
+      "feasible": 20
+    },
+    {
+      "run": "scalarized_bo_seed_48",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/evaluations.csv",
+      "sha256": "8e8bcb5896a157c262439abd02b8c6e652ce51844fa77c20b75718e5b422480a",
+      "valid": 160,
+      "feasible": 20
+    },
+    {
+      "run": "scalarized_bo_seed_49",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/evaluations.csv",
+      "sha256": "3d279ef69b7ae2ae2665c1fa286e0f019316d7ae7781aad5670505e0a3f138ca",
+      "valid": 160,
+      "feasible": 19
+    },
+    {
+      "run": "scalarized_bo_seed_50",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/evaluations.csv",
+      "sha256": "730a64facbcdcc1464474284aca56de8ae1ef675313814490f8c550f9a8e7bb3",
+      "valid": 160,
+      "feasible": 24
+    },
+    {
+      "run": "scalarized_bo_seed_51",
+      "path": "/home/cspark/Work/projects/mobo-linac/results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/evaluations.csv",
+      "sha256": "7f866911136a7f34ea45667180fadc4e67adbc8c2325bb3e8e8bfc91578bd578",
+      "valid": 160,
+      "feasible": 14
+    }
+  ],
+  "c04_paired_effects_sha256": "bd5dec66a633f35480dc3729dc1deca01031cfd699f79b78d6808f30329e3f54"
+}

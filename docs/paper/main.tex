@@ -570,7 +570,19 @@ across all twelve pairwise comparisons. Zero differences were excluded from the 
 tied absolute differences received midranks, and all sign assignments were enumerated.
 The tests assume independent groups and sign-symmetric differences under the null; the
 pointwise bootstrap intervals are conditional on the fixed empirical reference and are not
-multiplicity-adjusted.
+multiplicity-adjusted. With ten groups the smallest exact two-sided signed-rank $p$-value is
+$2/1024$, so the smallest Holm-adjusted value in this family is 0.0234; the paired effects and
+their intervals are therefore the primary quantities. The feasible fraction needs no
+objective-space reference. Epsilon, IGD+ and hypervolume, in contrast, are computed against
+a reference estimated from the tested outcomes themselves. Their group differences share
+that fitted quantity, so exact sign enumeration does not by itself establish the independent,
+sign-symmetric null model, and Holm correction cannot repair an uncalibrated individual test
+or post-hoc endpoint selection. We therefore treat the quality-indicator $p$-values as
+exploratory, assumption-dependent calculations. As a sensitivity analysis, the matched groups
+were also resampled 2,000 times with the empirical reference front and the hypervolume
+reference rebuilt inside every resample. The resulting percentile intervals for the mean
+paired differences include reference-construction uncertainty; no $p$-value is derived from
+them.
 
 
 The matched comparison contains constraint-aware qLogNEHVI, unconstrained qLogNEHVI
@@ -737,15 +749,29 @@ three-objective trade-offs.
 
 Mean paired feasible-fraction differences for constraint-aware MOBO relative to unconstrained
 and scalarized BO were 0.248 (\SI{95}{\percent} interval 0.206--0.293) and
-0.280 (0.249--0.313), respectively; both Holm-adjusted $p$-values were 0.0234.
-For epsilon and IGD+, comparisons with scalarized BO had adjusted $p$-values of 0.0234 and
-0.0410, whereas comparisons with unconstrained MOBO had adjusted $p$-values of 0.0586 and
-0.0977. At the middle hypervolume reference, mean paired differences were 5.202 (3.062--7.441)
-and 7.104 (5.132--9.315), with adjusted $p$-values of 0.0313 and 0.0234. None of the four
-baseline-to-baseline comparisons passed the specified 0.05 threshold after correction.
-These post-hoc results support a feasible-sampling advantage under the archived profile;
-objective-quality evidence depends on the endpoint and comparator and does not establish
-uniform algorithm superiority or global optimality.
+0.280 (0.249--0.313), respectively. The constraint-aware fraction was larger in all ten
+matched groups for each comparison, and both Holm-adjusted $p$-values equal the design's
+floor of 0.0234. This comparison involves no estimated reference.
+
+For the reference-dependent indicators, the mean paired differences (constraint-aware minus
+baseline) were $-0.327$ (fixed-reference interval $-0.497$ to $-0.165$) in epsilon and
+$-0.192$ ($-0.313$ to $-0.071$) in IGD+ relative to unconstrained MOBO, and $-0.320$
+($-0.470$ to $-0.188$) and $-0.155$ ($-0.246$ to $-0.073$) relative to scalarized BO; smaller
+values are better. At the middle hypervolume reference the differences were 5.202
+(3.062--7.441) and 7.104 (5.132--9.315). With the reference rebuilt in each resample, the
+corresponding intervals were $-0.481$ to $-0.161$ and $-0.293$ to $-0.071$ relative to
+unconstrained MOBO, $-0.470$ to $-0.176$ and $-0.244$ to $-0.066$ relative to scalarized BO,
+and 2.89--12.16 and 3.76--16.09 for hypervolume. Every constraint-aware interval excludes
+zero under both constructions, whereas the hypervolume intervals widen markedly when the
+reference uncertainty is included. All three baseline-to-baseline intervals include zero.
+The exploratory signed-rank calculations give Holm-adjusted values of 0.0234 and 0.0410 for
+epsilon and IGD+ against scalarized BO, but 0.0586 and 0.0977 against unconstrained MOBO; given
+the shared reference and the ten-group floor, we do not treat these values as calibrated
+significance levels. These post-hoc results support a feasible-sampling advantage under the
+archived profile. They indicate that the empirical fronts of the constraint-aware pipeline
+were also closer to the pooled front, but this objective-quality evidence depends on a
+data-derived reference and does not establish uniform algorithm superiority or global
+optimality.
 
 \subsection{Sources of the feasible-sampling difference}
 \label{sec:attribution}
@@ -945,9 +971,12 @@ robustness of the representatives.}{tab:robustness_summary}}
 \label{sec:discussion}
 Constraint-aware acquisition produced a larger feasible fraction and a larger feasible Pareto
 set over ten runs, while completing campaigns more slowly than the unconstrained and
-weighted-sum methods. The exploratory paired analysis supports its feasible-sampling advantage
-over both baselines. Evidence for objective quality is more selective: epsilon and IGD+
-comparisons with unconstrained MOBO do not pass the chosen multiplicity correction. A larger
+weighted-sum methods. The paired analysis supports its feasible-sampling advantage over both
+baselines without any estimated reference. Evidence for objective quality is weaker in kind:
+the paired epsilon, IGD+ and hypervolume differences favour the constraint-aware pipeline even
+when the reference is rebuilt in each resample, but they are measured against a reference
+estimated from the same runs, and the exploratory signed-rank calculations against
+unconstrained MOBO do not pass the multiplicity correction. A larger
 feasible set therefore should not be read as uniform superiority of the observed Pareto front.
 The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
 infeasible upper ACC3/ACC4 phase region: it persists among energy-acceptable evaluations and
