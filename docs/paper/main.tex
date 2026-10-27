@@ -19,6 +19,9 @@
 \usepackage{lineno}
 \usepackage{placeins}
 \usepackage[hidelinks]{hyperref}
+\hypersetup{pdftitle={Multi-objective Bayesian optimization of a 200 MeV injector-linac model derived from the Korea Light Source design},
+  pdfauthor={Chong Shik Park},
+  pdfkeywords={Beam dynamics; Accelerator modelling and simulations; Multi-Objective Bayesian Optimization}}
 
 \newif\iffinal
 \finalfalse
@@ -66,7 +69,8 @@ met by only a few sampled settings, at the edge of the explored domain.
 All methods identify feasible nondominated operating points, revealing trade-offs between
 transverse beam quality and energy spread. Paired analyses support a higher feasible
 sampling fraction for constraint-aware acquisition, which arises mainly from meeting the
-transverse beam-size and divergence limits, while weighted-sum optimization completes campaigns faster.
+transverse beam-size and divergence limits, while the weighted-sum implementation has the lowest
+computational overhead.
 Objective-quality comparisons depend on the indicator and comparator. A survey of
 scalarization weightings explores additional trade-offs, and a limited lattice-jitter assessment
 retains feasibility for the selected operating points. The results demonstrate the use of
@@ -254,7 +258,6 @@ Each structure pair receives one common phase, defining the six-control search p
 These unequal angular windows were inherited from percentage offsets of the stored nominal
 coordinates. They define the historical comparison rather than a demonstrated tolerance or an
 origin-independent engineering prescription.
-% Discussion limitation: no physical crest calibration or alternative-domain ranking is established.
 
 The drift lengths, RF-field amplitudes and field-map geometry remain fixed, so each candidate
 represents a different focusing and phasing configuration of the same reference lattice. The
@@ -426,35 +429,17 @@ input, the observation noise is not inferred but fixed to
   \sigma^2_{\mathrm{obs},m} = \max\bigl(\eta\,\mathrm{Var}(y_m),\ \sigma^2_\mathrm{floor}\bigr),
   \qquad \eta = 10^{-6},\ \sigma^2_\mathrm{floor} = 10^{-24},
 \end{equation}
-for output $m$, which keeps the kernel matrices well conditioned without smoothing the data. For
-constraint-aware optimization, each of the seven diagnostics is modelled by a further GP of the
-same form, and all models are combined in one multi-output model with independent outputs.
-
-% C05 insertion after the requested physical-noise equation and model count.
-The fixed-noise expression specifies the requested variance in each output's
-recorded units. The outcome transform divides it by the square of the observed
-standard deviation, and the float64 likelihood additionally enforces a minimum
-variance of $10^{-6}$ in the transformed coordinates. Outputs with observed
-standard deviation below $10^{-8}$ are centered without variance scaling.
-Transmission is constant in the primary data: its requested variance is
-$10^{-24}$, its transform scale is one, and its saved effective likelihood
-variance is $10^{-6}$. Thus not every channel has unit-variance transformed
-observations, and the requested physical variance need not equal the effective
-likelihood variance.
-
-There are ten independent GPs in constraint-aware MOBO: three objective
-models and seven diagnostic models. The energy diagnostic supplies both energy
-inequalities. Across the saved primary models, 1,714 constraint-aware channel
-fits completed with L-BFGS and 86 used Adam recovery; the corresponding counts
-were 535 and five for unconstrained MOBO, and 180 and zero for scalarized BO.
-No saved fit used a restored-prior fallback. These are fitting outcomes rather
-than simulation failures or candidate-proposal fallbacks.
+for output $m$. This regularizes the kernel matrices numerically. Because the effective
+likelihood variance is nonzero, the posterior mean need not interpolate every observation
+exactly. For constraint-aware optimization, each of the seven diagnostics is modelled by a
+further GP of the same form, giving ten independent GPs; the energy diagnostic supplies both
+energy inequalities. All models are combined in one multi-output model with independent
+outputs. The effective likelihood floors, the handling of constant channels and the recorded
+fitting outcomes are given in appendix~\ref{app:implementation}.
 
 
 \subsection{Acquisition functions}
 \label{sec:acquisition}
-% C05 replacement for the acquisition subsection's equation and explanation.
-% Integrate before the unchanged scalarized-baseline paragraph.
 Let $\boldsymbol{\xi}$ be a joint posterior draw at the observed baseline and
 at the proposed batch $\mathbf{X}$. Define the feasible sampled baseline
 $\mathcal{P}_{\mathrm{feas}}(\boldsymbol{\xi}_n)$ and the feasible candidate
@@ -476,10 +461,9 @@ weights to each candidate participating in a contribution, rather than
 multiplying the entire batch improvement by one feasibility factor. Sampled
 baseline feasibility determines the baseline front. For each sampled candidate,
 the weight is $\prod_{k=1}^{8}h(-c_k/\tau_c)$, where $h$ is BoTorch's
-fat-tailed sigmoid and $\tau_c=10^{-3}$. Positive improvements and extrema are
-also smoothed and combined in log space, with $\tau_{\mathrm{ReLU}}=10^{-6}$
-and $\tau_{\max}=10^{-3}$. The unconstrained variant omits the diagnostic
-constraints. The separately available analytical Gaussian probability of
+fat-tailed sigmoid and $\tau_c=10^{-3}$. The unconstrained variant omits the diagnostic
+constraints. The remaining smoothing constants and the posterior sample counts are listed in
+appendix~\ref{app:implementation}. The separately available analytical Gaussian probability of
 feasibility is a diagnostic; it is not substituted for these sampled weights.
 
 The residuals are expressed in their recorded physical units: metres, radians,
@@ -498,15 +482,6 @@ except within about a milli-electron-volt of either bound. This unit dependence
 limits the interpretation of constraint weighting; no residual scaling is changed
 when analysing the recorded campaigns. The constrained method compared below is
 this raw-residual implementation, not a unit-invariant formulation.
-
-The executed call sites use baseline pruning and BoTorch's default normal
-Sobol samplers: 128 posterior samples for qLogNEHVI and 512 for scalarized
-qLogNEI. These counts and the smoothing constants are reconstructed from the
-call sites and the matching archived BoTorch version, because acquisition
-objects and sampler base draws were not saved. The model dimension and baseline
-sizes remain below the Sobol engine's dimension limit. Scalarized qLogNEI uses
-$\tau_{\max}=10^{-2}$ and $\tau_{\mathrm{ReLU}}=10^{-6}$. These posterior
-sample counts differ from the 1,024 raw candidate-initialization samples.
 
 The weighted-sum baseline fits a single GP to the scalar cost
 $g(\mathbf{x}) = \sum_m w_m f_m(\mathbf{x})/s_m$, where $s_m$ are the reporting scales
@@ -565,7 +540,6 @@ number of evaluations until the first feasible point, invalid simulation counts 
 computational cost. For each algorithm we report the median over runs with a \SI{95}{\percent} percentile
 bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed seed number).
 These intervals summarize individual methods; exploratory paired inference is described below.
-Neither pooled coverage nor these intervals establish global optimality.
 The limitation of the originally designated reporting endpoint is addressed in
 section~\ref{sec:discussion}. Constraint-space figures use every numerically valid observation,
 including physically infeasible settings, rather than only the Pareto subset. Their limits and
@@ -577,7 +551,6 @@ counted in the campaign summary but receive no invented diagnostic coordinates. 
 views and pooled views use the same definitions, with pooled views describing combined coverage
 rather than the trajectory of a single campaign.
 
-% C03: post-hoc front-quality analysis; generated from archived stage-04 outcomes.
 To assess objective-space quality beyond feasible sampling and set cardinality, we performed
 an exploratory analysis of the archived per-run fronts. Objectives were divided by
 \SI{1}{\micro\metre\radian}, \SI{1}{\micro\metre\radian} and \SI{1}{\mega\electronvolt}.
@@ -638,8 +611,10 @@ control. Published MOGA results remain contextual rather than a new matched benc
 \label{sec:audit}
 To assess sensitivity to machine errors, we select operating points from the predeclared
 primary constraint-aware MOBO run. Six representative points are taken from its feasible Pareto set: the minimizer of each objective;
-the knee point, closest to the ideal point after min--max normalization of the front; the
-balanced point, closest to the normalized front's centroid; and the point of largest crowding
+the ideal-distance point, closest to the ideal point after min--max normalization of the front
+(a distance criterion, not a curvature-based knee); the
+centroid-distance point, closest to the normalized front's centroid (named for its criterion,
+not a physically balanced operating point); and the point of largest crowding
 distance~\cite{Deb2002}. A role may select the same setting as another.
 
 Robustness is evaluated with 50 perturbed simulations per representative, drawn with a fixed
@@ -677,23 +652,15 @@ these small-jitter tests; expanded error models would be needed for those claims
 \label{sec:survey}
 To illustrate the operating modes accessible to the injector, we additionally ran single campaigns
 (16 initial points and 20 batches of 8, i.e.\ 176 simulations each) of the weighted-sum
-method for five weightings $(w_x, w_y, w_E)$---balanced $(\frac13, \frac13, \frac13)$,
-high brightness $(0.45, 0.45, 0.10)$, low energy spread $(0.10, 0.10, 0.80)$, horizontal
-$(0.60, 0.20, 0.20)$ and vertical $(0.20, 0.60, 0.20)$---and one campaign of each qLogNEHVI
+method for five weightings $(w_x, w_y, w_E)$---equal weight $(\frac13, \frac13, \frac13)$,
+emittance emphasis $(0.45, 0.45, 0.10)$, spread emphasis $(0.10, 0.10, 0.80)$, horizontal
+emphasis $(0.60, 0.20, 0.20)$ and vertical emphasis $(0.20, 0.60, 0.20)$---and one campaign of each qLogNEHVI
 variant. The campaigns use fixed seed numbers; scalarization weight cases have independently
 generated initial designs, whereas the two MOBO runs share an initial design.
 The five weighted-sum runs together use five times the budget of a qLogNEHVI run, so the
 survey is descriptive and is not used to compare algorithms. Its constraint-aware run was assessed under lattice jitter
 with the same protocol.
 
-% -----------------------------------------------------------------------------------------
-% Campaign outputs (copied here after scripts/production/07_paper_outputs.sh):
-%   results_table.tex, phase1_cases_table.tex, figures/*.png
-%       scripts/reproduce_paper.sh with the Step 5 directories (printed by Step 7)
-%   figures/benchmark_feasibility_comparison.pdf,
-%   robustness_table.tex
-%       copied from results/paper_production/07_paper_outputs/{figures,tables}
-% -----------------------------------------------------------------------------------------
 %==========================================================================================
 \section{Results}
 \label{sec:results}
@@ -715,13 +682,10 @@ not intrinsic algorithmic complexity or a GPU-versus-CPU speedup. Campaigns ran 
 with eight evaluation workers per campaign; hardware, software and input identities are
 retained in the supporting reproduction manifest.
 
-To avoid double-counting concurrent workers, we also formed the union of recorded evaluation
-start/end intervals. The median fraction of campaign time outside those intervals is
-\SI{71.4}{\percent}, \SI{57.0}{\percent} and \SI{19.2}{\percent} for constraint-aware,
-unconstrained and scalarized BO, respectively. This remainder combines model fitting,
-acquisition optimization, scheduling, setup and export; the logs do not support a separate
-measured allocation to each component. Summed worker runtimes are retained for reproducibility
-but are not interpreted as elapsed fractions.
+Outside the union of recorded evaluation intervals lies a median \SI{71.4}{\percent},
+\SI{57.0}{\percent} and \SI{19.2}{\percent} of campaign time for constraint-aware,
+unconstrained and scalarized BO, respectively, which combines model fitting, acquisition
+optimization, scheduling and export (appendix~\ref{app:implementation}).
 
 
 \subsection{Primary comparison}
@@ -730,7 +694,7 @@ Figure~\ref{fig:primary_pareto} compares the empirical feasible Pareto sets afte
 ten runs separately for each method and recomputing nondominance jointly in all three objectives.
 The resulting sets contain 49, 27 and 17 observations for constraint-aware MOBO, unconstrained
 MOBO and weighted-sum BO, respectively. Pooling describes the combined search coverage at equal
-total budgets per method; it does not represent a single run or a globally optimal front.
+total budgets per method; it does not represent a single run.
 Markers retain every three-objective nondominated observation in the pairwise projections,
 as used for accelerator MOBO comparisons~\cite{Roussel2021}. A point can appear dominated in a
 projection because it improves the omitted objective. Neither a larger point count alone nor
@@ -754,7 +718,6 @@ Median feasible fractions were \SI{40.6}{\percent} [\SI{35.6}{\percent}, \SI{45.
 Median feasible Pareto cardinalities were 13.5, 7.0 and 4.0. All three methods therefore
 identified feasible nondominated solutions.
 
-% C04: run-level paired inference conditional on the C03 analysis conventions.
 Five of the ten shared initial designs already contained a feasible setting. First-feasible
 counts within those initial designs therefore cannot be credited to an acquisition function.
 Using only the subsequent 144 evaluations, while retaining all ten groups, median feasible
@@ -960,8 +923,7 @@ For diagnostic observations near a production boundary, coverage ranges from app
 \SI{10}{\percent} of each absolute threshold, except energy, for which it is within
 \SI{0.5}{\mega\electronvolt} of either bound. Counts and physical-unit errors are supplied
 in Appendix~\ref{app:predictive}. Transmission is constant; perfect prediction of its
-observed value cannot validate discrimination of losses. The previously reported Adam
-recovery counts concern fitting completion and do not establish predictive calibration.
+observed value cannot validate discrimination of losses.
 
 \subsection{Interpretation of selected settings}
 \label{sec:settings}
@@ -1085,7 +1047,7 @@ specific tracked setting in section 4.3, which gives horizontal and vertical nor
 emittances of \SI{3.9586}{\micro\metre\radian} and \SI{3.9424}{\micro\metre\radian},
 and \SI{0.165}{\percent} RMS energy spread at \SI{201.79}{\mega\electronvolt}
 (approximately \SI{0.3330}{\mega\electronvolt}). The distinction matters when comparing
-individual operating points. The present primary knee has
+individual operating points. The present primary ideal-distance point has
 $(\enx,\eny,\sigma_E)=(\SI{2.9983}{\micro\metre\radian},\
 \SI{3.5207}{\micro\metre\radian},\ \SI{0.4034}{\mega\electronvolt})$.
 It exchanges lower transverse emittances for higher energy spread relative to that tracked
@@ -1179,27 +1141,32 @@ comparison with accelerator measurements is made in this simulation study.
 %==========================================================================================
 \section{Conclusions}
 \label{sec:conclusions}
-We studied constraint-aware batch multi-objective Bayesian optimization for a six-parameter,
-three-objective design problem with seven diagnostic channels and eight inequalities for a \SI{200}{\mega\electronvolt} electron injector linac for KLS, in a paired,
-budget-matched comparison over ten runs with failure-inclusive accounting. All simulations were
-valid, and each method identified feasible nondominated solutions. The pooled feasible fronts
-contained 49, 27 and 17 observations for the constraint-aware, unconstrained and weighted-sum
-methods, respectively; these are empirical trade-offs, rather than certified globally optimal
-fronts. Constraint-aware acquisition had a median
-feasible fraction of \SI{40.6}{\percent}, compared with \SI{15.0}{\percent} and \SI{12.5}{\percent} for the two baselines. All sampled
-lattice perturbations were feasible, with source jitter explicitly excluded. Paired analysis
-supports improved feasible sampling under the stated profile, largely through the transverse
-size and divergence limits rather than the energy band alone, while evidence for
-objective-space quality depends on the comparator and endpoint. The recorded data and analysis scripts support
-regeneration of these results.
-The engineering conclusion is limited. Under the KLS TDR optimization requirements only two
-marginal primary observations are acceptable, and the MOGA-derived nominal setting misses them
-narrowly, so the six fixed-lattice controls reach the TDR region only at the edge of the
-explored domain. A design study aimed at TDR acceptance would need those requirements as its
-constraints and probably the additional matching and RF controls of the full TDR linac.
-Future work will extend the robustness analysis to source fluctuations with
-a validated distribution generator, distribute the simulations across compute nodes, and test the
-optimized settings on the machine.
+We compared three specified Bayesian optimization pipelines on a six-control, three-objective
+injector-linac model derived from the KLS design, with seven diagnostic channels and eight
+inequalities, in a paired, budget-matched study of ten runs with failure-inclusive accounting.
+All simulations were valid, and every pipeline found feasible nondominated settings that expose
+the trade-offs between transverse emittance and energy spread.
+
+The best-supported result is a feasible-sampling advantage of the constraint-aware pipeline
+under the stated computational profile. It holds in every matched group without any estimated
+reference, persists among energy-acceptable evaluations and comes mainly from the transverse
+size and divergence limits. Indicators of front quality also favour the constraint-aware
+pipeline, including when the empirical reference is rebuilt in each resample, but they rest
+on a reference estimated from the same runs and do not establish uniform superiority or global
+optimality. None of the pipelines found a feasible setting that dominates the MOGA-derived
+nominal setting at the centre of the domain.
+
+The engineering conclusion is limited. The production profile is deliberately looser than the
+KLS TDR optimization requirements, under which only two marginal primary observations are
+acceptable and the MOGA-derived nominal setting misses narrowly. The six fixed-lattice controls
+therefore reach the TDR region only at the edge of the explored domain. A design study aimed at
+TDR acceptance would need those requirements as its constraints and probably the additional
+matching and RF controls of the full TDR linac. Lattice-jitter tests of the selected settings
+retained feasibility under the simulated lattice-only error model, which is not a reliability
+guarantee. All values are nominal-resolution results, and the recorded data and analysis
+scripts support their regeneration. Future work will extend the robustness analysis to source
+fluctuations with a validated distribution generator, distribute the simulations across compute
+nodes, and test the optimized settings on the machine.
 
 %==========================================================================================
 \section*{Acknowledgments}
@@ -1207,6 +1174,42 @@ optimized settings on the machine.
 \pending{Funding and acknowledgments to be supplied by the author.}
 
 \appendix
+\section{Executed implementation details}
+\label{app:implementation}
+This appendix records implementation details of the executed pipelines that matter for
+reproduction but not for the physical argument.
+
+\paragraph{Surrogate noise and fitting.} The fixed-noise expression of
+section~\ref{sec:methods} specifies the requested variance in each output's recorded units. The
+outcome transform divides it by the square of the observed standard deviation, and the float64
+likelihood additionally enforces a minimum variance of $10^{-6}$ in the transformed
+coordinates. Outputs with observed standard deviation below $10^{-8}$ are centered without
+variance scaling. Transmission is constant in the primary data: its requested variance is
+$10^{-24}$, its transform scale is one, and its saved effective likelihood variance is
+$10^{-6}$. Thus not every channel has unit-variance transformed observations, and the
+requested physical variance need not equal the effective likelihood variance. Across the saved
+primary models, 1,714 constraint-aware channel fits completed with L-BFGS and 86 used Adam
+recovery; the corresponding counts were 535 and five for unconstrained MOBO, and 180 and zero
+for scalarized BO. No saved fit used a restored-prior fallback. These are fitting outcomes
+rather than simulation failures or candidate-proposal fallbacks.
+
+\paragraph{Acquisition smoothing and sampling.} Besides the constraint temperature $\tau_c$,
+qLogNEHVI smooths positive improvements and extrema in log space with
+$\tau_{\mathrm{ReLU}}=10^{-6}$ and $\tau_{\max}=10^{-3}$; scalarized qLogNEI uses
+$\tau_{\max}=10^{-2}$ and $\tau_{\mathrm{ReLU}}=10^{-6}$. The executed call sites use baseline
+pruning and BoTorch's default normal Sobol samplers, with 128 posterior samples for qLogNEHVI
+and 512 for scalarized qLogNEI. These counts and constants are reconstructed from the call
+sites and the matching archived BoTorch version, because acquisition objects and sampler base
+draws were not saved; bitwise replay of the proposals is therefore not possible. The model
+dimension and baseline sizes remain below the Sobol engine's dimension limit. The posterior
+sample counts differ from the 1,024 raw candidate-initialization samples.
+
+\paragraph{Campaign time.} To avoid double-counting concurrent workers, the union of recorded
+evaluation start and end intervals was formed for each campaign. The remainder of campaign
+time combines model fitting, acquisition optimization, scheduling, setup and export; the logs
+do not support a separate measured allocation to each component. Summed worker runtimes are
+retained for reproducibility but are not interpreted as elapsed fractions.
+
 \section{Exploratory front-quality and attainment analyses}
 \label{app:front_quality}
 As a separate sensitivity analysis, feasible hypervolume was recomputed against the pooled
