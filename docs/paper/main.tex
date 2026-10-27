@@ -40,7 +40,7 @@
 \newcommand{\eny}{\varepsilon_{n,y}}
 \newcommand{\umrad}{\si{\micro\metre\radian}}
 
-\title{Multi-objective Bayesian optimization of a \SI{200}{\mega\electronvolt} electron injector linac for the Korea Light Source}
+\title{Multi-objective Bayesian optimization of a \SI{200}{\mega\electronvolt} injector-linac model derived from the Korea Light Source design}
 
 \author{Chong Shik Park\\[0.5em]
 \small Department of Accelerator Science, Korea University\\
@@ -54,12 +54,15 @@
 
 \begin{abstract}
 Optimization of an electron injector linac requires balancing transverse beam emittances and
-energy spread while satisfying beam transport and transmission constraints. We investigate
-Bayesian optimization of the S-band injector-linac model developed for the Korea Light Source
-using ASTRA space-charge tracking simulations. Magnetic strengths and RF phases are varied to
-minimize the horizontal and vertical normalized RMS emittances and RMS energy spread.
-Constraint-aware and unconstrained multi-objective Bayesian optimization are compared with
-weighted-sum Bayesian optimization using matched simulation budgets and shared initial designs.
+energy spread while satisfying beam transport and transmission constraints. We compare
+Bayesian optimization pipelines on a fixed-lattice S-band injector-linac model derived from the
+Korea Light Source design, using ASTRA space-charge tracking simulations. Magnetic strengths and
+RF phases are varied to minimize the horizontal and vertical normalized RMS emittances and RMS
+energy spread. Constraint-aware and unconstrained multi-objective Bayesian optimization are
+compared with weighted-sum Bayesian optimization using matched simulation budgets and shared
+initial designs. Feasibility is defined by a deliberately relaxed computational acceptance
+profile; the stricter optimization requirements of the Korea Light Source technical design are
+met by only a few sampled settings, at the edge of the explored domain.
 All methods identify feasible nondominated operating points, revealing trade-offs between
 transverse beam quality and energy spread. Paired analyses support a higher feasible
 sampling fraction for constraint-aware acquisition, which arises mainly from meeting the
@@ -68,7 +71,7 @@ Objective-quality comparisons depend on the indicator and comparator. A survey o
 scalarization weightings explores additional trade-offs, and a limited lattice-jitter assessment
 retains feasibility for the selected operating points. The results demonstrate the use of
 constraint-aware Bayesian optimization to identify feasible injector-linac settings and map
-beam-quality trade-offs within the stated injector model and acceptance profile.
+beam-quality trade-offs within the stated injector model and computational acceptance profile.
 \end{abstract}
 
 \noindent\textbf{Keywords:} Beam dynamics; Accelerator modelling and simulations;
@@ -302,15 +305,20 @@ in table~\ref{tab:constraints} satisfy eight inequalities:
  \sigma_z&\le\SI{1}{\milli\metre}, &T&\ge0.90,\\
  E_\mathrm{kin}&\ge\SI{195}{\mega\electronvolt}, &E_\mathrm{kin}&\le\SI{205}{\mega\electronvolt}.
 \end{align}
-These limits identify the fixed-lattice production configuration. The TDR's optimization
-requirements are given separately in table~\ref{tab:constraints}; their source is
-Table 2.1.4.6 of the report~\cite{KLSTDR2025}. The production transverse and transmission
-limits are looser, while its two-sided energy interval differs from the TDR's lower bound.
-The TDR does not justify replacing its requirements with the production limits. The completed
-campaigns therefore compare algorithms on the stated computational profile; TDR compatibility
-is assessed separately from their archived observations. This is a fixed-lattice study with two
-quadrupole controls, rather than a model of the complete TDR linac and downstream matching
-system. A valid
+These limits define a deliberately relaxed computational acceptance profile, not an
+engineering requirement of the KLS design. They were fixed in July 2026, before any of the
+reported campaigns. Earlier studies of this injector used limits close to the TDR values
+(\SI{0.3}{\milli\metre} sizes, \SI{0.3}{\milli\radian} divergences, \SI{99.99}{\percent}
+transmission). In the present six-variable domain those limits produced a high rate of
+infeasible early space-filling samples, and the production profile was adopted so that
+feasible and infeasible observations both occur often enough for the algorithms to be compared. The TDR's
+optimization requirements are given separately in table~\ref{tab:constraints}; their source
+is Table 2.1.4.6 of the report~\cite{KLSTDR2025}. The production transverse limits are about
+three to four times looser, the transmission limit allows far larger losses, and the two-sided
+energy interval differs from the TDR's lower bound. The completed campaigns therefore compare
+algorithms on this computational profile, and TDR compatibility is assessed separately. This
+is a fixed-lattice study with two quadrupole controls, rather than a model of the complete TDR
+linac and downstream matching system. A valid
 simulation that violates any limit is retained as an infeasible observation and cannot enter the
 feasible Pareto set, even if its objective values are attractive. Conversely, passing a subset
 of diagnostics is insufficient: the classification requires all inequalities to hold together.
@@ -344,15 +352,43 @@ These specifications are distinct from the optimization constraint list. We chec
 spread as $\sigma_E/E_\mathrm{kin}$, without substituting normalized for geometric emittance
 or equating FWHM duration with RMS bunch length.
 
-Reclassifying all archived observations under the TDR optimization constraints gives two
-constraint-aware observations and none from either baseline. Both also meet the relative
-energy-spread specification. Passing these checks does not establish the remaining pulse,
-emittance, stability or downstream matching specifications. The original profile instead
-accepts 648, 251 and 200 observations for constraint-aware, unconstrained and scalarized BO.
-The difference shows that their original feasible-front comparison describes a broader
-computational region than the TDR optimization acceptance region.
+Reclassifying the 4,800 primary evaluations under the TDR optimization constraints accepts
+two constraint-aware observations and none from either baseline; the production profile
+accepts 648, 251 and 200 of the same evaluations. The feasible-front comparison of this paper
+therefore describes a much broader computational region than the TDR optimization acceptance
+region. The two TDR-passing observations come from two different matched runs and are listed
+in table~\ref{tab:tdr_candidates}. Both are marginal: they clear the horizontal-size limit by
+only a few micrometres and the bunch-length limit by about \SI{8}{\micro\metre}, and one has a
+relative energy spread of \SI{0.44}{\percent} against the \SI{0.5}{\percent} specification.
+They are not among the six representatives of the lattice-jitter assessment. Two observations
+against none is observed coverage, not a demonstrated ranking of the methods under the TDR
+profile, and passing these checks does not establish the remaining pulse, emittance, stability
+or downstream matching specifications.
 
-As an exploratory sensitivity check, we reclassified the archived observations using published
+\begin{table}[htbp]
+\centering
+\caption{The two primary observations that pass the TDR optimization inequalities, both from
+constraint-aware MOBO in different matched runs. Margins are physical distances inside each
+limit (positive = satisfied); they are nominal-resolution values
+(section~\ref{sec:problem}).}
+\label{tab:tdr_candidates}
+\small
+\begin{tabular}{lrr}
+\toprule
+Quantity & Candidate A & Candidate B \\
+\midrule
+$\enx$, $\eny$ [\si{\micro\metre\radian}] & 3.3488, 3.2848 & 3.2557, 3.2723 \\
+$\sigma_E$ [\si{\mega\electronvolt}] (relative) & 0.4818 (\SI{0.24}{\percent}) & 0.8852 (\SI{0.44}{\percent}) \\
+Margin $\sigma_x$, $\sigma_y$ [\si{\micro\metre}] & 2.47, 44.42 & 8.93, 81.31 \\
+Margin $\sigma_{x'}$, $\sigma_{y'}$ [\si{\micro\radian}] & 222.85, 24.59 & 224.36, 13.31 \\
+Margin $\sigma_z$ [\si{\micro\metre}] & 8.16 & 7.96 \\
+Margin $E_\mathrm{kin}$ [\si{\mega\electronvolt}] & 0.31 & 0.14 \\
+Transmission & 1 & 1 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+As an exploratory sensitivity check, we reclassified the primary evaluations using published
 limits, without changing the original labels. The NAPAC profile~\cite{Park2025NAPAC} requires
 transverse sizes below \SI{0.30}{\milli\metre}, divergences below
 \SI{0.30}{\milli\radian}, bunch length below \SI{1}{\milli\metre}, the production energy band,
@@ -1069,6 +1105,18 @@ observed feasibility under lattice jitter complements the earlier tolerance stud
 show greater robustness under its broader error model. The earlier study identified alignment
 errors as a principal sensitivity, supporting their inclusion in future assessments.
 
+\subsection{Reach of the TDR acceptance region}
+\label{sec:tdr_reach}
+The archived evidence places the TDR optimization region at the edge of the explored domain.
+Only two of the 4,800 primary evaluations meet its inequalities, both with micrometre-scale
+size and bunch-length margins (table~\ref{tab:tdr_candidates}). The MOGA-derived nominal
+setting misses them only in vertical divergence, by \SI{2.7}{\micro\radian}, and about a
+quarter of its jittered neighbours pass. The six controls can therefore reach the TDR region,
+but the production-profile campaigns sampled it rarely because it was not their target. The TDR
+describes a longer linac with further matching quadrupoles and adjustable RF amplitudes. Those
+are held fixed or absent here, so the present model cannot show how much of the TDR region
+becomes accessible with them.
+
 \subsection{Limitations}
 The feasible fronts are empirical sets from finite searches in the recorded domain. They
 characterize a broader production acceptance profile than the TDR optimization requirements,
@@ -1130,6 +1178,11 @@ supports improved feasible sampling under the stated profile, largely through th
 size and divergence limits rather than the energy band alone, while evidence for
 objective-space quality depends on the comparator and endpoint. The recorded data and analysis scripts support
 regeneration of these results.
+The engineering conclusion is limited. Under the KLS TDR optimization requirements only two
+marginal primary observations are acceptable, and the MOGA-derived nominal setting misses them
+narrowly, so the six fixed-lattice controls reach the TDR region only at the edge of the
+explored domain. A design study aimed at TDR acceptance would need those requirements as its
+constraints and probably the additional matching and RF controls of the full TDR linac.
 Future work will extend the robustness analysis to source fluctuations with
 a validated distribution generator, distribute the simulations across compute nodes, and test the
 optimized settings on the machine.
