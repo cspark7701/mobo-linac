@@ -925,6 +925,53 @@ For diagnostic observations near a production boundary, coverage ranges from app
 in Appendix~\ref{app:predictive}. Transmission is constant; perfect prediction of its
 observed value cannot validate discrimination of losses.
 
+Three causes plausibly contribute to the undercoverage. First, the likelihood variance is
+fixed at $\eta=10^{-6}$ of the training variance, so the intervals contain almost no
+irreducible term and depend entirely on the posterior variance of a stationary kernel.
+Second, a single Mat\'ern-5/2 length scale per control cannot represent both the smooth
+interior response and the sharp changes near phase-dependent energy loss or beam-size
+growth. Third, the test points are not random: each batch is chosen where the acquisition
+expects improvement or feasibility, often at the edge of the sampled region. Because the
+constraint weights use the same Gaussian predictions, overconfident constraint
+predictions make the feasibility weights too sharp, both towards one and towards zero.
+They change which candidates are proposed. They do not affect the reported diagnostics,
+which are tracked values.
+
+The whole-trajectory RMSE combines all stages and both regions. For constraint-aware MOBO,
+the horizontal-emittance coverage is \SI{89.9}{\percent} for production-feasible next-batch
+observations and \SI{69.5}{\percent} for infeasible ones, with RMSE of
+\SI{2.60}{\micro\metre\radian} and \SI{10.33}{\micro\metre\radian}. The corresponding
+values for the unconstrained method are \SI{92.7}{\percent} and \SI{75.0}{\percent}. For
+the transverse diagnostics, coverage rises from \SIrange{75.6}{80.0}{\percent} in batches
+1--6 to \SIrange{88.3}{91.0}{\percent} in batches 13--18, and for energy from
+\SI{67.5}{\percent} to \SI{97.5}{\percent}. Bunch length is the exception: its coverage
+falls from \SI{89.2}{\percent} to \SI{84.4}{\percent}, and is \SI{73.5}{\percent} for late
+infeasible observations. The
+emittance coverage does not improve monotonically with stage
+(\SI{74.0}{\percent}, \SI{83.3}{\percent} and \SI{78.5}{\percent}). In the late stage, the
+horizontal-emittance RMSE for feasible observations is \SI{0.98}{\micro\metre\radian}. The
+surrogates are therefore least reliable away from the feasible set, where infeasible
+proposals are most common. Even near the feasible region, the intervals remain below their
+nominal coverage, so no claim of calibrated local prediction is made.
+
+To test the first cause, we refitted every archived pre-proposal training set offline with
+the production surrogate builder twice. One fit used the production fixed noise and the
+other used homoscedastic noise inferred by marginal likelihood. The chronological
+next-batch check was then repeated. The fixed-noise refits reproduce the coverage of the
+saved snapshots to within \num{0.5} percentage points. Inferred noise raises the
+constraint-aware coverage to \SI{83.4}{\percent}, \SI{86.6}{\percent} and
+\SI{92.7}{\percent} for the three objectives. The diagnostic coverage rises to
+\SIrange{86.9}{93.9}{\percent}, and the RMSE changes by at most \SI{14}{\percent},
+except for energy. For energy, the RMSE falls from \SI{0.89}{\mega\electronvolt} to
+\SI{0.14}{\mega\electronvolt}. The fitted noise is \numrange{e-4}{e-3} of the training
+variance. For energy and bunch length, it lies at the lower bound of the fitting
+constraint, so the energy improvement reflects regularization of a nearly
+interpolating fit, not detected simulation noise. Inferred noise thus removes part,
+but not all, of the undercoverage. Most of the remainder is consistent with kernel
+misspecification and adaptive test points. The production campaigns are unchanged.
+In \num{88} of \num{4680} refits, both optimizers failed and the hyperparameters were
+restored to their initial values, as in production.
+
 \subsection{Interpretation of selected settings}
 \label{sec:settings}
 Appendix~\ref{app:settings} gives the complete controls and objectives of the six distinct
@@ -1157,7 +1204,8 @@ current inputs are absolute wave phases. The upper quarter of the ACC3/ACC4 inte
 constraint-aware, unconstrained and scalarized BO, respectively, all outside the energy band.
 Because upstream controls vary jointly, this does not establish a causal phase cutoff or
 predict rankings after changing the domain. Next-batch predictive checks also show
-undercoverage of the saved Gaussian intervals, so estimated model feasibility must not be
+undercoverage of the saved Gaussian intervals, concentrated in the infeasible region and
+only partly removed by inferred noise. Estimated model feasibility must therefore not be
 interpreted as calibrated machine reliability; physical feasibility is determined by the
 tracking diagnostics themselves.
 

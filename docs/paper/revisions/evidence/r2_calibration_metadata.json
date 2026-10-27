@@ -1,0 +1,29 @@
+{
+  "analysis": "C2-05; part A uses existing C11 records; part B refits archived training sets offline",
+  "excluded_channels": {
+    "transmission_fraction": "constant in all primary runs"
+  },
+  "input_sha256": {
+    "c11_next_batch_predictions.csv": "44e5aa89fa5e4ce83fd7df0d42e2c54fb1467db82bc54870884db9f5787fcf4b"
+  },
+  "interval": "Gaussian 95% observation interval; latent covariance diagonal plus likelihood noise",
+  "refit_device": "cuda:0",
+  "refit_modes": {
+    "fixed": "production deterministic fixed noise",
+    "inferred": "homoscedastic Gaussian likelihood noise fitted by marginal likelihood"
+  },
+  "stages": {
+    "early": [
+      1,
+      6
+    ],
+    "late": [
+      13,
+      18
+    ],
+    "middle": [
+      7,
+      12
+    ]
+  }
+}
