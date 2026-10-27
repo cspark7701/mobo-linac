@@ -573,7 +573,8 @@ of attaining each target $r+\delta\mathbf{1}$, for $r\in R$ and normalized relax
 $\delta\in\{0.05,0.10,0.25,0.50\}$. These are empirical probabilities of attaining specified
 observed trade-offs, with no implied global-front guarantee. Quality histories are evaluated
 at full-batch checkpoints, including initialization. Supporting plots and a separate post-hoc
-reference-sensitivity analysis appear in appendix~\ref{app:front_quality}.
+reference-sensitivity analysis appear in appendix~\ref{app:front_quality} (supplement items S1.2
+and S1.3).
 
 Exploratory inference used the ten matched groups as the sampling units. Paired bootstrap
 intervals resampled complete groups jointly across methods, with 10,000 resamples.
@@ -625,7 +626,7 @@ phase errors are identical, rather than independent. The same standardized draws
 across representatives (common random numbers), while their nominal parameter vectors differ.
 Thus six sets of 50 trials produce 300 distinct perturbed settings, not 300 independent trials
 of one design. The primary run is the first prescribed member of the primary campaign list,
-not a run selected retrospectively for its robustness outcome; the supporting manifest retains
+not a run selected retrospectively for its robustness outcome; supplement item S1.1 retains
 its exact identity. The survey assessment is recorded separately.
 
 For each design we report the observed feasibility fraction and exact Clopper--Pearson
@@ -633,7 +634,7 @@ binomial limits~\cite{Clopper1934}, conditional on independent trials from the s
 changes are described by the mean ratio
 $D = \frac{1}{3}\sum_m \langle f_m\rangle/f_m^{\mathrm{nom}}$, along with separate
 objective means, population standard deviations and empirical fifth/ninety-fifth percentiles
-in the supporting data. Signed margins are $(u-y)/|u|$ for an upper threshold and
+in supplement item S1.10. Signed margins are $(u-y)/|u|$ for an upper threshold and
 $(y-l)/|l|$ for a lower threshold. The reported $\mu_{\min}$ is the minimum over all
 channels and trials. In particular, the two energy margins use \SI{195}{\mega\electronvolt}
 and \SI{205}{\mega\electronvolt} as denominators, not the \SI{5}{\mega\electronvolt}
@@ -664,6 +665,8 @@ with the same protocol.
 %==========================================================================================
 \section{Results}
 \label{sec:results}
+The evidence for each result in this section is identified in supplement S1
+(appendix~\ref{app:implementation}).
 
 \subsection{Simulation validity and computational comparison}
 All 4,800 simulations of the primary comparison were valid; no simulation-invalid failure was
@@ -680,7 +683,7 @@ initialization. The median ratios are 2.74 for constraint-aware and 1.89 for unc
 MOBO. These are measured costs of the recorded implementations and adaptive trajectories,
 not intrinsic algorithmic complexity or a GPU-versus-CPU speedup. Campaigns ran sequentially,
 with eight evaluation workers per campaign; hardware, software and input identities are
-retained in the supporting reproduction manifest.
+retained in supplement item S1.1.
 
 Outside the union of recorded evaluation intervals lies a median \SI{71.4}{\percent},
 \SI{57.0}{\percent} and \SI{19.2}{\percent} of campaign time for constraint-aware,
@@ -906,7 +909,7 @@ This chronological check uses \num{1440} post-initialization observations per me
 requires no refitting. Gaussian observation intervals include the saved effective fixed
 likelihood variance. Their variance is taken from the posterior covariance diagonal before
 any absolute floor imposed by the distribution's variance accessor. The latter can inflate
-small-unit uncertainties; both conventions are recorded in the supporting results, but the
+small-unit uncertainties; both conventions are recorded in supplement item S1.8, but the
 covariance-based convention is used here. No production model or proposal is changed.
 
 Nominal \SI{95}{\percent} interval coverage for constraint-aware MOBO is
@@ -1259,6 +1262,21 @@ nodes, and test the optimized settings on the machine.
 This appendix records implementation details of the executed pipelines that matter for
 reproduction but not for the physical argument.
 
+\paragraph{Supporting package.} Supplement S1 is the versioned \texttt{mobo\_linac}~1.0.0
+repository snapshot that accompanies this manuscript. Its evidence map
+(\texttt{docs/paper/supplement/README.md}) assigns item numbers S1.1--S1.15 to the reported
+results and links each to its evidence file and generating script. Every production step was
+started from a recorded clean commit. The primary benchmark used \texttt{8ad6c2c}, the
+operating-point survey \texttt{239c466}, and the candidate audit and lattice jitter
+\texttt{f6ce000}. The revision simulations began at \texttt{bfb0be0}. The
+revision-analysis scripts are distinct from this production code. They read the completed
+run ledgers and verify their checksums, and they do not modify run directories. The
+configuration's development benchmark defaults were overridden on the command line. These
+overrides, the ledger checksums and the configuration hash are listed in item S1.1. The
+complete run directories (about \SI{44}{\giga\byte}) are not distributed. The
+\SI{10}{\mega\byte} of evaluation ledgers that suffice to regenerate every evidence file are
+identified by checksum. Sampler base draws were not archived.
+
 \paragraph{Surrogate noise and fitting.} The fixed-noise expression of
 section~\ref{sec:methods} specifies the requested variance in each output's recorded units. The
 outcome transform divides it by the square of the observed standard deviation, and the float64
@@ -1301,12 +1319,12 @@ reference, medians were 68.890, 63.461 and 61.190 in the normalized coordinates.
 ordering differed from the epsilon and IGD+ ordering, illustrating dependence on the quality
 indicator. These exploratory analyses supplement the original endpoint and do not replace it
 retrospectively. Batch-checkpoint quality traces and relaxed-target empirical attainment
-summaries are supplied as supporting analyses.
+summaries are supplied in supplement item S1.2.
 
 Figure~\ref{fig:revision_quality} compares quality at successive batch checkpoints.
 Figure~\ref{fig:revision_attainment} reports target attainment at the terminal budget.
-The target index follows the lexicographically sorted empirical-reference vectors in the
-supporting data. Increasing relaxation expands the objective target region; it does not relax
+The target index follows the lexicographically sorted empirical-reference vectors in
+supplement item S1.2. Increasing relaxation expands the objective target region; it does not relax
 physical feasibility. The same original constraint profile is used throughout.
 
 \begin{figure}[htbp]

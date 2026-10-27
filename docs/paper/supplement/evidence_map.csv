@@ -1,0 +1,99 @@
+item,title,manuscript_location,path,generator
+S1.1,Production configuration,sec:design,configs/publication_200MeV.yaml,
+S1.1,Production configuration,sec:design,docs/paper/supplement/ledger_manifest.json,scripts/build_supplement_manifest.py
+S1.2,Primary quality histories and directional coverage,sec:primary,docs/paper/revisions/evidence/c03_run_histories.csv,scripts/analyze_revision_fronts.py
+S1.2,Primary quality histories and directional coverage,sec:primary,docs/paper/revisions/evidence/c03_terminal_summary.csv,scripts/analyze_revision_fronts.py
+S1.2,Primary quality histories and directional coverage,sec:primary,docs/paper/revisions/evidence/c03_directional_coverage.csv,scripts/analyze_revision_fronts.py
+S1.2,Primary quality histories and directional coverage,app:front_quality,docs/paper/revisions/evidence/c03_attainment.csv,scripts/analyze_revision_fronts.py
+S1.2,Primary quality histories and directional coverage,app:front_quality,docs/paper/revisions/evidence/c03_empirical_reference.csv,scripts/analyze_revision_fronts.py
+S1.2,Primary quality histories and directional coverage,sec:primary,docs/paper/revisions/evidence/c03_metadata.json,scripts/analyze_revision_fronts.py
+S1.2,Primary quality histories and directional coverage,sec:primary,docs/paper/revisions/evidence/c03_protocol.md,
+S1.2,Primary quality histories and directional coverage,sec:primary,docs/paper/revisions/evidence/c03_report.md,
+S1.2,Primary quality histories and directional coverage,app:front_quality,docs/paper/revisions/evidence/c03_results.tex,scripts/analyze_revision_fronts.py
+S1.3,Paired effects and reference resampling,sec:primary,docs/paper/revisions/evidence/c04_paired_differences.csv,scripts/analyze_revision_pairs.py
+S1.3,Paired effects and reference resampling,sec:primary,docs/paper/revisions/evidence/c04_paired_effects.csv,scripts/analyze_revision_pairs.py
+S1.3,Paired effects and reference resampling,sec:primary,docs/paper/revisions/evidence/c04_initialization.csv,scripts/analyze_revision_pairs.py
+S1.3,Paired effects and reference resampling,sec:primary,docs/paper/revisions/evidence/c04_metadata.json,scripts/analyze_revision_pairs.py
+S1.3,Paired effects and reference resampling,sec:primary,docs/paper/revisions/evidence/c04_protocol.md,
+S1.3,Paired effects and reference resampling,sec:primary,docs/paper/revisions/evidence/c04_report.md,
+S1.3,Paired effects and reference resampling,sec:primary,docs/paper/revisions/evidence/c04_results.tex,scripts/analyze_revision_pairs.py
+S1.3,Paired effects and reference resampling,app:front_quality,docs/paper/revisions/evidence/r2_rebuilt_reference_effects.csv,scripts/analyze_revision_reference_resampling.py
+S1.3,Paired effects and reference resampling,app:front_quality,docs/paper/revisions/evidence/r2_rebuilt_reference_metadata.json,scripts/analyze_revision_reference_resampling.py
+S1.4,Acceptance profiles and TDR candidates,sec:problem,docs/paper/revisions/evidence/c01_acceptance.md,
+S1.4,Acceptance profiles and TDR candidates,sec:problem,docs/paper/revisions/evidence/c01_reclassification_by_run.csv,scripts/analyze_revision_acceptance.py
+S1.4,Acceptance profiles and TDR candidates,sec:problem,docs/paper/revisions/evidence/c01_reclassification_totals.csv,scripts/analyze_revision_acceptance.py
+S1.4,Acceptance profiles and TDR candidates,tab:tdr_candidates,docs/paper/revisions/evidence/c01_tdr_candidates.csv,scripts/analyze_revision_acceptance.py
+S1.4,Acceptance profiles and TDR candidates,sec:problem,docs/paper/revisions/evidence/c01_metadata.json,scripts/analyze_revision_acceptance.py
+S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/revisions/evidence/r2_attribution_runs.csv,scripts/analyze_revision_attribution.py
+S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/revisions/evidence/r2_attribution_batches.csv,scripts/analyze_revision_attribution.py
+S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/revisions/evidence/r2_attribution_paired.csv,scripts/analyze_revision_attribution.py
+S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/revisions/evidence/r2_attribution_gap.csv,scripts/analyze_revision_attribution.py
+S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/revisions/evidence/r2_attribution_metadata.json,scripts/analyze_revision_attribution.py
+S1.5,Attribution of the feasible-sampling advantage,fig:attribution,docs/paper/figures/revision_attribution.pdf,scripts/analyze_revision_attribution.py
+S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r2_space_filling_initial.csv,scripts/analyze_revision_space_filling.py
+S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r2_space_filling_metadata.json,scripts/analyze_revision_space_filling.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_audit.py,
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_audit.json,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_artifacts.csv,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_channels.csv,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_proposals.csv,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_transitions.csv,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_physical_transitions.csv,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_gp.tex,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_methods.tex,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_reference.tex,docs/paper/revisions/evidence/c05_audit.py
+S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_report.md,
+S1.7,Implementation audit and unit sensitivity,sec:acquisition,docs/paper/revisions/evidence/c06_acquisition_values.csv,scripts/analyze_revision_scaling.py
+S1.7,Implementation audit and unit sensitivity,sec:acquisition,docs/paper/revisions/evidence/c06_rank_sensitivity.csv,scripts/analyze_revision_scaling.py
+S1.7,Implementation audit and unit sensitivity,sec:acquisition,docs/paper/revisions/evidence/c06_smoothing_scales.csv,scripts/analyze_revision_scaling.py
+S1.7,Implementation audit and unit sensitivity,sec:acquisition,docs/paper/revisions/evidence/c06_metadata.json,scripts/analyze_revision_scaling.py
+S1.7,Implementation audit and unit sensitivity,sec:acquisition,docs/paper/revisions/evidence/c06_report.md,
+S1.7,Implementation audit and unit sensitivity,sec:problem,docs/paper/revisions/evidence/c02_audit.py,
+S1.7,Implementation audit and unit sensitivity,sec:problem,docs/paper/revisions/evidence/c02_phase_audit.json,docs/paper/revisions/evidence/c02_audit.py
+S1.7,Implementation audit and unit sensitivity,sec:problem,docs/paper/revisions/evidence/c02_phase_report.md,
+S1.7,Implementation audit and unit sensitivity,sec:problem,docs/paper/revisions/evidence/c02_phase.tex,docs/paper/revisions/evidence/c02_audit.py
+S1.8,Predictive checks and noise refit,sec:predictive_checks,docs/paper/revisions/evidence/c11_next_batch_predictions.csv,scripts/analyze_revision_predictions.py
+S1.8,Predictive checks and noise refit,sec:predictive_checks,docs/paper/revisions/evidence/c11_predictive_summary.csv,scripts/analyze_revision_predictions.py
+S1.8,Predictive checks and noise refit,app:predictive,docs/paper/revisions/evidence/c11_predictive.tex,scripts/analyze_revision_predictions.py
+S1.8,Predictive checks and noise refit,sec:predictive_checks,docs/paper/revisions/evidence/c11_metadata.json,scripts/analyze_revision_predictions.py
+S1.8,Predictive checks and noise refit,sec:predictive_checks,docs/paper/revisions/evidence/c11_report.md,
+S1.8,Predictive checks and noise refit,sec:predictive_checks,docs/paper/revisions/evidence/r2_calibration_stages.csv,scripts/analyze_revision_calibration.py
+S1.8,Predictive checks and noise refit,sec:predictive_checks,docs/paper/revisions/evidence/r2_calibration_refit_predictions.csv.gz,scripts/analyze_revision_calibration.py
+S1.8,Predictive checks and noise refit,sec:predictive_checks,docs/paper/revisions/evidence/r2_calibration_refit_summary.csv,scripts/analyze_revision_calibration.py
+S1.8,Predictive checks and noise refit,sec:predictive_checks,docs/paper/revisions/evidence/r2_calibration_metadata.json,scripts/analyze_revision_calibration.py
+S1.9,Selected settings and constraint activity,sec:settings,docs/paper/revisions/evidence/c08_representatives.csv,scripts/analyze_revision_settings.py
+S1.9,Selected settings and constraint activity,sec:settings,docs/paper/revisions/evidence/c08_constraint_activity.csv,scripts/analyze_revision_settings.py
+S1.9,Selected settings and constraint activity,sec:settings,docs/paper/revisions/evidence/c08_trajectories.csv,scripts/analyze_revision_settings.py
+S1.9,Selected settings and constraint activity,app:settings,docs/paper/revisions/evidence/c08_settings.tex,scripts/analyze_revision_settings.py
+S1.9,Selected settings and constraint activity,sec:settings,docs/paper/revisions/evidence/c08_metadata.json,scripts/analyze_revision_settings.py
+S1.9,Selected settings and constraint activity,sec:settings,docs/paper/revisions/evidence/c08_report.md,
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/c10_constraint_margins.csv,scripts/analyze_revision_robustness.py
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/c10_design_statistics.csv,scripts/analyze_revision_robustness.py
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/c10_objective_statistics.csv,scripts/analyze_revision_robustness.py
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/c10_metadata.json,scripts/analyze_revision_robustness.py
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/c10_report.md,
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/r2_jitter_dominance.csv,scripts/analyze_revision_jitter_checks.py
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/r2_jitter_metadata.json,scripts/analyze_revision_jitter_checks.py
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/r2_tdr_candidate_jitter_summary.csv,scripts/analyze_revision_jitter_checks.py
+S1.10,Lattice-jitter robustness,sec:robustness_results,docs/paper/revisions/evidence/r2_tdr_candidate_jitter_trials.csv,scripts/analyze_revision_jitter_checks.py
+S1.11,MOGA-derived reference setting,sec:moga_reference,docs/paper/revisions/moga_reuse_assessment.md,
+S1.11,MOGA-derived reference setting,sec:moga_reference,docs/paper/revisions/evidence/r2_moga_reference_comparison.csv,scripts/analyze_revision_jitter_checks.py
+S1.11,MOGA-derived reference setting,sec:moga_reference,docs/paper/revisions/evidence/r2_moga_jitter_summary.csv,scripts/analyze_revision_jitter_checks.py
+S1.11,MOGA-derived reference setting,sec:moga_reference,docs/paper/revisions/evidence/r2_moga_jitter_trials.csv,scripts/analyze_revision_jitter_checks.py
+S1.12,Campaign cost,sec:results,docs/paper/revisions/evidence/c13_run_costs.csv,scripts/analyze_revision_cost.py
+S1.12,Campaign cost,sec:results,docs/paper/revisions/evidence/c13_relative_costs.csv,scripts/analyze_revision_cost.py
+S1.12,Campaign cost,sec:results,docs/paper/revisions/evidence/c13_metadata.json,scripts/analyze_revision_cost.py
+S1.12,Campaign cost,sec:results,docs/paper/revisions/evidence/c13_report.md,
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r2_numerical_disposition.md,
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/c09_convergence_report.md,
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/c09_convergence.tex,
+S1.14,Exploratory operating-point survey,app:survey,docs/paper/revisions/evidence/c14_feasible_case_summary.csv,scripts/prepare_revision_tables.py
+S1.14,Exploratory operating-point survey,app:survey,docs/paper/revisions/evidence/c14_metadata.json,scripts/prepare_revision_tables.py
+S1.14,Exploratory operating-point survey,app:survey,docs/paper/revisions/evidence/c14_report.md,
+S1.15,Revision records,,docs/paper/revisions/evidence/c07_comparison_matrix.csv,
+S1.15,Revision records,,docs/paper/revisions/evidence/c07_report.md,
+S1.15,Revision records,sec:previous_kls,docs/paper/revisions/evidence/c12_prior_work.md,
+S1.15,Revision records,,docs/paper/revisions/evidence/c15_metadata.json,scripts/prepare_revision_figures.py
+S1.15,Revision records,,docs/paper/revisions/evidence/c15_report.md,
+S1.15,Revision records,,docs/paper/revisions/evidence/c16_report.md,
+S1.15,Revision records,,docs/paper/revisions/evidence/c17_validation.json,

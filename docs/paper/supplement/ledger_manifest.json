@@ -1,0 +1,1020 @@
+{
+  "description": "Supplement S1 ledger manifest; raw run directories are not distributed",
+  "ledgers": [
+    {
+      "bytes": 3243,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/constrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "a87b8257322d306c396eac53264aa633a83b67f03b06622ccdd33fbe20bdfc7e"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/constrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/constrained_qlognehvi_seed_42/run_complete.json",
+      "sha256": "5f662947219875f7d7f7041ed8b8e9df425c8fe7e3700089c3e8e8de01880397"
+    },
+    {
+      "bytes": 3207,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/scalarized_bo_seed_42/evaluations.csv",
+      "sha256": "7cc7ed15fe56f77f649f332e5bc90e489ced5267ff5bb908cc74e1b23b51ca01"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/scalarized_bo_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2327,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/scalarized_bo_seed_42/run_complete.json",
+      "sha256": "8f31ea77d8c449f15b52981bf0920fde10b45321c557755f8b0a4003a38a2c55"
+    },
+    {
+      "bytes": 3226,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/unconstrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "38194aacd1575c513a7d45f49ee3db707e74bd88e29adff2e90f8de0edf1e627"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/unconstrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2326,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/benchmark/per_seed/unconstrained_qlognehvi_seed_42/run_complete.json",
+      "sha256": "2ff69419892ff4c47267f588a880ad4c24458536f7bf237abfb83f05359e92a9"
+    },
+    {
+      "bytes": 4163,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase1_scalarized/balanced/evaluations.csv",
+      "sha256": "64c3345edc93ee8f7213d56ac92b8d00e484aecff1b814e0ae3bde7b13498e0c"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase1_scalarized/balanced/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase1_scalarized/balanced/run_complete.json",
+      "sha256": "800aa17535f879a143ae3cc0b6fd9ee873f511b3c395388bdd1cf362d5799bfb"
+    },
+    {
+      "bytes": 4240,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase1_scalarized/evaluations.csv",
+      "sha256": "8f2d2e38a0871d545cafe9114e7b5349cd7b8c56d9f01283c28aeceaf42ddc0d"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase1_scalarized/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 1878,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase1_scalarized/run_complete.json",
+      "sha256": "a747a52fc894823fd23868b4cc63ed6d108c6b947848537d9bee60c7dbe68e5e"
+    },
+    {
+      "bytes": 4167,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase2_unconstrained/evaluations.csv",
+      "sha256": "378310f1acb38e457164a83a4d8c93a11c23b8673e1c50c44099b3a0fdbd1c92"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase2_unconstrained/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase2_unconstrained/run_complete.json",
+      "sha256": "4634f07be0097401ed8fd3ade21286d536a8bb4df1c319a663339bfaf5c3ab8d"
+    },
+    {
+      "bytes": 4197,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase3_constrained/evaluations.csv",
+      "sha256": "7b142bc34bd32ae60e86bfac80ecd4143f144065c0df59596c61a3f69f14e426"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase3_constrained/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2327,
+      "path": "results/paper_production/01_preflight/mock_rehearsal_20261012_174726/launcher/phase3_constrained/run_complete.json",
+      "sha256": "cf37a0a3fd82e8dfbbc678db00e56171e04b0d9ac59f321f36f106f9954d9a63"
+    },
+    {
+      "bytes": 18985,
+      "path": "results/paper_production/02_pilot/campaign/phase1_scalarized/balanced/evaluations.csv",
+      "sha256": "b4da21ec9b4b87a671e1f3215d8dea17fe567c093b0e3de0343d18756db489f7"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/02_pilot/campaign/phase1_scalarized/balanced/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/02_pilot/campaign/phase1_scalarized/balanced/run_complete.json",
+      "sha256": "55c0b0e6b655f0df3e3aa82907c6dc66acce37a2a44854fbc7a780ede62c0460"
+    },
+    {
+      "bytes": 19134,
+      "path": "results/paper_production/02_pilot/campaign/phase1_scalarized/evaluations.csv",
+      "sha256": "6954b4d7a8d6e634d250ec86600dd4ba9c931d9c09437d2957e6313d59d2ff94"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/02_pilot/campaign/phase1_scalarized/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 1879,
+      "path": "results/paper_production/02_pilot/campaign/phase1_scalarized/run_complete.json",
+      "sha256": "b0f5022c170d53e3f28056fe9030e57dc3798a9043d553638867186fcbfa7bff"
+    },
+    {
+      "bytes": 18843,
+      "path": "results/paper_production/02_pilot/campaign/phase2_unconstrained/evaluations.csv",
+      "sha256": "dfa771da8d99feaa9453ac9955d635b7effa283ff6440643007ce506c82f8230"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/02_pilot/campaign/phase2_unconstrained/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/02_pilot/campaign/phase2_unconstrained/run_complete.json",
+      "sha256": "dbf553baad1db97584e62ac0a60fd1db7fa834cd0931b1403de721bb9eb00990"
+    },
+    {
+      "bytes": 18634,
+      "path": "results/paper_production/02_pilot/campaign/phase3_constrained/evaluations.csv",
+      "sha256": "886a137b2bcd212f85b6b29af1274be15dfe38ec3f8d93d2e783a6170457ea43"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/02_pilot/campaign/phase3_constrained/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/02_pilot/campaign/phase3_constrained/run_complete.json",
+      "sha256": "4186aaf88c5d3005e466c6f1f896b1f0f121c2d50e4abab31f89e592afcfd2ea"
+    },
+    {
+      "bytes": 48001,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "8f2f90d42cb6c7973c24510848128af04f4bf28797eec3b74055e0e36e4a9a9a"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_42/run_complete.json",
+      "sha256": "175f540c5478016546a154a003a22a404b24943f43cc2ce4aeaca4679e4fac59"
+    },
+    {
+      "bytes": 48226,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_43/evaluations.csv",
+      "sha256": "769b9ba4b40a95febe04034f9ce76b8ebbdca2dfb88e047fa55bdabd3e24efac"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_43/run_complete.json",
+      "sha256": "9431651ebfad4cf7195a921aa08fa411e7a00932a2eec390cca71302dda79a90"
+    },
+    {
+      "bytes": 48931,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_44/evaluations.csv",
+      "sha256": "5342a53a786c4a101ef2c0d8d8f766a67739e06ce863dd994ebe1c5182fc9f33"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/constrained_qlognehvi_seed_44/run_complete.json",
+      "sha256": "5c8883f3861ec4d800e9b15198c78b014f26cf0641f4689bb60acf36a959052b"
+    },
+    {
+      "bytes": 48033,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_42/evaluations.csv",
+      "sha256": "2a330f4b016aaa0c07ac05e7b1753647421080e8bf024243f5d56422f5b7bb6a"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_42/run_complete.json",
+      "sha256": "703b3a9b25e9a76ade06a339a5abc1b1a2a27243136949227024bb650e7be1a9"
+    },
+    {
+      "bytes": 48432,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_43/evaluations.csv",
+      "sha256": "70510ce924f62050c2b99196b2c7f3ca3acf1e0dbd5ff436c93a0c96b3dd8b10"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_43/run_complete.json",
+      "sha256": "7bc55f86fc775ebd9fbc3dfc138241062472ec723ec8d19255dad6cfbfc4dbca"
+    },
+    {
+      "bytes": 47892,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_44/evaluations.csv",
+      "sha256": "4bbc86eb183ab3398ea03469113af4763736cf66cdf1fb14722b1a1411f9a736"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/scalarized_bo_seed_44/run_complete.json",
+      "sha256": "3b38f54d8a24e88111e7aac936185cdb70feb222b15fd8c3ec505872e43cdf83"
+    },
+    {
+      "bytes": 48919,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "be1911d457d6aa16522e8b7dd16370ff7be3acbc1822c25261b33debf3b2d187"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_42/run_complete.json",
+      "sha256": "d892498e09155b909d35a225a52f254ad390456caa89232aa138bb41e10bf980"
+    },
+    {
+      "bytes": 48694,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_43/evaluations.csv",
+      "sha256": "3e52d66ad5d1526a776da8b0a889168c47ed775521f1ce2fbe7a4a50ec8b0a14"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_43/run_complete.json",
+      "sha256": "c95de701b8e9bd21b35903bcdf3a0baf27933b4f7df37c84208cad26522a3fb5"
+    },
+    {
+      "bytes": 48707,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_44/evaluations.csv",
+      "sha256": "ae066d0ae8b9fd2d5681fd3ee5e918bf8bcc40222abd87e68c72115d1e38b9b7"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/03_screening/benchmark/per_seed/unconstrained_qlognehvi_seed_44/run_complete.json",
+      "sha256": "c6238d83299acb7b1d94298f2a725a0d1d4feced3facc656d01c300eb285a70a"
+    },
+    {
+      "bytes": 190465,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "e605b04071a24fbb1600cd9ebb028a7694019680ebf7af85da4681ba35fa477c"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42/run_complete.json",
+      "sha256": "debd0e9dde1c0313cdbb507ecd36c4a42c9450cbc0354b5c573ebb2e0aa125fa"
+    },
+    {
+      "bytes": 190659,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/evaluations.csv",
+      "sha256": "d631bc4b2362f5428d9d2f611fed94742e56781595b407fa4e20e81b22e67d46"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_43/run_complete.json",
+      "sha256": "613cf783a0e9f57823a8227d7a886b1456eb9bfabed9eaa07aaa1854c96ea17b"
+    },
+    {
+      "bytes": 191381,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/evaluations.csv",
+      "sha256": "3e4545b2592fa2f91b2bc51fbfb8e3a4568bf4462fce9a0ff03ab8070517ce1c"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_44/run_complete.json",
+      "sha256": "c05b4ec67d4445a3ded98691b907bc6247475099fe969f3a944396702477d1b0"
+    },
+    {
+      "bytes": 190328,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/evaluations.csv",
+      "sha256": "4f72459ebc6a9b7f33d1ddfb99bd63fd4b1833fc9b69da79a528da57f3910fe3"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_45/run_complete.json",
+      "sha256": "87c9853a68124946dd54f0a0845806aa001d15c861722ba9a3c5aef1e6fdd186"
+    },
+    {
+      "bytes": 190929,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/evaluations.csv",
+      "sha256": "0263a9bba9482e0daea82d8c86754be80bd2166ce2a92ca8c35e0713e052f33b"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_46/run_complete.json",
+      "sha256": "d59abba42358b107f9bc520fec3079ffa0656d1623186d97a7992d09df742a90"
+    },
+    {
+      "bytes": 188868,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/evaluations.csv",
+      "sha256": "226d4af16ed71c14637384e56ae5ff1225f1d26ca6ecf7a2eb3f86d99067ac1b"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_47/run_complete.json",
+      "sha256": "75d5c88ea8780aec2196c5e6ea12f7874bec7d3115a4d8585b14bc01f0cfc33c"
+    },
+    {
+      "bytes": 188928,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/evaluations.csv",
+      "sha256": "f20db91fa2af5e2dc5cdbc2b90b2a21d71253d79e3e6f0570e8f930b2f43ffa8"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_48/run_complete.json",
+      "sha256": "1e2d2b232a2fe2f554c5dd4f5d52cc18e95e2f4e2c6c5bcb77d44565f9977a4d"
+    },
+    {
+      "bytes": 190988,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/evaluations.csv",
+      "sha256": "84b9988f8522cd4fcb601f3002db1a79b950a22fd19ab6c538547c12db122d06"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_49/run_complete.json",
+      "sha256": "d9da14ede19c33fc9a56f49816c0ad537b5376bf08f5b27547588f57bea60438"
+    },
+    {
+      "bytes": 189763,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/evaluations.csv",
+      "sha256": "dfb115e1b0f69c162b6be8f8dc5a5782e8bf86ec692bd636e60e9712febb2645"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_50/run_complete.json",
+      "sha256": "ad23fd7efd43f5f22056a7dcf633279029eedca7c654cd20225f7b718dad32d8"
+    },
+    {
+      "bytes": 189698,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/evaluations.csv",
+      "sha256": "8c4646c95aa5915634cbce7be4da52c0af63e7a4f31dcfc2ab784dba11e7a6fa"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_51/run_complete.json",
+      "sha256": "ef10788921072df1f51cbdf4e0d0d5c9850e660767dd3c02554cacf46444b633"
+    },
+    {
+      "bytes": 187663,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/evaluations.csv",
+      "sha256": "37133332cb48a34a7dfd2d8b43c01093be6f28454cdd8f759a4d27cd036656a3"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_42/run_complete.json",
+      "sha256": "c8b76814e5d7a6f860fec8b9acf115f149629ef1d1c032536add4d8ee6aab493"
+    },
+    {
+      "bytes": 188389,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/evaluations.csv",
+      "sha256": "c66bd1d0b27cbb7fe01ed031a117b8f3ff2bc4839f6c7912c44c969eddadc02d"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_43/run_complete.json",
+      "sha256": "0dffdfc288d310c9506b845ddbecb848832c5a1392bc725730c34e77d0ea953f"
+    },
+    {
+      "bytes": 188286,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/evaluations.csv",
+      "sha256": "f26a143e92ee3a4f0e8c404cab56489af4d82103beb059a4c94ad40c7e9729b5"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_44/run_complete.json",
+      "sha256": "274337b7c598f25376f5f402a0204b47f39f3df6f0a73424315b029de625ee79"
+    },
+    {
+      "bytes": 187834,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/evaluations.csv",
+      "sha256": "3c6a0e394f27a305e4b56a17ac8bd95945819d0e56ef26a12e7173ac62fb4081"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_45/run_complete.json",
+      "sha256": "f98fbaec8099b2bbd22655f5bd32899f2814d09a39bd6f00fa40d8488c3ff442"
+    },
+    {
+      "bytes": 187405,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/evaluations.csv",
+      "sha256": "2f3caba5f254e949c08df98ac89516f77be41bef8778ef5de8db19b04cdb989b"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_46/run_complete.json",
+      "sha256": "b9524572c3feea71371eb1aa95b1393b3656de452e37c2b76cd62b5ac332f6d6"
+    },
+    {
+      "bytes": 188031,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/evaluations.csv",
+      "sha256": "769a10d06a9136f3a6b270f41ca8db27049725dafc7a1abe6307080ccb439935"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_47/run_complete.json",
+      "sha256": "7c7253800bee2ce328c988c8e83686af3857f836b8c37634c8b0e0ae4327bab7"
+    },
+    {
+      "bytes": 188178,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/evaluations.csv",
+      "sha256": "8e8bcb5896a157c262439abd02b8c6e652ce51844fa77c20b75718e5b422480a"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_48/run_complete.json",
+      "sha256": "e70aa3a514a81ae6d09a7e08c8a7025c3658980459330ecdc9faa214b4de27fb"
+    },
+    {
+      "bytes": 187326,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/evaluations.csv",
+      "sha256": "3d279ef69b7ae2ae2665c1fa286e0f019316d7ae7781aad5670505e0a3f138ca"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_49/run_complete.json",
+      "sha256": "57271dc01a680c50027a0a98aed990fab7bae3bb06ff95b1650ff62b1fb12644"
+    },
+    {
+      "bytes": 187782,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/evaluations.csv",
+      "sha256": "730a64facbcdcc1464474284aca56de8ae1ef675313814490f8c550f9a8e7bb3"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_50/run_complete.json",
+      "sha256": "98a3cc446115bc3d07d7080a96acc9b6a07ea3ee73420fae12e7c29eb2716417"
+    },
+    {
+      "bytes": 188930,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/evaluations.csv",
+      "sha256": "7f866911136a7f34ea45667180fadc4e67adbc8c2325bb3e8e8bfc91578bd578"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/scalarized_bo_seed_51/run_complete.json",
+      "sha256": "096bdabe0d58ab85fd58cb214a1afd50e4122200ea9049d9c81730fe7fdd7523"
+    },
+    {
+      "bytes": 193208,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/evaluations.csv",
+      "sha256": "ab2c36a67ff68a6c3d86816be4bbb3d9dfeba56907c1153566752181a92f6eab"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_42/run_complete.json",
+      "sha256": "6b816c0bd8b916998f4a7582f06b207cce54059ced94dec4ee0e8cc97770e8af"
+    },
+    {
+      "bytes": 193442,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/evaluations.csv",
+      "sha256": "d8d2dfd758e5a6cfe0f125776f118cc00bb589193cac800e0ad405fe2b4c553c"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_43/run_complete.json",
+      "sha256": "555df6b8e87724a2a76f63f320ec8314f93e8d5b11eb29efaf52d695479aa8ff"
+    },
+    {
+      "bytes": 193684,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/evaluations.csv",
+      "sha256": "3064c257b6031f9fa46d7507aeb376200c51b98544134a67e85ce0b1d5ffab44"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_44/run_complete.json",
+      "sha256": "6909c3c53e998aea3bff4b4cb7f3b30349d7249b6f9ee373cbbd559774716f99"
+    },
+    {
+      "bytes": 193550,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/evaluations.csv",
+      "sha256": "9224f82b46726d885a0f4a13328a0940477f2fad394fa9e416dcad1dae1e2ac1"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_45/run_complete.json",
+      "sha256": "d57670b9add61c62828d9ff27ccce6cff96d4f60714ee451d2e5719de3ffe712"
+    },
+    {
+      "bytes": 193462,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/evaluations.csv",
+      "sha256": "0e670dc3175674c6a32ed1bd3c672a29bc257cb06456448c4084bd32be287b31"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_46/run_complete.json",
+      "sha256": "654d11ffaa2570edddc2a7412464cc6e8a6f9f7f2bf88ee17533206a3b33520d"
+    },
+    {
+      "bytes": 193890,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/evaluations.csv",
+      "sha256": "3779a69114fdca61f2f0b3eb902e724b3a9f26cebddd19363281e7036126e5e6"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_47/run_complete.json",
+      "sha256": "4d61f46138daf823436023d4733ce40da21b88e711a93e235891c44ce99a3f98"
+    },
+    {
+      "bytes": 194742,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/evaluations.csv",
+      "sha256": "36de757d0a3dd0a1ed6a39c10ae2abf6d3a39f229de978169951aa8680c70745"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_48/run_complete.json",
+      "sha256": "54fc000803a818f3e3b22e1e5cb2ca802938df0b568da9e792f7c22cbbe67020"
+    },
+    {
+      "bytes": 193022,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/evaluations.csv",
+      "sha256": "5555ff0776abc483f74ac7d4f309a9822ccedf914e01a70e56506fd28d58a2d2"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_49/run_complete.json",
+      "sha256": "cb342e4ba8e4b73d7eebbdb853380f73e6363bbcdf2dff763fc28d231ec4f380"
+    },
+    {
+      "bytes": 193303,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/evaluations.csv",
+      "sha256": "98620096b63206431db4eb6def2c0fa2932455067aaab2c0fbd256c11b04fb4a"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_50/run_complete.json",
+      "sha256": "d098a4414fa623a2ddebe07f6796e84e3845c19ec4cd8647abbf849f2e2ac218"
+    },
+    {
+      "bytes": 193976,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/evaluations.csv",
+      "sha256": "5db9bedbf444b0e1f3e167bc8833735a959542dabc7d76fb66a1e14d5c712884"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/04_primary/benchmark/per_seed/unconstrained_qlognehvi_seed_51/run_complete.json",
+      "sha256": "78498a1efe5078f4c373f5728b49203540a8304719c84a64e8c37ec9fd327c49"
+    },
+    {
+      "bytes": 206445,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/balanced/evaluations.csv",
+      "sha256": "c97a0744b2a5bb9043130046b276fca9e3bc8ebc581b3e642f26855d01c51430"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/balanced/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/balanced/run_complete.json",
+      "sha256": "56563aff4489a28e8a8cf3409c2d770b44328a9854d27310e3a2ba1ba5bd889a"
+    },
+    {
+      "bytes": 211216,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/high_brightness/evaluations.csv",
+      "sha256": "908e646df5a22e443f97ca09ebf7f911b13e1ff87b14eb6bc45d6a4115e3a381"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/high_brightness/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/high_brightness/run_complete.json",
+      "sha256": "3cae523d611973479ac62c919af5367ee84c7780ca018352c41283c89319a402"
+    },
+    {
+      "bytes": 211516,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/low_energy_spread/evaluations.csv",
+      "sha256": "97da013a0a478e03143fbbbb5b852bd36a8cd47e429410147f9f4485e4053f81"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/low_energy_spread/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/low_energy_spread/run_complete.json",
+      "sha256": "fe136be7b5486608e14f66723620e34aa298b4f0828d2ed2aa95d0d3fe93fd62"
+    },
+    {
+      "bytes": 1055732,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/evaluations.csv",
+      "sha256": "dd3e4c5dca6acfbd9d163677069b014e84ed9a9563327366ffdf904684f738d0"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 1880,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/run_complete.json",
+      "sha256": "8160df8b949729f294f16f88b6807a73495a4ea8fb49ccba5d56c5118aa11269"
+    },
+    {
+      "bytes": 208090,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/x_dominant/evaluations.csv",
+      "sha256": "1382ae95876a8aa1801637084b9b1689e670d9ca780ef9e9bc690e55dc125b62"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/x_dominant/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/x_dominant/run_complete.json",
+      "sha256": "851d499786c7e1e3badd991225b9947520f2b5e26f263d84115be91e029132e8"
+    },
+    {
+      "bytes": 209056,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/y_dominant/evaluations.csv",
+      "sha256": "d259a0d459e14a66206f1d21a9262d23d4c95663231805ff25316caf97119da9"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/y_dominant/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2329,
+      "path": "results/paper_production/05_operating_points/campaign/phase1_scalarized/y_dominant/run_complete.json",
+      "sha256": "23acb6372ae7ecce367fcc1a63f248875de5d755ee1519db7178f6ef9519bedd"
+    },
+    {
+      "bytes": 205597,
+      "path": "results/paper_production/05_operating_points/campaign/phase2_unconstrained/evaluations.csv",
+      "sha256": "3276308dc4414c26cc29d654f58c688ca2349e67f843d2b52fd5ba46ce50941d"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/05_operating_points/campaign/phase2_unconstrained/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/05_operating_points/campaign/phase2_unconstrained/run_complete.json",
+      "sha256": "9df365af50d38b945fa8c4eb504768edb50707c45b9dd5fe45f6ccab8f223b25"
+    },
+    {
+      "bytes": 201016,
+      "path": "results/paper_production/05_operating_points/campaign/phase3_constrained/evaluations.csv",
+      "sha256": "8d9e35a178422963273c6d9e438578f856815297f9b404611ab28e7bb999bc08"
+    },
+    {
+      "bytes": 7758,
+      "path": "results/paper_production/05_operating_points/campaign/phase3_constrained/config.json",
+      "sha256": "37343fb36bfc403c2b18fa230252d73d9a96daeb74128f77ad14ffa07ae4f79b"
+    },
+    {
+      "bytes": 2330,
+      "path": "results/paper_production/05_operating_points/campaign/phase3_constrained/run_complete.json",
+      "sha256": "2223e74f45df86a256d006bef3dfb58dff5ea76a1f33ad3fe9324b3c6971235c"
+    },
+    {
+      "bytes": 193989,
+      "path": "results/paper_production/device_benchmark_20261016/input/evaluations.csv",
+      "sha256": "c7d917e3cac6c315963c17868e12462c5a2854e90b2a6c1d78cba3dc8cfdf036"
+    },
+    {
+      "bytes": 2328,
+      "path": "results/paper_production/device_benchmark_20261016/input/run_complete.json",
+      "sha256": "1f4f7256d1af146a6562191369b33217c27894f215fc6dbc33e13a1c50bad520"
+    }
+  ],
+  "production_steps": [
+    {
+      "config_sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8",
+      "git_commit": "92c71677512243cd4c311672c0c4d2756ab208fa",
+      "git_dirty": false,
+      "parameters": {
+        "step": "01_preflight"
+      },
+      "record": "results/paper_production/01_preflight/step_record_20261012_174728.json",
+      "step": "01_preflight"
+    },
+    {
+      "config_sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8",
+      "git_commit": "92c71677512243cd4c311672c0c4d2756ab208fa",
+      "git_dirty": false,
+      "parameters": {
+        "batch_size": "4",
+        "device": "cpu",
+        "initial_samples": "8",
+        "iterations": "2",
+        "p1_case": "balanced",
+        "perturbations": "10",
+        "resume": "0",
+        "seed": "42",
+        "step": "02_pilot",
+        "workers": "8"
+      },
+      "record": "results/paper_production/02_pilot/step_record_20261013_093842.json",
+      "step": "02_pilot"
+    },
+    {
+      "config_sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8",
+      "git_commit": "d70c7476577bc985e99aeac21d46729fe035843b",
+      "git_dirty": false,
+      "parameters": {
+        "algorithms": "constrained_qlognehvi unconstrained_qlognehvi scalarized_bo",
+        "batch_size": "4",
+        "budget": "40",
+        "campaign_threads": "1",
+        "device": "cpu",
+        "max_concurrent_campaigns": "2",
+        "n_sobol_init": "8",
+        "seeds": "42 43 44",
+        "step": "03_screening",
+        "workers": "8"
+      },
+      "record": "results/paper_production/03_screening/step_record_20261013_115901.json",
+      "step": "03_screening"
+    },
+    {
+      "config_sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8",
+      "git_commit": "faa483f229a7546354d2b6231480e983a6ccc506",
+      "git_dirty": false,
+      "parameters": {
+        "algorithms": "constrained_qlognehvi unconstrained_qlognehvi scalarized_bo",
+        "batch_size": "4",
+        "budget": "40",
+        "campaign_threads": "1",
+        "device": "cpu",
+        "max_concurrent_campaigns": "1",
+        "n_sobol_init": "8",
+        "seeds": "42 43 44",
+        "step": "03_screening",
+        "workers": "8"
+      },
+      "record": "results/paper_production/03_screening/step_record_20261013_161124.json",
+      "step": "03_screening"
+    },
+    {
+      "config_sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8",
+      "git_commit": "8ad6c2c4ef30d8c310eca5c1d9f663e9a47d1f52",
+      "git_dirty": false,
+      "parameters": {
+        "algorithms": "constrained_qlognehvi unconstrained_qlognehvi scalarized_bo",
+        "batch_size": "8",
+        "budget": "160",
+        "campaign_threads": "1",
+        "device": "cuda:0",
+        "max_concurrent_campaigns": "1",
+        "n_sobol_init": "16",
+        "seeds": "42 43 44 45 46 47 48 49 50 51",
+        "step": "04_primary",
+        "workers": "8"
+      },
+      "record": "results/paper_production/04_primary/step_record_20261019_154752.json",
+      "step": "04_primary"
+    },
+    {
+      "config_sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8",
+      "git_commit": "239c466afb07d2b9d57866a401002ae6e69565b6",
+      "git_dirty": false,
+      "parameters": {
+        "batch_size": "8",
+        "device": "cuda:0",
+        "initial_samples": "16",
+        "iterations": "20",
+        "p1_case": "all",
+        "perturbations": "50",
+        "resume": "0",
+        "seed": "42",
+        "step": "05_operating_points",
+        "workers": "8"
+      },
+      "record": "results/paper_production/05_operating_points/step_record_20261022_134241.json",
+      "step": "05_operating_points"
+    },
+    {
+      "config_sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8",
+      "git_commit": "f6ce0001dba8cb83337dbbdb04811221db793ded",
+      "git_dirty": false,
+      "parameters": {
+        "device": "cuda:0",
+        "optimization": "none",
+        "perturbations": "50",
+        "robustness_seed": "42",
+        "run_dir": "results/paper_production/04_primary/benchmark/per_seed/constrained_qlognehvi_seed_42",
+        "step": "06_candidate_audit",
+        "workers": "8"
+      },
+      "record": "results/paper_production/06_candidate_audit/step_record_20261023_044723.json",
+      "step": "06_candidate_audit"
+    },
+    {
+      "config_sha256": "458a28d1acec14e80405e6e6648834037809b3b6df3e146525f640f2699993e8",
+      "git_commit": "f6ce0001dba8cb83337dbbdb04811221db793ded",
+      "git_dirty": false,
+      "parameters": {
+        "device": "cuda:0",
+        "optimization": "none",
+        "step": "07_paper_outputs"
+      },
+      "record": "results/paper_production/07_paper_outputs/step_record_20261023_062902.json",
+      "step": "07_paper_outputs"
+    }
+  ]
+}
