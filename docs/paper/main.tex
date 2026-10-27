@@ -62,7 +62,8 @@ Constraint-aware and unconstrained multi-objective Bayesian optimization are com
 weighted-sum Bayesian optimization using matched simulation budgets and shared initial designs.
 All methods identify feasible nondominated operating points, revealing trade-offs between
 transverse beam quality and energy spread. Paired analyses support a higher feasible
-sampling fraction for constraint-aware acquisition, while weighted-sum optimization completes campaigns faster.
+sampling fraction for constraint-aware acquisition, which arises mainly from meeting the
+transverse beam-size and divergence limits, while weighted-sum optimization completes campaigns faster.
 Objective-quality comparisons depend on the indicator and comparator. A survey of
 scalarization weightings explores additional trade-offs, and a limited lattice-jitter assessment
 retains feasibility for the selected operating points. The results demonstrate the use of
@@ -450,9 +451,13 @@ not equal physical transition widths. At a residual of zero the indicator is
 0.5; at residuals $-\tau_c$ and $+\tau_c$ it is approximately 0.8089 and
 0.1911, respectively. For a \SI{1}{\milli\metre} beam-size limit,
 a size of zero therefore receives an indicator of 0.8089, while a size of
-\SI{2}{\milli\metre} receives 0.1911. This unit dependence limits the
-interpretation of constraint weighting; no residual scaling is changed when
-analysing the recorded campaigns.
+\SI{2}{\milli\metre} receives 0.1911. In the energy channel the same scale is
+\SI{0.001}{\electronvolt}, negligible against the \SI{5}{\mega\electronvolt}
+half-band, so the energy weight is effectively a step whose gradient vanishes
+except within about a milli-electron-volt of either bound. This unit dependence
+limits the interpretation of constraint weighting; no residual scaling is changed
+when analysing the recorded campaigns. The constrained method compared below is
+this raw-residual implementation, not a unit-invariant formulation.
 
 The executed call sites use baseline pruning and BoTorch's default normal
 Sobol samplers: 128 posterior samples for qLogNEHVI and 512 for scalarized
@@ -502,8 +507,11 @@ and remains distinct from the frozen reporting reference.
 The three algorithms---constraint-aware qLogNEHVI, unconstrained qLogNEHVI and weighted-sum
 qLogNEI---were each evaluated in ten independent runs with fixed seed numbers. Each run has a budget of 160 simulations:
 an initial design of 16 points from a scrambled Sobol sequence~\cite{Owen1998}, followed by 18 batches
-of $q = 8$. Within each paired run, all algorithms start from the same initial design and differ only
-in their acquisition strategy. The protocol (problem
+of $q = 8$. The three arms are specified optimization pipelines that share the physical
+model, the initial design of each paired run and the simulation budget. They differ in the
+optimization target, the number of fitted models, the use of constraint information and the
+Monte Carlo sample counts, not only in an acquisition formula. Equal simulation budgets
+therefore do not imply equal computation. The protocol (problem
 definition, budgets, seeds, reference point and endpoints) was fixed before the simulation comparison; pilot
 and screening runs used to validate the pipeline are not part of the reported comparison.
 
@@ -739,6 +747,55 @@ These post-hoc results support a feasible-sampling advantage under the archived 
 objective-quality evidence depends on the endpoint and comparator and does not establish
 uniform algorithm superiority or global optimality.
 
+\subsection{Sources of the feasible-sampling difference}
+\label{sec:attribution}
+Two properties of the recorded setup could produce a feasible-sampling advantage without
+balancing all eight inequalities: the effective step weight of the energy band
+(section~\ref{sec:acquisition}) and the upper quarter of the ACC3/ACC4 window, in which
+every sampled observation of every method lies outside the energy band. We therefore
+classified each post-initialization evaluation (evaluations 17--160) of the primary runs into
+one exclusive category of violated channel groups: energy band, transverse size or
+divergence, and bunch length. Transmission was never violated. Because the feasible fraction
+equals one minus the sum of the infeasible category shares, each paired feasible-fraction
+difference divides exactly among these categories. The analysis is descriptive and uses only
+the archived evaluations.
+
+The upper ACC3/ACC4 quarter is not the main source of the difference.
+Constraint-aware MOBO placed a median \SI{15.3}{\percent} of its post-initialization
+evaluations there, compared with \SI{22.6}{\percent} and \SI{24.7}{\percent} for the
+unconstrained and scalarized pipelines (figure~\ref{fig:attribution}a). Relative to
+unconstrained MOBO, the mean paired gap of 0.276 (\SI{95}{\percent} interval 0.229--0.325)
+comes mostly from transverse-only violations, which account for \SI{62}{\percent} of it; the
+categories involving the energy band account for \SI{34}{\percent}. Relative to scalarized
+BO, whose weighted cost ignores both groups, the gap of 0.311 (0.277--0.347) is shared: energy
+band violations, alone or together with transverse ones, account for \SI{63}{\percent} and
+transverse-only violations for \SI{31}{\percent}. Bunch-length-only violations are slightly
+more frequent for the constraint-aware pipeline in both comparisons
+(figure~\ref{fig:attribution}b).
+
+Among evaluations that satisfy the energy band, the median fraction meeting all remaining
+inequalities was 0.578 for constraint-aware MOBO, compared with 0.254 and 0.231 for the
+baselines. The mean paired differences were 0.328 (0.268--0.389) and 0.342 (0.293--0.392),
+positive in all ten matched groups for each comparison. The feasible-sampling advantage of
+the recorded constrained pipeline therefore extends beyond the energy boundary: it largely
+reflects more frequent satisfaction of the transverse size and divergence limits, even though
+those channels receive the softest weights. This attribution describes the executed
+raw-residual pipeline on the recorded domain. It does not predict the behaviour of a
+normalized-residual method or of a campaign in a restricted phase window.
+
+\begin{figure}[htbp]
+\centering
+\datafigure{figures/revision_attribution.pdf}{\linewidth}
+\caption{Sources of the feasible-sampling difference in the primary comparison. (a)
+Cumulative fraction of evaluations in the upper quarter of the ACC3/ACC4 phase window
+(\SIrange{325.56}{341.06}{\degree}); every sampled observation there violates the energy
+band. Lines are medians over ten runs and bands interquartile ranges. (b) Mean shares of
+post-initialization evaluations by exclusive category of violated channel groups under the
+production profile; hatched categories include an energy-band violation, and the coloured
+top segment is the feasible share.}
+\label{fig:attribution}
+\end{figure}
+
 \subsection{Exploratory weighting survey}
 The independently initialized weighting survey found additional feasible trade-offs, with
 106 feasible observations across its five scalarized campaigns and 19 and 69 in the single
@@ -790,7 +847,11 @@ log acquisition value within $1.5\times10^{-13}$. Temperatures 0.001 and 0.1 wer
 examined as sensitivity settings. The highest-ranked probe candidate remained unchanged in
 all cases, while lower ranks varied. No normalized-residual campaign was executed, so these
 calculations establish unit dependence and sensitivity, not improved feasible sampling or
-beam quality for a corrected method.
+beam quality for a corrected method. The probe also differs from production in using single
+candidates rather than eight-point batches, no baseline pruning and one run, so an unchanged
+top-ranked probe does not show that the production optimizer is invariant to residual units.
+The three-pipeline comparison measures the executed implementation; this diagnostic only
+shows that the implementation's constraint weighting depends on the chosen units.
 
 \subsection{Predictive checks on unseen batches}
 \label{sec:predictive_checks}
@@ -887,7 +948,10 @@ set over ten runs, while completing campaigns more slowly than the unconstrained
 weighted-sum methods. The exploratory paired analysis supports its feasible-sampling advantage
 over both baselines. Evidence for objective quality is more selective: epsilon and IGD+
 comparisons with unconstrained MOBO do not pass the chosen multiplicity correction. A larger
-feasible set therefore should not be read as uniform superiority of the observed Pareto front. All methods identified feasible nondominated settings,
+feasible set therefore should not be read as uniform superiority of the observed Pareto front.
+The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
+infeasible upper ACC3/ACC4 phase region: it persists among energy-acceptable evaluations and
+comes largely from the transverse size and divergence limits. All methods identified feasible nondominated settings,
 with the objective projections exposing the trade-offs between transverse emittance and energy spread.
 The sampled lattice-jitter tests identify several operating points that remain feasible within
 the simulated tolerance model; this does not establish performance on the real machine.
@@ -986,8 +1050,9 @@ methods, respectively; these are empirical trade-offs, rather than certified glo
 fronts. Constraint-aware acquisition had a median
 feasible fraction of \SI{40.6}{\percent}, compared with \SI{15.0}{\percent} and \SI{12.5}{\percent} for the two baselines. All sampled
 lattice perturbations were feasible, with source jitter explicitly excluded. Paired analysis
-supports improved feasible sampling under the stated profile, while evidence for objective-space
-quality depends on the comparator and endpoint. The recorded data and analysis scripts support
+supports improved feasible sampling under the stated profile, largely through the transverse
+size and divergence limits rather than the energy band alone, while evidence for
+objective-space quality depends on the comparator and endpoint. The recorded data and analysis scripts support
 regeneration of these results.
 Future work will extend the robustness analysis to source fluctuations with
 a validated distribution generator, distribute the simulations across compute nodes, and test the

@@ -1,0 +1,13 @@
+metric,first_method,second_method,mean_difference,ci_lower,ci_upper,n_positive,n_negative,n_zero
+feasible_fraction,constrained_qlognehvi,unconstrained_qlognehvi,0.27569444444444446,0.22847222222222224,0.325,10,0,0
+feasible_fraction,constrained_qlognehvi,scalarized_bo,0.31111111111111106,0.27708333333333335,0.34654513888888866,10,0,0
+energy_violation_fraction,constrained_qlognehvi,unconstrained_qlognehvi,-0.09236111111111112,-0.12291666666666667,-0.059704861111111354,0,9,1
+energy_violation_fraction,constrained_qlognehvi,scalarized_bo,-0.19652777777777777,-0.21736111111111112,-0.1736111111111111,0,10,0
+transverse_violation_fraction,constrained_qlognehvi,unconstrained_qlognehvi,-0.2513888888888889,-0.3020833333333333,-0.2048611111111111,0,10,0
+transverse_violation_fraction,constrained_qlognehvi,scalarized_bo,-0.25069444444444444,-0.27986111111111117,-0.22083333333333335,0,10,0
+bunch_length_violation_fraction,constrained_qlognehvi,unconstrained_qlognehvi,-0.012499999999999994,-0.05694444444444443,0.02638888888888889,6,4,0
+bunch_length_violation_fraction,constrained_qlognehvi,scalarized_bo,-0.022222222222222223,-0.05625000000000001,0.010416666666666668,4,6,0
+acc34_upper_quarter_fraction,constrained_qlognehvi,unconstrained_qlognehvi,-0.05972222222222222,-0.08611111111111111,-0.02847222222222222,1,9,0
+acc34_upper_quarter_fraction,constrained_qlognehvi,scalarized_bo,-0.09375,-0.1125,-0.07638888888888888,0,10,0
+conditional_feasible_fraction_given_energy,constrained_qlognehvi,unconstrained_qlognehvi,0.3278456313064989,0.2681667148634285,0.3893278878988991,10,0,0
+conditional_feasible_fraction_given_energy,constrained_qlognehvi,scalarized_bo,0.34228311273902934,0.29321484275434073,0.3923980106248074,10,0,0
