@@ -210,16 +210,16 @@ fixed file, not a verified cathode-temperature model. The original generator rec
 cathode material are not established by the retained input, so we do not equate this source
 with the published study's laser specification merely because their durations are similar.
 
-% C09: verified resolution correspondence; quantitative refinement error remains unresolved.
-The injector model builds on the earlier study of Kim et al.~\cite{Kim2024KLSMOGA}, whose
-section 4.3 reports \num{10000} macroparticles, 32 radial and at most 32 longitudinal
-space-charge cells, and mirror image charges. The present calculation uses the same reported
-particle-count scale, cylindrical grid dimensions and image-charge treatment. Its archived
-inputs additionally specify a Cartesian \(32^3\) grid and a solver transition at
-\SI{5.25}{\metre}; these details are not established by that published description.
-For a fixed distribution the calculations are deterministic. The fixed GP observation variance
-provides regularization and does not measure tracking-discretization uncertainty.
-% An existing refinement-error estimate is still required for quantitative numerical-accuracy claims.
+The tracking resolution was adopted from the previous study of this injector by Kim et
+al.~\cite{Kim2024KLSMOGA}, whose section 4.3 reports \num{10000} macroparticles, 32 radial and
+at most 32 longitudinal space-charge cells, and mirror image charges. The present calculation
+uses the same particle-count scale, cylindrical grid dimensions and image-charge treatment.
+Its archived inputs additionally specify a Cartesian \(32^3\) grid and a solver transition at
+\SI{5.25}{\metre}, which that published description does not state. No quantitative
+refinement residual for these settings is reproduced here. All objective values, feasibility
+classifications and margins are therefore results at this nominal resolution. For a fixed
+distribution the calculations are deterministic. The fixed GP observation variance provides
+regularization and does not measure tracking-discretization uncertainty.
 
 
 \begin{figure}[htbp]
@@ -1008,10 +1008,14 @@ characterize initialization variability for this problem; they do not establish 
 algorithm superiority. The original constraint smoothing is unit-dependent, and the offline
 normalization probes supply no physical-performance evidence for a corrected method.
 
-The tracking model uses one fixed source file and finite particle/grid resolution. The cited
-JINST description establishes partial settings correspondence, but supplies neither a
-traceable refinement-error bound nor full solver-transition equivalence. Numerical uncertainty
-relative to the objective differences and feasibility margins is therefore unquantified. The
+The tracking model uses one fixed source file and the finite particle and grid resolution of
+the previous injector study. Because no refinement residual is quoted for these settings, the
+results are nominal-resolution results. Small margins in particular are not interpreted as
+numerically resolved: the two TDR-passing observations clear the horizontal-size limit by
+about 2.5 and \SI{8.9}{\micro\metre} and the bunch-length limit by about 8.2 and
+\SI{8.0}{\micro\metre}. Likewise, the selected settings are not presented as numerically
+validated engineering settings, and objective differences of order
+\SI{0.1}{\micro\metre\radian} between individual settings are not claimed to be resolved. The
 source-generation recipe and cathode model are also not established by the retained file.
 Near-symmetric source moments and downstream trajectory changes support a transport
 interpretation of the transverse asymmetry, but do not isolate its causal mechanism. The
