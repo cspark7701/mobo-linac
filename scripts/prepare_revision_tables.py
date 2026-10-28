@@ -23,7 +23,6 @@ def main():
         assert digest==marker['artifacts']['evaluations.csv'];inputs.append({'path':str(p.relative_to(ROOT)),'sha256':digest});return pd.read_csv(p)
     for case,label in CASES.items():
         frame=read(BASE/'phase1_scalarized'/case/'evaluations.csv');frames[case]=frame
-        cfg=json.loads((BASE/'phase1_scalarized'/case/'config.json').read_text())
         # The suite manifest records executed weights rather than relying on friendly labels.
         cases=pd.read_csv(BASE/'phase1_scalarized/cases_summary.csv');r=cases[cases.case_id==case].iloc[0]
         weights=json.loads(r.weights)
