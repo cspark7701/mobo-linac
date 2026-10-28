@@ -35,3 +35,22 @@ def test_initial_reference_matches_archived_counts(analysis):
     table = analysis.initial_reference(runs).set_index("population")
     assert table.loc["shared_initial_design", "feasible"] == 5
     assert table.loc["shared_initial_design", "n"] == 160
+
+
+def test_sobol_quality_scores_against_the_unchanged_reference(analysis, tmp_path, monkeypatch):
+    monkeypatch.setattr(analysis, "SEEDS", (1, 2))
+    pd.DataFrame({"emit_x_um_rad": [1.0, 2.0], "emit_y_um_rad": [2.0, 1.0],
+                  "sigma_energy_MeV": [0.5, 0.5]}).to_csv(tmp_path / "c03_empirical_reference.csv", index=False)
+    pipelines = [{"method": m, "group": g, "evaluations": 160, "front_size_unique": 3,
+                  "epsilon": 0.1 * g, "igd_plus": 0.05 * g} for m in analysis.METHODS for g in (1, 2)]
+    pd.DataFrame(pipelines).to_csv(tmp_path / "c03_run_histories.csv", index=False)
+    arms = {seed: pd.DataFrame({"norm_emit_x_m_rad": [1.5e-6, 3e-6], "norm_emit_y_m_rad": [2.5e-6, 3e-6],
+                                "sigma_energy_eV": [0.5e6, 0.4e6], "category": ["feasible", "energy_only"]})
+            for seed in (1, 2)}
+    table, effects = analysis.sobol_quality(arms, tmp_path)
+    sobol = table[table.method == "sobol"].iloc[0]
+    # The only feasible Sobol point (1.5, 2.5, 0.5) needs a shift of 1.5 to cover (2, 1, 0.5).
+    assert sobol.front_size_unique == 1 and sobol.epsilon == pytest.approx(1.5)
+    assert sobol.reference_points_dominated == 0
+    row = effects[(effects.metric == "epsilon") & (effects.first_method == analysis.METHODS[0])].iloc[0]
+    assert row.mean_difference == pytest.approx(0.15 - 1.5) and row.n_negative == 2

@@ -19,11 +19,11 @@
 | C2-07 | Done, including the run and jitter | `7416fb5` | — |
 | C2-08 | Done, including the optional jitter runs | `245162b` | — |
 | C2-09 | Done | `c7fbbc0` | Rebuild `ledger_manifest.json` after the remaining runs complete |
-| C2-10 | Editorial work done; Data availability statement and statement of contributions added; **open until the reviewers accept** | `559f460` | Confirm contribution 4 after C2-14 and a possible fifth after C2-12; related-work positioning; target journal (PRAB recommended), table of contents, funding and acknowledgments, `\finaltrue` |
+| C2-10 | Editorial work done; Data availability statement and statement of contributions added; **open until the reviewers accept** | `559f460` | A possible fifth contribution after C2-12; related-work positioning; target journal (PRAB recommended), table of contents, funding and acknowledgments, `\finaltrue` |
 | C2-11 | Drafts written, not committed; **open until the reviewers accept** | — | Fill the C2-12/13/14 results and page count; diff and inventory; validation; commit |
-| C2-12 | Authorized 2026-10-28; prepared, starts when C2-14 finishes | — | Numerical-resolution check of ten reported settings (about 8 h); analysis and manuscript text |
+| C2-12 | Running since 21:40 on 2026-10-28 (16 workers) | — | Numerical-resolution check of ten reported settings (about 4–8 h); analysis and manuscript text |
 | C2-13 | Done | see C2-13 | No TDR-feasible setting in 480 evaluations; closest miss 0.4 % |
-| C2-14 | New; running | — | 10-seed Sobol arm, expected to finish about 20:30–21:00 on 2026-10-28; analysis and manuscript text |
+| C2-14 | Done | see C2-14 | Sobol arm 2.8 % feasible; every pipeline exceeds it in all ten matched groups |
 | C2-15 | New; optional; not started | — | Zenodo deposition; needs the author's go-ahead before any upload |
 
 All work is committed locally only; nothing has been pushed.
@@ -32,7 +32,8 @@ All work is committed locally only; nothing has been pushed.
 
 **Runs:**
 - **TDR-constrained campaigns (C2-13):** complete at 12:05 on 2026-10-28. None of the three campaigns has a TDR-feasible observation.
-- **Sobol arm (C2-14):** starts automatically after the TDR stage (`scripts/run_revision_round2_simulations.sh`).
+- **Sobol arm (C2-14):** complete at 21:40 on 2026-10-28 (10 seeds).
+- **Resolution check (C2-12):** started automatically at 21:40 on 2026-10-28 after the Sobol arm.
 - **Run speed:** an unrelated WarpX job occupies most of the 24 cores, roughly halving simulation throughput.
 
 ## Sources
@@ -277,7 +278,7 @@ Tasks:
 - [ ] The two reviewers differ on the table of contents: Reviewer 2 suggests removing it, while Reviewer 1 accepts it for internal review. Decide this together with the target journal.
 - [ ] **Author-dependent:** confirm the target journal; supply the funding and acknowledgments; then set `\finaltrue`. Do not invent the funding text or mark it complete while it is deferred.
   - **Recommendation (2026-10-28):** Physical Review Accelerators and Beams (PRAB), with Nuclear Instruments and Methods A as the fallback. PRAB has no strict length limit and does not use a table of contents, which would settle the table-of-contents item above. Check the chosen journal's current length, data-availability and reference-style requirements before converting the front matter.
-- [x] *(Added 2026-10-28 as a four-item list at the end of the Introduction, without numbers; the overlapping comparison sentence of the preceding paragraph was trimmed to the problem statement. Still open: confirm item 4 against the full Sobol arm (C2-14), add a fifth item if C2-12 yields a measured resolution record and then revise the closing nominal-resolution caveat, and position the items against prior accelerator-MOBO work in the related-work paragraph.)* **State the contributions explicitly in the Introduction.** Referees at PRAB in particular will ask what is new compared with existing accelerator MOBO papers (for example, Roussel et al.'s online-tuning work), so the Introduction should end with an explicit, numbered list of contributions:
+- [x] *(Added 2026-10-28 as a four-item list at the end of the Introduction, without numbers; the overlapping comparison sentence of the preceding paragraph was trimmed to the problem statement. Item 4 confirmed by the full Sobol arm on 2026-10-28. Still open: add a fifth item if C2-12 yields a measured resolution record and then revise the closing nominal-resolution caveat, and position the items against prior accelerator-MOBO work in the related-work paragraph.)* **State the contributions explicitly in the Introduction.** Referees at PRAB in particular will ask what is new compared with existing accelerator MOBO papers (for example, Roussel et al.'s online-tuning work), so the Introduction should end with an explicit, numbered list of contributions:
   1. a constraint-aware comparison against two baselines (unconstrained MOBO and equal-weight scalarized BO) under matched budgets and shared initial designs, in ten paired runs with failure-inclusive accounting;
   2. the attribution of where the feasibility gain comes from, by violated channel group, conditional on the energy band, and from the upper ACC3/ACC4 phase quarter (C2-02);
   3. the quantified reach of the TDR acceptance region: reclassification of the primary evaluations, the two marginal candidates and their jitter, the MOGA-derived reference, and the TDR-constrained campaigns (C2-01, C2-07, C2-08, C2-13);
@@ -292,7 +293,7 @@ Tasks:
 - The audit detail moved to a new Appendix A, `app:implementation`. It is identified through S1.7 and not removed from the record.
 - The Limitations subsection is now section 6.3, after the new `sec:tdr_reach`.
 - **Open, author decisions:** the target journal with the table of contents (PRAB recommended), funding and acknowledgments, and `\finaltrue`.
-- **Editorial (2026-10-28):** the statement of contributions and the Data availability statement are in place. Open: item 4 confirmation after C2-14, a possible fifth item after C2-12, and the related-work positioning.
+- **Editorial (2026-10-28):** the statement of contributions and the Data availability statement are in place. Open: a possible fifth item after C2-12 and the related-work positioning.
 
 ### C2-11. Responses and validation
 
@@ -390,10 +391,17 @@ These are the settings whose margins and objective digits the manuscript reports
 - `run-unconstrained --num-initial-samples 160 --n-iterations 0`;
 - output in `results/revision_round2/sobol/`.
 
-- [ ] Run the 10 campaigns.
-- [ ] Run `scripts/analyze_revision_space_filling.py --part sobol`. It verifies that each seed's first 16 points equal the shared initial design, and gives post-initialization feasible fractions, channel shares and paired differences against each pipeline with bootstrap intervals.
-- [ ] If feasible, add the front-quality indicators (epsilon and IGD+ against the same empirical reference) for the Sobol arm. Label them post hoc.
-- [ ] Update the Results paragraph on the space-filling reference, the scope statement in section 4.2 and the Limitations. Add the evidence to S1.6 and the result to the Reviewer 2 response (N3).
+- [x] Run the 10 campaigns (complete at 21:40 on 2026-10-28).
+- [x] Run `scripts/analyze_revision_space_filling.py --part sobol`. It verifies that each seed's first 16 points equal the shared initial design, and gives post-initialization feasible fractions, channel shares and paired differences against each pipeline with bootstrap intervals.
+- [x] If feasible, add the front-quality indicators (epsilon and IGD+ against the same empirical reference) for the Sobol arm. Label them post hoc.
+- [x] Update the Results paragraph on the space-filling reference, the scope statement in section 4.2 and the Limitations. Add the evidence to S1.6 and the result to the Reviewer 2 response (N3).
+
+**Result:**
+- 41 of 1,440 post-initialization Sobol points are feasible: 2.8 % (exact 95 % interval 2.1–3.8 %).
+- Mean paired differences in feasible fraction against the Sobol arm: 0.418 (0.384–0.453) constraint-aware, 0.142 (0.115–0.172) unconstrained, 0.107 (0.088–0.127) scalarized; positive in all ten matched groups for each.
+- Channel shares: transverse 95.3 % against 76.0 % for both baselines; bunch length 55.1 % against 32–33 %; energy band 39.0 % against 32.2 % and 42.6 % (scalarized slightly worse than Sobol, paired 0.035, 0.017–0.052).
+- Post hoc front quality: Sobol median epsilon 1.45 and IGD+ 1.14; all pipelines better, paired intervals excluding zero; no Sobol feasible point dominates a reference point.
+- Manuscript: Results paragraph rewritten, section 4.2 scope statement and Limitations now list only the constraint-aware scalarized control as missing, one qualitative clause in the abstract and one sentence in the Conclusions. Contribution 4 of the Introduction is confirmed.
 
 **Estimated runtime:**
 - Tracking only, with no surrogate fitting or acquisition. At 160 evaluations with 8 workers:

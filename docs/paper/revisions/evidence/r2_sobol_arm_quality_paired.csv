@@ -1,0 +1,7 @@
+metric,first_method,second_method,mean_difference,ci_lower,ci_upper,n_positive,n_negative
+epsilon,constrained_qlognehvi,sobol,-1.06622,-1.4302476499999999,-0.7293046500000001,0,10
+epsilon,unconstrained_qlognehvi,sobol,-0.7393099999999999,-1.0639721000000002,-0.40157999999999977,1,9
+epsilon,scalarized_bo,sobol,-0.7459299999999998,-1.143147,-0.39387557500000003,0,10
+igd_plus,constrained_qlognehvi,sobol,-0.9411329103459327,-1.34374331248137,-0.5833144070286012,0,10
+igd_plus,unconstrained_qlognehvi,sobol,-0.7487953048525762,-1.1293369774295534,-0.38737925797516787,1,9
+igd_plus,scalarized_bo,sobol,-0.7859206310818451,-1.1941782493099922,-0.4244878935723128,0,10

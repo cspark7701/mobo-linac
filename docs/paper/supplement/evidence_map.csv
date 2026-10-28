@@ -36,6 +36,10 @@ S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/r
 S1.5,Attribution of the feasible-sampling advantage,fig:attribution,docs/paper/figures/revision_attribution.pdf,scripts/analyze_revision_attribution.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r2_space_filling_initial.csv,scripts/analyze_revision_space_filling.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r2_space_filling_metadata.json,scripts/analyze_revision_space_filling.py
+S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r2_sobol_arm_runs.csv,scripts/analyze_revision_space_filling.py
+S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r2_sobol_arm_paired.csv,scripts/analyze_revision_space_filling.py
+S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r2_sobol_arm_quality.csv,scripts/analyze_revision_space_filling.py
+S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r2_sobol_arm_quality_paired.csv,scripts/analyze_revision_space_filling.py
 S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_audit.py,
 S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_audit.json,docs/paper/revisions/evidence/c05_audit.py
 S1.7,Implementation audit and unit sensitivity,app:implementation,docs/paper/revisions/evidence/c05_artifacts.csv,docs/paper/revisions/evidence/c05_audit.py

@@ -70,7 +70,8 @@ constrained by them approach but do not enter that region.
 All methods identify feasible nondominated operating points, revealing trade-offs between
 transverse beam quality and energy spread. Paired analyses support a higher feasible
 sampling fraction for constraint-aware acquisition, which arises mainly from meeting the
-transverse beam-size and divergence limits, while the weighted-sum implementation has the lowest
+transverse beam-size and divergence limits; all pipelines sample feasible settings more often
+than a budget-matched space-filling search, while the weighted-sum implementation has the lowest
 computational overhead.
 Objective-quality comparisons depend on the indicator and comparator. A survey of
 scalarization weightings explores additional trade-offs, and a limited lattice-jitter assessment
@@ -199,7 +200,7 @@ The contributions of this work are the following.
 \item A space-filling reference for the same domain: the shared scrambled-Sobol initial
   designs and a budget-matched Sobol arm. It shows how much of the feasible-sampling gain
   any of the optimizers achieve over uniform sampling, and how much is specific to the
-  constraint model (section~\ref{sec:attribution}).
+  constraint-aware pipeline (section~\ref{sec:attribution}).
 \end{enumerate}
 These results describe the recorded pipelines at nominal tracking resolution on a fixed
 lattice. They do not establish a unit-invariant acquisition, global optimality of the
@@ -628,12 +629,12 @@ them.
 
 The matched comparison contains constraint-aware qLogNEHVI, unconstrained qLogNEHVI
 and equal-weight scalarized qLogNEI. The latter is a specific balanced scalarization,
-not a claim to cover all weighted-sum strategies. No constraint-aware scalarized or
-budget-matched space-filling arm is included. Consequently the results compare these
-implementations but do not isolate a benefit unique to vector-valued acquisition over
-constraint-aware scalarization, or establish an advantage over Sobol search. The separate
-multiweight survey has a larger aggregate budget and is not substituted for either missing
-control. Published MOGA results remain contextual rather than a new matched benchmark.
+not a claim to cover all weighted-sum strategies. A budget-matched Sobol arm, continuing
+the shared initial design of each matched group, serves as a space-filling reference
+(section~\ref{sec:attribution}). No constraint-aware scalarized arm is included. Consequently
+the results compare these implementations but do not isolate a benefit unique to
+vector-valued acquisition over constraint-aware scalarization. The separate multiweight survey
+has a larger aggregate budget and is not substituted for that missing control. Published MOGA results remain contextual rather than a new matched benchmark.
 
 \subsection{Robustness assessment of operating points}
 \label{sec:audit}
@@ -843,19 +844,30 @@ those channels receive the softest weights. This attribution describes the execu
 raw-residual pipeline on the recorded domain. It does not predict the behaviour of a
 normalized-residual method or of a campaign in a restricted phase window.
 
-The shared initial designs provide a space-filling reference for the same domain. Only 5 of
-their 160 scrambled-Sobol points are feasible, a rate of \SI{3.1}{\percent} (exact
-\SI{95}{\percent} interval \SIrange{1.0}{7.1}{\percent}). This reference covers initialization
-only and is not a matched arm. Even the constraint-blind pipelines therefore raise the
-feasible fraction well above uniform sampling, to \SI{17.1}{\percent} and \SI{13.5}{\percent}
-of their pooled post-initialization evaluations. The same channel classification shows why.
-Transverse violations fall from \SI{95.6}{\percent} of the Sobol points to
-\SI{76}{\percent}, and bunch-length violations from \SI{55.0}{\percent} to
-\SIrange{32}{33}{\percent}. Energy-band violations change little, from \SI{40.0}{\percent} to
-\SI{32.2}{\percent} and \SI{42.6}{\percent}. Minimizing emittance and energy spread thus favours
-smaller transverse sizes, divergences and bunch lengths, whereas nothing in the baselines'
-targets steers the mean energy. No advantage over a full budget-matched space-filling search
-is inferred from this initialization-only reference.
+A budget-matched Sobol arm provides a space-filling reference for the same domain. In each
+of ten runs the scrambled Sobol sequence of the matched group was continued to 160 points
+without a surrogate or an acquisition function, so its first 16 points are that group's
+shared initial design. Only 41 of its 1,440 post-initialization points are feasible, a rate of
+\SI{2.8}{\percent} (exact \SI{95}{\percent} interval \SIrange{2.1}{3.8}{\percent}), consistent
+with the 5 of 160 shared initial points (\SI{3.1}{\percent}). Every pipeline exceeds this rate
+in all ten matched groups. The mean paired differences in post-initialization feasible
+fraction are 0.418 (0.384--0.453) for constraint-aware MOBO, 0.142 (0.115--0.172) for
+unconstrained MOBO and 0.107 (0.088--0.127) for scalarized BO. The constraint-blind pipelines
+therefore sample feasible settings several times more often than uniform sampling, and at
+least two thirds of the constraint-aware gain over the Sobol arm exceeds what either of them
+achieves. The
+same channel classification shows why. Transverse violations fall from \SI{95.3}{\percent} of
+the Sobol points to \SI{76.0}{\percent} for both baselines, and bunch-length violations from
+\SI{55.1}{\percent} to \SIrange{32}{33}{\percent}. Energy-band violations change little: from
+\SI{39.0}{\percent} to \SI{32.2}{\percent} for unconstrained MOBO and \SI{42.6}{\percent} for
+scalarized BO, a small but consistent increase (paired difference 0.035, 0.017--0.052).
+Minimizing emittance and energy spread thus favours smaller transverse sizes, divergences and
+bunch lengths, whereas nothing in the baselines' targets steers the mean energy. The Sobol
+arm's terminal feasible fronts are also farther from the unchanged empirical reference, with
+median epsilon 1.45 and IGD+ 1.14 (post hoc). Every pipeline improves on it in both indicators,
+by mean paired differences between $-0.74$ and $-1.07$ in epsilon and between $-0.75$ and
+$-0.94$ in IGD+, with intervals excluding zero. None of its feasible points dominates a
+reference point.
 
 \begin{figure}[htbp]
 \centering
@@ -1221,8 +1233,9 @@ The feasible fronts are empirical sets from finite searches in the recorded doma
 characterize a broader production acceptance profile than the TDR optimization requirements,
 and do not establish global Pareto optimality or full injection acceptance. The comparison is
 restricted to the performed constraint-aware, unconstrained and equal-weight scalarized
-implementations. No matched constrained-scalarized or full-budget Sobol arm was evaluated,
-and the unequal-budget weighting survey cannot replace either control. Ten paired runs
+implementations. No matched constrained-scalarized arm was evaluated, and the unequal-budget
+weighting survey cannot replace that control. The Sobol arm is a space-filling reference for
+the recorded domain, not a tuned global optimizer. Ten paired runs
 characterize initialization variability for this problem; they do not establish universal
 algorithm superiority. The original constraint smoothing is unit-dependent, and the offline
 normalization probes supply no physical-performance evidence for a corrected method.
@@ -1274,7 +1287,9 @@ the trade-offs between transverse emittance and energy spread.
 The best-supported result is a feasible-sampling advantage of the constraint-aware pipeline
 under the stated computational profile. It holds in every matched group without any estimated
 reference, persists among energy-acceptable evaluations and comes mainly from the transverse
-size and divergence limits. Indicators of front quality also favour the constraint-aware
+size and divergence limits. All three pipelines sample feasible settings more often than a
+budget-matched Sobol search, and most of the constraint-aware advantage over that search
+exceeds what the constraint-blind pipelines achieve. Indicators of front quality also favour the constraint-aware
 pipeline, including when the empirical reference is rebuilt in each resample, but they rest
 on a reference estimated from the same runs and do not establish uniform superiority or global
 optimality. None of the pipelines found a feasible setting that dominates the MOGA-derived

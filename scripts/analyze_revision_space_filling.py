@@ -24,6 +24,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 from analyze_revision_attribution import (  # noqa: E402
     ACC34_UPPER_QUARTER, METHODS, SEEDS, categorize, load_runs, violations,
 )
+from analyze_revision_fronts import SCALES, additive_epsilon, igd_plus, nondominated  # noqa: E402
 from analyze_revision_robustness import binomial_bounds  # noqa: E402
 
 PRIMARY = ROOT / "results/paper_production/04_primary/benchmark/per_seed"
@@ -110,6 +111,50 @@ def sobol_comparison(runs, arms) -> tuple[pd.DataFrame, pd.DataFrame]:
     return table, pd.DataFrame(effects)
 
 
+def paired(table: pd.DataFrame, metric: str, rng) -> list:
+    """Bootstrap the mean of (pipeline - Sobol) over the matched groups."""
+    wide = table.pivot(index="seed", columns="method", values=metric).loc[list(SEEDS)]
+    index = rng.integers(0, len(SEEDS), size=(BOOTSTRAP, len(SEEDS)))
+    rows = []
+    for method in METHODS:
+        d = (wide[method] - wide["sobol"]).to_numpy(float)
+        finite = bool(np.isfinite(d).all())
+        lo, hi = np.quantile(d[index].mean(axis=1), [0.025, 0.975]) if finite else (np.nan, np.nan)
+        rows.append({"metric": metric, "first_method": method, "second_method": "sobol",
+                     "mean_difference": float(d.mean()) if finite else np.nan, "ci_lower": float(lo),
+                     "ci_upper": float(hi), "n_positive": int((d > 0).sum()), "n_negative": int((d < 0).sum())})
+    return rows
+
+
+def sobol_quality(arms, evidence: Path = EVIDENCE) -> tuple[pd.DataFrame, pd.DataFrame]:
+    """Post hoc epsilon and IGD+ of each terminal front against the primary empirical reference.
+
+    The reference and the pipelines' terminal values are those of the primary analysis
+    (c03_*), so the Sobol arm is scored on the same scale; the reference is not rebuilt.
+    """
+    reference = pd.read_csv(evidence / "c03_empirical_reference.csv").to_numpy(float)
+    histories = pd.read_csv(evidence / "c03_run_histories.csv")
+    terminal = histories[histories.evaluations == 160]
+    rows = []
+    for seed in SEEDS:
+        df = arms[seed]
+        values = df[["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]].to_numpy(float) / SCALES
+        front = nondominated(values[(df.category == "feasible").to_numpy()])
+        dominates = (np.any(np.all(front[:, None] <= reference[None], axis=2)
+                            & np.any(front[:, None] < reference[None], axis=2), axis=0).sum() if len(front) else 0)
+        rows.append({"method": "sobol", "seed": seed, "front_size_unique": len(front),
+                     "epsilon": additive_epsilon(front, reference), "igd_plus": igd_plus(front, reference),
+                     "reference_points_dominated": int(dominates)})
+        for method in METHODS:
+            row = terminal[(terminal.method == method) & (terminal.group == seed)].iloc[0]
+            rows.append({"method": method, "seed": seed, "front_size_unique": int(row.front_size_unique),
+                         "epsilon": float(row.epsilon), "igd_plus": float(row.igd_plus)})
+    table = pd.DataFrame(rows)
+    rng = np.random.default_rng(RNG_SEED + 1)
+    effects = paired(table, "epsilon", rng) + paired(table, "igd_plus", rng)
+    return table, pd.DataFrame(effects)
+
+
 def main(argv=None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--part", choices=("initial", "sobol", "all"), default="initial")
@@ -123,6 +168,10 @@ def main(argv=None) -> int:
         table, effects = sobol_comparison(runs, arms)
         table.to_csv(EVIDENCE / "r2_sobol_arm_runs.csv", index=False)
         effects.to_csv(EVIDENCE / "r2_sobol_arm_paired.csv", index=False)
+        quality, quality_effects = sobol_quality(arms)
+        quality.to_csv(EVIDENCE / "r2_sobol_arm_quality.csv", index=False)
+        quality_effects.to_csv(EVIDENCE / "r2_sobol_arm_quality_paired.csv", index=False)
+        metadata.update(sobol_quality="post hoc; epsilon and IGD+ against the unchanged primary empirical reference")
         metadata.update(sobol_inputs=sobol_manifest, bootstrap_resamples=BOOTSTRAP, analysis_rng=RNG_SEED)
     target = EVIDENCE / "r2_space_filling_metadata.json"
     previous = json.loads(target.read_text()) if target.exists() else {}

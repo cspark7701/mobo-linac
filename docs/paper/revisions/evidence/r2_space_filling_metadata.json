@@ -1,5 +1,7 @@
 {
   "analysis": "C2-03 space-filling references; production profile",
+  "analysis_rng": 20261027,
+  "bootstrap_resamples": 10000,
   "inputs": [
     {
       "run": "constrained_qlognehvi_seed_42",
@@ -121,5 +123,48 @@
       "run": "scalarized_bo_seed_51",
       "sha256": "7f866911136a7f34ea45667180fadc4e67adbc8c2325bb3e8e8bfc91578bd578"
     }
-  ]
+  ],
+  "sobol_inputs": [
+    {
+      "run": "sobol_seed_42",
+      "sha256": "db5f764347e02e1b67adef846dedb52cc94c03fef04eefa4919375a029803ab1"
+    },
+    {
+      "run": "sobol_seed_43",
+      "sha256": "4fdacc14c140c9492bc96f11fd5f5afdf08292874ac4de2d7eeb84124eb18394"
+    },
+    {
+      "run": "sobol_seed_44",
+      "sha256": "f1bf93712c98677a7c4ef03b580ff1e1b48ffb232bf0a0d41c26b104002e2047"
+    },
+    {
+      "run": "sobol_seed_45",
+      "sha256": "e0751ecc637f1016e8ab8f2787ff65cb14b7caa63c5919dff028f44078ff6ffb"
+    },
+    {
+      "run": "sobol_seed_46",
+      "sha256": "0b782255c322a3593fd233610628bbfa826e7f974264fefdc2b14157cd3bf4a5"
+    },
+    {
+      "run": "sobol_seed_47",
+      "sha256": "fa8d4753d2bc739afb25e9d1568876c606a66bbaea80b7c08cadb096c9fb01f6"
+    },
+    {
+      "run": "sobol_seed_48",
+      "sha256": "cdfad9d966103090306b051bf16682fb98a2c1a1f948ee9cc58d41b8f2d70e19"
+    },
+    {
+      "run": "sobol_seed_49",
+      "sha256": "e3be6f43e6f869cb6d817947bc311a2f44670327ad7ea4a92100afa18f92e4aa"
+    },
+    {
+      "run": "sobol_seed_50",
+      "sha256": "85888bb46a1b2e6e0f4b0e5b143904101ad912344a07dc132462c8620f4c75d8"
+    },
+    {
+      "run": "sobol_seed_51",
+      "sha256": "d9b41d4f55e6c0d6cda9bd232053dfca15ab7738644463b31ae479346ae0d9f3"
+    }
+  ],
+  "sobol_quality": "post hoc; epsilon and IGD+ against the unchanged primary empirical reference"
 }
