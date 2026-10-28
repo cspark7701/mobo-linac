@@ -21,7 +21,7 @@
 | C2-09 | Done | `c7fbbc0` | Rebuild `ledger_manifest.json` after the remaining runs complete |
 | C2-10 | Editorial work done; **open until the reviewers accept** | `559f460` | Target journal, table of contents, funding and acknowledgments, `\finaltrue` |
 | C2-11 | Drafts written, not committed; **open until the reviewers accept** | — | Fill the C2-12/13/14 results and page count; diff and inventory; validation; commit |
-| C2-12 | New; not started, needs the author's go-ahead to run | — | Numerical-resolution check of the reported settings (about 6–8 h, or 15–20 h under the current load) |
+| C2-12 | Authorized 2026-10-28; prepared, starts when C2-14 finishes | — | Numerical-resolution check of ten reported settings (about 8 h); analysis and manuscript text |
 | C2-13 | Done | see C2-13 | No TDR-feasible setting in 480 evaluations; closest miss 0.4 % |
 | C2-14 | New; queued | — | 10-seed Sobol arm (about 20 h under the current load, about 8 h without it); analysis and manuscript text |
 
@@ -81,7 +81,7 @@ Priority: **P0** is required for acceptance by at least one reviewer (a major co
 | C2-09 | P0 | Supplement identity and evidence map | Packaging and documentation | C2-02 to C2-08 outputs |
 | C2-10 | P2 | Terminology, length, abstract and submission items | Manuscript; author input | C2-01 to C2-09 |
 | C2-11 | P2 | Point-by-point responses and validation | Documentation; focused checks; PDF build | All of the above |
-| C2-12 | P1 | Numerical-resolution (convergence) record for the reported settings | ASTRA refinement runs; manuscript | Author go-ahead; supersedes the C2-04 fallback |
+| C2-12 | P1 | Numerical-resolution (convergence) record for the reported settings | ASTRA refinement runs; manuscript | Authorized 2026-10-28; after C2-14; supersedes the C2-04 fallback |
 | C2-13 | P1 | TDR-constrained campaigns (optional run of C2-01) | Authorized ASTRA campaigns; analysis; manuscript | C2-01 |
 | C2-14 | P1 | Budget-matched Sobol arm (optional run of C2-03) | Authorized ASTRA runs; analysis; manuscript | C2-03; starts after C2-13 |
 
@@ -298,11 +298,14 @@ Tasks:
 
 **Sources:** Reviewer 1 M2 (R2-02); Reviewer 2 N4(b) (Q4b); the C2-04 outcome. Neither reviewer requires a new study. The task is author-initiated, because the previous study's convergence record could not be located (`evidence/r2_numerical_disposition.md`) and C2-04 therefore fell back to nominal-resolution wording.
 
-**Status:** not started. The scope and runtime below are a proposal; the runs need the author's go-ahead.
+**Status:** authorized by the author on 2026-10-28, to run when the Sobol arm (C2-14) finishes. Prepared in `scripts/evaluate_revision_convergence.py` and stage `convergence` of `scripts/run_revision_round2_simulations.sh`.
+- **Source reconstruction.** The production `pal_photo2.ini` is reproduced with ASTRA's `generator`: quasi-random mode, 2D Gaussian with σ = 1.118 mm cut at 1.0 mm, 2.553 ps Gaussian emission cut at 4σ, isotropic 0.6 eV emission, 1 nC. Its time, radius and momentum marginals agree with the file to print precision; only the pairing of coordinates differs. Refined and regenerated sources come from the same input.
+- **Plumbing test (scratch only).** A fine-level run over the first 0.3 m confirmed that the source, step and grid overrides reach `astra.in`.
 
-**Settings (9):**
+**Settings (10):**
 - the MOGA-derived nominal;
 - TDR candidates A and B;
+- the closest observation of the TDR-constrained campaigns (C2-13), which misses by 0.4 %;
 - the six selected constraint-aware representatives.
 
 These are the settings whose margins and objective digits the manuscript reports.
@@ -311,25 +314,24 @@ These are the settings whose margins and objective digits the manuscript reports
 
 | Factor | Levels | Relative cost per run |
 |---|---|---|
-| Source sampling noise | 5 regenerated 10k distributions (`bin/generator`, different seeds) | 1× each |
+| Source sampling noise | 1 regenerated quasi-random and 5 pseudo-random 10k distributions (`bin/generator`; its random mode is clock-seeded, so each file's SHA-256 is recorded) | 1× each |
 | Macroparticles | 20k, 40k | 2×, 4× |
 | Space-charge grid | 48, 64 per dimension (cylindrical and 3D) | about 3×, about 6× |
 | Integration step | H_max/2, H_max/4 (with H_min scaled alike) | 2×, 4× |
 | Combined | medium (20k, 48, H/2); fine (40k, 64, H/4) | about 12×, about 96× |
 
-- [ ] Run a timing pilot (the fine combined level on one setting) to replace the assumed grid-cost factors.
-- [ ] Run all levels for the nine settings through the production pipeline, with outputs in `results/revision_round2/convergence/`. The production runs stay unchanged.
+- [ ] Time the levels. The fine runs are submitted first, so their runtimes replace the assumed cost factors early in the run.
+- [ ] Run all 15 levels (the production level, 6 source levels, 6 single-factor levels and 2 combined levels) for the ten settings through the production pipeline: 150 runs with outputs in `results/revision_round2/convergence/`. The production runs stay unchanged. The production-level rerun is checked against each archived value.
 - [ ] Report, for each setting, the change in ε_n,x, ε_n,y, σ_E and each constraint diagnostic between the production and the fine levels, and the spread across regenerated sources.
 - [ ] Compare these residuals with the method differences, the TDR-candidate margins (about 2.5/8.9 µm in σ_x, 8.2/8.0 µm in σ_z, 0.31/0.14 MeV in energy) and the smallest robustness margin. State whether each TDR or production classification survives refinement.
 - [ ] Replace the nominal-resolution wording in section 2.1 and the Limitations (section 6.3) with the measured residuals. Update S1.13 and both responses (M2 and N4(b)).
-- [ ] Add the analysis script, tests and `evidence/r2_convergence_*`.
+- [ ] Add the evidence `evidence/r2_convergence_*`. The analysis script `scripts/analyze_revision_convergence.py` and its tests are prepared.
 
 **Estimated runtime:**
-- Per setting: about 130 baseline-run units, comprising 5 + 2 + 4 + 3 + 6 + 2 + 4 for the single-factor levels and 12 + 96 for the combined levels. At about 145 s per unit unloaded, that is about 5.2 CPU-hours.
-- Nine settings: about 47 CPU-hours. With 8 workers this is **about 6–8 h wall-clock**, bounded below by the nine fine runs of about 3.9 h each.
-- Under the current shared-machine load (per-evaluation runtime about 2.5× longer): **about 15–20 h**.
+- Per setting: about 136 baseline-run units (1 + 6 source + 2 + 4 + 3 + 6 + 2 + 4 single-factor + 12 + 96 combined). At about 145 s per unit unloaded, that is about 5.5 CPU-hours.
+- Ten settings: about 55 CPU-hours. The machine is no longer shared with the WarpX job, so the stage uses 16 workers: the ten fine runs start together, and the other 140 runs (about 16 CPU-hours) share the remaining six workers.
+- Wall clock: bounded by the fine runs, **about 4–8 h**, depending on how far the fine level departs from the assumed 96× cost.
 - Analysis and manuscript work: about 2–3 h.
-- If the cost must be cut, dropping the six representatives (three settings only) gives about 2.5–3 h unloaded.
 
 **Done when:** sections 2.1 and 6.3 report measured residuals at the reported margins, or state that particular classifications are not resolved.
 
@@ -394,7 +396,7 @@ These are the settings whose margins and objective digits the manuscript reports
 
 ## Simulations: required versus optional
 
-None of the following is required for acceptance by either reviewer. The author authorized the first seven on 2026-10-27. The C2-12 resolution check is listed but not yet authorized.
+None of the following is required for acceptance by either reviewer. The author authorized the first seven on 2026-10-27 and the C2-12 resolution check on 2026-10-28.
 
 | Run | Size | Task | Requested by | Status (2026-10-28) |
 |---|---|---|---|---|
@@ -403,7 +405,7 @@ None of the following is required for acceptance by either reviewer. The author 
 | Jitter of the two TDR candidates | about 100 runs | C2-08 | Reviewer 2 (optional) | Done (`245162b`) |
 | Constraint-aware campaign(s) under TDR constraints | 160 runs per seed | C2-13 | Reviewer 2 (optional) | Done (3 seeds, about 22 h under load); no TDR-feasible setting |
 | Budget-matched Sobol arm | 10 × 160 runs | C2-14 | Reviewer 2 (optional) | Authorized; queued after the TDR stage; about 20 h under load (about 8 h unloaded) |
-| Numerical-resolution check of 9 reported settings | about 1,170 run units (about 47 CPU-h) | C2-12 | Author-initiated (neither reviewer requires it) | Not started; awaiting go-ahead; about 6–8 h unloaded, 15–20 h under load |
+| Numerical-resolution check of 10 reported settings | 150 runs, about 1,360 run units (about 55 CPU-h) | C2-12 | Author-initiated (neither reviewer requires it) | Authorized 2026-10-28; starts after the Sobol arm; about 4–8 h |
 | Inferred-noise GP refit | offline, no ASTRA | C2-05 | Reviewer 2 (optional) | Done (`771957d`) |
 | Run-level resampling with rebuilt references | offline, no ASTRA | C2-06 | Reviewer 1 (one optional route) | Done (`0e60cfc`) |
 
@@ -458,5 +460,5 @@ A mapping records where a request is handled; it does not mean the request is al
 2. **Existing-data analysis:** attribution (C2-02), the space-filling reference (C2-03), the predictive interpretation (C2-05), the inference route (C2-06) and the jitter dominance check (C2-08).
 3. **Authorized runs, if any:** the MOGA-derived re-evaluation first (one run), then any optional jitter or campaign runs.
 4. **Manuscript integration:** C2-01, C2-02, C2-07 and C2-08 text; the supplement map (C2-09); presentation (C2-10).
-5. **Further runs and their integration:** C2-13, then C2-14, which is queued behind it. C2-12 follows if the author approves it; it can run alongside C2-14 if cores allow.
+5. **Further runs and their integration:** C2-13, then C2-14, which is queued behind it. C2-12 starts when C2-14 finishes (author decision, 2026-10-28), and the manuscript and this list are updated after it.
 6. **Responses and validation:** C2-11, last. C2-10 and C2-11 close only when the reviewers accept the revised manuscript.

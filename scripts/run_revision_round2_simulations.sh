@@ -7,7 +7,9 @@
 #                   seeds 42-44, 160 evaluations each (16 shared Sobol + 18 batches of 8). ~10 h
 #   3. sobol      : budget-matched Sobol arm, seeds 42-51, 160 points of each seed's scrambled
 #                   Sobol sequence (its first 16 are the shared initial design), no acquisition. ~10 h
-# Usage: scripts/run_revision_round2_simulations.sh [references|tdr|sobol|all]
+#   4. convergence: numerical-resolution check of ten reported settings at 15 resolution levels
+#                   (task C2-12, authorized 2026-10-28; not part of "all").                ~8 h
+# Usage: scripts/run_revision_round2_simulations.sh [references|tdr|sobol|all|convergence]
 # Outputs are immutable: a stage refuses to start if its output directory already has content.
 set -Eeuo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
@@ -67,10 +69,20 @@ run_sobol() {
   record sobol completed
 }
 
+run_convergence() {
+  fresh "$OUT/convergence"
+  record convergence started
+  # Ten fine-level runs dominate; CONVERGENCE_WORKERS above ten lets the cheaper levels proceed alongside.
+  "$PYTHON_BIN" scripts/evaluate_revision_convergence.py --output-dir "$OUT/convergence" \
+    --workers "${CONVERGENCE_WORKERS:-16}"
+  record convergence completed
+}
+
 case "$STAGE" in
   references) run_references 2>&1 | tee "$OUT/logs/references.log" ;;
   tdr) run_tdr 2>&1 | tee "$OUT/logs/tdr.log" ;;
   sobol) run_sobol 2>&1 | tee "$OUT/logs/sobol.log" ;;
+  convergence) run_convergence 2>&1 | tee "$OUT/logs/convergence.log" ;;
   all)
     run_references 2>&1 | tee "$OUT/logs/references.log"
     run_tdr 2>&1 | tee "$OUT/logs/tdr.log"
