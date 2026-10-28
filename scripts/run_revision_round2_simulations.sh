@@ -39,7 +39,7 @@ fresh() { [[ ! -e "$1" ]] || [[ -z "$(ls -A "$1")" ]] || { echo "ERROR: $1 alrea
 run_references() {
   fresh "$OUT/references"
   record references started
-  "$PYTHON_BIN" scripts/run_revision_reference_settings.py --output-dir "$OUT/references" --workers "$WORKERS"
+  "$PYTHON_BIN" scripts/evaluate_revision_reference_settings.py --output-dir "$OUT/references" --workers "$WORKERS"
   record references completed
 }
 

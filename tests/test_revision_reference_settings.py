@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "scripts/run_revision_reference_settings.py"
+SCRIPT = ROOT / "scripts/evaluate_revision_reference_settings.py"
 
 
 def load():
