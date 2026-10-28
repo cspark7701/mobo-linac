@@ -13,7 +13,7 @@
 | C2-01 | Done (required part) | `26cdea3` | The optional TDR campaigns moved to C2-13 |
 | C2-02 | Done | `4aa2795` | — |
 | C2-03 | Done (required part) | `1e9bebf` | The optional Sobol arm moved to C2-14 |
-| C2-04 | Done by the fallback route (record not found) | `6dddfd4` | Superseded in part by C2-12 if the convergence check is run |
+| C2-04 | Done by the fallback route (record not found) | `6dddfd4` | Superseded in part by C2-12 (measured residuals, 2026-10-28) |
 | C2-05 | Done, including the optional refit | `771957d` | — |
 | C2-06 | Done, routes (a) and (b) | `0e60cfc` | — |
 | C2-07 | Done, including the run and jitter | `7416fb5` | — |
@@ -21,7 +21,7 @@
 | C2-09 | Done | `c7fbbc0` | Rebuild `ledger_manifest.json` after the remaining runs complete |
 | C2-10 | Editorial work done; Data availability statement and statement of contributions added; **open until the reviewers accept** | `559f460` | A possible fifth contribution after C2-12; related-work positioning; target journal (PRAB recommended), table of contents, funding and acknowledgments, `\finaltrue` |
 | C2-11 | Drafts written, not committed; **open until the reviewers accept** | — | Fill the C2-12/13/14 results and page count; diff and inventory; validation; commit |
-| C2-12 | Running since 21:40 on 2026-10-28 (16 workers) | — | Numerical-resolution check of ten reported settings (about 4–8 h); analysis and manuscript text |
+| C2-12 | Done | see C2-12 | Emittances not converged at production resolution (−12 to −43 % at the fine level); production classifications stable; TDR membership near the limits not resolved |
 | C2-13 | Done | see C2-13 | No TDR-feasible setting in 480 evaluations; closest miss 0.4 % |
 | C2-14 | Done | see C2-14 | Sobol arm 2.8 % feasible; every pipeline exceeds it in all ten matched groups |
 | C2-15 | New; optional; not started | — | Zenodo deposition; needs the author's go-ahead before any upload |
@@ -33,7 +33,7 @@ All work is committed locally only; nothing has been pushed.
 **Runs:**
 - **TDR-constrained campaigns (C2-13):** complete at 12:05 on 2026-10-28. None of the three campaigns has a TDR-feasible observation.
 - **Sobol arm (C2-14):** complete at 21:40 on 2026-10-28 (10 seeds).
-- **Resolution check (C2-12):** started automatically at 21:40 on 2026-10-28 after the Sobol arm.
+- **Resolution check (C2-12):** started automatically at 21:40 and complete at 23:07 on 2026-10-28 (150 runs; fine level about 41 min per run).
 - **Run speed:** an unrelated WarpX job occupies most of the 24 cores, roughly halving simulation throughput.
 
 ## Sources
@@ -333,12 +333,12 @@ These are the settings whose margins and objective digits the manuscript reports
 | Integration step | H_max/2, H_max/4 (with H_min scaled alike) | 2×, 4× |
 | Combined | medium (20k, 48, H/2); fine (40k, 64, H/4) | about 12×, about 96× |
 
-- [ ] Time the levels. The fine runs are submitted first, so their runtimes replace the assumed cost factors early in the run.
-- [ ] Run all 15 levels (the production level, 6 source levels, 6 single-factor levels and 2 combined levels) for the ten settings through the production pipeline: 150 runs with outputs in `results/revision_round2/convergence/`. The production runs stay unchanged. The production-level rerun is checked against each archived value.
-- [ ] Report, for each setting, the change in ε_n,x, ε_n,y, σ_E and each constraint diagnostic between the production and the fine levels, and the spread across regenerated sources.
-- [ ] Compare these residuals with the method differences, the TDR-candidate margins (about 2.5/8.9 µm in σ_x, 8.2/8.0 µm in σ_z, 0.31/0.14 MeV in energy) and the smallest robustness margin. State whether each TDR or production classification survives refinement.
-- [ ] Replace the nominal-resolution wording in section 2.1 and the Limitations (section 6.3) with the measured residuals. Update S1.13 and both responses (M2 and N4(b)).
-- [ ] Add the evidence `evidence/r2_convergence_*`. The analysis script `scripts/analyze_revision_convergence.py` and its tests are prepared.
+- [x] Time the levels (median: production 203 s, medium 1,190 s, fine 2,479 s, about 12× production). The fine runs are submitted first, so their runtimes replace the assumed cost factors early in the run.
+- [x] Run all 15 levels (the production level, 6 source levels, 6 single-factor levels and 2 combined levels) for the ten settings through the production pipeline: 150 runs with outputs in `results/revision_round2/convergence/`. The production runs stay unchanged. The production-level rerun is checked against each archived value.
+- [x] Report, for each setting, the change in ε_n,x, ε_n,y, σ_E and each constraint diagnostic between the production and the fine levels, and the spread across regenerated sources.
+- [x] *(TDR and production classifications and TDR margins done; the comparison with the smallest robustness margin and with the method differences is stated qualitatively only.)* Compare these residuals with the method differences, the TDR-candidate margins (about 2.5/8.9 µm in σ_x, 8.2/8.0 µm in σ_z, 0.31/0.14 MeV in energy) and the smallest robustness margin. State whether each TDR or production classification survives refinement.
+- [x] Replace the nominal-resolution wording in section 2.1 and the Limitations (section 6.3) with the measured residuals. Update S1.13 and both responses (M2 and N4(b)).
+- [x] Add the evidence `evidence/r2_convergence_*`. The analysis script `scripts/analyze_revision_convergence.py` and its tests are prepared.
 
 **Estimated runtime:**
 - Per setting: about 136 baseline-run units (1 + 6 source + 2 + 4 + 3 + 6 + 2 + 4 single-factor + 12 + 96 combined). At about 145 s per unit unloaded, that is about 5.5 CPU-hours.
@@ -347,6 +347,23 @@ These are the settings whose margins and objective digits the manuscript reports
 - Analysis and manuscript work: about 2–3 h.
 
 **Done when:** sections 2.1 and 6.3 report measured residuals at the reported margins, or state that particular classifications are not resolved.
+
+**Result (2026-10-28):**
+- **Determinism.** The production-level reruns reproduce all ten archived values to floating-point precision.
+- **Emittances are not converged.** At the fine level ε_n,x falls by 12–34 % and ε_n,y by 17–43 %. The integration step dominates (H/4 alone: up to 28 % and 38 %). Medium to fine still changes them by up to 9 %. Order across the ten settings: Spearman 0.79 (x) and 0.94 (y). Random 10k sources spread them by 1–12 % (standard deviation).
+- **Other quantities.** σ_E changes by at most 4 % (order kept); σ_z by at most 1 %; mean energy by at most 0.05 MeV; transmission not at all. Beam sizes and divergences fall by up to 22 %.
+- **Classifications.**
+  - All ten settings stay production-feasible at all 15 levels.
+  - TDR candidate B passes everywhere. Candidate A passes at medium and fine but fails in σ_x at grid 64 and with 2 of 5 random sources.
+  - The MOGA-derived nominal and the closest TDR-campaign observation pass at medium and fine. Each fails with 4 of 5 random sources; the nominal also fails at every single-factor level, and the campaign observation at both particle-count levels.
+- **Manuscript.**
+  - Section 2.1 reports the check and its residuals. A new paragraph in `sec:tdr_reach` states that TDR membership near the limits is not resolved, and the TDR-candidate table caption points to it.
+  - The Limitations now state that the method comparison has not been tested at a converged resolution.
+  - The abstract gains a qualitative sentence and its TDR clause is qualified.
+  - The Conclusions and future work are updated, and the caveat after the Introduction's contribution list cites the check.
+- **Analysis fix.** Run names and evaluation ids repeat between the primary and TDR-constrained campaigns, so `archived()` now chooses the ledger by role, as the driver does.
+- **Contribution list (C2-10).** No fifth contribution is added. The check is a disclosed limitation, not a new capability. The author may reconsider.
+- **Conflict to resolve with the author.** The round2 ground rules record an author confirmation that a numerical convergence study was already done (Tasks 00226 and 00227). The present check shows that, at the inherited resolution, the emittances are not converged. Either that study used different settings or quantities, or its conclusion does not carry over to these settings. The responses (M2, N4(b)) must state this plainly.
 
 ### C2-13. TDR-constrained campaigns (optional run of C2-01)
 

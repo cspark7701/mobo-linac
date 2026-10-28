@@ -66,7 +66,8 @@ compared with weighted-sum Bayesian optimization using matched simulation budget
 initial designs. Feasibility is defined by a deliberately relaxed computational acceptance
 profile; the stricter optimization requirements of the Korea Light Source technical design are
 met by only a few sampled settings, at the edge of the explored domain, and campaigns
-constrained by them approach but do not enter that region.
+constrained by them approach that region to within the numerical resolution of the model. A
+refinement check shows that the absolute emittances depend on the tracking resolution.
 All methods identify feasible nondominated operating points, revealing trade-offs between
 transverse beam quality and energy spread. Paired analyses support a higher feasible
 sampling fraction for constraint-aware acquisition, which arises mainly from meeting the
@@ -202,8 +203,8 @@ The contributions of this work are the following.
   any of the optimizers achieve over uniform sampling, and how much is specific to the
   constraint-aware pipeline (section~\ref{sec:attribution}).
 \end{enumerate}
-These results describe the recorded pipelines at nominal tracking resolution on a fixed
-lattice. They do not establish a unit-invariant acquisition, global optimality of the
+These results describe the recorded pipelines on a fixed lattice at the nominal tracking
+resolution, at which the emittances are not converged (section~\ref{sec:problem}). They do not establish a unit-invariant acquisition, global optimality of the
 reported fronts, or engineering acceptance of any setting.
 
 %==========================================================================================
@@ -244,17 +245,45 @@ momentum moments imply initial normalized RMS emittances of approximately
 fixed file, not a verified cathode-temperature model. The original generator recipe and
 cathode material are not established by the retained input, so we do not equate this source
 with the published study's laser specification merely because their durations are similar.
+For the resolution check below, a generator input was reconstructed whose emission-time,
+radius and momentum marginals reproduce those of the file; this does not establish the
+original recipe.
 
 The tracking resolution was adopted from the previous study of this injector by Kim et
 al.~\cite{Kim2024KLSMOGA}, whose section 4.3 reports \num{10000} macroparticles, 32 radial and
 at most 32 longitudinal space-charge cells, and mirror image charges. The present calculation
 uses the same particle-count scale, cylindrical grid dimensions and image-charge treatment.
 Its archived inputs additionally specify a Cartesian \(32^3\) grid and a solver transition at
-\SI{5.25}{\metre}, which that published description does not state. No quantitative
-refinement residual for these settings is reproduced here. All objective values, feasibility
-classifications and margins are therefore results at this nominal resolution. For a fixed
-distribution the calculations are deterministic. The fixed GP observation variance provides
-regularization and does not measure tracking-discretization uncertainty.
+\SI{5.25}{\metre}, which that published description does not state. No refinement
+residual is quoted there, so we re-tracked ten reported settings with refined numerics: the
+MOGA-derived nominal setting, the two TDR candidates (table~\ref{tab:tdr_candidates}), the
+closest observation of the TDR-constrained campaigns (section~\ref{sec:tdr_reach}) and the six
+representatives of section~\ref{sec:settings}. Each factor was refined alone and then all
+together: \num{20000} and \num{40000} particles from the reconstructed source, 48 and 64
+cells in every space-charge grid dimension, and half and a quarter of the maximum and minimum
+integration steps. The medium level combines the first refinement of each factor and the fine
+level the second. Five independently seeded random sources of \num{10000} particles measure
+the sampling spread. Reruns at the production settings reproduce the archived values to
+floating-point precision, so the calculations are deterministic for a fixed distribution
+(Supplement S1.13).
+
+The emittances are not converged at the production resolution. At the fine level they are
+lower by \SIrange{12}{34}{\percent} horizontally and \SIrange{17}{43}{\percent} vertically,
+mainly through the integration step: quartering the step alone lowers them by up to
+\SI{28}{\percent} and \SI{38}{\percent}. The fine values still differ from the medium ones by
+up to \SI{9}{\percent}, so they are not converged either. Across the ten settings the order of
+the horizontal and vertical emittances is largely but not fully kept (Spearman coefficients
+0.79 and 0.94). The random sources spread the emittances by \SIrange{1}{12}{\percent} (standard
+deviation). The energy spread changes by at most \SI{4}{\percent} and keeps its order, the
+bunch length by at most \SI{1}{\percent}, the mean energy by at most
+\SI{0.05}{\mega\electronvolt}, and the transmission not at all. Beam sizes and divergences fall by up to
+\SI{22}{\percent}. All ten settings remain feasible under the production profile at every
+level, whereas TDR classifications within a few percent of the limits change
+(section~\ref{sec:tdr_reach}). All objective values, feasibility classifications and margins
+are therefore results at the nominal resolution. The absolute emittances exceed the refined
+values, and the method comparisons hold within this fixed numerical model. The fixed GP
+observation variance provides regularization and does not measure tracking-discretization
+uncertainty.
 
 
 \begin{figure}[htbp]
@@ -401,7 +430,8 @@ or downstream matching specifications.
 \caption{The two primary observations that pass the TDR optimization inequalities, both from
 constraint-aware MOBO in different matched runs. Margins are physical distances inside each
 limit (positive = satisfied); they are nominal-resolution values
-(section~\ref{sec:problem}).}
+(section~\ref{sec:problem}), and section~\ref{sec:tdr_reach} gives their behaviour under
+numerical refinement.}
 \label{tab:tdr_candidates}
 \small
 \begin{tabular}{lrr}
@@ -1223,7 +1253,18 @@ had the worst relative margin in \SI{62}{\percent} of the targeted campaigns' ev
 vertical divergence in \SI{24}{\percent}. Each campaign still produced 52--58
 production-feasible observations. Targeting the TDR inequalities therefore did not increase TDR
 coverage at this budget: the region is approached to within a few micrometres and
-microradians, but not entered reliably. The TDR
+microradians, but not entered reliably.
+
+These classifications lie within the numerical resolution of the model
+(section~\ref{sec:problem}). Candidate~B meets the TDR inequalities at all fifteen refinement
+and source levels. Candidate~A meets them at the medium and fine levels but fails in
+horizontal size on the 64-cell grid and with two of the five random sources. Conversely, the
+MOGA-derived nominal setting and the closest observation of the TDR-constrained campaigns meet
+them at the medium and fine levels. Each fails with four of the five random sources, the
+nominal setting also with every single-factor refinement and the campaign observation with
+both particle-count refinements. Whether a setting within a few percent of the TDR limits meets
+them is therefore not resolved by the production calculation. The statement that the
+TDR-constrained campaigns did not enter the region holds only at that resolution. The TDR
 describes a longer linac with further matching quadrupoles and adjustable RF amplitudes. Those
 are held fixed or absent here, so the present model cannot show how much of the TDR region
 becomes accessible with them.
@@ -1240,15 +1281,18 @@ characterize initialization variability for this problem; they do not establish 
 algorithm superiority. The original constraint smoothing is unit-dependent, and the offline
 normalization probes supply no physical-performance evidence for a corrected method.
 
-The tracking model uses one fixed source file and the finite particle and grid resolution of
-the previous injector study. Because no refinement residual is quoted for these settings, the
-results are nominal-resolution results. Small margins in particular are not interpreted as
-numerically resolved: the two TDR-passing observations clear the horizontal-size limit by
+The tracking model uses one fixed source file and the particle, grid and step resolution of
+the previous injector study. The refinement check of section~\ref{sec:problem} shows that the
+emittances are not converged at this resolution and that TDR classifications near the limits
+change under refinement, so all results are nominal-resolution results. Whether the method
+comparison would change at a converged resolution has not been tested; that would require
+repeating the campaigns. Small margins in particular are not interpreted as numerically
+resolved: the two TDR-passing observations clear the horizontal-size limit by
 about 2.5 and \SI{8.9}{\micro\metre} and the bunch-length limit by about 8.2 and
 \SI{8.0}{\micro\metre}. Likewise, the selected settings are not presented as numerically
 validated engineering settings, and objective differences of order
 \SI{0.1}{\micro\metre\radian} between individual settings are not claimed to be resolved. The
-source-generation recipe and cathode model are also not established by the retained file.
+original source-generation recipe and cathode model are also not established by the retained file.
 Near-symmetric source moments and downstream trajectory changes support a transport
 interpretation of the transverse asymmetry, but do not isolate its causal mechanism. The
 lattice-jitter results exclude source, RF-gradient and alignment errors and cannot be directly
@@ -1299,13 +1343,19 @@ The engineering conclusion is limited. The production profile is deliberately lo
 KLS TDR optimization requirements, under which only two marginal primary observations are
 acceptable and the MOGA-derived nominal setting misses narrowly. Campaigns that took the TDR
 inequalities as constraints came within a few micrometres of them but found no acceptable
-setting. The six fixed-lattice controls therefore reach the TDR region only at the edge of the
+setting at the production resolution. Under refined tracking their closest observation and the
+MOGA-derived nominal setting do meet them, so membership near the limits is not numerically
+resolved. The six fixed-lattice controls therefore reach the TDR region only at the edge of the
 explored domain. A design study aimed at
 TDR acceptance would need those requirements as its constraints and probably the additional
 matching and RF controls of the full TDR linac. Lattice-jitter tests of the selected settings
 retained feasibility under the simulated lattice-only error model, which is not a reliability
-guarantee. All values are nominal-resolution results, and the recorded data and analysis
-scripts support their regeneration. Future work will extend the robustness analysis to source
+guarantee. All values are nominal-resolution results. A refinement check of ten reported
+settings showed that the emittances are not converged at that resolution, whereas the energy
+spread, bunch length, mean energy, transmission and production-profile classifications are
+stable; absolute emittances should not be quoted without a converged calculation. The recorded
+data and analysis scripts support regeneration of all values. Future work will repeat the
+comparison at a converged tracking resolution, extend the robustness analysis to source
 fluctuations with a validated distribution generator, distribute the simulations across compute
 nodes, and test the optimized settings on the machine.
 

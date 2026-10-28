@@ -76,3 +76,15 @@ def test_load_runs_rejects_a_changed_stream(tmp_path):
         handle.write("\n")
     with pytest.raises(ValueError, match="Checksum"):
         analysis.load_runs(tmp_path)
+
+
+def test_archived_reads_the_tdr_campaign_ledger_by_role(tmp_path):
+    for base, value in ((analysis.PRIMARY, 1.0), (analysis.TDR_RUNS, 2.0)):
+        run = tmp_path / base / "constrained_qlognehvi_seed_43"
+        run.mkdir(parents=True)
+        pd.DataFrame([{"evaluation_id": "eval_000122", **{q: value for q in analysis.QUANTITIES}}]).to_csv(
+            run / "evaluations.csv", index=False)
+    frame = pd.DataFrame({"role": ["tdr_campaign_closest", "knee_point"],
+                          "run": ["constrained_qlognehvi_seed_43"] * 2, "evaluation_id": ["eval_000122"] * 2})
+    record = analysis.archived(frame, root=tmp_path)
+    assert record.at["tdr_campaign_closest", "sigma_x_m"] == 2.0 and record.at["knee_point", "sigma_x_m"] == 1.0

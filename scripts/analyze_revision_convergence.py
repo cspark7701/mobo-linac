@@ -25,8 +25,11 @@ from analyze_revision_tdr_campaigns import TDR_LIMITS, margins  # noqa: E402
 
 RUNS = ROOT / "results/revision_round2/convergence"
 MOGA = ROOT / "results/revision_round2/references/moga_nominal/moga_reference.json"
-LEDGERS = {"results/paper_production/04_primary/benchmark/per_seed": "constrained_qlognehvi_seed_",
-           "results/revision_round2/tdr_benchmark/per_seed": "constrained_qlognehvi_seed_"}
+# Run names and evaluation ids repeat between the primary and TDR-constrained campaigns, so the
+# ledger is chosen by role, as in the driver.
+PRIMARY = "results/paper_production/04_primary/benchmark/per_seed"
+TDR_RUNS = "results/revision_round2/tdr_benchmark/per_seed"
+TDR_CAMPAIGN_ROLE = "tdr_campaign_closest"
 EVIDENCE = ROOT / "docs/paper/revisions/evidence"
 OBJECTIVES = ("norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV")
 DIAGNOSTICS = ("sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m",
@@ -64,9 +67,8 @@ def archived(frame: pd.DataFrame, root: Path = ROOT) -> pd.DataFrame:
             record = json.loads(MOGA.read_text())["execution_details"]
             values = {**record["objectives"], **record["diagnostics"]}
         else:
-            ledger = next(root / base / run / "evaluations.csv" for base in LEDGERS
-                          if (root / base / run / "evaluations.csv").exists()
-                          and evaluation_id in set(pd.read_csv(root / base / run / "evaluations.csv").evaluation_id))
+            base = TDR_RUNS if role == TDR_CAMPAIGN_ROLE else PRIMARY
+            ledger = root / base / run / "evaluations.csv"
             values = pd.read_csv(ledger).set_index("evaluation_id").loc[evaluation_id].to_dict()
         rows.append({"role": role, **{q: float(values[q]) for q in QUANTITIES}})
     return pd.DataFrame(rows).set_index("role")

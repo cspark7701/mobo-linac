@@ -95,6 +95,10 @@ S1.12,Campaign cost,sec:results,docs/paper/revisions/evidence/c13_report.md,
 S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r2_numerical_disposition.md,
 S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/c09_convergence_report.md,
 S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/c09_convergence.tex,
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r2_convergence_values.csv,scripts/analyze_revision_convergence.py
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r2_convergence_summary.csv,scripts/analyze_revision_convergence.py
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r2_convergence_classification.csv,scripts/analyze_revision_convergence.py
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r2_convergence_metadata.json,scripts/analyze_revision_convergence.py
 S1.14,Exploratory operating-point survey,app:survey,docs/paper/revisions/evidence/c14_feasible_case_summary.csv,scripts/prepare_revision_tables.py
 S1.14,Exploratory operating-point survey,app:survey,docs/paper/revisions/evidence/c14_metadata.json,scripts/prepare_revision_tables.py
 S1.14,Exploratory operating-point survey,app:survey,docs/paper/revisions/evidence/c14_report.md,

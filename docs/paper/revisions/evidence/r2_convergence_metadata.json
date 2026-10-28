@@ -1,0 +1,210 @@
+{
+  "analysis": "C2-12 numerical-resolution residuals of the reported settings",
+  "levels": {
+    "combined_fine": {
+      "overrides": {
+        "charge:nlong_in": 64,
+        "charge:nrad": 64,
+        "charge:nxf": 64,
+        "charge:nyf": 64,
+        "charge:nzf": 64,
+        "newrun:distribution": "qr40k.ini",
+        "newrun:h_max": 0.0025,
+        "newrun:h_min": 0.00025
+      },
+      "relative_cost": 96
+    },
+    "combined_medium": {
+      "overrides": {
+        "charge:nlong_in": 48,
+        "charge:nrad": 48,
+        "charge:nxf": 48,
+        "charge:nyf": 48,
+        "charge:nzf": 48,
+        "newrun:distribution": "qr20k.ini",
+        "newrun:h_max": 0.005,
+        "newrun:h_min": 0.0005
+      },
+      "relative_cost": 12
+    },
+    "grid_48": {
+      "overrides": {
+        "charge:nlong_in": 48,
+        "charge:nrad": 48,
+        "charge:nxf": 48,
+        "charge:nyf": 48,
+        "charge:nzf": 48
+      },
+      "relative_cost": 3
+    },
+    "grid_64": {
+      "overrides": {
+        "charge:nlong_in": 64,
+        "charge:nrad": 64,
+        "charge:nxf": 64,
+        "charge:nyf": 64,
+        "charge:nzf": 64
+      },
+      "relative_cost": 6
+    },
+    "particles_20k": {
+      "overrides": {
+        "newrun:distribution": "qr20k.ini"
+      },
+      "relative_cost": 2
+    },
+    "particles_40k": {
+      "overrides": {
+        "newrun:distribution": "qr40k.ini"
+      },
+      "relative_cost": 4
+    },
+    "production": {
+      "overrides": {},
+      "relative_cost": 1
+    },
+    "source_qr10k": {
+      "overrides": {
+        "newrun:distribution": "qr10k.ini"
+      },
+      "relative_cost": 1
+    },
+    "source_rand10k_1": {
+      "overrides": {
+        "newrun:distribution": "rand10k_1.ini"
+      },
+      "relative_cost": 1
+    },
+    "source_rand10k_2": {
+      "overrides": {
+        "newrun:distribution": "rand10k_2.ini"
+      },
+      "relative_cost": 1
+    },
+    "source_rand10k_3": {
+      "overrides": {
+        "newrun:distribution": "rand10k_3.ini"
+      },
+      "relative_cost": 1
+    },
+    "source_rand10k_4": {
+      "overrides": {
+        "newrun:distribution": "rand10k_4.ini"
+      },
+      "relative_cost": 1
+    },
+    "source_rand10k_5": {
+      "overrides": {
+        "newrun:distribution": "rand10k_5.ini"
+      },
+      "relative_cost": 1
+    },
+    "step_half": {
+      "overrides": {
+        "newrun:h_max": 0.005,
+        "newrun:h_min": 0.0005
+      },
+      "relative_cost": 2
+    },
+    "step_quarter": {
+      "overrides": {
+        "newrun:h_max": 0.0025,
+        "newrun:h_min": 0.00025
+      },
+      "relative_cost": 4
+    }
+  },
+  "production_rerun_max_abs_diff_from_archive": {
+    "balanced": 0.0,
+    "crowding_distance_max": 2.710505431213761e-20,
+    "knee_point": 5.421010862427522e-20,
+    "min_emit_x": 2.710505431213761e-20,
+    "min_emit_y": 2.710505431213761e-20,
+    "min_sigma_energy": 8.470329472543003e-22,
+    "moga_derived_nominal": 0.0,
+    "tdr_campaign_closest": 9.996344030316351e-17,
+    "tdr_candidate_a": 2.168404344971009e-19,
+    "tdr_candidate_b": 0.0
+  },
+  "runs": "results/revision_round2/convergence",
+  "runtime_s_by_level": {
+    "combined_fine": 2479.4,
+    "combined_medium": 1190.3,
+    "grid_48": 775.1,
+    "grid_64": 967.1,
+    "particles_20k": 266.7,
+    "particles_40k": 520.4,
+    "production": 202.7,
+    "source_qr10k": 169.8,
+    "source_rand10k_1": 163.3,
+    "source_rand10k_2": 158.7,
+    "source_rand10k_3": 161.6,
+    "source_rand10k_4": 170.2,
+    "source_rand10k_5": 173.0,
+    "step_half": 274.0,
+    "step_quarter": 358.4
+  },
+  "settings": [
+    {
+      "evaluation_id": null,
+      "role": "moga_derived_nominal",
+      "run": null
+    },
+    {
+      "evaluation_id": "eval_000079",
+      "role": "tdr_candidate_a",
+      "run": "constrained_qlognehvi_seed_44"
+    },
+    {
+      "evaluation_id": "eval_000099",
+      "role": "tdr_candidate_b",
+      "run": "constrained_qlognehvi_seed_51"
+    },
+    {
+      "evaluation_id": "eval_000122",
+      "role": "tdr_campaign_closest",
+      "run": "constrained_qlognehvi_seed_43"
+    },
+    {
+      "evaluation_id": "eval_000093",
+      "role": "min_emit_x",
+      "run": "constrained_qlognehvi_seed_42"
+    },
+    {
+      "evaluation_id": "eval_000094",
+      "role": "min_emit_y",
+      "run": "constrained_qlognehvi_seed_42"
+    },
+    {
+      "evaluation_id": "eval_000069",
+      "role": "min_sigma_energy",
+      "run": "constrained_qlognehvi_seed_42"
+    },
+    {
+      "evaluation_id": "eval_000112",
+      "role": "knee_point",
+      "run": "constrained_qlognehvi_seed_42"
+    },
+    {
+      "evaluation_id": "eval_000025",
+      "role": "balanced",
+      "run": "constrained_qlognehvi_seed_42"
+    },
+    {
+      "evaluation_id": "eval_000156",
+      "role": "crowding_distance_max",
+      "run": "constrained_qlognehvi_seed_42"
+    }
+  ],
+  "source_input": "&INPUT\n FNAME = '{name}'\n IPart={particles}\n Species='electrons'\n Probe=.T\n Noise_reduc={quasi}\n Cathode=.T\n Q_total=1.0E0\n Ref_zpos=0.0E0\n Ref_clock=-0.6383E-3\n Ref_Ekin=0.0E0\n Dist_z='g', sig_clock=2.553E-3, C_sig_clock=4\n Dist_pz='i', LE=0.6E-3, phi_eff=0.0\n Dist_x='2DGaussian', sig_x=1.118E0, C_sig_x=0.8945\n Dist_y='2DGaussian', sig_y=1.118E0, C_sig_y=0.8945\n/\n",
+  "sources": {
+    "qr10k.ini": "ec107e802260d02c1b2b21dd8baa9563a68f52bb64ef016c3a17497508faa59f",
+    "qr20k.ini": "c64902012d6ce2f99ae0903cb7001fe76d378038b03d1980d89846e81612ed65",
+    "qr40k.ini": "a63673afbf34748d07c29f620bf74d6f1d16ce4960719aa8ef8dc1dc6a381425",
+    "rand10k_1.ini": "e4d819550d9d61eb70fd5e8010846f1de0459e09141149d92db5ddaa5a39be47",
+    "rand10k_2.ini": "d00fc84fe1530b12a605c57f27688c53adc452282dd5aa56f6f30e327c5297d4",
+    "rand10k_3.ini": "6773cd1e3e084d1ceea416a238a2a4775d23c9f5d1b1862ddd18273348a76bf0",
+    "rand10k_4.ini": "bc02bee881b4f371067cc91733fb721bf6002e30c58a34e7c29b1cd592de5ca0",
+    "rand10k_5.ini": "c73208c5ecf9690a386a98bc9085f73d7ead021ebcca491d081342eca2e5f99c"
+  }
+}
