@@ -1,0 +1,113 @@
+{
+  "analysis": "C2-01 TDR-constrained campaigns; descriptive comparison with TDR-reclassified primary runs",
+  "budget": 160,
+  "configuration": "configs/revision_tdr_200MeV.yaml",
+  "inputs": [
+    {
+      "method": "tdr_constrained_qlognehvi",
+      "n": 160,
+      "recorded_label_agreement": 160,
+      "seed": 42
+    },
+    {
+      "method": "tdr_constrained_qlognehvi",
+      "n": 160,
+      "recorded_label_agreement": 160,
+      "seed": 43
+    },
+    {
+      "method": "tdr_constrained_qlognehvi",
+      "n": 160,
+      "recorded_label_agreement": 160,
+      "seed": 44
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "n": 160,
+      "seed": 42
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "n": 160,
+      "seed": 43
+    },
+    {
+      "method": "constrained_qlognehvi",
+      "n": 160,
+      "seed": 44
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "n": 160,
+      "seed": 42
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "n": 160,
+      "seed": 43
+    },
+    {
+      "method": "unconstrained_qlognehvi",
+      "n": 160,
+      "seed": 44
+    },
+    {
+      "method": "scalarized_bo",
+      "n": 160,
+      "seed": 42
+    },
+    {
+      "method": "scalarized_bo",
+      "n": 160,
+      "seed": 43
+    },
+    {
+      "method": "scalarized_bo",
+      "n": 160,
+      "seed": 44
+    }
+  ],
+  "preview": false,
+  "seeds": [
+    42,
+    43,
+    44
+  ],
+  "tdr_limits": [
+    [
+      "sigma_x_m",
+      "upper",
+      0.0003
+    ],
+    [
+      "sigma_y_m",
+      "upper",
+      0.0003
+    ],
+    [
+      "sigma_xp_rad",
+      "upper",
+      0.0002663
+    ],
+    [
+      "sigma_yp_rad",
+      "upper",
+      0.0002663
+    ],
+    [
+      "sigma_z_m",
+      "upper",
+      0.001
+    ],
+    [
+      "mean_kinetic_energy_eV",
+      "lower",
+      200000000.0
+    ],
+    [
+      "transmission_fraction",
+      "lower",
+      0.9999
+    ]
+  ]
+}

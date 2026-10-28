@@ -24,6 +24,10 @@ S1.4,Acceptance profiles and TDR candidates,sec:problem,docs/paper/revisions/evi
 S1.4,Acceptance profiles and TDR candidates,sec:problem,docs/paper/revisions/evidence/c01_reclassification_totals.csv,scripts/analyze_revision_acceptance.py
 S1.4,Acceptance profiles and TDR candidates,tab:tdr_candidates,docs/paper/revisions/evidence/c01_tdr_candidates.csv,scripts/analyze_revision_acceptance.py
 S1.4,Acceptance profiles and TDR candidates,sec:problem,docs/paper/revisions/evidence/c01_metadata.json,scripts/analyze_revision_acceptance.py
+S1.4,Acceptance profiles and TDR candidates,sec:tdr_reach,docs/paper/revisions/evidence/r2_tdr_campaign_runs.csv,scripts/analyze_revision_tdr_campaigns.py
+S1.4,Acceptance profiles and TDR candidates,sec:tdr_reach,docs/paper/revisions/evidence/r2_tdr_campaign_violations.csv,scripts/analyze_revision_tdr_campaigns.py
+S1.4,Acceptance profiles and TDR candidates,sec:tdr_reach,docs/paper/revisions/evidence/r2_tdr_campaign_feasible.csv,scripts/analyze_revision_tdr_campaigns.py
+S1.4,Acceptance profiles and TDR candidates,sec:tdr_reach,docs/paper/revisions/evidence/r2_tdr_campaign_metadata.json,scripts/analyze_revision_tdr_campaigns.py
 S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/revisions/evidence/r2_attribution_runs.csv,scripts/analyze_revision_attribution.py
 S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/revisions/evidence/r2_attribution_batches.csv,scripts/analyze_revision_attribution.py
 S1.5,Attribution of the feasible-sampling advantage,sec:attribution,docs/paper/revisions/evidence/r2_attribution_paired.csv,scripts/analyze_revision_attribution.py

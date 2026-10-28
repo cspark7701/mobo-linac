@@ -78,7 +78,7 @@ The complete file-level map, with the manuscript label and generator of each fil
 | S1.1 | Production configuration, step records, ledger checksums | Simulation study design |
 | S1.2 | Primary front-quality histories, terminal values, directional coverage, empirical reference front, attainment | Primary comparison; Appendix B |
 | S1.3 | Paired matched-group effects, initialization checks, effects with the reference rebuilt in every resample | Primary comparison; Appendix B |
-| S1.4 | Reclassification under the production, NAPAC and TDR profiles; the two TDR candidates | Section 2; table of TDR candidates |
+| S1.4 | Reclassification under the production, NAPAC and TDR profiles; the two TDR candidates; the TDR-constrained campaigns | Section 2; table of TDR candidates; Reach of the TDR acceptance region |
 | S1.5 | Attribution of the feasible-sampling gap by violated channel group, conditional feasibility, upper ACC3/4 quarter | Attribution subsection and figure |
 | S1.6 | Space-filling reference from the shared initial designs (and the Sobol arm, when complete) | Attribution subsection |
 | S1.7 | Implementation audit: proposal tiers, fitting recovery, smoothing scales, residual-unit sensitivity, phase convention | Methods; Appendix A |

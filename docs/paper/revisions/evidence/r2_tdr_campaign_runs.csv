@@ -1,0 +1,14 @@
+method,seed,n,complete,tdr_feasible,tdr_feasible_post_init,production_feasible,napac_feasible,first_tdr_feasible_index,best_worst_margin,best_worst_margin_id,best_worst_margin_channel,best_tdr_norm_emit_x_m_rad,best_tdr_norm_emit_y_m_rad,best_tdr_sigma_energy_eV
+tdr_constrained_qlognehvi,42,160,True,0,0,58,4,,-0.04202027788208769,eval_000053,sigma_yp_rad,,,
+tdr_constrained_qlognehvi,43,160,True,0,0,52,2,,-0.004199999999666783,eval_000122,sigma_x_m,,,
+tdr_constrained_qlognehvi,44,160,True,0,0,55,1,,-0.03623333333333337,eval_000099,sigma_x_m,,,
+constrained_qlognehvi,42,160,True,0,0,65,1,,-0.09391663537363856,eval_000141,sigma_yp_rad,,,
+constrained_qlognehvi,43,160,True,0,0,60,2,,-0.022756289898610407,eval_000141,sigma_yp_rad,,,
+constrained_qlognehvi,44,160,True,1,1,54,2,79,0.00155,eval_000079,mean_kinetic_energy_eV,3.3488e-06,3.2848e-06,481810.0
+unconstrained_qlognehvi,42,160,True,0,0,34,0,,-0.12503333333300007,eval_000120,sigma_x_m,,,
+unconstrained_qlognehvi,43,160,True,0,0,30,0,,-0.2596666666666669,eval_000140,sigma_x_m,,,
+unconstrained_qlognehvi,44,160,True,0,0,25,0,,-0.34040000000000015,eval_000113,sigma_x_m,,,
+scalarized_bo,42,160,True,0,0,27,0,,-0.34343333333333353,eval_000074,sigma_y_m,,,
+scalarized_bo,43,160,True,0,0,17,0,,-0.43200000000000005,eval_000071,sigma_x_m,,,
+scalarized_bo,44,160,True,0,0,18,0,,-0.6967,eval_000089,sigma_y_m,,,
+moga_derived_reference,,1,,,,,,,-0.010176492677431492,,sigma_yp_rad,,,

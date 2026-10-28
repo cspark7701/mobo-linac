@@ -1,0 +1,2 @@
+method,seed,evaluation_id,norm_emit_x_m_rad,norm_emit_y_m_rad,sigma_energy_eV,worst_margin,binding_channel,production,napac2025,pooled_nondominated,dominates_moga_reference
+constrained_qlognehvi,44,eval_000079,3.3488e-06,3.2848e-06,481810.0,0.00155,mean_kinetic_energy_eV,True,True,True,False
