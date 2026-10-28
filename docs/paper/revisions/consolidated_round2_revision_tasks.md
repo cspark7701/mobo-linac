@@ -19,7 +19,7 @@
 | C2-07 | Done, including the run and jitter | `7416fb5` | — |
 | C2-08 | Done, including the optional jitter runs | `245162b` | — |
 | C2-09 | Done | `c7fbbc0` | Rebuild `ledger_manifest.json` after the remaining runs complete |
-| C2-10 | Editorial work done; Data availability statement added; **open until the reviewers accept** | `559f460` | Statement of contributions in the Introduction; target journal (PRAB recommended), table of contents, funding and acknowledgments, `\finaltrue` |
+| C2-10 | Editorial work done; Data availability statement and statement of contributions added; **open until the reviewers accept** | `559f460` | Confirm contribution 4 after C2-14 and a possible fifth after C2-12; related-work positioning; target journal (PRAB recommended), table of contents, funding and acknowledgments, `\finaltrue` |
 | C2-11 | Drafts written, not committed; **open until the reviewers accept** | — | Fill the C2-12/13/14 results and page count; diff and inventory; validation; commit |
 | C2-12 | Authorized 2026-10-28; prepared, starts when C2-14 finishes | — | Numerical-resolution check of ten reported settings (about 8 h); analysis and manuscript text |
 | C2-13 | Done | see C2-13 | No TDR-feasible setting in 480 evaluations; closest miss 0.4 % |
@@ -277,7 +277,7 @@ Tasks:
 - [ ] The two reviewers differ on the table of contents: Reviewer 2 suggests removing it, while Reviewer 1 accepts it for internal review. Decide this together with the target journal.
 - [ ] **Author-dependent:** confirm the target journal; supply the funding and acknowledgments; then set `\finaltrue`. Do not invent the funding text or mark it complete while it is deferred.
   - **Recommendation (2026-10-28):** Physical Review Accelerators and Beams (PRAB), with Nuclear Instruments and Methods A as the fallback. PRAB has no strict length limit and does not use a table of contents, which would settle the table-of-contents item above. Check the chosen journal's current length, data-availability and reference-style requirements before converting the front matter.
-- [ ] **State the contributions explicitly in the Introduction.** Referees at PRAB in particular will ask what is new compared with existing accelerator MOBO papers (for example, Roussel et al.'s online-tuning work), so the Introduction should end with an explicit, numbered list of contributions:
+- [x] *(Added 2026-10-28 as a four-item list at the end of the Introduction, without numbers; the overlapping comparison sentence of the preceding paragraph was trimmed to the problem statement. Still open: confirm item 4 against the full Sobol arm (C2-14), add a fifth item if C2-12 yields a measured resolution record and then revise the closing nominal-resolution caveat, and position the items against prior accelerator-MOBO work in the related-work paragraph.)* **State the contributions explicitly in the Introduction.** Referees at PRAB in particular will ask what is new compared with existing accelerator MOBO papers (for example, Roussel et al.'s online-tuning work), so the Introduction should end with an explicit, numbered list of contributions:
   1. a constraint-aware comparison against two baselines (unconstrained MOBO and equal-weight scalarized BO) under matched budgets and shared initial designs, in ten paired runs with failure-inclusive accounting;
   2. the attribution of where the feasibility gain comes from, by violated channel group, conditional on the energy band, and from the upper ACC3/ACC4 phase quarter (C2-02);
   3. the quantified reach of the TDR acceptance region: reclassification of the primary evaluations, the two marginal candidates and their jitter, the MOGA-derived reference, and the TDR-constrained campaigns (C2-01, C2-07, C2-08, C2-13);
@@ -292,7 +292,7 @@ Tasks:
 - The audit detail moved to a new Appendix A, `app:implementation`. It is identified through S1.7 and not removed from the record.
 - The Limitations subsection is now section 6.3, after the new `sec:tdr_reach`.
 - **Open, author decisions:** the target journal with the table of contents (PRAB recommended), funding and acknowledgments, and `\finaltrue`.
-- **Open, editorial (added 2026-10-28):** the statement of contributions in the Introduction. The Data availability statement is in place.
+- **Editorial (2026-10-28):** the statement of contributions and the Data availability statement are in place. Open: item 4 confirmation after C2-14, a possible fifth item after C2-12, and the related-work positioning.
 
 ### C2-11. Responses and validation
 

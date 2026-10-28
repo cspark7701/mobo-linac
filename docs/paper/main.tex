@@ -164,9 +164,8 @@ The completed MOGA study provides published design context; a new MOGA benchmark
 this study's scope. Together, these studies motivate a comparison that separates the search
 for feasible operating points from the selection of trade-offs within that feasible set. The
 present work formulates the fixed-lattice injector problem with separate transverse-emittance
-and energy-spread objectives, compares constraint-aware and unconstrained MOBO with scalarized
-BO under matched budgets and paired initial designs, and assesses selected operating points
-under lattice perturbations. The objective is to characterize the empirical feasible Pareto
+and energy-spread objectives and assesses selected operating points under lattice
+perturbations. The objective is to characterize the empirical feasible Pareto
 sets and the efficiency of feasible sampling, rather than to select a single weighted optimum.
 
 The comparison combines objective-space views with diagnostic-space views so that an attractive
@@ -178,6 +177,33 @@ survey illustrates how weighting choices sample different trade-offs. The lattic
 assessment then examines the tolerance of representative settings under the stated perturbation
 model. The earlier KLS studies provide a physical context for these results, with differences
 in feasibility limits and error coverage made explicit in section~\ref{sec:previous_kls}.
+
+The contributions of this work are the following.
+\begin{enumerate}
+\item A constraint-aware comparison of multi-objective BO with two baselines, unconstrained
+  MOBO and weighted-sum BO, on a space-charge-tracked injector with eight explicit
+  beam-quality inequalities. The comparison uses ten paired runs per method with equal
+  simulation budgets, shared initial designs, a fixed reference point and predeclared
+  endpoints, and counts failed simulations
+  (sections~\ref{sec:design}--\ref{sec:primary}).
+\item An attribution of the feasible-sampling advantage of the constraint-aware pipeline
+  by violated channel group. The advantage comes mainly from satisfying the transverse size
+  and divergence limits more often, and it persists among evaluations that already meet the
+  energy band. It is not produced by the setting of the energy-band weight or by the upper
+  ACC3/ACC4 phase window (section~\ref{sec:attribution}).
+\item A quantified reach of the KLS technical-design acceptance region. The primary
+  evaluations are reclassified against the TDR inequalities; two marginal candidates and a
+  MOGA-derived reference are checked under jitter; and three campaigns constrained directly
+  by the TDR inequalities are run. Together these show that the region lies at the edge of
+  the explored domain (sections~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
+\item A space-filling reference for the same domain: the shared scrambled-Sobol initial
+  designs and a budget-matched Sobol arm. It shows how much of the feasible-sampling gain
+  any of the optimizers achieve over uniform sampling, and how much is specific to the
+  constraint model (section~\ref{sec:attribution}).
+\end{enumerate}
+These results describe the recorded pipelines at nominal tracking resolution on a fixed
+lattice. They do not establish a unit-invariant acquisition, global optimality of the
+reported fronts, or engineering acceptance of any setting.
 
 %==========================================================================================
 \section{Injector model and optimization problem}
