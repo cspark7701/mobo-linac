@@ -19,11 +19,12 @@
 | C2-07 | Done, including the run and jitter | `7416fb5` | — |
 | C2-08 | Done, including the optional jitter runs | `245162b` | — |
 | C2-09 | Done | `c7fbbc0` | Rebuild `ledger_manifest.json` after the remaining runs complete |
-| C2-10 | Editorial work done; **open until the reviewers accept** | `559f460` | Target journal, table of contents, funding and acknowledgments, `\finaltrue` |
+| C2-10 | Editorial work done; Data availability statement added; **open until the reviewers accept** | `559f460` | Statement of contributions in the Introduction; target journal (PRAB recommended), table of contents, funding and acknowledgments, `\finaltrue` |
 | C2-11 | Drafts written, not committed; **open until the reviewers accept** | — | Fill the C2-12/13/14 results and page count; diff and inventory; validation; commit |
 | C2-12 | Authorized 2026-10-28; prepared, starts when C2-14 finishes | — | Numerical-resolution check of ten reported settings (about 8 h); analysis and manuscript text |
 | C2-13 | Done | see C2-13 | No TDR-feasible setting in 480 evaluations; closest miss 0.4 % |
-| C2-14 | New; queued | — | 10-seed Sobol arm (about 20 h under the current load, about 8 h without it); analysis and manuscript text |
+| C2-14 | New; running | — | 10-seed Sobol arm, expected to finish about 20:30–21:00 on 2026-10-28; analysis and manuscript text |
+| C2-15 | New; optional; not started | — | Zenodo deposition; needs the author's go-ahead before any upload |
 
 All work is committed locally only; nothing has been pushed.
 
@@ -84,6 +85,7 @@ Priority: **P0** is required for acceptance by at least one reviewer (a major co
 | C2-12 | P1 | Numerical-resolution (convergence) record for the reported settings | ASTRA refinement runs; manuscript | Authorized 2026-10-28; after C2-14; supersedes the C2-04 fallback |
 | C2-13 | P1 | TDR-constrained campaigns (optional run of C2-01) | Authorized ASTRA campaigns; analysis; manuscript | C2-01 |
 | C2-14 | P1 | Budget-matched Sobol arm (optional run of C2-03) | Authorized ASTRA runs; analysis; manuscript | C2-03; starts after C2-13 |
+| C2-15 | P2 | Data deposition on Zenodo (optional) | Packaging; upload by the author | C2-09, C2-12 to C2-14; author decision before any upload |
 
 ---
 
@@ -248,7 +250,7 @@ Tasks:
 
 **Sources:** Reviewer 1 M6 (R2-06); supports Reviewer 2 minor 2 (moving detail to a supplement).
 
-- [x] Add one concise supplement or software reference (a versioned local package for peer review is enough) in Methods or an appendix. No Data availability section is needed.
+- [x] Add one concise supplement or software reference (a versioned local package for peer review is enough) in Methods or an appendix. *(Neither reviewer asked for a Data availability section. The author decided on 2026-10-28 to add one anyway; see C2-10.)*
 - [x] Map the reported results to the run-level quality and paired summaries, the TDR candidate diagnostics (C2-01), the attribution outputs (C2-02), the representative diagnostics, the prediction summaries, the MOGA-derived reference evaluation (C2-07, if run) and the production settings.
 - [x] Distinguish the production startup code from the revision-analysis code. Identify configuration and CLI overrides and any inputs that are not distributed. State that sampler base draws were not archived.
 - [x] Validate local links and completeness. Publication or deposition is a separate action; this task does not authorize an upload or a push.
@@ -274,13 +276,23 @@ Tasks:
 - [x] Remove the revision-integration comments from `main.tex` and the `revisions/evidence/*.tex` inputs (`% C0x …`, `% Integrate before …`, the campaign-output block), and add PDF title, author and keyword metadata.
 - [ ] The two reviewers differ on the table of contents: Reviewer 2 suggests removing it, while Reviewer 1 accepts it for internal review. Decide this together with the target journal.
 - [ ] **Author-dependent:** confirm the target journal; supply the funding and acknowledgments; then set `\finaltrue`. Do not invent the funding text or mark it complete while it is deferred.
+  - **Recommendation (2026-10-28):** Physical Review Accelerators and Beams (PRAB), with Nuclear Instruments and Methods A as the fallback. PRAB has no strict length limit and does not use a table of contents, which would settle the table-of-contents item above. Check the chosen journal's current length, data-availability and reference-style requirements before converting the front matter.
+- [ ] **State the contributions explicitly in the Introduction.** Referees at PRAB in particular will ask what is new compared with existing accelerator MOBO papers (for example, Roussel et al.'s online-tuning work), so the Introduction should end with an explicit, numbered list of contributions:
+  1. a constraint-aware comparison against two baselines (unconstrained MOBO and equal-weight scalarized BO) under matched budgets and shared initial designs, in ten paired runs with failure-inclusive accounting;
+  2. the attribution of where the feasibility gain comes from, by violated channel group, conditional on the energy band, and from the upper ACC3/ACC4 phase quarter (C2-02);
+  3. the quantified reach of the TDR acceptance region: reclassification of the primary evaluations, the two marginal candidates and their jitter, the MOGA-derived reference, and the TDR-constrained campaigns (C2-01, C2-07, C2-08, C2-13);
+  4. the space-filling reference: the shared initial designs and the budget-matched Sobol arm (C2-03, C2-14).
 
-**Done when:** the terminology and conclusions are consistent, the source is clean, and the remaining author dependencies are explicit. **Closed only when the reviewers judge the revised manuscript acceptable.**
+  Each item must point to the section that supports it and must not claim more than that section shows: no unit-invariant or corrected acquisition, no global optimality, no engineering acceptance. Position the items against prior accelerator-MOBO work in the related-work paragraph, and keep the Conclusions consistent with the list. The abstract stays without numbers. Fill items 3 and 4 only after C2-13 and C2-14 are integrated; C2-12 may add a fifth item if it yields a measured resolution record.
+- [x] **Add a Data availability statement (author decision, 2026-10-28).** Added as an unnumbered section after the Acknowledgments. It states that the data supporting the findings are available from the corresponding author upon reasonable request: the evaluation ledgers and run records, the complete run directories, the configuration files and the analysis scripts, each identified through Supplement S1. It names no GitHub page and claims no public deposition, DOI or URL. In the Reviewer 1 response (M6), replace "no Data availability section was added" accordingly. If the data are deposited on Zenodo (C2-15), the statement is revised to cite the record.
+
+**Done when:** the terminology and conclusions are consistent, the Introduction states the contributions explicitly and supportably, a Data availability statement is present, the source is clean, and the remaining author dependencies are explicit. **Closed only when the reviewers judge the revised manuscript acceptable.**
 
 **Done in `559f460`:**
 - The audit detail moved to a new Appendix A, `app:implementation`. It is identified through S1.7 and not removed from the record.
 - The Limitations subsection is now section 6.3, after the new `sec:tdr_reach`.
-- **Open, author decisions:** the target journal with the table of contents, funding and acknowledgments, and `\finaltrue`.
+- **Open, author decisions:** the target journal with the table of contents (PRAB recommended), funding and acknowledgments, and `\finaltrue`.
+- **Open, editorial (added 2026-10-28):** the statement of contributions in the Introduction. The Data availability statement is in place.
 
 ### C2-11. Responses and validation
 
@@ -391,6 +403,26 @@ These are the settings whose margins and objective digits the manuscript reports
 - Analysis and manuscript work: about 2 h.
 
 **Done when:** the paper states, with paired intervals, whether each pipeline raises the feasible fraction above budget-matched space-filling sampling.
+
+### C2-15. Deposit the data on Zenodo (optional)
+
+**Sources:** author decision, 2026-10-28. Neither reviewer requires a public deposition. The Data availability statement (C2-10) currently offers the data on request; a Zenodo record is the alternative if a journal or the author wants public access. No GitHub page is cited.
+
+**Status:** not started. Uploading is an outward-facing action. It needs the author's explicit go-ahead and is done by the author or with the author's Zenodo credentials. Nothing is uploaded automatically.
+
+- [ ] Decide whether to deposit, which journal requirements apply, and the licence (for example CC BY 4.0 for data and the repository's licence for code).
+- [ ] Assemble the deposition package after C2-12 to C2-14 are integrated:
+  - Supplement S1 (`docs/paper/supplement/`), the evidence files in `docs/paper/revisions/evidence/` and the manuscript's figure sources;
+  - the run ledgers listed in `ledger_manifest.json` (`evaluations.csv`, `config.json`, `run_complete.json` for every campaign; about 10 MB) and the production step records;
+  - the configurations, field maps, source distribution and the `mobo_linac` 1.0.0 source at the release commit;
+  - optionally a compressed archive of the complete run directories (about 46 GB). Check it against Zenodo's per-record size limit, and split it or leave it on request if it does not fit.
+- [ ] Verify the package: every file in `ledger_manifest.json` is present with a matching SHA-256, `scripts/build_supplement_manifest.py` passes on the unpacked package, and nothing outside the listed paths, such as credentials, local paths or the other user's data, is included.
+- [ ] Prepare the Zenodo metadata: title, author and affiliation, ORCID, description, keywords, related identifiers (the manuscript, once it has a DOI) and version.
+- [ ] Reserve or obtain the DOI. Then revise the Data availability statement to cite the record, update the supplement README ("What is and is not distributed"), and keep the "on request" wording only for anything not deposited.
+
+**Estimated effort:** about 2–3 h to assemble and verify the core package, plus upload time for the optional full archive.
+
+**Done when:** a Zenodo record with a DOI holds the verified package and the manuscript cites it, or the author decides to keep the data on request only.
 
 ---
 
