@@ -111,29 +111,29 @@ def settings(config) -> list:
     return chosen
 
 
-def make_sources(directory: Path, generator: Path) -> dict:
+def make_sources(directory: Path, generator: Path, sources: dict = SOURCES) -> dict:
     """Generate the source files; returns name -> SHA-256. Pseudo-random files must differ."""
     directory.mkdir(parents=True, exist_ok=True)
     digests = {}
-    for name, (particles, quasi) in SOURCES.items():
+    for name, (particles, quasi) in sources.items():
         deck = directory / f"{Path(name).stem}.gen.in"
         deck.write_text(SOURCE_INPUT.format(name=name, particles=particles, quasi=".T" if quasi else ".F"))
         subprocess.run([str(generator), deck.name], cwd=directory, check=True, capture_output=True)
         digests[name] = sha256(directory / name)
         time.sleep(1.1)  # the random mode is clock-seeded
-    random = [digests[name] for name in SOURCES if not SOURCES[name][1]]
+    random = [digests[name] for name in sources if not sources[name][1]]
     if len(set(random)) != len(random):
         raise RuntimeError("Pseudo-random sources are not distinct; the generator seed did not change.")
     return digests
 
 
-def build_template(config, directory: Path) -> object:
+def build_template(config, directory: Path, sources: dict = SOURCES) -> object:
     """Template with the production deck and maps plus the generated sources."""
     simulation = config.simulation
     production = Path(simulation.template_dir)
     for name in [simulation.input_template, *simulation.static_files]:
         shutil.copy2(production / name, directory / name)
-    static = list(simulation.static_files) + list(SOURCES)
+    static = list(simulation.static_files) + list(sources)
     return replace(config, simulation=replace(simulation, template_dir=str(directory), static_files=static))
 
 

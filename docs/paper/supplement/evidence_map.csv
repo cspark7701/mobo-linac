@@ -109,3 +109,5 @@ S1.15,Revision records,,docs/paper/revisions/evidence/c15_metadata.json,scripts/
 S1.15,Revision records,,docs/paper/revisions/evidence/c15_report.md,
 S1.15,Revision records,,docs/paper/revisions/evidence/c16_report.md,
 S1.15,Revision records,,docs/paper/revisions/evidence/c17_validation.json,
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r3_validation_design.json,scripts/evaluate_revision_validation.py
+S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r3_validation_sample.csv,scripts/evaluate_revision_validation.py

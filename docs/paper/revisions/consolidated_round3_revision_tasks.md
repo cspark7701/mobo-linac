@@ -16,7 +16,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
-| C3-01 | Not started | — | Author decision on scope first |
+| C3-01 | **Route (b) chosen** by the author (2026-10-29); validation design predeclared; stage A running | this commit | Stage A (resolution ladder), level selection, stage B, then the manuscript scope |
 | C3-02 | Not started | — | — |
 | C3-03 | Not started | — | — |
 | C3-04 | Not started | — | — |
@@ -26,7 +26,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-08 | Not started | — | — |
 | C3-09 | Not started | — | — |
 | C3-10 | Not started | — | — |
-| C3-11 | Optional 🖥; not authorized | — | Needs the author's authorization before any tracking |
+| C3-11 | **Authorized** 2026-10-29 as part of route (b), 20 workers; stage A running | this commit | Stage A ≈ 4–5 h; stage B ≈ 1–2 days at the selected level |
 | C3-12 | Not started | — | — |
 
 All work is committed locally only; nothing has been pushed.
@@ -88,6 +88,21 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 ### C3-01. Decide the scope: comparison on the nominal numerical model
 
 **Sources:** Reviewer 1 M1 (R3-01, first item); Reviewer 2 R2 (context).
+
+**Decision (author, 2026-10-29): route (b), a physically resolved comparison.** Reviewer 1 makes numerical validation an acceptance requirement on this route. The validation is run under C3-11 with 20 workers. Its design was fixed before any refined result, in `evidence/r3_validation_design.json` and `evidence/r3_validation_sample.csv` (SHA-256 `c79d6ecf…a2b8`), with the driver `scripts/evaluate_revision_validation.py`:
+- **Stage A, resolution ladder.** The ten C2-12 settings are tracked beyond the C2-12 fine level (40k particles, 64-cell grids, H/4), one factor at a time: H/8, H/16, 80k particles, and 80k particles with 96-cell grids (40 runs). Why it is needed: in C2-12, H/2 → H/4 still changes ε_y by up to 9.5 %, and at 10k particles the 64-cell grid is noisy (up to +27 %).
+- **Level selection (predeclared).** For each factor, take the coarsest value whose next refinement changes every beam quantity by ≤ 3 % (energy ≤ 0.05 MeV) at all ten settings. A factor without such evidence is flagged "not shown converged". If stage B would take more than 3 days with 20 workers, report to the author before launching.
+- **Stage B, method-balanced sample (704 points).** All four arms:
+  - every per-run feasible Pareto point (136, 64, 41 and 23);
+  - every post-initialization observation whose classification can change under the C2-12 bounds (142, 106, 94 and 18);
+  - two random post-initialization observations per run (80).
+- **Stage B endpoints.**
+  - refined classification and flip rates per arm and stratum;
+  - stratum-weighted refined feasible fractions;
+  - paired differences with group-bootstrap intervals;
+  - refined per-run fronts and the quality indicators against a refined pooled reference.
+- **Manuscript.** The scope text (title, abstract, contributions, Results, Conclusions) is revised once stage B results exist. Until then the manuscript is unchanged, because a route (b) claim cannot precede its evidence.
+- **Run log.** Stage A was launched 2026-10-29 at about 15:55 (`results/revision_round3/ladder/`, 20 workers).
 
 - [ ] **Author decision.** Choose between:
   - **(a)** a comparison of the specified pipelines on the nominal numerical model, with the measured resolution sensitivity as a stated result (**recommended**; no new simulations);
@@ -270,9 +285,9 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Done when:** the labels and captions carry the nominal-resolution scope, the source is clean, and both layouts build without errors, undefined references or overfull boxes.
 
-### C3-11. Optional 🖥: refined re-tracking of selected points
+### C3-11. 🖥 Refined re-tracking of selected points (required on route (b))
 
-**Sources:** Reviewer 2 R2, optional; Reviewer 1 M1, conditional on route (b). **Not authorized.** This task is not needed on the recommended route (a).
+**Sources:** Reviewer 2 R2, optional; Reviewer 1 M1, conditional on route (b). **Authorized by the author on 2026-10-29 together with route (b), with 20 workers.** The design is the one recorded under C3-01; it covers both reviewers' variants. The 53 pooled-reference points are part of the per-run front stratum.
 
 - [ ] *Reviewer 2 variant:* re-track the 53 pooled-reference points at the `combined_medium` level, at about 20 min per run (roughly 2 h with eight workers). Report whether each method keeps its points on the refined pooled front.
 - [ ] *Reviewer 1 variant (route (b) only):* first write a tolerance-based, method-balanced validation design. It must include rejected and boundary observations of every arm and state what the design can and cannot establish. Obtain separate approval before tracking. Full campaign replication is not the first step.
