@@ -13,7 +13,7 @@
 | C2-01 | Done (required part) | `26cdea3` | The optional TDR campaigns moved to C2-13 |
 | C2-02 | Done | `4aa2795` | — |
 | C2-03 | Done (required part) | `1e9bebf` | The optional Sobol arm moved to C2-14 |
-| C2-04 | Done by the fallback route (record not found) | `6dddfd4` | Superseded in part by C2-12 (measured residuals, 2026-10-28) |
+| C2-04 | Closed 2026-10-29, superseded by C2-12 | `6dddfd4`, `aa00ab4` | — |
 | C2-05 | Done, including the optional refit | `771957d` | — |
 | C2-06 | Done, routes (a) and (b) | `0e60cfc` | — |
 | C2-07 | Done, including the run and jitter | `7416fb5` | — |
@@ -46,7 +46,7 @@ All work is committed locally only; nothing has been pushed.
 ## Ground rules carried into round2
 
 - Keep the production campaigns, provenance, feasibility labels, seeds and acquisition definitions unchanged. New classifications and analyses go in separate derived evidence files, labelled post hoc where applicable.
-- **The numerical convergence study is already done** (author confirmation recorded in [Task 00226](../../exec-plans/completed/TASK_00226_withdraw_convergence_review_comment.md) and [Task 00227](../../exec-plans/completed/TASK_00227_record_completed_convergence_study.md); round1 C09). Neither reviewer asks for a new convergence campaign. Round2 only asks for the existing result to be reported, or, if the record cannot be found, for the claims to be restricted. *Outcome (C2-04): no quantitative record was found, so the restricted route was taken.*
+- **The numerical convergence study is already done** (author confirmation recorded in [Task 00226](../../exec-plans/completed/TASK_00226_withdraw_convergence_review_comment.md) and [Task 00227](../../exec-plans/completed/TASK_00227_record_completed_convergence_study.md); round1 C09). Neither reviewer asks for a new convergence campaign. Round2 only asks for the existing result to be reported, or, if the record cannot be found, for the claims to be restricted. *Outcome (C2-04): no quantitative record was found, so the restricted route was taken.* **Withdrawn (author decision, 2026-10-29):** the C2-12 refinement check shows that the emittances are not converged at the inherited settings, so the earlier study's convergence conclusion does not carry over to the present settings. The confirmation recorded in Tasks 00226/00227 is withdrawn; those historical records are left unchanged. (The earlier confirmation named the macroparticle count, the space-charge grids and the image charge. The integration step, which dominates the C2-12 residuals, was not among them.)
 - The abstract stays qualitative and without numbers, as the author prefers. Both reviewers accept this; quantitative conditions go in Methods, Results and captions.
 - The generic article format, keywords, scatter-only Pareto projections and grid lines stay. Reviewer 1 explicitly does not ask for a return to the JINST format.
 - A completed checklist is not reviewer agreement or journal acceptance. A narrowed claim is not new validation.
@@ -160,6 +160,10 @@ Priority: **P0** is required for acceptance by at least one reviewer (a major co
 - [x] Do not substitute deterministic repeats, the GP likelihood variance, the physical jitter spread or printed output precision for the tracking-discretization error.
 
 **Done when:** sections 2.1 and 6.2 agree with each other and with the author's confirmation, and the claims match the evidence.
+
+**Closed 2026-10-29, superseded by C2-12 (`aa00ab4`).**
+- The two items left open for lack of a record are answered by measured residuals. Section 2.1 reports them. The TDR-candidate margins are compared level by level in `sec:tdr_reach`. The smallest robustness margin (3.11 MeV lower-energy headroom) is compared in the robustness results: refinement changes the mean energy by at most 0.05 MeV.
+- The "done when" condition on the author's confirmation no longer applies. The author withdrew that confirmation (see the ground rules), and the responses say so (C2-11).
 
 **Done in `6dddfd4`, by the fallback route** (C2-12 can replace it with a measured record):
 - Section 2.1 gives the settings correspondence with the previous study and states that no residual is reproduced.
@@ -301,6 +305,7 @@ Tasks:
 
 - [ ] *(Drafted; TDR, Sobol and page-count placeholders remain.)* Write `docs/paper/reviews/reviewer1_round2_response.md` and `docs/paper/reviews/reviewer2_round2_response.md`, mapping every major and minor comment to a change, evidence or a reasoned non-adoption. Distinguish narrowed claims from newly supplied validation.
 - [x] *(In the draft.)* In the Reviewer 2 response, explain the C2-07 distinction: the MOGA-derived nominal setting is reused as a reference point, and this does not reverse the round1 decision against MOGA benchmarks.
+- [x] *(In the drafts, 2026-10-29.)* State in both responses (M2, N4(b)) that the earlier author confirmation of converged settings is withdrawn, because the C2-12 check shows the emittances are not converged at those settings.
 - [ ] Produce a manuscript diff against `9077875`, separating analysis code from narrative edits, and a changed-file inventory.
 - [ ] Check data, table and link consistency, and run focused tests for any changed analysis code. Build the PDF and inspect the affected pages.
 - [ ] List the optional simulations that were authorized and run, and those that were not.
@@ -336,7 +341,7 @@ These are the settings whose margins and objective digits the manuscript reports
 - [x] Time the levels (median: production 203 s, medium 1,190 s, fine 2,479 s, about 12× production). The fine runs are submitted first, so their runtimes replace the assumed cost factors early in the run.
 - [x] Run all 15 levels (the production level, 6 source levels, 6 single-factor levels and 2 combined levels) for the ten settings through the production pipeline: 150 runs with outputs in `results/revision_round2/convergence/`. The production runs stay unchanged. The production-level rerun is checked against each archived value.
 - [x] Report, for each setting, the change in ε_n,x, ε_n,y, σ_E and each constraint diagnostic between the production and the fine levels, and the spread across regenerated sources.
-- [x] *(TDR and production classifications and TDR margins done; the comparison with the smallest robustness margin and with the method differences is stated qualitatively only.)* Compare these residuals with the method differences, the TDR-candidate margins (about 2.5/8.9 µm in σ_x, 8.2/8.0 µm in σ_z, 0.31/0.14 MeV in energy) and the smallest robustness margin. State whether each TDR or production classification survives refinement.
+- [x] *(TDR and production classifications, TDR margins and the smallest robustness margin done; the method differences are addressed by the Limitations statement that the comparison has not been repeated at a converged resolution.)* Compare these residuals with the method differences, the TDR-candidate margins (about 2.5/8.9 µm in σ_x, 8.2/8.0 µm in σ_z, 0.31/0.14 MeV in energy) and the smallest robustness margin. State whether each TDR or production classification survives refinement.
 - [x] Replace the nominal-resolution wording in section 2.1 and the Limitations (section 6.3) with the measured residuals. Update S1.13 and both responses (M2 and N4(b)).
 - [x] Add the evidence `evidence/r2_convergence_*`. The analysis script `scripts/analyze_revision_convergence.py` and its tests are prepared.
 
@@ -363,7 +368,7 @@ These are the settings whose margins and objective digits the manuscript reports
   - The Conclusions and future work are updated, and the caveat after the Introduction's contribution list cites the check.
 - **Analysis fix.** Run names and evaluation ids repeat between the primary and TDR-constrained campaigns, so `archived()` now chooses the ledger by role, as the driver does.
 - **Contribution list (C2-10).** No fifth contribution is added. The check is a disclosed limitation, not a new capability. The author may reconsider.
-- **Conflict to resolve with the author.** The round2 ground rules record an author confirmation that a numerical convergence study was already done (Tasks 00226 and 00227). The present check shows that, at the inherited resolution, the emittances are not converged. Either that study used different settings or quantities, or its conclusion does not carry over to these settings. The responses (M2, N4(b)) must state this plainly.
+- **Earlier confirmation withdrawn (author decision, 2026-10-29).** The earlier study's convergence conclusion does not carry over to these settings. The ground rules record the withdrawal; the responses (M2, N4(b)) state it.
 
 ### C2-13. TDR-constrained campaigns (optional run of C2-01)
 
