@@ -25,7 +25,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-07 | Done | see below | — |
 | C3-08 | Done (a final audit follows the route (b) scope text) | see below | — |
 | C3-09 | Done (optional fallback split not done) | see below | — |
-| C3-10 | Not started | — | — |
+| C3-10 | Done, except the lead-with restructuring (with the route (b) scope text) | see below | — |
 | C3-11 | **Authorized** 2026-10-29 as part of route (b), 20 workers; stage A running | this commit | Stage A ≈ 4–5 h; stage B ≈ 1–2 days at the selected level |
 | C3-12 | Not started | — | — |
 
@@ -79,7 +79,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-07 | Done | see below | — | C3-02, C3-04 (new evidence files) |
 | C3-08 | Done (a final audit follows the route (b) scope text) | see below | — | C3-01 to C3-06 |
 | C3-09 | Done (optional fallback split not done) | see below | — | None |
-| C3-10 | P2 | Precision, length, style and source hygiene | Manuscript; tests | C3-01 to C3-09 |
+| C3-10 | Done, except the lead-with restructuring (with the route (b) scope text) | see below | — | C3-01 to C3-09 |
 | C3-11 | Optional 🖥 | Refined re-tracking of selected points | ASTRA runs; analysis | Author authorization; only if needed after C3-01 |
 | C3-12 | P2 | Point-by-point responses and validation | Documentation; focused checks; PDF build | All of the above |
 
@@ -280,27 +280,29 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 **Sources:** Reviewer 1 minors 3–4 (R3-06, last items); Reviewer 2 minors 3, 4, 6–9 (T6, T7, T9–T12).
 
 *Precision and labels:*
-- [ ] Label the Pareto figures and key tables (Tables III, IV, V and X) as nominal-resolution results.
-- [ ] State once, in the caption of Table X and in Sec. V H, that the quoted digits identify archived evaluations and are not resolved physical values.
-- [ ] Round emittances and energy spreads in the running text to two or three significant figures, e.g. in Secs. V H, V J and VI A. Keep full precision in tables and evidence.
-- [ ] Sec. III A: qualify "deterministic". The calculation is deterministic for the fixed source file, whose sampling error (1–12 % in emittance) is common to all methods and is not represented by the GP noise.
+- [x] Label the Pareto figures and key tables (Tables III, IV, V and X) as nominal-resolution results.
+- [x] State once, in the caption of Table X and in Sec. V H, that the quoted digits identify archived evaluations and are not resolved physical values.
+- [x] Round emittances and energy spreads in the running text to two or three significant figures, e.g. in Secs. V H, V J and VI A. Keep full precision in tables and evidence.
+- [x] Sec. III A: qualify "deterministic". The calculation is deterministic for the fixed source file, whose sampling error (1–12 % in emittance) is common to all methods and is not represented by the GP noise.
 
 *Length and readability:*
-- [ ] Lead with the pipeline comparison and the measured numerical limitation (Reviewer 1 minor 4).
-- [ ] Move the details of Sec. V F (offline smoothing sensitivity) to an appendix, keeping a short summary in the main text.
-- [ ] Move the stage-, region- and refit-detail paragraphs of Sec. V G to Appendix D, keeping the 79–89 % coverage, the causes (as hypotheses, C3-09) and "part, but not all".
-- [ ] Shorten the resolution-check description in Sec. II A to its findings, alongside the C3-02 display item. Move the level definitions to an appendix or to S1.13.
-- [ ] Abstract: split the sentence beginning "Feasibility is defined by a deliberately relaxed computational acceptance profile". Do not lengthen the abstract with the C3-03 and C3-05 corrections.
+- [ ] Lead with the pipeline comparison and the measured numerical limitation (Reviewer 1 minor 4). *Deferred to the route (b) scope text.*
+- [x] Move the details of Sec. V F (offline smoothing sensitivity) to an appendix, keeping a short summary in the main text.
+- [x] Move the stage-, region- and refit-detail paragraphs of Sec. V G to Appendix D, keeping the 79–89 % coverage, the causes (as hypotheses, C3-09) and "part, but not all".
+- [x] Shorten the resolution-check description in Sec. II A to its findings, alongside the C3-02 display item. Move the level definitions to an appendix or to S1.13.
+- [x] Abstract: split the sentence beginning "Feasibility is defined by a deliberately relaxed computational acceptance profile". Do not lengthen the abstract with the C3-03 and C3-05 corrections.
 
 *Style and source:*
-- [ ] APS style: "Ref." instead of "ref." (Secs. I and II B), and "Sec. 4.3" for Kim et al. (Secs. II A and VI A).
-- [ ] Remove `% C05 replacement for the acquisition-reference explanation.` (Sec. III C).
-- [ ] Search `main.tex` and the included `.tex` inputs for other revision-tag comments.
-- [ ] Add a test that fails on revision-tag comments in the manuscript source.
-- [ ] Rebuild the one-column review copy and the two-column `reprint` copy, and update the quoted page counts.
+- [x] APS style: "Ref." instead of "ref." (Secs. I and II B), and "Sec. 4.3" for Kim et al. (Secs. II A and VI A).
+- [x] Remove `% C05 replacement for the acquisition-reference explanation.` (Sec. III C).
+- [x] Search `main.tex` and the included `.tex` inputs for other revision-tag comments.
+- [x] Add a test that fails on revision-tag comments in the manuscript source.
+- [x] Rebuild the one-column review copy and the two-column `reprint` copy, and update the quoted page counts.
 
 **Done when:** the labels and captions carry the nominal-resolution scope, the source is clean, and both layouts build without errors, undefined references or overfull boxes.
 
+
+**Done:** Nominal-resolution labels on Tables IV, V and X (also in the two table generators) and on both Pareto figures; Sec. V H states that quoted digits identify archived evaluations; running-text emittances and spreads rounded to three significant figures (published values of earlier studies kept as published). Sec. III A qualifies determinism with the 1–12 % source-sampling spread. Sec. V F is a short summary with the probe moved to new Appendix `app:smoothing`; the stage, region and refit detail of Sec. V G moved to Appendix D with a summary kept; Sec. II A reduced to its findings with the level definitions in Appendix A. Abstract sentence split. APS style: Ref., Sec. 4.3. The `% C05` comment removed; `tests/test_manuscript_hygiene.py` fails on revision-tag comments in main.tex and its included inputs (unincluded evidence snippets keep their headers). Table `tab:resolution` is full-width. Builds: one-column 56 pages, two-column 31 pages, both without errors, undefined references or overfull boxes. Not done: reordering to lead with the comparison and the numerical limitation; deferred to the route (b) scope text, since stage B decides that limitation.
 ### C3-11. 🖥 Refined re-tracking of selected points (required on route (b))
 
 **Sources:** Reviewer 2 R2, optional; Reviewer 1 M1, conditional on route (b). **Authorized by the author on 2026-10-29 together with route (b), with 20 workers.** The design is the one recorded under C3-01; it covers both reviewers' variants. The 53 pooled-reference points are part of the per-run front stratum.

@@ -68,9 +68,9 @@ RF phases are varied to minimize the horizontal and vertical normalized RMS emit
 energy spread. Constraint-aware and unconstrained multi-objective Bayesian optimization are
 compared with weighted-sum Bayesian optimization using matched simulation budgets and shared
 initial designs. Feasibility is defined by a deliberately relaxed computational acceptance
-profile; the stricter optimization requirements of the Korea Light Source technical design are
-met by only a few sampled settings, with small diagnostic margins, and campaigns constrained
-by them approach those limits to within the numerical resolution of the model. A
+profile. The stricter optimization requirements of the Korea Light Source technical design are
+met by only a few sampled settings, with small diagnostic margins. Campaigns constrained by
+them approach those limits to within the numerical resolution of the model. A
 refinement check shows that the absolute emittances depend on the tracking resolution.
 All methods identify feasible nondominated operating points, revealing trade-offs between
 transverse beam quality and energy spread. Paired analyses support a higher feasible
@@ -134,7 +134,7 @@ and multi-objective online tuning~\cite{Roussel2021}; comparisons with reinforce
 optimizers have also been reported~\cite{Kaiser2024}. These applications motivate using
 probabilistic models to reduce the number of expensive evaluations, while the present study
 addresses a simulation-based injector design problem with competing objectives and explicit
-beam-quality limits. The wider accelerator BO literature is reviewed in ref.~\cite{Roussel2024}.
+beam-quality limits. The wider accelerator BO literature is reviewed in Ref.~\cite{Roussel2024}.
 
 Multi-objective BO (MOBO) extends BO to the Pareto front. Early methods either scalarize the
 objectives with random weights, as in ParEGO~\cite{Knowles2006}, or select candidates by their
@@ -254,35 +254,26 @@ radius and momentum marginals reproduce those of the file; this does not establi
 original recipe.
 
 The tracking resolution was adopted from the previous study of this injector by Kim et
-al.~\cite{Kim2024KLSMOGA}, whose section 4.3 reports \num{10000} macroparticles, 32 radial and
+al.~\cite{Kim2024KLSMOGA}, whose Sec.~4.3 reports \num{10000} macroparticles, 32 radial and
 at most 32 longitudinal space-charge cells, and mirror image charges. The present calculation
 uses the same particle-count scale, cylindrical grid dimensions and image-charge treatment.
 Its archived inputs additionally specify a Cartesian \(32^3\) grid and a solver transition at
 \SI{5.25}{\metre}, which that published description does not state. No refinement
-residual is quoted there, so we re-tracked ten reported settings with refined numerics: the
+residual is quoted there, so we re-tracked ten reported settings at 15 numerical levels: the
 MOGA-derived nominal setting, the two TDR candidates (Table~\ref{tab:tdr_candidates}), the
 closest observation of the TDR-constrained campaigns (Sec.~\ref{sec:tdr_reach}) and the six
-representatives of Sec.~\ref{sec:settings}. Each factor was refined alone and then all
-together: \num{20000} and \num{40000} particles from the reconstructed source, 48 and 64
-cells in every space-charge grid dimension, and half and a quarter of the maximum and minimum
-integration steps. The medium level combines the first refinement of each factor and the fine
-level the second. Five independently seeded random sources of \num{10000} particles measure
-the sampling spread. Reruns at the production settings reproduce the archived values to
-floating-point precision, so the calculations are deterministic for a fixed distribution
-(Supplement S1.13).
+representatives of Sec.~\ref{sec:settings}. The levels refine the particle count, the
+space-charge grids and the integration step singly and together, and regenerate the source
+(Appendix~\ref{app:implementation}). Reruns at the production settings reproduce the
+archived values to floating-point precision (Supplement S1.13).
 
-The emittances are not converged at the production resolution. At the fine level they are
-lower by \SIrange{12}{34}{\percent} horizontally and \SIrange{17}{43}{\percent} vertically,
-mainly through the integration step: quartering the step alone lowers them by up to
-\SI{28}{\percent} and \SI{38}{\percent}. The fine values still differ from the medium ones by
-up to \SI{9}{\percent}, so they are not converged either. Across the ten settings the order of
-the horizontal and vertical emittances is largely but not fully kept (Spearman coefficients
-0.79 and 0.94). The random sources spread the emittances by \SIrange{1}{12}{\percent} (standard
-deviation). The energy spread changes by at most \SI{4}{\percent} and keeps its order, the
-bunch length by at most \SI{1}{\percent}, the mean energy by at most
-\SI{0.05}{\mega\electronvolt}, and the transmission not at all. Beam sizes and divergences fall by up to
-\SI{22}{\percent}. Table~\ref{tab:resolution} summarizes these changes, separating the
-fixed-source step refinement from the regenerated sources. A regenerated source reproduces the
+The emittances are not converged at the production resolution (Table~\ref{tab:resolution}).
+At the fine level they are lower by \SIrange{12}{34}{\percent} horizontally and
+\SIrange{17}{43}{\percent} vertically, mainly through the integration step, and they still
+differ from the medium level by up to \SI{9}{\percent}. The order of the emittances across the
+ten settings is largely but not fully kept (Spearman coefficients 0.79 and 0.94). The energy
+spread, bunch length, mean energy and transmission change little, whereas beam sizes and
+divergences fall by up to \SI{22}{\percent}. A regenerated source reproduces the
 marginals of the production file, not necessarily its multidimensional distribution, whereas
 the step refinement uses the production file itself. All ten settings remain feasible under the
 production profile at every level, whereas TDR classifications within a few percent of the
@@ -296,7 +287,7 @@ observation variance provides regularization and does not measure tracking-discr
 uncertainty.
 
 
-\begin{table}[htbp]
+\begin{table*}[htbp]
 \centering
 \caption{Change of the exit-plane quantities of the ten re-tracked settings under numerical
 refinement, relative to the production resolution (range over settings). ``Fine'' combines
@@ -319,7 +310,7 @@ $\sigma_z$ & $-0.8$ to $-0.7$ & $-1.0$ to $-0.9$ & $\le 0.3$ & 0.1--0.2 \\
 $E_\mathrm{kin}$ [\si{\mega\electronvolt}] & $-0.05$ to $0.01$ & --- & $\le 0.02$ & $\le 0.005$ \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 \begin{figure*}[htbp]
 \centering
@@ -338,7 +329,7 @@ common phases, $\phi_\mathrm{acc1/2}$ applied to ACC1 and ACC2 and $\phi_\mathrm
 ACC3 and ACC4. The nominal machine setting is a MOGA-derived operating point from the earlier
 injector work, adapted to the present field amplitudes. Its ASTRA deck is identical to the
 template used here, but it is not the tracked solution published in
-ref.~\cite{Kim2024KLSMOGA}, which used a different gun field, cavity gradients, phase ranges
+Ref.~\cite{Kim2024KLSMOGA}, which used a different gun field, cavity gradients, phase ranges
 and constraints. Magnetic settings may vary by \SI{\pm50}{\percent} around this
 nominal setting. The RF inputs are absolute wave phases at the start of tracking because automatic phasing is
 switched off~\cite{Floettmann2017Astra}. They are not calibrated off-crest angles. The recorded
@@ -524,7 +515,10 @@ input, the observation noise is not inferred but fixed to
   \eta &= 10^{-6},\qquad \sigma^2_\mathrm{floor} = 10^{-24},
 \end{aligned}
 \end{equation}
-for output $m$. This regularizes the kernel matrices numerically. Because the effective
+for output $m$. This regularizes the kernel matrices numerically. Determinism holds for the
+fixed source file: its sampling error, which spreads the emittances by
+\SIrange{1}{12}{\percent} between regenerated sources (Table~\ref{tab:resolution}), is common
+to all methods and is not represented by this noise term. Because the effective
 likelihood variance is nonzero, the posterior mean need not interpolate every observation
 exactly. For constraint-aware optimization, each of the seven diagnostics is modelled by a
 further GP of the same form, giving ten independent GPs; the energy diagnostic supplies both
@@ -594,7 +588,7 @@ Batches are optimized jointly with multi-start L-BFGS-B~\cite{Byrd1995}: 1,024 q
 raw samples, 10 restarts and at most 200 iterations. If the optimizer fails or returns an invalid
 batch, it is retried with a reduced budget, and as a last resort the batch is drawn from the
 campaign's scrambled Sobol sequence~\cite{Owen1998}; every such fallback is recorded with the
-proposal and reported. % C05 replacement for the acquisition-reference explanation.
+proposal and reported.
 The acquisition reference is recomputed before each MOBO proposal from all
 valid observations, including physically infeasible observations. In negated
 model coordinates it is
@@ -805,7 +799,8 @@ an apparently better two-dimensional projection establishes superiority across a
 nondominated sets, using ten runs of 160 simulations per method. Markers are evaluated ASTRA
 settings. Smaller objective values are preferred. All feasible three-objective trade-offs are
 retained, including points that appear dominated in a two-dimensional projection. The star
-marks the re-evaluated MOGA-derived nominal setting (Sec.~\ref{sec:moga_reference}).}
+marks the re-evaluated MOGA-derived nominal setting (Sec.~\ref{sec:moga_reference}). Values
+are at the production tracking resolution (Sec.~\ref{sec:problem}).}
 \label{fig:primary_pareto}
 \end{figure}
 
@@ -1010,30 +1005,13 @@ setting.}
 
 \FloatBarrier
 \subsection{Offline sensitivity of constraint smoothing}
-To quantify the unit dependence of the recorded constraint weights, we evaluated single-point
-qLogNEHVI on 32 fixed Sobol candidates using frozen early, middle and late surrogate snapshots
-from the prescribed constraint-aware run. Each evaluation used 128 common posterior samples
-and the same full baseline without pruning, isolating residual scaling from changes in
-baseline selection. This diagnostic does not replay the production eight-point optimizer.
-Changing the diagnostic representation from metres/radians/electron-volts to
-millimetres/milliradians/mega-electron-volts while retaining the raw numerical temperature
-changed candidate ranks: Spearman correlations with the original ranking were
-0.793, 0.852 and 0.880, with three or four of the original top five candidates retained.
-
-As a unit-invariant sensitivity convention, we divided size, divergence and length residuals
-by their upper thresholds, energy residuals by the \SI{5}{\mega\electronvolt} half-band,
-and transmission residuals by the allowed loss fraction of 0.1. These scales express distance
-relative to the stated production acceptance profile; they are not tuned engineering
-uncertainties. At dimensionless temperature 0.01, equivalent unit representations agreed in
-log acquisition value within $1.5\times10^{-13}$. Temperatures 0.001 and 0.1 were also
-examined as sensitivity settings. The highest-ranked probe candidate remained unchanged in
-all cases, while lower ranks varied. No normalized-residual campaign was executed, so these
-calculations establish unit dependence and sensitivity, not improved feasible sampling or
-beam quality for a corrected method. The probe also differs from production in using single
-candidates rather than eight-point batches, no baseline pruning and one run, so an unchanged
-top-ranked probe does not show that the production optimizer is invariant to residual units.
-The three-pipeline comparison measures the executed implementation; this diagnostic only
-shows that the implementation's constraint weighting depends on the chosen units.
+A frozen-surrogate probe shows that the recorded constraint weights depend on the residual
+units. Expressing the diagnostics in millimetres, milliradians and mega-electron-volts instead
+of metres, radians and electron-volts, at the same raw temperature, changes the candidate
+ranks (Spearman correlations 0.79--0.88 with the original ranking). A threshold-normalized
+convention removes this unit dependence, but no normalized-residual campaign was run, so the
+probe establishes unit dependence only, not improved feasible sampling or beam quality for a
+corrected method. Appendix~\ref{app:smoothing} gives the probe and its limits.
 
 \subsection{Predictive checks on unseen batches}
 \label{sec:predictive_checks}
@@ -1074,51 +1052,27 @@ predictions make the feasibility weights too sharp, both towards one and towards
 They change which candidates are proposed. They do not affect the reported diagnostics,
 which are tracked values.
 
-The whole-trajectory RMSE combines all stages and both regions. For constraint-aware MOBO,
-the horizontal-emittance coverage is \SI{89.9}{\percent} for production-feasible next-batch
-observations and \SI{69.5}{\percent} for infeasible ones, with RMSE of
-\SI{2.60}{\micro\metre\radian} and \SI{10.33}{\micro\metre\radian}. The corresponding
-values for the unconstrained method are \SI{92.7}{\percent} and \SI{75.0}{\percent}. For
-the transverse diagnostics, coverage rises from \SIrange{75.6}{80.0}{\percent} in batches
-1--6 to \SIrange{88.3}{91.0}{\percent} in batches 13--18, and for energy from
-\SI{67.5}{\percent} to \SI{97.5}{\percent}. Bunch length is the exception: its coverage
-falls from \SI{89.2}{\percent} to \SI{84.4}{\percent}, and is \SI{73.5}{\percent} for late
-infeasible observations. The
-emittance coverage does not improve monotonically with stage
-(\SI{74.0}{\percent}, \SI{83.3}{\percent} and \SI{78.5}{\percent}). In the late stage, the
-horizontal-emittance RMSE for feasible observations is \SI{0.98}{\micro\metre\radian}. The
-surrogates are therefore least reliable away from the feasible set, where infeasible
-proposals are most common. Even near the feasible region, the intervals remain below their
-nominal coverage, so no claim of calibrated local prediction is made.
-
-To test the first cause, we refitted every archived pre-proposal training set offline with
-the production surrogate builder twice. One fit used the production fixed noise and the
-other used homoscedastic noise inferred by marginal likelihood. The chronological
-next-batch check was then repeated. The fixed-noise refits reproduce the coverage of the
-saved snapshots to within \num{0.5} percentage points. Inferred noise raises the
-constraint-aware coverage to \SI{83.4}{\percent}, \SI{86.6}{\percent} and
-\SI{92.7}{\percent} for the three objectives. The diagnostic coverage rises to
-\SIrange{86.9}{93.9}{\percent}, and the RMSE changes by at most \SI{14}{\percent},
-except for energy. For energy, the RMSE falls from \SI{0.89}{\mega\electronvolt} to
-\SI{0.14}{\mega\electronvolt}. The fitted noise is \numrange{e-4}{e-3} of the training
-variance. For energy and bunch length, it lies at the lower bound of the fitting
-constraint, so the energy improvement reflects regularization of a nearly
-interpolating fit, not detected simulation noise. Inferred noise thus removes part,
-but not all, of the undercoverage, which shows that the coverage is sensitive to the
-regularization. Kernel misspecification and adaptive test points remain hypotheses for the
-remainder; this check does not test them. The production campaigns are unchanged.
-In \num{88} of \num{4680} refits, both optimizers failed and the hyperparameters were
-restored to their initial values, as in production. These are not equivalent fits, and the
-refit records do not identify them, so the reported refit coverage includes them.
+Refitting every archived training set offline with homoscedastic noise inferred by marginal
+likelihood raises the constraint-aware objective coverage to \SIrange{83.4}{92.7}{\percent}
+and the diagnostic coverage to \SIrange{86.9}{93.9}{\percent}. Inferred noise thus removes
+part, but not all, of the undercoverage, which shows that the coverage is sensitive to the
+regularization; kernel misspecification and adaptive test points remain hypotheses for the
+remainder. The undercoverage is largest for infeasible observations, so the surrogates are
+least reliable away from the feasible set. Appendix~\ref{app:predictive} gives the stage- and
+region-resolved coverage and the details of the refit. The production campaigns are
+unchanged.
 
 \subsection{Interpretation of selected settings}
 \label{sec:settings}
 Appendix~\ref{app:settings} gives the complete controls and objectives of the six distinct
 settings selected from the primary constraint-aware front. The horizontal-emittance extreme
-has \SI{2.8061}{\micro\metre\radian} horizontal and \SI{6.8492}{\micro\metre\radian}
+has \SI{2.81}{\micro\metre\radian} horizontal and \SI{6.85}{\micro\metre\radian}
 vertical emittance, whereas the energy-spread extreme trades larger, nearly equal emittances
-for \SI{0.36286}{\mega\electronvolt} spread. These roles describe different compromises
-within one selected front; they are not six independently optimized operational modes. The
+for \SI{0.363}{\mega\electronvolt} spread. These roles describe different compromises
+within one selected front; they are not six independently optimized operational modes.
+Values quoted here and in Table~\ref{tab:selected_objectives} are at the production
+resolution; their digits identify archived evaluations and are not resolved physical values,
+since the emittances change by tens of percent under refinement (Table~\ref{tab:resolution}). The
 nominal setting itself was re-evaluated separately and is compared with these fronts in
 Sec.~\ref{sec:moga_reference}.
 
@@ -1126,8 +1080,8 @@ The quadrupole centers are at \SI{8.70046}{\metre} and \SI{12.50092}{\metre}, ea
 \SI{0.065}{\metre} effective length. They lie between ACC2/ACC3 and ACC3/ACC4,
 respectively, rather than after the complete linac. For the horizontal-emittance extreme,
 the saved normalized emittances are nearly equal near \SI{5.2}{\metre}
-(\SI{3.2985}{\micro\metre\radian} and \SI{3.3001}{\micro\metre\radian}), but are
-\SI{2.9298}{\micro\metre\radian} and \SI{4.1003}{\micro\metre\radian} near
+(\SI{3.30}{\micro\metre\radian} in both planes), but are
+\SI{2.93}{\micro\metre\radian} and \SI{4.10}{\micro\metre\radian} near
 \SI{12.4}{\metre}. The initially similar source moments and growing downstream asymmetry
 are consistent with differing transport through the quadrupole lattice. They do not isolate
 quadrupole chromaticity, solenoid coupling, space charge or numerical effects as the cause;
@@ -1213,8 +1167,8 @@ robustness of the representatives.}{tab:robustness_summary}}
 \label{sec:moga_reference}
 The nominal setting at the centre of the search domain was re-evaluated once with the
 production pipeline. The run reproduced the values previously recorded for the same deck,
-with $(\enx,\eny,\sigma_E)=(\SI{3.4728}{\micro\metre\radian},\
-\SI{3.2968}{\micro\metre\radian},\ \SI{0.39419}{\mega\electronvolt})$ at
+with $(\enx,\eny,\sigma_E)=(\SI{3.47}{\micro\metre\radian},\
+\SI{3.30}{\micro\metre\radian},\ \SI{0.394}{\mega\electronvolt})$ at
 \SI{200.19}{\mega\electronvolt} and full transmission. It satisfies all eight production
 inequalities and the NAPAC profile. Against the TDR optimization requirements it fails only the
 vertical divergence, with \SI{0.2690}{\milli\radian} against \SI{0.2663}{\milli\radian}.
@@ -1234,7 +1188,7 @@ not thereby established as an optimum.
 Under the same lattice-jitter protocol as the representatives, all 50 perturbed settings
 satisfied the production profile (exact \SI{95}{\percent} interval 0.929--1). The mean
 objective ratio was $D=1.030$, with mean emittances of 3.60 and
-\SI{3.47}{\micro\metre\radian} and a mean energy spread of \SI{0.3948}{\mega\electronvolt}. The
+\SI{3.47}{\micro\metre\radian} and a mean energy spread of \SI{0.395}{\mega\electronvolt}. The
 smallest normalized margin was at the upper energy bound. Twelve of the 50 perturbed settings
 met the TDR optimization inequalities (0.131--0.382), mostly failing the vertical divergence or
 horizontal size limits. The nominal setting therefore lies close to the TDR boundary. This is a
@@ -1272,13 +1226,13 @@ Kim et al.\ optimized RF-cavity geometry and injector beam dynamics with
 MOGA~\cite{Kim2024KLSMOGA}. Their abstract reports approximately
 \SI{3.79}{\micro\metre\radian} horizontal normalized emittance and
 \SI{0.30737}{\mega\electronvolt} energy spread. These summary values differ from the
-specific tracked setting in section 4.3, which gives horizontal and vertical normalized
+specific tracked setting in their Sec.~4.3, which gives horizontal and vertical normalized
 emittances of \SI{3.9586}{\micro\metre\radian} and \SI{3.9424}{\micro\metre\radian},
 and \SI{0.165}{\percent} RMS energy spread at \SI{201.79}{\mega\electronvolt}
 (approximately \SI{0.3330}{\mega\electronvolt}). The distinction matters when comparing
 individual operating points. The present primary ideal-distance point has
-$(\enx,\eny,\sigma_E)=(\SI{2.9983}{\micro\metre\radian},\
-\SI{3.5207}{\micro\metre\radian},\ \SI{0.4034}{\mega\electronvolt})$.
+$(\enx,\eny,\sigma_E)=(\SI{3.00}{\micro\metre\radian},\
+\SI{3.52}{\micro\metre\radian},\ \SI{0.403}{\mega\electronvolt})$.
 It exchanges lower transverse emittances for higher energy spread relative to that tracked
 example. Different acceptance limits and settings prevent attributing this exchange solely to
 the algorithm. The earlier source was specified by laser parameters, whereas the present study
@@ -1515,6 +1469,16 @@ draws were not saved; bitwise replay of the proposals is therefore not possible.
 dimension and baseline sizes remain below the Sobol engine's dimension limit. The posterior
 sample counts differ from the 1,024 raw candidate-initialization samples.
 
+\paragraph{Resolution check.} The production resolution is \num{10000} quasi-random
+particles, a $32\times32$ cylindrical and a $32^3$ Cartesian space-charge grid, and maximum
+and minimum integration steps of \SI{0.01}{\nano\second} and \SI{0.001}{\nano\second}. Each
+factor was refined alone and then all together: \num{20000} and \num{40000} particles from
+the reconstructed source, 48 and 64 cells in every grid dimension, and half and a quarter of
+both steps. The medium level combines the first refinement of each factor and the fine level
+the second. One regenerated quasi-random and five independently seeded random sources of
+\num{10000} particles measure the source dependence. The reconstructed generator input
+reproduces the time, radius and momentum marginals of the production file.
+
 \paragraph{Campaign time.} To avoid double-counting concurrent workers, the union of recorded
 evaluation start and end intervals was formed for each campaign. The remainder of campaign
 time combines model fitting, acquisition optimization, scheduling, setup and export; the logs
@@ -1568,9 +1532,9 @@ Table~\ref{tab:campaign_summary} and Figs.~\ref{fig:survey_feasible} and~\ref{fi
 operating-point survey of Sec.~\ref{sec:survey}, and Table~\ref{tab:phase1_cases} the five
 weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
 106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
-feasible horizontal emittances were \SI{2.7076}{\micro\metre\radian}, \SI{3.1141}{\micro\metre\radian} and \SI{2.6513}{\micro\metre\radian}, and the best feasible
-vertical emittances were \SI{3.1349}{\micro\metre\radian}, \SI{3.1712}{\micro\metre\radian} and \SI{3.0264}{\micro\metre\radian}. Their minimum feasible energy spreads
-were \SI{0.3393}{\mega\electronvolt}, \SI{0.3905}{\mega\electronvolt} and \SI{0.3467}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
+feasible horizontal emittances were \SI{2.71}{\micro\metre\radian}, \SI{3.11}{\micro\metre\radian} and \SI{2.65}{\micro\metre\radian}, and the best feasible
+vertical emittances were \SI{3.13}{\micro\metre\radian}, \SI{3.17}{\micro\metre\radian} and \SI{3.03}{\micro\metre\radian}. Their minimum feasible energy spreads
+were \SI{0.339}{\mega\electronvolt}, \SI{0.391}{\mega\electronvolt} and \SI{0.347}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
 operating point. Table~\ref{tab:phase1_cases} uses the same feasible-only convention for each weighting. The differing
 budgets and independently initialized cases prevent interpreting this descriptive survey as an algorithm ranking.
 
@@ -1597,7 +1561,8 @@ colors as the primary comparison. All evaluations are valid in these campaigns.}
 \caption{Operating-point survey: pairwise projections of the feasible three-objective
 nondominated sets. Markers denote evaluated settings without interpolation or connecting lines.
 The scalarized set pools five weighting cases (880 simulations), whereas each MOBO set uses
-176 simulations. This descriptive comparison has unequal budgets and supports no algorithm ranking.}
+176 simulations. This descriptive comparison has unequal budgets and supports no algorithm ranking.
+Values are at the production tracking resolution.}
 \label{fig:pareto}
 \end{figure}
 
@@ -1615,9 +1580,73 @@ transverse units; the constant-transmission annotation retains that required dia
 \FloatBarrier
 
 \inputwide{revisions/evidence/c11_predictive}
+
+The whole-trajectory RMSE combines all stages and both regions. For constraint-aware MOBO,
+the horizontal-emittance coverage is \SI{89.9}{\percent} for production-feasible next-batch
+observations and \SI{69.5}{\percent} for infeasible ones, with RMSE of
+\SI{2.60}{\micro\metre\radian} and \SI{10.33}{\micro\metre\radian}. The corresponding
+values for the unconstrained method are \SI{92.7}{\percent} and \SI{75.0}{\percent}. For
+the transverse diagnostics, coverage rises from \SIrange{75.6}{80.0}{\percent} in batches
+1--6 to \SIrange{88.3}{91.0}{\percent} in batches 13--18, and for energy from
+\SI{67.5}{\percent} to \SI{97.5}{\percent}. Bunch length is the exception: its coverage
+falls from \SI{89.2}{\percent} to \SI{84.4}{\percent}, and is \SI{73.5}{\percent} for late
+infeasible observations. The
+emittance coverage does not improve monotonically with stage
+(\SI{74.0}{\percent}, \SI{83.3}{\percent} and \SI{78.5}{\percent}). In the late stage, the
+horizontal-emittance RMSE for feasible observations is \SI{0.98}{\micro\metre\radian}. The
+surrogates are therefore least reliable away from the feasible set, where infeasible
+proposals are most common. Even near the feasible region, the intervals remain below their
+nominal coverage, so no claim of calibrated local prediction is made.
+
+To test the first hypothesis, we refitted every archived pre-proposal training set offline with
+the production surrogate builder twice. One fit used the production fixed noise and the
+other used homoscedastic noise inferred by marginal likelihood. The chronological
+next-batch check was then repeated. The fixed-noise refits reproduce the coverage of the
+saved snapshots to within \num{0.5} percentage points. Inferred noise raises the
+constraint-aware coverage to \SI{83.4}{\percent}, \SI{86.6}{\percent} and
+\SI{92.7}{\percent} for the three objectives. The diagnostic coverage rises to
+\SIrange{86.9}{93.9}{\percent}, and the RMSE changes by at most \SI{14}{\percent},
+except for energy. For energy, the RMSE falls from \SI{0.89}{\mega\electronvolt} to
+\SI{0.14}{\mega\electronvolt}. The fitted noise is \numrange{e-4}{e-3} of the training
+variance. For energy and bunch length, it lies at the lower bound of the fitting
+constraint, so the energy improvement reflects regularization of a nearly
+interpolating fit, not detected simulation noise. Inferred noise thus removes part,
+but not all, of the undercoverage, which shows that the coverage is sensitive to the
+regularization. Kernel misspecification and adaptive test points remain hypotheses for the
+remainder; this check does not test them.
+In \num{88} of \num{4680} refits, both optimizers failed and the hyperparameters were
+restored to their initial values, as in production. These are not equivalent fits, and the
+refit records do not identify them, so the reported refit coverage includes them.
 \FloatBarrier
 \inputwide{revisions/evidence/c08_settings}
 \FloatBarrier
+
+\section{Offline sensitivity of constraint smoothing}
+\label{app:smoothing}
+To quantify the unit dependence of the recorded constraint weights, we evaluated single-point
+qLogNEHVI on 32 fixed Sobol candidates using frozen early, middle and late surrogate snapshots
+from the prescribed constraint-aware run. Each evaluation used 128 common posterior samples
+and the same full baseline without pruning, isolating residual scaling from changes in
+baseline selection. This diagnostic does not replay the production eight-point optimizer.
+Changing the diagnostic representation from metres/radians/electron-volts to
+millimetres/milliradians/mega-electron-volts while retaining the raw numerical temperature
+changed candidate ranks: Spearman correlations with the original ranking were
+0.793, 0.852 and 0.880, with three or four of the original top five candidates retained.
+
+As a unit-invariant sensitivity convention, we divided size, divergence and length residuals
+by their upper thresholds, energy residuals by the \SI{5}{\mega\electronvolt} half-band,
+and transmission residuals by the allowed loss fraction of 0.1. These scales express distance
+relative to the stated production acceptance profile; they are not tuned engineering
+uncertainties. At dimensionless temperature 0.01, equivalent unit representations agreed in
+log acquisition value within $1.5\times10^{-13}$. Temperatures 0.001 and 0.1 were also
+examined as sensitivity settings. The highest-ranked probe candidate remained unchanged in
+all cases, while lower ranks varied. No normalized-residual campaign was executed, so these
+calculations establish unit dependence and sensitivity, not improved feasible sampling or
+beam quality for a corrected method. The probe also differs from production in using single
+candidates rather than eight-point batches, no baseline pruning and one run, so an unchanged
+top-ranked probe does not show that the production optimizer is invariant to residual units.
+The three-pipeline comparison measures the executed implementation; this diagnostic only
+shows that the implementation's constraint weighting depends on the chosen units.
 
 \bibliography{references}
 
