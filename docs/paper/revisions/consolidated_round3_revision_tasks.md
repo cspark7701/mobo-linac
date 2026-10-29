@@ -19,7 +19,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-01 | **Route (b) chosen** by the author (2026-10-29); validation design predeclared; stage A running | this commit | Stage A (resolution ladder), level selection, stage B, then the manuscript scope |
 | C3-02 | Done | see below | — |
 | C3-03 | Done | see below | — |
-| C3-04 | Not started | — | — |
+| C3-04 | Done | see below | — |
 | C3-05 | Not started | — | — |
 | C3-06 | Not started | — | — |
 | C3-07 | Not started | — | — |
@@ -73,7 +73,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-01 | P0 | Scope decision: nominal-model benchmark | Author decision; manuscript | None (do first) |
 | C3-02 | Done | see below | — | C3-01 |
 | C3-03 | Done | see below | — | C3-01 |
-| C3-04 | P0 | Sobol uncertainty and Sobol-arm statements | Existing ten-run records; script, tests; manuscript | None |
+| C3-04 | Done | see below | — | None |
 | C3-05 | P0 | TDR reach without domain-geometry or necessity claims | Manuscript; existing control vectors and C2-12/C2-13 evidence | C3-01 |
 | C3-06 | P0 | RF-amplitude estimate restricted to what it estimates | Manuscript | None |
 | C3-07 | P0 | Supplement input inventory and data availability | Local documentation; supplement map; reproduction checks | C3-02, C3-04 (new evidence files) |
@@ -170,24 +170,26 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Sources:** Reviewer 1 M2 (R3-02); Reviewer 2 R3(b) and minor 1 (T3b, T4).
 
-- [ ] Remove the pooled "exact binomial" interval for 41/1,440. Report instead the ten run-level fractions and their dispersion, or a run-level interval with its construction and small-sample limits stated.
-- [ ] Audit `scripts/analyze_revision_space_filling.py` and its outputs for the same pooled construction:
+- [x] Remove the pooled "exact binomial" interval for 41/1,440. Report instead the ten run-level fractions and their dispersion, or a run-level interval with its construction and small-sample limits stated.
+- [x] Audit `scripts/analyze_revision_space_filling.py` and its outputs for the same pooled construction:
   - the 5/160 initial-design interval;
   - any pooled interval on adaptive BO points.
 
   Correct the affected derived evidence in new files; do not overwrite the round2 evidence.
-- [ ] Keep the paired complete-group bootstrap for the BO-minus-Sobol differences. Keep the executed sequences, the 160-point budgets and the 144-point post-initialization comparison.
-- [ ] Keep the design-specific binomial intervals for independent jitter draws; this correction does not apply to them.
-- [ ] Replace "at least two thirds" in Sec. V C and the matching Conclusions sentence:
+- [x] Keep the paired complete-group bootstrap for the BO-minus-Sobol differences. Keep the executed sequences, the 160-point budgets and the 144-point post-initialization comparison.
+- [x] Keep the design-specific binomial intervals for independent jitter draws; this correction does not apply to them.
+- [x] Replace "at least two thirds" in Sec. V C and the matching Conclusions sentence:
   - the shares are (0.418 − 0.142)/0.418 = 0.66 and 0.74;
   - use "about two thirds" or give both values, e.g. "the constraint-blind pipelines account for at most about one third of the constraint-aware gain over the Sobol arm".
-- [ ] Make the energy-band sentence direction-specific:
+- [x] Make the energy-band sentence direction-specific:
   - unconstrained MOBO falls from 39.0 % to 32.2 % (paired −0.069);
   - scalarized BO rises to 42.6 % (paired +0.035, 0.017–0.052).
-- [ ] Update the manuscript, the round2 overview table entry if it is quoted, and Supplement S1.6.
+- [x] Update the manuscript, the round2 overview table entry if it is quoted, and Supplement S1.6.
 
 **Done when:** the observed counts are unchanged, every interval names its sampling unit, and the Sobol statements match `evidence/r2_sobol_arm_paired.csv`.
 
+
+**Done:** Run-level uncertainty in `evidence/r3_sobol_uncertainty_{runs,summary}.csv` (S1.6), which supersedes the pooled binomial intervals of `r2_space_filling_initial.csv` (left unchanged). Sobol arm: 41/1,440 (2.8 %), run-level fractions 1.4–4.9 %, s.d. 1.3 points, bootstrap over ten runs 2.1–3.6 % (approximate). "At least two thirds" becomes "the constraint-blind pipelines account for at most about one third (shares 0.34 and 0.26)" in Sec. V C and the Conclusions; the energy-band sentence is direction-specific (−0.069 unconstrained, +0.035 scalarized). Counts and paired differences unchanged; jitter intervals untouched. The round2 overview quotes no interval.
 ### C3-05. Describe the TDR reach without claims about domain geometry or necessity
 
 **Sources:** Reviewer 1 M3, first part (R3-03, items 1–3); Reviewer 2 R3(a) (T3a).

@@ -1,0 +1,23 @@
+{
+  "analysis": "C3-04 run-level uncertainty of feasible fractions (supersedes pooled binomial intervals)",
+  "supersedes": [
+    "ci_lower/ci_upper of r2_space_filling_initial.csv",
+    "the exact-binomial Sobol-arm interval of the round2 manuscript"
+  ],
+  "sampling_unit": "matched group (one scramble and one campaign per group); ten groups",
+  "bootstrap_resamples": 10000,
+  "analysis_rng": 20261029,
+  "groups": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ],
+  "caveat": "Percentile bootstrap over ten runs; approximate and likely too narrow."
+}
