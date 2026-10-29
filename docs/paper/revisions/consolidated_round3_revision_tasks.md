@@ -23,7 +23,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — |
 | C3-06 | Done | see below | — |
 | C3-07 | Done | see below | — |
-| C3-08 | Not started | — | — |
+| C3-08 | Done (a final audit follows the route (b) scope text) | see below | — |
 | C3-09 | Not started | — | — |
 | C3-10 | Not started | — | — |
 | C3-11 | **Authorized** 2026-10-29 as part of route (b), 20 workers; stage A running | this commit | Stage A ≈ 4–5 h; stage B ≈ 1–2 days at the selected level |
@@ -77,7 +77,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — | C3-01 |
 | C3-06 | Done | see below | — | None |
 | C3-07 | Done | see below | — | C3-02, C3-04 (new evidence files) |
-| C3-08 | P1 | Summary-claims audit | Manuscript | C3-01 to C3-06 |
+| C3-08 | Done (a final audit follows the route (b) scope text) | see below | — | C3-01 to C3-06 |
 | C3-09 | P1 | Surrogate-undercoverage wording | Manuscript; optional offline split | None |
 | C3-10 | P2 | Precision, length, style and source hygiene | Manuscript; tests | C3-01 to C3-09 |
 | C3-11 | Optional 🖥 | Refined re-tracking of selected points | ASTRA runs; analysis | Author authorization; only if needed after C3-01 |
@@ -255,12 +255,14 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Sources:** Reviewer 2 R3(c) (T3c, T3 last item); Reviewer 1 minor 1 (R3-06, first item).
 
-- [ ] **Contribution 1.** State that the feasible fraction was predeclared. Also state that the predeclared fixed-reference hypervolume endpoint failed and was replaced by labelled post-hoc indicators. Do not list "a fixed reference point and predeclared endpoints" as a property of the comparison.
-- [ ] **MOGA-derived nominal setting (Sec. V J, Discussion, Conclusions).** Replace "no pipeline exceeded it" and "do not demonstrate an improvement on it" with "no primary feasible observation Pareto-dominated it at the nominal resolution". Keep the single-objective improvements (247/40/42, 65/8/9, 67/32/10). The reference is not established as an optimum.
-- [ ] Check the abstract, Introduction, Discussion and Conclusions for any other summary sentence that is stronger than the corresponding Results or Discussion text.
+- [x] **Contribution 1.** State that the feasible fraction was predeclared. Also state that the predeclared fixed-reference hypervolume endpoint failed and was replaced by labelled post-hoc indicators. Do not list "a fixed reference point and predeclared endpoints" as a property of the comparison.
+- [x] **MOGA-derived nominal setting (Sec. V J, Discussion, Conclusions).** Replace "no pipeline exceeded it" and "do not demonstrate an improvement on it" with "no primary feasible observation Pareto-dominated it at the nominal resolution". Keep the single-objective improvements (247/40/42, 65/8/9, 67/32/10). The reference is not established as an optimum.
+- [x] Check the abstract, Introduction, Discussion and Conclusions for any other summary sentence that is stronger than the corresponding Results or Discussion text.
 
 **Done when:** every summary sentence can be traced to a detailed statement that says the same thing.
 
+
+**Done:** Contribution 1 no longer lists "a fixed reference point and predeclared endpoints": the feasible fraction was predeclared, and the failed fixed-reference hypervolume endpoint is replaced by labelled post-hoc indicators. Sec. V J, the Discussion and the Conclusions say that no primary feasible observation Pareto-dominates the MOGA-derived nominal setting at the nominal resolution, keep the single-objective improvements, and add that the reference is not established as an optimum. Audit of the summary sections: the abstract now says that objective-quality comparisons depend on the fixed numerical model and that the jitter assessment is lattice-only, and the Conclusions sentence on regeneration points to the S1 input inventory.
 ### C3-09. Word the surrogate undercoverage as hypotheses
 
 **Sources:** Reviewer 1 minor 2 (R3-06, second item). Reviewer 2 has no further request.

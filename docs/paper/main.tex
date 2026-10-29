@@ -79,9 +79,9 @@ settings and lies mainly in the transverse limits against unconstrained optimiza
 the energy band against weighted-sum optimization; all pipelines sample feasible settings more often
 than a budget-matched space-filling search, while the weighted-sum implementation has the lowest
 computational overhead.
-Objective-quality comparisons depend on the indicator and comparator. A survey of
-scalarization weightings explores additional trade-offs, and a limited lattice-jitter assessment
-retains feasibility for the selected operating points. The results demonstrate the use of
+Objective-quality comparisons depend on the indicator, the comparator and the fixed numerical
+model. A survey of scalarization weightings explores additional trade-offs, and a limited
+lattice-only jitter assessment retains feasibility for the selected operating points. The results demonstrate the use of
 constraint-aware Bayesian optimization to identify feasible injector-linac settings and map
 beam-quality trade-offs within the stated injector model and computational acceptance profile.
 \end{abstract}
@@ -186,8 +186,9 @@ The contributions of this work are the following.
 \item A constraint-aware comparison of multi-objective BO with two baselines, unconstrained
   MOBO and weighted-sum BO, on a space-charge-tracked injector with eight explicit
   beam-quality inequalities. The comparison uses ten paired runs per method with equal
-  simulation budgets, shared initial designs, a fixed reference point and predeclared
-  endpoints, and counts failed simulations
+  simulation budgets and shared initial designs, and counts failed simulations. The
+  feasible fraction was predeclared; the predeclared fixed-reference hypervolume endpoint
+  failed and is replaced by labelled post-hoc front-quality indicators
   (Secs.~\ref{sec:design}--\ref{sec:primary}).
 \item An accounting of the feasible-sampling advantage of the constraint-aware pipeline
   by violated channel group. The advantage persists among evaluations that meet the energy
@@ -1223,9 +1224,10 @@ and 9) or smaller energy spread (67, 32 and 10), but none improved all three obj
 simultaneously. The additive epsilon by which a run's feasible front must be relaxed to weakly
 dominate the setting had medians of 0.039, 0.195 and 0.134 in the normalized units, with
 ranges 0.003--0.088, 0.025--0.634 and 0.024--0.293. The constraint-aware fronts therefore came
-closest to this reference, but within 160 evaluations no pipeline exceeded it. The empirical
-fronts map trade-offs around the earlier operating point; they do not demonstrate an
-improvement on it.
+closest to this reference, but within 160 evaluations no primary feasible observation
+Pareto-dominated it at the nominal resolution. The empirical fronts contain improvements in
+individual objectives and map trade-offs around the earlier operating point; the reference is
+not thereby established as an optimum.
 
 Under the same lattice-jitter protocol as the representatives, all 50 perturbed settings
 satisfied the production profile (exact \SI{95}{\percent} interval 0.929--1). The mean
@@ -1254,10 +1256,10 @@ feasible set therefore should not be read as uniform superiority of the observed
 The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
 infeasible upper ACC3/ACC4 phase region, although both contribute: it persists among
 energy-acceptable evaluations. Against unconstrained MOBO it lies mainly in the transverse size
-and divergence violations, and against weighted-sum BO mainly in the energy band. None of the pipelines found a
-feasible setting that dominates the MOGA-derived nominal setting at the centre of the search
-domain, so the reported fronts describe trade-offs around that earlier operating point rather
-than an improvement on it. All methods identified feasible nondominated settings,
+and divergence violations, and against weighted-sum BO mainly in the energy band. No primary
+feasible observation Pareto-dominates the MOGA-derived nominal setting at the centre of the
+search domain at the nominal resolution, although many improve on it in individual objectives;
+the reported fronts therefore describe trade-offs around that earlier operating point. All methods identified feasible nondominated settings,
 with the objective projections exposing the trade-offs between transverse emittance and energy spread.
 The sampled lattice-jitter tests identify several operating points that remain feasible within
 the simulated tolerance model; this does not establish performance on the real machine.
@@ -1419,8 +1421,9 @@ budget-matched Sobol search, but the constraint-blind pipelines account for at m
 third of the constraint-aware gain over that search. Indicators of front quality also favour the constraint-aware
 pipeline, including when the empirical reference is rebuilt in each resample, but they rest
 on a reference estimated from the same runs and do not establish uniform superiority or global
-optimality. None of the pipelines found a feasible setting that dominates the MOGA-derived
-nominal setting at the centre of the domain.
+optimality. No primary feasible observation Pareto-dominates the MOGA-derived nominal setting
+at the centre of the domain at the nominal resolution, although many improve on it in
+individual objectives.
 
 The engineering conclusion is limited. The production profile is deliberately looser than the
 KLS TDR optimization requirements, under which only two marginal primary observations are
@@ -1439,8 +1442,9 @@ settings showed that the emittances are not converged at that resolution, wherea
 ten settings the energy spread, bunch length, mean energy, transmission and production-profile
 classifications are stable; absolute emittances should not be quoted without a converged
 calculation. Under the corresponding bounding shifts the feasible-sampling advantage of the
-constraint-aware pipeline persists in every matched group. The recorded
-data and analysis scripts support regeneration of all values. Future work will repeat the
+constraint-aware pipeline persists in every matched group. The archived
+runs and analysis scripts support regeneration of all reported values; Supplement S1 lists the
+inputs that each requires. Future work will repeat the
 comparison at a converged tracking resolution, extend the robustness analysis to source
 fluctuations with a validated distribution generator, distribute the simulations across compute
 nodes, and test the optimized settings on the machine.
