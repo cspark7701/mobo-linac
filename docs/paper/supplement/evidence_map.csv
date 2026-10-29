@@ -111,3 +111,6 @@ S1.15,Revision records,,docs/paper/revisions/evidence/c16_report.md,
 S1.15,Revision records,,docs/paper/revisions/evidence/c17_validation.json,
 S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r3_validation_design.json,scripts/evaluate_revision_validation.py
 S1.13,Numerical resolution,sec:problem,docs/paper/revisions/evidence/r3_validation_sample.csv,scripts/evaluate_revision_validation.py
+S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r3_resolution_bounds_runs.csv,scripts/analyze_revision_resolution_bounds.py
+S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r3_resolution_bounds_paired.csv,scripts/analyze_revision_resolution_bounds.py
+S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r3_resolution_bounds_metadata.json,scripts/analyze_revision_resolution_bounds.py

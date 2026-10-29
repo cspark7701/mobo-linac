@@ -17,7 +17,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
 | C3-01 | **Route (b) chosen** by the author (2026-10-29); validation design predeclared; stage A running | this commit | Stage A (resolution ladder), level selection, stage B, then the manuscript scope |
-| C3-02 | Not started | — | — |
+| C3-02 | Done | see below | — |
 | C3-03 | Not started | — | — |
 | C3-04 | Not started | — | — |
 | C3-05 | Not started | — | — |
@@ -71,7 +71,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | ID | Priority | Workstream | Work category | Dependencies |
 |---|---|---|---|---|
 | C3-01 | P0 | Scope decision: nominal-model benchmark | Author decision; manuscript | None (do first) |
-| C3-02 | P0 | Resolution bounds for the primary comparison and resolution display | Existing ledgers and C2-12 evidence; script, tests; manuscript | C3-01 |
+| C3-02 | Done | see below | — | C3-01 |
 | C3-03 | P0 | Attribution stated per baseline, as accounting | Manuscript; existing `r2_attribution_*` | C3-01 |
 | C3-04 | P0 | Sobol uncertainty and Sobol-arm statements | Existing ten-run records; script, tests; manuscript | None |
 | C3-05 | P0 | TDR reach without domain-geometry or necessity claims | Manuscript; existing control vectors and C2-12/C2-13 evidence | C3-01 |
@@ -118,33 +118,35 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 **Sources:** Reviewer 2 R2 (T2); Reviewer 1 M1 (R3-01, remaining items) and minor 3.
 
 *Bounding reclassification (existing data only):*
-- [ ] New script `scripts/analyze_revision_resolution_bounds.py`, with a test. It reclassifies the 4,800 primary evaluations and the Sobol arm under bounding shifts taken from `evidence/r2_convergence_summary.csv`:
+- [x] New script `scripts/analyze_revision_resolution_bounds.py`, with a test. It reclassifies the 4,800 primary evaluations and the Sobol arm under bounding shifts taken from `evidence/r2_convergence_summary.csv`:
   - a common scale factor on σ_x, σ_y, σ_x′ and σ_y′, from 1.0 down to the largest observed reduction (about 0.78);
   - σ_z × (1 ± 0.01);
   - E_kin ± 0.05 MeV;
   - transmission unchanged.
-- [ ] Report, for each shift combination:
+- [x] Report, for each shift combination:
   - per-method feasible fractions, overall and after initialization;
   - paired differences with group-bootstrap intervals and the number of positive groups.
-- [ ] Note that the constraint-aware fraction is the most sensitive to the bunch-length limit. The Reviewer 2 spot check gave 0.36–0.47 against a nominal 0.405.
-- [ ] Evidence: `evidence/r3_resolution_bounds_{runs,paired}.csv` and a metadata JSON recording the shifts and their source.
-- [ ] State that the shifts are bounds taken from ten settings, not a per-point refinement model and not an error bound.
+- [x] Note that the constraint-aware fraction is the most sensitive to the bunch-length limit. The Reviewer 2 spot check gave 0.36–0.47 against a nominal 0.405.
+- [x] Evidence: `evidence/r3_resolution_bounds_{runs,paired}.csv` and a metadata JSON recording the shifts and their source.
+- [x] State that the shifts are bounds taken from ten settings, not a per-point refinement model and not an error bound.
 
 *Resolution display and population statements:*
-- [ ] Add a compact table or figure of the C2-12 result for the ten settings:
+- [x] Add a compact table or figure of the C2-12 result for the ten settings:
   - the production, medium and fine levels;
   - fixed-source step and grid changes, separated from particle and source changes;
   - classification changes.
-- [ ] Attach the tested population to every stability statement: "ten selected settings, mostly from constrained searches". This applies especially to "production classifications are stable" in the Conclusions.
-- [ ] Say that a reproduced source marginal does not establish an identical multidimensional distribution. The fixed-source step-only effects stand on their own.
-- [ ] Add the front-quality caveat in Sec. V B and the Discussion. Those comparisons depend on the fixed source realization and on the production resolution, more strongly than the feasibility comparison does. The reasons are the nonuniform emittance shifts (12–43 %, Spearman 0.79 for ε_x) and the 1–12 % random-source spread.
-- [ ] Update the Limitations, and the Conclusions if the outcome changes the statement.
+- [x] Attach the tested population to every stability statement: "ten selected settings, mostly from constrained searches". This applies especially to "production classifications are stable" in the Conclusions.
+- [x] Say that a reproduced source marginal does not establish an identical multidimensional distribution. The fixed-source step-only effects stand on their own.
+- [x] Add the front-quality caveat in Sec. V B and the Discussion. Those comparisons depend on the fixed source realization and on the production resolution, more strongly than the feasibility comparison does. The reasons are the nonuniform emittance shifts (12–43 %, Spearman 0.79 for ε_x) and the 1–12 % random-source spread.
+- [x] Update the Limitations, and the Conclusions if the outcome changes the statement.
 
 **Done when:**
 - the manuscript states, with evidence, whether the feasible-fraction advantage survives the measured shifts;
 - every stability statement names its population;
 - the resolution result is visible in a display item.
 
+
+**Done:** Bounds over 27 shift combinations (sizes and divergences ×0.78/0.89/1, σ_z ±1 %, E ±0.05 MeV): median feasible fraction 0.369–0.466 constraint-aware, 0.147–0.213 unconstrained, 0.113–0.181 scalarized; post-initialization paired differences 0.239–0.294 and 0.279–0.335, every interval above zero and every difference (including each pipeline over the Sobol arm) positive in all ten groups; +1 % bunch length lowers the constraint-aware mean from 0.405 to 0.364. New Table `tab:resolution` (Sec. II A), population statements, front-quality caveat (Sec. V B, Discussion), Limitations and Conclusions. Evidence `evidence/r3_resolution_bounds_*` (S1.13). Stage B will supersede the bounds as the main evidence on route (b).
 ### C3-03. State the attribution per baseline, as an accounting decomposition
 
 **Sources:** Reviewer 2 R1 (T1); Reviewer 1 M3, second part (R3-03, items 4–6).

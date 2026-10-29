@@ -1,0 +1,89 @@
+{
+  "all_groups_positive_post_init": true,
+  "analysis": "C3-02 feasible fractions under the C2-12 refinement bounds (post hoc)",
+  "analysis_rng": 20261029,
+  "bootstrap_resamples": 10000,
+  "bunch_scales": [
+    0.99,
+    1.0,
+    1.01
+  ],
+  "energy_shifts_MeV": [
+    -0.05,
+    0.0,
+    0.05
+  ],
+  "groups": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ],
+  "median_feasible_fraction_nominal": {
+    "constrained_qlognehvi": 0.4062,
+    "scalarized_bo": 0.125,
+    "sobol": 0.0312,
+    "unconstrained_qlognehvi": 0.15
+  },
+  "median_feasible_fraction_range": {
+    "constrained_qlognehvi": [
+      0.3688,
+      0.4656
+    ],
+    "scalarized_bo": [
+      0.1125,
+      0.1812
+    ],
+    "sobol": [
+      0.0281,
+      0.0406
+    ],
+    "unconstrained_qlognehvi": [
+      0.1469,
+      0.2125
+    ]
+  },
+  "note": "Bounds from ten settings, not a per-point refinement model or an error bound.",
+  "post_init_paired_difference_range": {
+    "constrained_qlognehvi - scalarized_bo": [
+      0.2792,
+      0.3354
+    ],
+    "constrained_qlognehvi - sobol": [
+      0.3743,
+      0.4764
+    ],
+    "constrained_qlognehvi - unconstrained_qlognehvi": [
+      0.2389,
+      0.2944
+    ],
+    "scalarized_bo - sobol": [
+      0.0931,
+      0.1493
+    ],
+    "unconstrained_qlognehvi - sobol": [
+      0.1306,
+      0.1944
+    ]
+  },
+  "post_init_smallest_ci_lower": {
+    "constrained_qlognehvi - scalarized_bo": 0.2465,
+    "constrained_qlognehvi - sobol": 0.3438,
+    "constrained_qlognehvi - unconstrained_qlognehvi": 0.1924,
+    "scalarized_bo - sobol": 0.075,
+    "unconstrained_qlognehvi - sobol": 0.1056
+  },
+  "size_scales": [
+    0.78,
+    0.89,
+    1.0
+  ],
+  "source": "docs/paper/revisions/evidence/r2_convergence_summary.csv",
+  "transmission": "unchanged"
+}
