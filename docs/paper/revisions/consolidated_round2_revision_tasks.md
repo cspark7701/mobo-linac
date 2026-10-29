@@ -19,7 +19,7 @@
 | C2-07 | Done, including the run and jitter | `7416fb5` | — |
 | C2-08 | Done, including the optional jitter runs | `245162b` | — |
 | C2-09 | Done | `c7fbbc0` | Rebuild `ledger_manifest.json` after the remaining runs complete |
-| C2-10 | Editorial work done; Data availability statement and statement of contributions added; **open until the reviewers accept** | `559f460` | A possible fifth contribution after C2-12; related-work positioning; target journal (PRAB recommended), table of contents, funding and acknowledgments, `\finaltrue` |
+| C2-10 | PRAB format adopted (REVTeX 4.2), table of contents removed; Data availability statement and statement of contributions added; **open until the reviewers accept** | `559f460` | A possible fifth contribution after C2-12 (none added); related-work positioning; funding and acknowledgments, `\finaltrue` |
 | C2-11 | Drafts written, not committed; **open until the reviewers accept** | — | Fill the C2-12/13/14 results and page count; diff and inventory; validation; commit |
 | C2-12 | Done | see C2-12 | Emittances not converged at production resolution (−12 to −43 % at the fine level); production classifications stable; TDR membership near the limits not resolved |
 | C2-13 | Done | see C2-13 | No TDR-feasible setting in 480 evaluations; closest miss 0.4 % |
@@ -279,8 +279,8 @@ Tasks:
 - [x] Move the implementation-audit detail to the supplement from C2-09: sampler counts, smoothing constants, the inclusion–exclusion description, Adam-recovery counts, effective likelihood floors and evaluation-interval unions. Keep the unit-smoothing issue and the acceptance definitions in the main text.
 - [x] State each limitation once, in section 6.2. Reduce repeated pooled counts in the Conclusions and centre them on the supported comparisons.
 - [x] Remove the revision-integration comments from `main.tex` and the `revisions/evidence/*.tex` inputs (`% C0x …`, `% Integrate before …`, the campaign-output block), and add PDF title, author and keyword metadata.
-- [ ] The two reviewers differ on the table of contents: Reviewer 2 suggests removing it, while Reviewer 1 accepts it for internal review. Decide this together with the target journal.
-- [ ] **Author-dependent:** confirm the target journal; supply the funding and acknowledgments; then set `\finaltrue`. Do not invent the funding text or mark it complete while it is deferred.
+- [x] *(Removed 2026-10-29 with the PRAB conversion.)* The two reviewers differ on the table of contents: Reviewer 2 suggests removing it, while Reviewer 1 accepts it for internal review. Decide this together with the target journal.
+- [ ] *(Journal confirmed 2026-10-29: PRAB; the manuscript is converted to REVTeX 4.2 `aps,prab,reprint` with `apsrev4-2` references, APS cross-reference style, two-column-wide floats for wide figures and tables, no keywords and no table of contents; 30 pages. Funding and `\finaltrue` remain.)* **Author-dependent:** confirm the target journal; supply the funding and acknowledgments; then set `\finaltrue`. Do not invent the funding text or mark it complete while it is deferred.
   - **Recommendation (2026-10-28):** Physical Review Accelerators and Beams (PRAB), with Nuclear Instruments and Methods A as the fallback. PRAB has no strict length limit and does not use a table of contents, which would settle the table-of-contents item above. Check the chosen journal's current length, data-availability and reference-style requirements before converting the front matter.
 - [x] *(Added 2026-10-28 as a four-item list at the end of the Introduction, without numbers; the overlapping comparison sentence of the preceding paragraph was trimmed to the problem statement. Item 4 confirmed by the full Sobol arm on 2026-10-28. Still open: add a fifth item if C2-12 yields a measured resolution record and then revise the closing nominal-resolution caveat, and position the items against prior accelerator-MOBO work in the related-work paragraph.)* **State the contributions explicitly in the Introduction.** Referees at PRAB in particular will ask what is new compared with existing accelerator MOBO papers (for example, Roussel et al.'s online-tuning work), so the Introduction should end with an explicit, numbered list of contributions:
   1. a constraint-aware comparison against two baselines (unconstrained MOBO and equal-weight scalarized BO) under matched budgets and shared initial designs, in ten paired runs with failure-inclusive accounting;
@@ -296,7 +296,7 @@ Tasks:
 **Done in `559f460`:**
 - The audit detail moved to a new Appendix A, `app:implementation`. It is identified through S1.7 and not removed from the record.
 - The Limitations subsection is now section 6.3, after the new `sec:tdr_reach`.
-- **Open, author decisions:** the target journal with the table of contents (PRAB recommended), funding and acknowledgments, and `\finaltrue`.
+- **Author decisions (2026-10-29):** PRAB chosen, table of contents removed, format converted. Still open: funding and acknowledgments, and `\finaltrue`.
 - **Editorial (2026-10-28):** the statement of contributions and the Data availability statement are in place. Open: a possible fifth item after C2-12 and the related-work positioning.
 
 ### C2-11. Responses and validation

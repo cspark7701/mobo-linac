@@ -1,17 +1,14 @@
-% Generic article manuscript with keywords, contents and numbered references.
+% Physical Review Accelerators and Beams manuscript (REVTeX 4.2).
 %
 % Results are produced by scripts/production/01_preflight.sh ... 07_paper_outputs.sh.
 % Campaign values are generated from the completed October 2026 production runs.
 % The remaining funding/acknowledgment marker is explicitly deferred to the author.
 % Set \finaltrue only after every \pending marker has been replaced.
-\documentclass[11pt,a4paper]{article}
+\documentclass[aps,prab,reprint,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
-\usepackage[margin=25mm]{geometry}
 \usepackage{lmodern}
-\usepackage{amsmath,amssymb}
-\usepackage[numbers,sort&compress]{natbib}
 \usepackage{graphicx}
 \usepackage{booktabs}
 \usepackage{xcolor}
@@ -35,25 +32,29 @@
   {\fbox{\parbox[c][0.25\textheight][c]{#2}{\centering\footnotesize\pending{Pending figure:}\\ \textcolor{red}{\url{#1}}}}}}
 % Include a generated table, or a visible placeholder while the file is missing.
 \newcommand{\pendingtable}[3]{%
-  \begin{table}[htbp]\centering\caption{#2}\label{#3}\pending{Pending table: \texttt{\detokenize{#1}.tex}}\end{table}}
+  \begin{table*}[htbp]\centering\caption{#2}\label{#3}\pending{Pending table: \texttt{\detokenize{#1}.tex}}\end{table*}}
 
 \sisetup{range-phrase=--, range-units=single, group-separator={,}, group-minimum-digits=4, group-digits=integer}
 \setlength{\emergencystretch}{2em}
 \newcommand{\enx}{\varepsilon_{n,x}}
 \newcommand{\eny}{\varepsilon_{n,y}}
 \newcommand{\umrad}{\si{\micro\metre\radian}}
-
-\title{Multi-objective Bayesian optimization of a \SI{200}{\mega\electronvolt} injector-linac model derived from the Korea Light Source design}
-
-\author{Chong Shik Park\\[0.5em]
-\small Department of Accelerator Science, Korea University\\
-\small Center for Accelerator Research, Korea University\\
-\small Sejong 30019, Republic of Korea\\
-\small \href{mailto:kuphy@korea.ac.kr}{kuphy@korea.ac.kr}}
-\date{}
+% Input a generated table as a two-column-wide float.
+\makeatletter
+\newcommand{\inputwide}[1]{\begingroup
+  \expandafter\let\expandafter\table\csname table*\endcsname
+  \expandafter\let\expandafter\endtable\csname endtable*\endcsname
+  \input{#1}\endgroup}
+\makeatother
 
 \begin{document}
-\maketitle
+
+\title{Multi-objective Bayesian optimization of a 200~MeV injector-linac model derived from the Korea Light Source design}
+
+\author{Chong Shik Park}
+\email{kuphy@korea.ac.kr}
+\affiliation{Department of Accelerator Science, Korea University, Sejong 30019, Republic of Korea}
+\affiliation{Center for Accelerator Research, Korea University, Sejong 30019, Republic of Korea}
 
 \begin{abstract}
 Optimization of an electron injector linac requires balancing transverse beam emittances and
@@ -81,13 +82,7 @@ constraint-aware Bayesian optimization to identify feasible injector-linac setti
 beam-quality trade-offs within the stated injector model and computational acceptance profile.
 \end{abstract}
 
-\noindent\textbf{Keywords:} Beam dynamics; Accelerator modelling and simulations;
-Multi-Objective Bayesian Optimization
-
-\clearpage
-\tableofcontents
-\clearpage
-\raggedbottom
+\maketitle
 
 %==========================================================================================
 \section{Introduction}
@@ -178,7 +173,7 @@ separate common trends from dependence on the initial design, and the additional
 survey illustrates how weighting choices sample different trade-offs. The lattice-jitter
 assessment then examines the tolerance of representative settings under the stated perturbation
 model. The earlier KLS studies provide a physical context for these results, with differences
-in feasibility limits and error coverage made explicit in section~\ref{sec:previous_kls}.
+in feasibility limits and error coverage made explicit in Sec.~\ref{sec:previous_kls}.
 
 The contributions of this work are the following.
 \begin{enumerate}
@@ -187,24 +182,24 @@ The contributions of this work are the following.
   beam-quality inequalities. The comparison uses ten paired runs per method with equal
   simulation budgets, shared initial designs, a fixed reference point and predeclared
   endpoints, and counts failed simulations
-  (sections~\ref{sec:design}--\ref{sec:primary}).
+  (Secs.~\ref{sec:design}--\ref{sec:primary}).
 \item An attribution of the feasible-sampling advantage of the constraint-aware pipeline
   by violated channel group. The advantage comes mainly from satisfying the transverse size
   and divergence limits more often, and it persists among evaluations that already meet the
   energy band. It is not produced by the setting of the energy-band weight or by the upper
-  ACC3/ACC4 phase window (section~\ref{sec:attribution}).
+  ACC3/ACC4 phase window (Sec.~\ref{sec:attribution}).
 \item A quantified reach of the KLS technical-design acceptance region. The primary
   evaluations are reclassified against the TDR inequalities; two marginal candidates and a
   MOGA-derived reference are checked under jitter; and three campaigns constrained directly
   by the TDR inequalities are run. Together these show that the region lies at the edge of
-  the explored domain (sections~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
+  the explored domain (Secs.~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
 \item A space-filling reference for the same domain: the shared scrambled-Sobol initial
   designs and a budget-matched Sobol arm. It shows how much of the feasible-sampling gain
   any of the optimizers achieve over uniform sampling, and how much is specific to the
-  constraint-aware pipeline (section~\ref{sec:attribution}).
+  constraint-aware pipeline (Sec.~\ref{sec:attribution}).
 \end{enumerate}
 These results describe the recorded pipelines on a fixed lattice at the nominal tracking
-resolution, at which the emittances are not converged (section~\ref{sec:problem}). They do not establish a unit-invariant acquisition, global optimality of the
+resolution, at which the emittances are not converged (Sec.~\ref{sec:problem}). They do not establish a unit-invariant acquisition, global optimality of the
 reported fronts, or engineering acceptance of any setting.
 
 %==========================================================================================
@@ -256,9 +251,9 @@ uses the same particle-count scale, cylindrical grid dimensions and image-charge
 Its archived inputs additionally specify a Cartesian \(32^3\) grid and a solver transition at
 \SI{5.25}{\metre}, which that published description does not state. No refinement
 residual is quoted there, so we re-tracked ten reported settings with refined numerics: the
-MOGA-derived nominal setting, the two TDR candidates (table~\ref{tab:tdr_candidates}), the
-closest observation of the TDR-constrained campaigns (section~\ref{sec:tdr_reach}) and the six
-representatives of section~\ref{sec:settings}. Each factor was refined alone and then all
+MOGA-derived nominal setting, the two TDR candidates (Table~\ref{tab:tdr_candidates}), the
+closest observation of the TDR-constrained campaigns (Sec.~\ref{sec:tdr_reach}) and the six
+representatives of Sec.~\ref{sec:settings}. Each factor was refined alone and then all
 together: \num{20000} and \num{40000} particles from the reconstructed source, 48 and 64
 cells in every space-charge grid dimension, and half and a quarter of the maximum and minimum
 integration steps. The medium level combines the first refinement of each factor and the fine
@@ -279,14 +274,14 @@ bunch length by at most \SI{1}{\percent}, the mean energy by at most
 \SI{0.05}{\mega\electronvolt}, and the transmission not at all. Beam sizes and divergences fall by up to
 \SI{22}{\percent}. All ten settings remain feasible under the production profile at every
 level, whereas TDR classifications within a few percent of the limits change
-(section~\ref{sec:tdr_reach}). All objective values, feasibility classifications and margins
+(Sec.~\ref{sec:tdr_reach}). All objective values, feasibility classifications and margins
 are therefore results at the nominal resolution. The absolute emittances exceed the refined
 values, and the method comparisons hold within this fixed numerical model. The fixed GP
 observation variance provides regularization and does not measure tracking-discretization
 uncertainty.
 
 
-\begin{figure}[htbp]
+\begin{figure*}[htbp]
 \centering
 \datafigure{figures/injector_linac_layout.pdf}{\linewidth}
 \caption{Schematic layout of the simulated \SI{200}{\mega\electronvolt} injector linac. A photocathode RF gun and
@@ -294,10 +289,10 @@ solenoid feed four S-band accelerating structures and two quadrupoles. The six o
 variables are indicated; each downstream RF phase controls a pair of structures. Beam objectives
 and constraint diagnostics are evaluated at the exit plane. Component symbols are not to scale.}
 \label{fig:layout}
-\end{figure}
+\end{figure*}
 
 \subsection{Design variables, objectives and constraints}
-The six design variables (table~\ref{tab:variables}) are the solenoid peak field $B_\mathrm{sol}$,
+The six design variables (Table~\ref{tab:variables}) are the solenoid peak field $B_\mathrm{sol}$,
 the two quadrupole gradients $G_{q1}$ and $G_{q2}$, the gun phase $\phi_\mathrm{gun}$ and two
 common phases, $\phi_\mathrm{acc1/2}$ applied to ACC1 and ACC2 and $\phi_\mathrm{acc3/4}$ applied to
 ACC3 and ACC4. The nominal machine setting is a MOGA-derived operating point from the earlier
@@ -321,7 +316,7 @@ represents a different focusing and phasing configuration of the same reference 
 common phase variables are applied to their structure pairs together rather than treated as
 independent controls, keeping the optimization dimension consistent with the chosen operating model.
 
-\begin{table}[htbp]
+\begin{table*}[htbp]
 \centering
 \caption{Design variables. Magnetic bounds are \SI{\pm50}{\percent} of nominal; RF bounds are absolute angular intervals. Coupled phases are written to both structures of a pair.}
 \label{tab:variables}
@@ -337,7 +332,7 @@ $\phi_\mathrm{acc1/2}$ & \texttt{phi(2)}, \texttt{phi(3)} & $-39.51$ & $-43.46$ 
 $\phi_\mathrm{acc3/4}$ & \texttt{phi(4)}, \texttt{phi(5)} & 310.05 & 279.05 & 341.06 & \si{\degree} \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 The three objectives, all minimized, are the normalized RMS emittances $\enx$ and $\eny$ and the
 projected total RMS energy spread $\sigma_E$ at the exit plane,
@@ -358,7 +353,7 @@ score. Consequently, coordinate-wise minima describe the ends of the trade-off s
 belong to the same accelerator setting.
 
 A setting is \emph{feasible} within the present computational profile if the seven diagnostics
-in table~\ref{tab:constraints} satisfy eight inequalities:
+in Table~\ref{tab:constraints} satisfy eight inequalities:
 \begin{align}
  \sigma_x&\le\SI{1}{\milli\metre}, &\sigma_y&\le\SI{1}{\milli\metre},\\
  \sigma_{x'}&\le\SI{1}{\milli\radian}, &\sigma_{y'}&\le\SI{1}{\milli\radian},\\
@@ -372,7 +367,7 @@ reported campaigns. Earlier studies of this injector used limits close to the TD
 transmission). In the present six-variable domain those limits produced a high rate of
 infeasible early space-filling samples, and the production profile was adopted so that
 feasible and infeasible observations both occur often enough for the algorithms to be compared. The TDR's
-optimization requirements are given separately in table~\ref{tab:constraints}; their source
+optimization requirements are given separately in Table~\ref{tab:constraints}; their source
 is Table 2.1.4.6 of the report~\cite{KLSTDR2025}. The production transverse limits are about
 three to four times looser, the transmission limit allows far larger losses, and the two-sided
 energy interval differs from the TDR's lower bound. The completed campaigns therefore compare
@@ -385,7 +380,7 @@ of diagnostics is insufficient: the classification requires all inequalities to 
 This distinction is retained in the constraint-space plots, where the shaded regions apply only
 to the displayed coordinates and marker fill communicates the joint constraint status.
 
-\begin{table}[htbp]
+\begin{table*}[htbp]
 \centering
 \caption{Exit-plane diagnostics: the profile used in the completed campaigns and the TDR
 optimization requirements (Table 2.1.4.6)~\cite{KLSTDR2025}. Transmission is the fraction of
@@ -403,7 +398,7 @@ Mean kinetic energy & $E_\mathrm{kin}$ & \SIrange{195}{205}{\mega\electronvolt} 
 Transmission & $T$ & $\ge 0.90$ & $>0.9999$ \\
 \bottomrule
 \end{tabular}
-\end{table}
+\end{table*}
 
 The TDR also specifies relative RMS energy spread no greater than \SI{0.5}{\percent}
 and geometric emittance no greater than \SI{10}{\nano\metre\radian}; its single-bunch pulse
@@ -417,7 +412,7 @@ two constraint-aware observations and none from either baseline; the production 
 accepts 648, 251 and 200 of the same evaluations. The feasible-front comparison of this paper
 therefore describes a much broader computational region than the TDR optimization acceptance
 region. The two TDR-passing observations come from two different matched runs and are listed
-in table~\ref{tab:tdr_candidates}. Both are marginal: they clear the horizontal-size limit by
+in Table~\ref{tab:tdr_candidates}. Both are marginal: they clear the horizontal-size limit by
 only a few micrometres and the bunch-length limit by about \SI{8}{\micro\metre}, and one has a
 relative energy spread of \SI{0.44}{\percent} against the \SI{0.5}{\percent} specification.
 They are not among the six representatives of the lattice-jitter assessment. Two observations
@@ -430,7 +425,7 @@ or downstream matching specifications.
 \caption{The two primary observations that pass the TDR optimization inequalities, both from
 constraint-aware MOBO in different matched runs. Margins are physical distances inside each
 limit (positive = satisfied); they are nominal-resolution values
-(section~\ref{sec:problem}), and section~\ref{sec:tdr_reach} gives their behaviour under
+(Sec.~\ref{sec:problem}), and Sec.~\ref{sec:tdr_reach} gives their behaviour under
 numerical refinement.}
 \label{tab:tdr_candidates}
 \small
@@ -484,8 +479,10 @@ BoTorch~\cite{Balandat2020} and GPyTorch~\cite{Gardner2018}, and the kernel hype
 fitted by maximizing the exact marginal likelihood. Because ASTRA is deterministic for a fixed
 input, the observation noise is not inferred but fixed to
 \begin{equation}
-  \sigma^2_{\mathrm{obs},m} = \max\bigl(\eta\,\mathrm{Var}(y_m),\ \sigma^2_\mathrm{floor}\bigr),
-  \qquad \eta = 10^{-6},\ \sigma^2_\mathrm{floor} = 10^{-24},
+\begin{aligned}
+  \sigma^2_{\mathrm{obs},m} &= \max\bigl(\eta\,\mathrm{Var}(y_m),\ \sigma^2_\mathrm{floor}\bigr),\\
+  \eta &= 10^{-6},\qquad \sigma^2_\mathrm{floor} = 10^{-24},
+\end{aligned}
 \end{equation}
 for output $m$. This regularizes the kernel matrices numerically. Because the effective
 likelihood variance is nonzero, the posterior mean need not interpolate every observation
@@ -493,7 +490,7 @@ exactly. For constraint-aware optimization, each of the seven diagnostics is mod
 further GP of the same form, giving ten independent GPs; the energy diagnostic supplies both
 energy inequalities. All models are combined in one multi-output model with independent
 outputs. The effective likelihood floors, the handling of constant channels and the recorded
-fitting outcomes are given in appendix~\ref{app:implementation}.
+fitting outcomes are given in Appendix~\ref{app:implementation}.
 
 
 \subsection{Acquisition functions}
@@ -521,7 +518,7 @@ baseline feasibility determines the baseline front. For each sampled candidate,
 the weight is $\prod_{k=1}^{8}h(-c_k/\tau_c)$, where $h$ is BoTorch's
 fat-tailed sigmoid and $\tau_c=10^{-3}$. The unconstrained variant omits the diagnostic
 constraints. The remaining smoothing constants and the posterior sample counts are listed in
-appendix~\ref{app:implementation}. The separately available analytical Gaussian probability of
+Appendix~\ref{app:implementation}. The separately available analytical Gaussian probability of
 feasibility is a diagnostic; it is not substituted for these sampled weights.
 
 The residuals are expressed in their recorded physical units: metres, radians,
@@ -599,7 +596,7 @@ computational cost. For each algorithm we report the median over runs with a \SI
 bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed seed number).
 These intervals summarize individual methods; exploratory paired inference is described below.
 The limitation of the originally designated reporting endpoint is addressed in
-section~\ref{sec:discussion}. Constraint-space figures use every numerically valid observation,
+Sec.~\ref{sec:discussion}. Constraint-space figures use every numerically valid observation,
 including physically infeasible settings, rather than only the Pareto subset. Their limits and
 display units are read from each recorded configuration, and the recorded joint feasibility is
 checked against those limits before plotting. Green shading marks the allowed interval or
@@ -631,7 +628,7 @@ of attaining each target $r+\delta\mathbf{1}$, for $r\in R$ and normalized relax
 $\delta\in\{0.05,0.10,0.25,0.50\}$. These are empirical probabilities of attaining specified
 observed trade-offs, with no implied global-front guarantee. Quality histories are evaluated
 at full-batch checkpoints, including initialization. Supporting plots and a separate post-hoc
-reference-sensitivity analysis appear in appendix~\ref{app:front_quality} (supplement items S1.2
+reference-sensitivity analysis appear in Appendix~\ref{app:front_quality} (supplement items S1.2
 and S1.3).
 
 Exploratory inference used the ten matched groups as the sampling units. Paired bootstrap
@@ -661,7 +658,7 @@ The matched comparison contains constraint-aware qLogNEHVI, unconstrained qLogNE
 and equal-weight scalarized qLogNEI. The latter is a specific balanced scalarization,
 not a claim to cover all weighted-sum strategies. A budget-matched Sobol arm, continuing
 the shared initial design of each matched group, serves as a space-filling reference
-(section~\ref{sec:attribution}). No constraint-aware scalarized arm is included. Consequently
+(Sec.~\ref{sec:attribution}). No constraint-aware scalarized arm is included. Consequently
 the results compare these implementations but do not isolate a benefit unique to
 vector-valued acquisition over constraint-aware scalarization. The separate multiweight survey
 has a larger aggregate budget and is not substituted for that missing control. Published MOGA results remain contextual rather than a new matched benchmark.
@@ -724,7 +721,7 @@ with the same protocol.
 \section{Results}
 \label{sec:results}
 The evidence for each result in this section is identified in supplement S1
-(appendix~\ref{app:implementation}).
+(Appendix~\ref{app:implementation}).
 
 \subsection{Simulation validity and computational comparison}
 All 4,800 simulations of the primary comparison were valid; no simulation-invalid failure was
@@ -746,7 +743,7 @@ retained in supplement item S1.1.
 Outside the union of recorded evaluation intervals lies a median \SI{71.4}{\percent},
 \SI{57.0}{\percent} and \SI{19.2}{\percent} of campaign time for constraint-aware,
 unconstrained and scalarized BO, respectively, which combines model fitting, acquisition
-optimization, scheduling and export (appendix~\ref{app:implementation}).
+optimization, scheduling and export (Appendix~\ref{app:implementation}).
 
 
 \subsection{Primary comparison}
@@ -763,17 +760,17 @@ an apparently better two-dimensional projection establishes superiority across a
 
 \begin{figure}[htbp]
 \centering
-\datafigure{figures/primary_pareto_points.pdf}{0.85\linewidth}
+\datafigure{figures/primary_pareto_points.pdf}{\linewidth}
 \caption{Primary comparison: pairwise projections of the pooled feasible three-objective
 nondominated sets, using ten runs of 160 simulations per method. Markers are evaluated ASTRA
 settings. Smaller objective values are preferred. All feasible three-objective trade-offs are
 retained, including points that appear dominated in a two-dimensional projection. The star
-marks the re-evaluated MOGA-derived nominal setting (section~\ref{sec:moga_reference}).}
+marks the re-evaluated MOGA-derived nominal setting (Sec.~\ref{sec:moga_reference}).}
 \label{fig:primary_pareto}
 \end{figure}
 
 Table~\ref{tab:primary} summarizes the measured feasible sampling fractions and Pareto set sizes,
-while figure~\ref{fig:benchmark} shows how the feasible fraction evolves during optimization.
+while Fig.~\ref{fig:benchmark} shows how the feasible fraction evolves during optimization.
 Median feasible fractions were \SI{40.6}{\percent} [\SI{35.6}{\percent}, \SI{45.6}{\percent}], \SI{15.0}{\percent} [\SI{12.8}{\percent}, \SI{18.8}{\percent}] and
 \SI{12.5}{\percent} [\SI{11.2}{\percent}, \SI{13.8}{\percent}] for the constraint-aware, unconstrained and weighted-sum algorithms.
 Median feasible Pareto cardinalities were 13.5, 7.0 and 4.0. All three methods therefore
@@ -787,11 +784,11 @@ constraint-aware MOBO, unconstrained MOBO and scalarized BO, respectively.
 
 
 
-\input{primary_results_table}
+\inputwide{primary_results_table}
 
 \begin{figure}[htbp]
 \centering
-\datafigure{figures/benchmark_feasibility_comparison.pdf}{0.75\linewidth}
+\datafigure{figures/benchmark_feasibility_comparison.pdf}{\linewidth}
 \caption{Primary comparison: fraction of feasible simulations versus the number of evaluations.
 Lines are medians over ten runs and bands are \SI{95}{\percent} bootstrap confidence intervals.}
 \label{fig:benchmark}
@@ -842,7 +839,7 @@ optimality.
 \label{sec:attribution}
 Two properties of the recorded setup could produce a feasible-sampling advantage without
 balancing all eight inequalities: the effective step weight of the energy band
-(section~\ref{sec:acquisition}) and the upper quarter of the ACC3/ACC4 window, in which
+(Sec.~\ref{sec:acquisition}) and the upper quarter of the ACC3/ACC4 window, in which
 every sampled observation of every method lies outside the energy band. We therefore
 classified each post-initialization evaluation (evaluations 17--160) of the primary runs into
 one exclusive category of violated channel groups: energy band, transverse size or
@@ -854,7 +851,7 @@ the archived evaluations.
 The upper ACC3/ACC4 quarter is not the main source of the difference.
 Constraint-aware MOBO placed a median \SI{15.3}{\percent} of its post-initialization
 evaluations there, compared with \SI{22.6}{\percent} and \SI{24.7}{\percent} for the
-unconstrained and scalarized pipelines (figure~\ref{fig:attribution}a). Relative to
+unconstrained and scalarized pipelines (Fig.~\ref{fig:attribution}a). Relative to
 unconstrained MOBO, the mean paired gap of 0.276 (\SI{95}{\percent} interval 0.229--0.325)
 comes mostly from transverse-only violations, which account for \SI{62}{\percent} of it; the
 categories involving the energy band account for \SI{34}{\percent}. Relative to scalarized
@@ -862,7 +859,7 @@ BO, whose weighted cost ignores both groups, the gap of 0.311 (0.277--0.347) is 
 band violations, alone or together with transverse ones, account for \SI{63}{\percent} and
 transverse-only violations for \SI{31}{\percent}. Bunch-length-only violations are slightly
 more frequent for the constraint-aware pipeline in both comparisons
-(figure~\ref{fig:attribution}b).
+(Fig.~\ref{fig:attribution}b).
 
 Among evaluations that satisfy the energy band, the median fraction meeting all remaining
 inequalities was 0.578 for constraint-aware MOBO, compared with 0.254 and 0.231 for the
@@ -899,7 +896,7 @@ by mean paired differences between $-0.74$ and $-1.07$ in epsilon and between $-
 $-0.94$ in IGD+, with intervals excluding zero. None of its feasible points dominates a
 reference point.
 
-\begin{figure}[htbp]
+\begin{figure*}[htbp]
 \centering
 \datafigure{figures/revision_attribution.pdf}{\linewidth}
 \caption{Sources of the feasible-sampling difference in the primary comparison. (a)
@@ -910,7 +907,7 @@ post-initialization evaluations by exclusive category of violated channel groups
 production profile; hatched categories include an energy-band violation, and the coloured
 top segment is the feasible share.}
 \label{fig:attribution}
-\end{figure}
+\end{figure*}
 
 \subsection{Exploratory weighting survey}
 The independently initialized weighting survey found additional feasible trade-offs, with
@@ -927,7 +924,7 @@ without discarding the rejected observations in the full-range panels. The corre
 survey view is retained in Appendix~\ref{app:survey}; detailed companion plots retain every
 individual campaign and weighting case.
 
-\begin{figure}[htbp]
+\begin{figure*}[htbp]
 \centering
 \datafigure{figures/primary_constraint_spaces.pdf}{\linewidth}
 \caption{Primary comparison in constraint space, pooling all valid evaluations from ten runs per
@@ -939,7 +936,7 @@ acceptance region in the same units. Constant transmission is stated in the anno
 than repeated as an empty scatter panel. The star marks the re-evaluated MOGA-derived nominal
 setting.}
 \label{fig:primary_constraints}
-\end{figure}
+\end{figure*}
 
 
 
@@ -1053,7 +1050,7 @@ vertical emittance, whereas the energy-spread extreme trades larger, nearly equa
 for \SI{0.36286}{\mega\electronvolt} spread. These roles describe different compromises
 within one selected front; they are not six independently optimized operational modes. The
 nominal setting itself was re-evaluated separately and is compared with these fronts in
-section~\ref{sec:moga_reference}.
+Sec.~\ref{sec:moga_reference}.
 
 The quadrupole centers are at \SI{8.70046}{\metre} and \SI{12.50092}{\metre}, each with
 \SI{0.065}{\metre} effective length. They lie between ACC2/ACC3 and ACC3/ACC4,
@@ -1098,7 +1095,7 @@ margin, 0.01595 at the lower energy bound, corresponds to a physical headroom of
 \SI{3.11}{\mega\electronvolt}, or 0.622 of the energy half-band; it is not a
 \SI{1.595}{\percent} probability of failure. Numerical refinement changes the mean energy of
 the reported settings by at most \SI{0.05}{\mega\electronvolt} and their bunch length by at
-most \SI{1}{\percent} (section~\ref{sec:problem}), small against this headroom, and every
+most \SI{1}{\percent} (Sec.~\ref{sec:problem}), small against this headroom, and every
 representative remains feasible under the production profile at all refinement levels. Other primary settings are limited in this
 normalization by bunch length or the upper energy bound. All classifications refer to the
 original production profile, not certification against all TDR specifications, and are
@@ -1114,7 +1111,7 @@ improve all three objectives, as expected after a finite search of 160 evaluatio
 
 The jitter model omits RF-amplitude errors, but a first-order estimate bounds their effect on
 the limiting energy margin. In the re-evaluated nominal tracking
-(section~\ref{sec:moga_reference}) the gun delivers \SI{4.1}{\mega\electronvolt} and the two
+(Sec.~\ref{sec:moga_reference}) the gun delivers \SI{4.1}{\mega\electronvolt} and the two
 structure pairs \SI{93.3}{\mega\electronvolt} and \SI{102.8}{\mega\electronvolt}. A
 \SI{0.2}{\percent} RMS amplitude error, the RF-gradient error of the JKPS model, therefore
 shifts the mean energy by \SI{0.28}{\mega\electronvolt} RMS if the pairs vary independently and
@@ -1126,7 +1123,7 @@ correlated energy spread by the same relative amount, about \SI{0.8}{\kilo\elect
 estimate suggests that amplitude jitter would not change the production-profile
 classification of the representatives, but it does not replace a tracked amplitude study.
 
-The two TDR-passing observations of table~\ref{tab:tdr_candidates} were assessed with the same
+The two TDR-passing observations of Table~\ref{tab:tdr_candidates} were assessed with the same
 50-trial protocol and classified against the TDR inequalities. Both remained
 production-feasible in every trial, but only 36 and 44 of the 50 perturbed settings met the TDR
 inequalities (exact \SI{95}{\percent} intervals 0.58--0.84 and 0.76--0.95). The failures were
@@ -1134,7 +1131,7 @@ mainly of the horizontal-size limit and, for candidate B, also the vertical dive
 the archived fragility threshold of 0.8, candidate A would be classified as fragile. These
 marginal settings therefore do not provide jitter-tolerant TDR operation in this model.
 
-\IfFileExists{robustness_table.tex}{\input{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
+\IfFileExists{robustness_table.tex}{\inputwide{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
 robustness of the representatives.}{tab:robustness_summary}}
 
 \subsection{The MOGA-derived nominal setting as a reference point}
@@ -1214,7 +1211,7 @@ RMS energy spread. Its feasible-region and weighting conventions also differ. Co
 those published results supply prior-work context rather than a matched-budget control for
 this study. No new MOGA/NSGA-II campaign or reevaluation of its published setting is included,
 and no MOGA speedup or superiority is inferred from the present comparisons. The only MOGA-derived
-quantity used here is the nominal setting of section~\ref{sec:moga_reference}, which the earlier
+quantity used here is the nominal setting of Sec.~\ref{sec:moga_reference}, which the earlier
 work adapted to the present field amplitudes; it is a reference point, not the output of a
 matched MOGA search.
 
@@ -1230,7 +1227,7 @@ The JKPS operating-error model used RF-gradient and phase standard deviations of
 position errors and \SI{0.4}{\milli\radian} rotations, using 1,000 samples per stage with a Gaussian distribution
 truncated at two standard deviations. Our tests use \SI{0.1}{\degree} RF-phase and \SI{0.1}{\percent} magnet-strength
 errors with 50 samples per representative. They omit tracked RF-gradient errors, which are
-estimated only to first order in section~\ref{sec:robustness_results}, and alignment errors. Thus the
+estimated only to first order in Sec.~\ref{sec:robustness_results}, and alignment errors. Thus the
 observed feasibility under lattice jitter complements the earlier tolerance study; it does not
 show greater robustness under its broader error model. The earlier study identified alignment
 errors as a principal sensitivity, supporting their inclusion in future assessments.
@@ -1239,7 +1236,7 @@ errors as a principal sensitivity, supporting their inclusion in future assessme
 \label{sec:tdr_reach}
 The archived evidence places the TDR optimization region at the edge of the explored domain.
 Only two of the 4,800 primary evaluations meet its inequalities, both with micrometre-scale
-size and bunch-length margins (table~\ref{tab:tdr_candidates}). The MOGA-derived nominal
+size and bunch-length margins (Table~\ref{tab:tdr_candidates}). The MOGA-derived nominal
 setting misses them only in vertical divergence, by \SI{2.7}{\micro\radian}, and about a
 quarter of its jittered neighbours pass. The six controls can therefore reach the TDR region,
 but the production-profile campaigns were not aimed at it.
@@ -1259,7 +1256,7 @@ coverage at this budget: the region is approached to within a few micrometres an
 microradians, but not entered reliably.
 
 These classifications lie within the numerical resolution of the model
-(section~\ref{sec:problem}). Candidate~B meets the TDR inequalities at all fifteen refinement
+(Sec.~\ref{sec:problem}). Candidate~B meets the TDR inequalities at all fifteen refinement
 and source levels. Candidate~A meets them at the medium and fine levels but fails in
 horizontal size on the 64-cell grid and with two of the five random sources. Conversely, the
 MOGA-derived nominal setting and the closest observation of the TDR-constrained campaigns meet
@@ -1285,7 +1282,7 @@ algorithm superiority. The original constraint smoothing is unit-dependent, and 
 normalization probes supply no physical-performance evidence for a corrected method.
 
 The tracking model uses one fixed source file and the particle, grid and step resolution of
-the previous injector study. The refinement check of section~\ref{sec:problem} shows that the
+the previous injector study. The refinement check of Sec.~\ref{sec:problem} shows that the
 emittances are not converged at this resolution and that TDR classifications near the limits
 change under refinement, so all results are nominal-resolution results. Whether the method
 comparison would change at a converged resolution has not been tested; that would require
@@ -1363,16 +1360,15 @@ fluctuations with a validated distribution generator, distribute the simulations
 nodes, and test the optimized settings on the machine.
 
 %==========================================================================================
-\section*{Acknowledgments}
-\addcontentsline{toc}{section}{Acknowledgments}
+\begin{acknowledgments}
 \pending{Funding and acknowledgments to be supplied by the author.}
+\end{acknowledgments}
 
 \section*{Data availability}
-\addcontentsline{toc}{section}{Data availability}
 The data that support the findings of this study are available from the corresponding author
 upon reasonable request. They comprise the evaluation ledgers and run records of every
 campaign, the complete simulation run directories, the configuration files and the analysis
-scripts that generate the reported results. Supplement S1 (appendix~\ref{app:implementation})
+scripts that generate the reported results. Supplement S1 (Appendix~\ref{app:implementation})
 identifies each item.
 
 \appendix
@@ -1397,7 +1393,7 @@ complete run directories (about \SI{44}{\giga\byte}) are not distributed. The
 identified by checksum. Sampler base draws were not archived.
 
 \paragraph{Surrogate noise and fitting.} The fixed-noise expression of
-section~\ref{sec:methods} specifies the requested variance in each output's recorded units. The
+Sec.~\ref{sec:methods} specifies the requested variance in each output's recorded units. The
 outcome transform divides it by the square of the observed standard deviation, and the float64
 likelihood additionally enforces a minimum variance of $10^{-6}$ in the transformed
 coordinates. Outputs with observed standard deviation below $10^{-8}$ are centered without
@@ -1446,7 +1442,7 @@ The target index follows the lexicographically sorted empirical-reference vector
 supplement item S1.2. Increasing relaxation expands the objective target region; it does not relax
 physical feasibility. The same original constraint profile is used throughout.
 
-\begin{figure}[htbp]
+\begin{figure*}[htbp]
 \centering
 \datafigure{figures/revision_front_quality.pdf}{\linewidth}
 \caption{Exploratory per-run front quality versus evaluations. Curves show medians over ten
@@ -1455,8 +1451,8 @@ distance scores and zero hypervolume; nonfinite aggregate distances appear as ga
 hypervolume reference is the pooled-front nadir plus \SI{25}{\percent} of each coordinate span.
 These are metric histories, not interpolated objective-space Pareto fronts.}
 \label{fig:revision_quality}
-\end{figure}
-\begin{figure}[htbp]
+\end{figure*}
+\begin{figure*}[htbp]
 \centering
 \datafigure{figures/revision_attainment.pdf}{\linewidth}
 \caption{Empirical terminal attainment probability for each pooled-front target across ten
@@ -1464,14 +1460,14 @@ runs per method. Each row applies the indicated componentwise relaxation in norm
 objective coordinates. Colors give the fraction of runs with a feasible point weakly dominating
 the relaxed target. Targets and relaxations are post-hoc analysis conventions.}
 \label{fig:revision_attainment}
-\end{figure}
+\end{figure*}
 \FloatBarrier
 
 \section{Exploratory operating-point survey}
 \label{app:survey}
 \label{sec:survey_results}
-Table~\ref{tab:campaign_summary} and figures~\ref{fig:survey_feasible} and~\ref{fig:pareto} summarize the
-operating-point survey of section~\ref{sec:survey}, and table~\ref{tab:phase1_cases} the five
+Table~\ref{tab:campaign_summary} and Figs.~\ref{fig:survey_feasible} and~\ref{fig:pareto} summarize the
+operating-point survey of Sec.~\ref{sec:survey}, and Table~\ref{tab:phase1_cases} the five
 weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
 106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
 feasible horizontal emittances were \SI{2.7076}{\micro\metre\radian}, \SI{3.1141}{\micro\metre\radian} and \SI{2.6513}{\micro\metre\radian}, and the best feasible
@@ -1480,16 +1476,16 @@ were \SI{0.3393}{\mega\electronvolt}, \SI{0.3905}{\mega\electronvolt} and \SI{0.
 operating point. Table~\ref{tab:phase1_cases} uses the same feasible-only convention for each weighting. The differing
 budgets and independently initialized cases prevent interpreting this descriptive survey as an algorithm ranking.
 
-\IfFileExists{results_table.tex}{\input{results_table}}{\pendingtable{results_table}{Operating-point
+\IfFileExists{results_table.tex}{\inputwide{results_table}}{\pendingtable{results_table}{Operating-point
 survey summary.}{tab:campaign_summary}}
-\IfFileExists{phase1_cases_table.tex}{\input{phase1_cases_table}}{\pendingtable{phase1_cases_table}{Weighted-sum
+\IfFileExists{phase1_cases_table.tex}{\inputwide{phase1_cases_table}}{\pendingtable{phase1_cases_table}{Weighted-sum
 survey by weighting.}{tab:phase1_cases}}
 
 
 
 \begin{figure}[htbp]
 \centering
-\datafigure{figures/survey_feasibility_by_case.pdf}{0.75\linewidth}
+\datafigure{figures/survey_feasibility_by_case.pdf}{\linewidth}
 \caption{Independent survey histories: cumulative feasibility versus evaluations within each
 campaign. Each scalarized weighting is a separate curve ending at 176 evaluations; no curve
 concatenates the five searches. MOBO campaigns are shown separately with the same method
@@ -1499,7 +1495,7 @@ colors as the primary comparison. All evaluations are valid in these campaigns.}
 
 \begin{figure}[htbp]
 \centering
-\datafigure{figures/survey_pareto_points.pdf}{0.85\linewidth}
+\datafigure{figures/survey_pareto_points.pdf}{\linewidth}
 \caption{Operating-point survey: pairwise projections of the feasible three-objective
 nondominated sets. Markers denote evaluated settings without interpolation or connecting lines.
 The scalarized set pools five weighting cases (880 simulations), whereas each MOBO set uses
@@ -1508,27 +1504,23 @@ The scalarized set pools five weighting cases (880 simulations), whereas each MO
 \end{figure}
 
 
-\begin{figure}[htbp]
+\begin{figure*}[htbp]
 \centering
 \datafigure{figures/survey_constraint_spaces.pdf}{\linewidth}
 \caption{Operating-point survey in constraint space, using the same shading and joint-feasibility
-encoding as figure~\ref{fig:primary_constraints}. The scalarized set pools five weight cases
+encoding as Fig.~\ref{fig:primary_constraints}. The scalarized set pools five weight cases
 (880 evaluations), whereas each MOBO campaign has 176 evaluations. Differences in point density
 must therefore be interpreted with these unequal budgets in mind. Insets use the same
 transverse units; the constant-transmission annotation retains that required diagnostic.}
 \label{fig:survey_constraints}
-\end{figure}
+\end{figure*}
 \FloatBarrier
 
-\input{revisions/evidence/c11_predictive}
+\inputwide{revisions/evidence/c11_predictive}
 \FloatBarrier
-\input{revisions/evidence/c08_settings}
+\inputwide{revisions/evidence/c08_settings}
 \FloatBarrier
 
-\clearpage
-\phantomsection
-\addcontentsline{toc}{section}{References}
-\bibliographystyle{unsrtnat}
 \bibliography{references}
 
 \end{document}

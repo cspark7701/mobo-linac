@@ -508,13 +508,10 @@ def test_manuscript_inputs_generated_tables(project_root):
     main_tex = project_root / "docs" / "paper" / "main.tex"
     assert main_tex.exists(), "docs/paper/main.tex not found."
     content = main_tex.read_text()
-    required_inputs = [
-        r"\input{primary_results_table}",
-        r"\input{results_table}",
-        r"\input{robustness_table}",
-    ]
+    # Two-column-wide tables are included through \inputwide, a wrapper of \input.
+    required_inputs = ["primary_results_table", "results_table", "robustness_table"]
     for inp in required_inputs:
-        assert inp in content, (
+        assert rf"\input{{{inp}}}" in content or rf"\inputwide{{{inp}}}" in content, (
             f"main.tex does not include '\\input{{...}}' for: {inp}"
         )
 

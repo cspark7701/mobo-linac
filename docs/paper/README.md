@@ -71,12 +71,16 @@ completion of funding and acknowledgments before submission.
 
 ## Manuscript and figure presentation
 
-The manuscript uses a generic LaTeX `article` layout with 25 mm margins, separate
-affiliation lines, an abstract, keywords and a linked table of contents. Numbered
-citations use `natbib` with the standard `unsrtnat` bibliography style. The historical
-publisher files `jinstpub.sty` and `JHEP.bst` remain available but are not loaded.
-Build with `latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex`
-from the repository root; repeated passes resolve the contents and references.
+The manuscript targets Physical Review Accelerators and Beams (author decision,
+2026-10-29). It uses REVTeX 4.2 (`revtex4-2`, options `aps,prab,reprint`) with the
+`apsrev4-2` bibliography style, has no table of contents and no keywords, and follows APS
+cross-reference style (Sec., Fig., Table, Appendix). Figures and generated tables wider than
+one column are set as two-column floats; generated tables are included through
+`\inputwide`, so the table generators are unchanged. The historical publisher files
+`jinstpub.sty` and `JHEP.bst` remain available but are not loaded. Line numbers are shown
+until `\finaltrue` is set. Build with
+`latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex` from the
+repository root; repeated passes resolve the references.
 
 The primary and survey Pareto panels are scatter-only and keep every measured feasible
 three-objective nondominated observation. No connecting lines, interpolation, or fitted
