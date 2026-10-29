@@ -1,0 +1,38 @@
+{
+  "check": "C3-07 regeneration of level-2a evidence from the minimal ledger set",
+  "ledger_files_copied": 215,
+  "copied": [
+    "scripts/",
+    "docs/paper/revisions/evidence/",
+    "evaluations.csv, config.json and run_complete.json per run"
+  ],
+  "not_copied": "all other run files, GP checkpoints and tracking outputs",
+  "cases": [
+    {
+      "generator": "scripts/analyze_revision_resolution_bounds.py",
+      "returncode": 0,
+      "matches": {
+        "r3_resolution_bounds_runs.csv": true,
+        "r3_resolution_bounds_paired.csv": true
+      }
+    },
+    {
+      "generator": "scripts/analyze_revision_sobol_uncertainty.py",
+      "returncode": 0,
+      "matches": {
+        "r3_sobol_uncertainty_runs.csv": true,
+        "r3_sobol_uncertainty_summary.csv": true
+      }
+    },
+    {
+      "generator": "scripts/analyze_revision_attribution.py",
+      "returncode": 0,
+      "matches": {
+        "r2_attribution_runs.csv": true,
+        "r2_attribution_gap.csv": true,
+        "r2_attribution_paired.csv": true
+      }
+    }
+  ],
+  "passed": true
+}

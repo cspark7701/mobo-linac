@@ -31,3 +31,18 @@ def test_manifest_records_clean_production_commits():
     assert steps["04_primary"]["git_commit"].startswith("8ad6c2c")
     assert not any(entry["git_dirty"] for entry in manifest["production_steps"])
     assert all(len(entry["sha256"]) == 64 for entry in manifest["ledgers"])
+
+
+def test_inventory_covers_every_generator_and_flags_gaps(tmp_path, monkeypatch):
+    module = load()
+    with module.INVENTORY.open() as handle:
+        entries = list(csv.DictReader(handle))
+    assert {e["level"] for e in entries} <= module.LEVELS
+    assert next(e for e in entries if e["generator"].endswith("analyze_revision_predictions.py"))["level"] == "2b"
+    short = tmp_path / "input_inventory.csv"
+    short.write_text("generator,input_classes,run_files,level\n"
+                     "scripts/analyze_revision_acceptance.py,ledgers;telepathy,evaluations.csv,9\n")
+    monkeypatch.setattr(module, "INVENTORY", short)
+    errors = module.check()
+    assert any("without input inventory entry" in error for error in errors)
+    assert any("invalid inventory entry for scripts/analyze_revision_acceptance.py" in error for error in errors)

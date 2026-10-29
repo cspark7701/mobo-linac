@@ -7,7 +7,10 @@ SHA-256 of every run-level input ledger (evaluations, resolved configuration, co
 marker) that the evidence files are computed from. The full run directories are not
 distributed. ``--check`` (the default) verifies that every map entry exists, that every
 file in the evidence directory is mapped, that each manuscript location is a defined
-label, and, when the raw results are present, that the recorded ledger checksums still hold.
+label, that every generator has an entry in ``input_inventory.csv`` with known input classes
+and a reproduction level, and, when the raw results are present, that the recorded ledger
+checksums still hold. The inventory records which inputs each generator needs; passing this
+check does not itself regenerate any evidence (see ``scripts/check_supplement_regeneration.py``).
 """
 from __future__ import annotations
 
@@ -23,6 +26,10 @@ ROOT = Path(__file__).resolve().parents[1]
 SUPPLEMENT = ROOT / "docs/paper/supplement"
 MAP = SUPPLEMENT / "evidence_map.csv"
 MANIFEST = SUPPLEMENT / "ledger_manifest.json"
+INVENTORY = SUPPLEMENT / "input_inventory.csv"
+INPUT_CLASSES = {"ledgers", "run_records", "gp_checkpoints", "tracking_outputs", "retracking_records",
+                 "derived_evidence", "tracking"}
+LEVELS = {"2a", "2b", "3"}
 EVIDENCE = ROOT / "docs/paper/revisions/evidence"
 PAPER = ROOT / "docs/paper"
 RESULTS = ("results/paper_production", "results/revision_round2")
@@ -78,6 +85,18 @@ def check() -> list[str]:
                 errors.append(f"{row['item']}: missing {key} {row[key]}")
         if row["manuscript_location"] and row["manuscript_location"] not in defined:
             errors.append(f"{row['item']}: undefined label {row['manuscript_location']}")
+    inventory = {}
+    if INVENTORY.exists():
+        with INVENTORY.open() as handle:
+            inventory = {entry["generator"]: entry for entry in csv.DictReader(handle)}
+    for generator in sorted({row["generator"] for row in rows if row["generator"]}):
+        entry = inventory.get(generator)
+        if entry is None:
+            errors.append(f"generator without input inventory entry: {generator}")
+            continue
+        unknown = set(entry["input_classes"].split(";")) - INPUT_CLASSES
+        if unknown or entry["level"] not in LEVELS:
+            errors.append(f"invalid inventory entry for {generator}: {sorted(unknown)} {entry['level']}")
     mapped = {row["path"] for row in rows}
     for path in sorted(EVIDENCE.iterdir()):
         if str(path.relative_to(ROOT)) not in mapped:

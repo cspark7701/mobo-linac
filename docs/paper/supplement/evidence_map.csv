@@ -117,3 +117,4 @@ S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r3_resoluti
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_runs.csv,scripts/analyze_revision_sobol_uncertainty.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_summary.csv,scripts/analyze_revision_sobol_uncertainty.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_metadata.json,scripts/analyze_revision_sobol_uncertainty.py
+S1.1,Reproduction inputs,app:implementation,docs/paper/revisions/evidence/r3_regeneration_check.json,scripts/check_supplement_regeneration.py

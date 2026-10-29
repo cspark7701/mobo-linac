@@ -1,0 +1,25 @@
+generator,input_classes,run_files,level
+docs/paper/revisions/evidence/c02_audit.py,ledgers;run_records,evaluations.csv; config.json; robustness/representatives.json,2b
+docs/paper/revisions/evidence/c05_audit.py,ledgers;run_records;gp_checkpoints,config.json; run_complete.json; proposal_history.json; campaign_manifest.csv; environment.txt; gp_checkpoint/model_iter_*.pt,2b
+scripts/analyze_revision_acceptance.py,ledgers,evaluations.csv; config.json; run_complete.json,2a
+scripts/analyze_revision_attribution.py,ledgers,evaluations.csv; config.json; run_complete.json,2a
+scripts/analyze_revision_calibration.py,ledgers,evaluations.csv; config.json; run_complete.json,2a
+scripts/analyze_revision_convergence.py,ledgers;run_records;retracking_records,evaluations.csv; references/moga_nominal/moga_reference.json; convergence/convergence_results.jsonl; convergence/plan.json; convergence/complete.json,2b
+scripts/analyze_revision_cost.py,ledgers;run_records,evaluations.csv; config.json; run_complete.json; metrics_history.csv; proposal_history.json; campaign_manifest.csv; scheduler.json; step_record_*.json,2b
+scripts/analyze_revision_fronts.py,ledgers,evaluations.csv; run_complete.json,2a
+scripts/analyze_revision_jitter_checks.py,run_records;tracking_outputs,robustness_runs/*/robustness_requests.json; robustness_summary*; references/moga_nominal/moga_reference.json; astra.Zemit.001,2b
+scripts/analyze_revision_pairs.py,ledgers;derived_evidence,evaluations.csv; evidence files,2a
+scripts/analyze_revision_predictions.py,ledgers;gp_checkpoints,evaluations.csv; config.json; run_complete.json; gp_checkpoint/*.pt,2b
+scripts/analyze_revision_reference_resampling.py,ledgers;derived_evidence,evaluations.csv; evidence files,2a
+scripts/analyze_revision_resolution_bounds.py,ledgers;derived_evidence,evaluations.csv; r2_convergence_summary.csv,2a
+scripts/analyze_revision_robustness.py,run_records;tracking_outputs,robustness_summary*; robustness_runs/*/robustness_requests.json; astra.Xemit.001; astra.Yemit.001; astra.Zemit.001,2b
+scripts/analyze_revision_scaling.py,run_records;gp_checkpoints,proposal_history.json; gp_checkpoint/*.pt,2b
+scripts/analyze_revision_settings.py,ledgers;run_records;tracking_outputs,evaluations.csv; config.json; run_complete.json; robustness/representatives.json; astra.*emit.001,2b
+scripts/analyze_revision_sobol_uncertainty.py,ledgers,evaluations.csv,2a
+scripts/analyze_revision_space_filling.py,ledgers,evaluations.csv; config.json; run_complete.json,2a
+scripts/analyze_revision_tdr_campaigns.py,ledgers;run_records,evaluations.csv; run_complete.json; evaluations_stream.csv; references/moga_nominal/moga_reference.json,2b
+scripts/build_supplement_manifest.py,ledgers;run_records,evaluations.csv; config.json; run_complete.json; step_record_*.json,2b
+scripts/evaluate_revision_validation.py,ledgers;tracking,evaluations.csv; validation_sample.csv; ASTRA executable and static inputs,3
+scripts/prepare_revision_figures.py,ledgers;run_records,evaluations.csv; config.json; run_complete.json; references/moga_nominal/moga_reference.json,2b
+scripts/prepare_revision_tables.py,ledgers;run_records,evaluations.csv; run_complete.json; phase1_scalarized/cases_summary.csv,2b
+scripts/check_supplement_regeneration.py,ledgers;derived_evidence,evaluations.csv; config.json; run_complete.json; evidence files,2a

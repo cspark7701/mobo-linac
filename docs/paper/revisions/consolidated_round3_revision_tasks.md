@@ -22,7 +22,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-04 | Done | see below | — |
 | C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — |
 | C3-06 | Done | see below | — |
-| C3-07 | Not started | — | — |
+| C3-07 | Done | see below | — |
 | C3-08 | Not started | — | — |
 | C3-09 | Not started | — | — |
 | C3-10 | Not started | — | — |
@@ -76,7 +76,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-04 | Done | see below | — | None |
 | C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — | C3-01 |
 | C3-06 | Done | see below | — | None |
-| C3-07 | P0 | Supplement input inventory and data availability | Local documentation; supplement map; reproduction checks | C3-02, C3-04 (new evidence files) |
+| C3-07 | Done | see below | — | C3-02, C3-04 (new evidence files) |
 | C3-08 | P1 | Summary-claims audit | Manuscript | C3-01 to C3-06 |
 | C3-09 | P1 | Surrogate-undercoverage wording | Manuscript; optional offline split | None |
 | C3-10 | P2 | Precision, length, style and source hygiene | Manuscript; tests | C3-01 to C3-09 |
@@ -232,23 +232,25 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Sources:** Reviewer 1 M5 (R3-05); Reviewer 2 minor 5 (T8).
 
-- [ ] Correct the claim in Appendix A and the supplement README that about 10 MB of evaluation ledgers regenerate every evidence file.
-- [ ] Map each S1 item to the inputs it requires:
+- [x] Correct the claim in Appendix A and the supplement README that about 10 MB of evaluation ledgers regenerate every evidence file.
+- [x] Map each S1 item to the inputs it requires:
   - evaluation ledgers, configuration and completion records;
   - GP checkpoints (`analyze_revision_predictions.py`, the frozen-model scaling probe);
   - retained tracking outputs (`astra.Zemit.001` for the RF estimate);
   - convergence results, plan and source records.
-- [ ] Distinguish three reproduction levels:
+- [x] Distinguish three reproduction levels:
   1. rebuilding tables and figures from the distributed derived evidence;
   2. regenerating the analyses from raw ledgers, checkpoints and tracking outputs;
   3. replaying simulations or proposals. Proposals cannot be replayed bitwise, because sampler base draws were not archived.
-- [ ] State the exact snapshot identifier. Also state which inputs accompany the review package and which are available from the author on request.
-- [ ] Make Appendix A ("accompanies this manuscript"), the Data availability statement and the supplement README consistent. State whether S1 or its evidence is submitted as PRAB Supplemental Material, or whether all of it is available on request. Add no public repository or deposit.
-- [ ] Test representative regeneration paths with the claimed input set, or label the result an inventory-only check. Extend `scripts/build_supplement_manifest.py` to record the input class of each item.
-- [ ] Add the C3-02 and C3-04 evidence files to S1 and rebuild the manifest.
+- [x] State the exact snapshot identifier. Also state which inputs accompany the review package and which are available from the author on request.
+- [x] Make Appendix A ("accompanies this manuscript"), the Data availability statement and the supplement README consistent. State whether S1 or its evidence is submitted as PRAB Supplemental Material, or whether all of it is available on request. Add no public repository or deposit.
+- [x] Test representative regeneration paths with the claimed input set, or label the result an inventory-only check. Extend `scripts/build_supplement_manifest.py` to record the input class of each item.
+- [x] Add the C3-02 and C3-04 evidence files to S1 and rebuild the manifest.
 
 **Done when:** a reader can tell which inputs are needed for each reproduction level, and the three statements about availability agree. Local packaging only; no upload or push.
 
+
+**Done:** New `docs/paper/supplement/input_inventory.csv` maps every generator to its input classes, run files and reproduction level (1 / 2a / 2b / 3); `build_supplement_manifest.py` now fails on a generator without a valid inventory entry. The README replaces the blanket 10 MB claim with a reproduction-level table and examples (GP checkpoints, `astra.Zemit.001`, convergence records). `scripts/check_supplement_regeneration.py` regenerated three level-2a generators (resolution bounds, Sobol uncertainty, attribution) in a scratch tree with only the 215 minimal ledger files and matched the committed evidence (`r3_regeneration_check.json`). Appendix A, the Data availability statement and the README now agree: S1 is supplied for review and otherwise on request, the run directories are available from the author, and the snapshot is identified by the commit in the review package. No deposit or upload.
 ### C3-08. Audit the summary claims
 
 **Sources:** Reviewer 2 R3(c) (T3c, T3 last item); Reviewer 1 minor 1 (R3-06, first item).

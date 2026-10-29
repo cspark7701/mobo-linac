@@ -1454,8 +1454,9 @@ nodes, and test the optimized settings on the machine.
 The data that support the findings of this study are available from the corresponding author
 upon reasonable request. They comprise the evaluation ledgers and run records of every
 campaign, the complete simulation run directories, the configuration files and the analysis
-scripts that generate the reported results. Supplement S1 (Appendix~\ref{app:implementation})
-identifies each item.
+scripts that generate the reported results. Supplement S1 (Appendix~\ref{app:implementation}),
+which is supplied with the manuscript for review, contains the code, configurations and
+evidence files, and identifies the inputs that each reported result requires.
 
 \appendix
 \section{Executed implementation details}
@@ -1464,7 +1465,9 @@ This appendix records implementation details of the executed pipelines that matt
 reproduction but not for the physical argument.
 
 \paragraph{Supporting package.} Supplement S1 is the versioned \texttt{mobo\_linac}~1.0.0
-repository snapshot that accompanies this manuscript. Its evidence map
+repository snapshot supplied with this manuscript for review and otherwise available from the
+author on request; it is identified by the commit hash recorded in the review package. Its
+evidence map
 (\path{docs/paper/supplement/README.md}) assigns item numbers S1.1--S1.15 to the reported
 results and links each to its evidence file and generating script. Every production step was
 started from a recorded clean commit. The primary benchmark used \texttt{8ad6c2c}, the
@@ -1474,9 +1477,12 @@ revision-analysis scripts are distinct from this production code. They read the 
 run ledgers and verify their checksums, and they do not modify run directories. The
 configuration's development benchmark defaults were overridden on the command line. These
 overrides, the ledger checksums and the configuration hash are listed in item S1.1. The
-complete run directories (about \SI{44}{\giga\byte}) are not distributed. The
-\SI{10}{\mega\byte} of evaluation ledgers that suffice to regenerate every evidence file are
-identified by checksum. Sampler base draws were not archived.
+complete run directories (about \SI{44}{\giga\byte}) are not distributed with S1 and are
+available from the author. The evidence files do not all need the same inputs. Those computed
+from the evaluation ledgers alone, about \SI{10}{\mega\byte} identified by checksum, regenerate
+from that minimal set, as tested for representative cases. Others also need run records, saved
+GP checkpoints, retained tracking outputs or the re-tracking records; S1 lists the inputs of
+every item. Sampler base draws were not archived, so proposals cannot be replayed bitwise.
 
 \paragraph{Surrogate noise and fitting.} The fixed-noise expression of
 Sec.~\ref{sec:methods} specifies the requested variance in each output's recorded units. The

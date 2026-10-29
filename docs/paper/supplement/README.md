@@ -1,14 +1,16 @@
 # Supplement S1: evidence map for the manuscript
 
-This supplement is the `mobo-linac` repository snapshot that accompanies the manuscript
+This supplement is the `mobo-linac` repository snapshot supplied with the manuscript
 "Multi-objective Bayesian optimization of a 200 MeV injector-linac model derived from the
-Korea Light Source design". It identifies, for each result reported in the article, the
+Korea Light Source design" for review. Outside review it is available from the author on
+request, as stated in the manuscript's Data availability section. The snapshot is identified
+by the commit hash recorded in the review package (the revision overview and its
+changed-file inventory). It identifies, for each result reported in the article, the
 file that holds it, the script that computes that file, and the run-level inputs.
 Item numbers S1.1–S1.15 are the identifiers the manuscript cites. Internal task numbers are
 not needed to use it.
 
-For peer review the snapshot is supplied locally. Public deposition is a separate step that
-the author decides on; nothing in this map has been uploaded.
+Nothing in this map has been uploaded or deposited publicly.
 
 ## Software identity
 
@@ -61,12 +63,36 @@ line. The overrides are recorded in each step record:
   for production and about 2 GB for the revision runs). They hold the ASTRA input and output
   snapshots, the GP checkpoints and the logs. They are immutable and available from the
   author.
-- **Minimum input to regenerate the evidence:** each run's `evaluations.csv`, `config.json`
-  and `run_complete.json`, about 10 MB in total. `ledger_manifest.json` lists each with its
-  size and SHA-256, together with the production step records.
 - **Not archived:** the BoTorch sampler base draws and acquisition objects. Saved GP
   snapshots and training sets allow the surrogates to be restored and the next-batch
   predictions to be checked. Bitwise replay of the proposals is not possible.
+
+### Reproduction levels and their inputs
+
+The evidence files do not all need the same inputs. `input_inventory.csv` lists, for every
+generator in `evidence_map.csv`, its input classes, the run files it reads and its level:
+
+| Level | What is reproduced | Inputs needed |
+|---|---|---|
+| 1 | Tables and figures from the distributed evidence files | This snapshot only |
+| 2a | Evidence computed from the minimal ledgers | Each run's `evaluations.csv`, `config.json` and `run_complete.json` (about 10 MB; listed with SHA-256 in `ledger_manifest.json`) |
+| 2b | Evidence that also needs other run records, GP checkpoints, tracking outputs or re-tracking records | The full run directories, available from the author |
+| 3 | Re-tracking with ASTRA | The ASTRA executable, static inputs and configuration in this snapshot |
+
+The input classes are `ledgers` (the minimal set), `run_records` (other run-level records such
+as `proposal_history.json`, `metrics_history.csv`, robustness summaries and
+`moga_reference.json`), `gp_checkpoints` (saved surrogate states, `*.pt`), `tracking_outputs`
+(ASTRA output files such as `astra.Zemit.001`), `retracking_records` (the result streams, plans
+and completion markers of the resolution and validation runs) and `derived_evidence`.
+Examples of level 2b are the next-batch predictions (GP checkpoints), the RF-amplitude estimate
+(a retained `astra.Zemit.001`) and the resolution check (`convergence_results.jsonl`, its plan
+and completion record). Proposals cannot be replayed bitwise (level 3 does not cover them).
+
+`scripts/check_supplement_regeneration.py` tests level 2a: it assembles a scratch tree with
+the scripts, the evidence files and only the minimal ledgers, runs representative ledger-only
+generators there and compares their outputs with the committed evidence
+(`r3_regeneration_check.json`). The manifest check below verifies the map, labels, inventory
+and checksums; it does not regenerate evidence.
 
 ## Evidence map
 
@@ -99,5 +125,9 @@ python scripts/build_supplement_manifest.py --build  # rewrite ledger_manifest.j
 ```
 
 The check fails if a mapped file or generator is missing, if an evidence file is unmapped,
-if a manuscript label is undefined, or, when `results/` is present, if a ledger checksum has
-changed.
+if a manuscript label is undefined, if a generator has no valid entry in
+`input_inventory.csv`, or, when `results/` is present, if a ledger checksum has changed.
+
+```bash
+python scripts/check_supplement_regeneration.py      # regenerate level-2a evidence from the minimal ledgers
+```
