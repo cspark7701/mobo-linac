@@ -74,8 +74,9 @@ constrained by them approach that region to within the numerical resolution of t
 refinement check shows that the absolute emittances depend on the tracking resolution.
 All methods identify feasible nondominated operating points, revealing trade-offs between
 transverse beam quality and energy spread. Paired analyses support a higher feasible
-sampling fraction for constraint-aware acquisition, which arises mainly from meeting the
-transverse beam-size and divergence limits; all pipelines sample feasible settings more often
+sampling fraction for constraint-aware acquisition, which persists among energy-acceptable
+settings and lies mainly in the transverse limits against unconstrained optimization but in
+the energy band against weighted-sum optimization; all pipelines sample feasible settings more often
 than a budget-matched space-filling search, while the weighted-sum implementation has the lowest
 computational overhead.
 Objective-quality comparisons depend on the indicator and comparator. A survey of
@@ -188,11 +189,12 @@ The contributions of this work are the following.
   simulation budgets, shared initial designs, a fixed reference point and predeclared
   endpoints, and counts failed simulations
   (Secs.~\ref{sec:design}--\ref{sec:primary}).
-\item An attribution of the feasible-sampling advantage of the constraint-aware pipeline
-  by violated channel group. The advantage comes mainly from satisfying the transverse size
-  and divergence limits more often, and it persists among evaluations that already meet the
-  energy band. It is not produced by the setting of the energy-band weight or by the upper
-  ACC3/ACC4 phase window (Sec.~\ref{sec:attribution}).
+\item An accounting of the feasible-sampling advantage of the constraint-aware pipeline
+  by violated channel group. The advantage persists among evaluations that meet the energy
+  band. Against unconstrained MOBO it lies mainly in transverse size and divergence
+  violations, whereas against weighted-sum BO energy-band violations account for the larger
+  share. Neither the effective step weight of the energy band nor the upper ACC3/ACC4 phase
+  window explains it alone (Sec.~\ref{sec:attribution}).
 \item A quantified reach of the KLS technical-design acceptance region. The primary
   evaluations are reclassified against the TDR inequalities; two marginal candidates and a
   MOGA-derived reference are checked under jitter; and three campaigns constrained directly
@@ -900,13 +902,16 @@ classified each post-initialization evaluation (evaluations 17--160) of the prim
 one exclusive category of violated channel groups: energy band, transverse size or
 divergence, and bunch length. Transmission was never violated. Because the feasible fraction
 equals one minus the sum of the infeasible category shares, each paired feasible-fraction
-difference divides exactly among these categories. The analysis is descriptive and uses only
-the archived evaluations.
+difference divides exactly among these categories. This is an accounting of the observed
+gaps, not a causal identification of acquisition terms. The analysis is descriptive and uses
+only the archived evaluations.
 
-The upper ACC3/ACC4 quarter is not the main source of the difference.
+The upper ACC3/ACC4 quarter contributes, but is not the main source of the difference.
 Constraint-aware MOBO placed a median \SI{15.3}{\percent} of its post-initialization
 evaluations there, compared with \SI{22.6}{\percent} and \SI{24.7}{\percent} for the
-unconstrained and scalarized pipelines (Fig.~\ref{fig:attribution}a). Relative to
+unconstrained and scalarized pipelines (Fig.~\ref{fig:attribution}a). Because every evaluation
+there is infeasible, the lower mean occupancy (by 0.060 and 0.094) corresponds to about a fifth
+and a third of the respective gaps. Relative to
 unconstrained MOBO, the mean paired gap of 0.276 (\SI{95}{\percent} interval 0.229--0.325)
 comes mostly from transverse-only violations, which account for \SI{62}{\percent} of it; the
 categories involving the energy band account for \SI{34}{\percent}. Relative to scalarized
@@ -919,10 +924,12 @@ more frequent for the constraint-aware pipeline in both comparisons
 Among evaluations that satisfy the energy band, the median fraction meeting all remaining
 inequalities was 0.578 for constraint-aware MOBO, compared with 0.254 and 0.231 for the
 baselines. The mean paired differences were 0.328 (0.268--0.389) and 0.342 (0.293--0.392),
-positive in all ten matched groups for each comparison. The feasible-sampling advantage of
-the recorded constrained pipeline therefore extends beyond the energy boundary: it largely
-reflects more frequent satisfaction of the transverse size and divergence limits, even though
-those channels receive the softest weights. This attribution describes the executed
+positive in all ten matched groups for each comparison. These conditional fractions compare
+populations that each method selected, so they do not isolate an energy-independent
+mechanism. They do show that the feasible-sampling advantage of the recorded constrained
+pipeline is not confined to the energy boundary: among energy-acceptable evaluations it meets
+the transverse size and divergence limits more often, even though those channels receive the
+softest weights. This attribution describes the executed
 raw-residual pipeline on the recorded domain. It does not predict the behaviour of a
 normalized-residual method or of a campaign in a restricted phase window.
 
@@ -1235,8 +1242,9 @@ source file at the production resolution, whereas the feasible-sampling advantag
 under the bounding shifts of the refinement check. A larger
 feasible set therefore should not be read as uniform superiority of the observed Pareto front.
 The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
-infeasible upper ACC3/ACC4 phase region: it persists among energy-acceptable evaluations and
-comes largely from the transverse size and divergence limits. None of the pipelines found a
+infeasible upper ACC3/ACC4 phase region, although both contribute: it persists among
+energy-acceptable evaluations. Against unconstrained MOBO it lies mainly in the transverse size
+and divergence violations, and against weighted-sum BO mainly in the energy band. None of the pipelines found a
 feasible setting that dominates the MOGA-derived nominal setting at the centre of the search
 domain, so the reported fronts describe trade-offs around that earlier operating point rather
 than an improvement on it. All methods identified feasible nondominated settings,
@@ -1388,8 +1396,9 @@ the trade-offs between transverse emittance and energy spread.
 
 The best-supported result is a feasible-sampling advantage of the constraint-aware pipeline
 under the stated computational profile. It holds in every matched group without any estimated
-reference, persists among energy-acceptable evaluations and comes mainly from the transverse
-size and divergence limits. All three pipelines sample feasible settings more often than a
+reference and persists among energy-acceptable evaluations. Against unconstrained MOBO it lies
+mainly in the transverse size and divergence limits, and against weighted-sum BO mainly in the
+energy band. All three pipelines sample feasible settings more often than a
 budget-matched Sobol search, and most of the constraint-aware advantage over that search
 exceeds what the constraint-blind pipelines achieve. Indicators of front quality also favour the constraint-aware
 pipeline, including when the empirical reference is rebuilt in each resample, but they rest

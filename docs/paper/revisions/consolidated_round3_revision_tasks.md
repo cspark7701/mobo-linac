@@ -18,7 +18,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 |---|---|---|---|
 | C3-01 | **Route (b) chosen** by the author (2026-10-29); validation design predeclared; stage A running | this commit | Stage A (resolution ladder), level selection, stage B, then the manuscript scope |
 | C3-02 | Done | see below | — |
-| C3-03 | Not started | — | — |
+| C3-03 | Done | see below | — |
 | C3-04 | Not started | — | — |
 | C3-05 | Not started | — | — |
 | C3-06 | Not started | — | — |
@@ -72,7 +72,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 |---|---|---|---|---|
 | C3-01 | P0 | Scope decision: nominal-model benchmark | Author decision; manuscript | None (do first) |
 | C3-02 | Done | see below | — | C3-01 |
-| C3-03 | P0 | Attribution stated per baseline, as accounting | Manuscript; existing `r2_attribution_*` | C3-01 |
+| C3-03 | Done | see below | — | C3-01 |
 | C3-04 | P0 | Sobol uncertainty and Sobol-arm statements | Existing ten-run records; script, tests; manuscript | None |
 | C3-05 | P0 | TDR reach without domain-geometry or necessity claims | Manuscript; existing control vectors and C2-12/C2-13 evidence | C3-01 |
 | C3-06 | P0 | RF-amplitude estimate restricted to what it estimates | Manuscript | None |
@@ -151,19 +151,21 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Sources:** Reviewer 2 R1 (T1); Reviewer 1 M3, second part (R3-03, items 4–6).
 
-- [ ] Abstract (no numbers), contribution 2, Discussion and Conclusions: say that the advantage persists among energy-acceptable evaluations. Then state the comparison per baseline:
+- [x] Abstract (no numbers), contribution 2, Discussion and Conclusions: say that the advantage persists among energy-acceptable evaluations. Then state the comparison per baseline:
   - against unconstrained MOBO, the gap is concentrated in transverse-only violations;
   - against weighted-sum BO, energy-involving categories account for the larger share.
-- [ ] Replace "is not produced by the energy-band weight or the upper ACC3/ACC4 window" with a statement of partial contribution ("not explained by … alone").
-- [ ] Optionally quantify the share of the upper quarter. The occupancy differences of 7–9 percentage points, all infeasible, are roughly a quarter to a third of the gaps.
-- [ ] Describe the exclusive categories as an accounting decomposition of observed gaps, not as causal identification of acquisition terms.
-- [ ] Describe the energy-conditional fractions as comparisons of method-selected populations, not as an isolated, energy-independent mechanism.
+- [x] Replace "is not produced by the energy-band weight or the upper ACC3/ACC4 window" with a statement of partial contribution ("not explained by … alone").
+- [x] Optionally quantify the share of the upper quarter. The occupancy differences of 7–9 percentage points, all infeasible, are roughly a quarter to a third of the gaps.
+- [x] Describe the exclusive categories as an accounting decomposition of observed gaps, not as causal identification of acquisition terms.
+- [x] Describe the energy-conditional fractions as comparisons of method-selected populations, not as an isolated, energy-independent mechanism.
 
 **Done when:**
 - no sentence attributes the advantage to the transverse limits without naming the unconstrained baseline;
 - no sentence says the energy weight or the upper window plays no part;
 - no sentence infers a causal mechanism.
 
+
+**Done:** Abstract (no numbers), contribution 2, Sec. V C, the Discussion and the Conclusions state the attribution per baseline: mainly transverse against unconstrained MOBO, mainly energy band against weighted-sum BO, persisting among energy-acceptable evaluations. "Not produced by" is replaced by "neither … explains it alone". Sec. V C calls the categories an accounting, not a causal identification, describes the conditional fractions as method-selected populations, and quantifies the upper quarter: lower mean occupancy by 0.060 and 0.094, about a fifth and a third of the gaps.
 ### C3-04. Correct the Sobol uncertainty and the Sobol-arm statements
 
 **Sources:** Reviewer 1 M2 (R3-02); Reviewer 2 R3(b) and minor 1 (T3b, T4).
