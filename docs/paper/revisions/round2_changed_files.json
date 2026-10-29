@@ -140,7 +140,7 @@
     {
       "path": "docs/paper/README.md",
       "status": "M",
-      "sha256": "51150790bdc34f5beabe5da72f553986a26a08cf447510a6abad23c4116262cc"
+      "sha256": "557309777a888734b0881ba42ae8bb4dde6ed2ea20128ae2e2cb0642472101e7"
     },
     {
       "path": "docs/paper/figures/primary_constraint_spaces.pdf",
@@ -170,7 +170,7 @@
     {
       "path": "docs/paper/main.tex",
       "status": "M",
-      "sha256": "6e75e9b31d8085686c41a09346c94a2e77ba00b0f25a3e133e78df211b958834"
+      "sha256": "bf26dfdbb2abaaabe86a436cae3df6d0306e8ec35fea50fb845e84810c80f7dc"
     },
     {
       "path": "docs/paper/reviews/reviewer1_round2_report.md",
@@ -180,7 +180,7 @@
     {
       "path": "docs/paper/reviews/reviewer1_round2_response.md",
       "status": "A",
-      "sha256": "6842d726715be72aead34ae1f24f7f430f0ec863728479bdbef78ad61c9a08c5"
+      "sha256": "ad1bd58bb4dc505587771b50d6fb6e3666017cac20584af0fe0e5d5e0b76fc15"
     },
     {
       "path": "docs/paper/reviews/reviewer2_round2_report.md",
@@ -190,12 +190,12 @@
     {
       "path": "docs/paper/reviews/reviewer2_round2_response.md",
       "status": "A",
-      "sha256": "fbd48414a8eb8e0e59aaaf181c55c85f66e1f3eaa5a655e570356fd54a9773b0"
+      "sha256": "2b6acb5d5a2fca9982dda4089990fd1b64d1f41153be37dc6ba28349e0c1968c"
     },
     {
       "path": "docs/paper/revisions/consolidated_round2_revision_tasks.md",
       "status": "A",
-      "sha256": "efe382216cff7c33316147ea9f4ff19a77a76cd41e3469f0ea4d4ee132f035d4"
+      "sha256": "1a30b0be4788f77ef6b7f3cc054ea68e5b644c42f209f0829bf1e6ff43c133a5"
     },
     {
       "path": "docs/paper/revisions/evidence/r2_attribution_batches.csv",

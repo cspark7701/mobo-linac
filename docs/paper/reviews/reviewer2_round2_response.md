@@ -112,7 +112,7 @@ The undercoverage discussion in (a) is in place. The undercoverage is concentrat
 2. **Length and density.**
    - The forensic detail now sits in a new Appendix A, "Executed implementation details": sampler counts, smoothing constants, the inclusion–exclusion description, fitting and Adam-recovery counts, effective likelihood floors and evaluation-interval unions.
    - Repeated caveats were removed, and the limitations are collected in the Limitations subsection.
-   - The required new analyses add material, so the PDF is 30 pages in the two-column PRAB format.
+   - The required new analyses add material, so the PDF is 52 pages in the one-column review format (30 pages in the two-column PRAB layout).
    - The table of contents is removed. The author chose PRAB, which does not use one (minor 9).
 3. **Source comments.** All revision-integration comments and the campaign-output block were removed from `main.tex` and its inputs.
 4. **RF-amplitude jitter.**

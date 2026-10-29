@@ -1,5 +1,5 @@
 diff --git a/docs/paper/main.tex b/docs/paper/main.tex
-index 2d21211..7b99c77 100644
+index 2d21211..1d1c762 100644
 --- a/docs/paper/main.tex
 +++ b/docs/paper/main.tex
 @@ -1,17 +1,14 @@
@@ -11,7 +11,7 @@ index 2d21211..7b99c77 100644
  % The remaining funding/acknowledgment marker is explicitly deferred to the author.
  % Set \finaltrue only after every \pending marker has been replaced.
 -\documentclass[11pt,a4paper]{article}
-+\documentclass[aps,prab,reprint,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
++\documentclass[aps,prab,preprint,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
  
  \usepackage[utf8]{inputenc}
  \usepackage[T1]{fontenc}
@@ -32,7 +32,12 @@ index 2d21211..7b99c77 100644
  
  \newif\iffinal
  \finalfalse
-@@ -32,51 +32,57 @@
+@@ -28,55 +28,61 @@
+ \newcommand{\pending}[1]{\textcolor{red}{\textbf{[#1]}}}
+ % Include a generated figure, or a visible placeholder while the file is missing.
+ \newcommand{\datafigure}[2]{%
+-  \IfFileExists{#1}{\includegraphics[width=#2]{#1}}%
++  \IfFileExists{#1}{\includegraphics[width=#2,height=0.7\textheight,keepaspectratio]{#1}}%
    {\fbox{\parbox[c][0.25\textheight][c]{#2}{\centering\footnotesize\pending{Pending figure:}\\ \textcolor{red}{\url{#1}}}}}}
  % Include a generated table, or a visible placeholder while the file is missing.
  \newcommand{\pendingtable}[3]{%
@@ -44,7 +49,7 @@ index 2d21211..7b99c77 100644
  \newcommand{\enx}{\varepsilon_{n,x}}
  \newcommand{\eny}{\varepsilon_{n,y}}
  \newcommand{\umrad}{\si{\micro\metre\radian}}
-+% Input a generated table as a two-column-wide float.
++% Input a generated table as a page-wide float.
 +\makeatletter
 +\newcommand{\inputwide}[1]{\begingroup
 +  \expandafter\let\expandafter\table\csname table*\endcsname
@@ -1195,7 +1200,7 @@ index 2d21211..7b99c77 100644
 +
 +\paragraph{Supporting package.} Supplement S1 is the versioned \texttt{mobo\_linac}~1.0.0
 +repository snapshot that accompanies this manuscript. Its evidence map
-+(\texttt{docs/paper/supplement/README.md}) assigns item numbers S1.1--S1.15 to the reported
++(\path{docs/paper/supplement/README.md}) assigns item numbers S1.1--S1.15 to the reported
 +results and links each to its evidence file and generating script. Every production step was
 +started from a recorded clean commit. The primary benchmark used \texttt{8ad6c2c}, the
 +operating-point survey \texttt{239c466}, and the candidate audit and lattice jitter

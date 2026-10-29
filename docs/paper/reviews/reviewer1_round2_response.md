@@ -126,7 +126,7 @@ An offline refit with inferred noise was added at Reviewer 2's request; this rep
 4. **Labels.** Section IV D and Table VI use the same labels: equal weight and emittance, spread, horizontal or vertical emphasis. "High brightness" is removed.
 5. **Conclusions.** Rewritten around the paired feasible-sampling result and its source, the qualified front quality, the MOGA-derived reference, the limited engineering conclusion, and robustness conditional on the lattice-only error model. Repeated pooled counts are removed.
 6. **Presentation.** The revision-integration comments and the campaign-output block are removed, and PDF title, author and keyword metadata are added. The abstract remains qualitative. Funding is still author-deferred.
-7. **Length.** Implementation-audit detail has moved to the new Appendix A. That detail covers the likelihood floors, fitting counts, smoothing constants, sample counts and evaluation-interval method, and it is identified through S1.7. The unit-smoothing issue and acceptance definitions remain in the main text. The new required analyses add material, so the PDF is now 30 pages in the two-column PRAB format.
+7. **Length.** Implementation-audit detail has moved to the new Appendix A. That detail covers the likelihood floors, fitting counts, smoothing constants, sample counts and evaluation-interval method, and it is identified through S1.7. The unit-smoothing issue and acceptance definitions remain in the main text. The new required analyses add material, so the PDF is now 52 pages in the one-column review format (30 pages in the two-column PRAB layout).
 
 ## Conditions for reconsideration
 
