@@ -20,7 +20,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-02 | Done | see below | — |
 | C3-03 | Done | see below | — |
 | C3-04 | Done | see below | — |
-| C3-05 | Not started | — | — |
+| C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — |
 | C3-06 | Not started | — | — |
 | C3-07 | Not started | — | — |
 | C3-08 | Not started | — | — |
@@ -74,7 +74,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-02 | Done | see below | — | C3-01 |
 | C3-03 | Done | see below | — | C3-01 |
 | C3-04 | Done | see below | — | None |
-| C3-05 | P0 | TDR reach without domain-geometry or necessity claims | Manuscript; existing control vectors and C2-12/C2-13 evidence | C3-01 |
+| C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — | C3-01 |
 | C3-06 | P0 | RF-amplitude estimate restricted to what it estimates | Manuscript | None |
 | C3-07 | P0 | Supplement input inventory and data availability | Local documentation; supplement map; reproduction checks | C3-02, C3-04 (new evidence files) |
 | C3-08 | P1 | Summary-claims audit | Manuscript | C3-01 to C3-06 |
@@ -194,22 +194,24 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Sources:** Reviewer 1 M3, first part (R3-03, items 1–3); Reviewer 2 R3(a) (T3a).
 
-- [ ] Replace "at the edge of the explored domain" in the abstract, contribution 3, Sec. VI B and the Conclusions with what was observed:
+- [x] Replace "at the edge of the explored domain" in the abstract, contribution 3, Sec. VI B and the Conclusions with what was observed:
   - sparse coverage at the nominal resolution;
   - small diagnostic margins;
   - membership that changes under refinement.
 
   If "edge" is kept, define it as the diagnostic acceptance boundary, not a boundary in control space.
-- [ ] If control-space location is discussed, use the normalized controls:
+- [x] If control-space location is discussed, use the normalized controls:
   - candidate A is interior (about 0.48–0.86);
   - candidate B has the gun phase near 0.96, with its other controls interior.
 
   Do not generalize from these two points.
-- [ ] Present the three TDR-constrained campaigns as finite-budget, nominal-resolution observations. They do not show that the region is inaccessible, nor that further RF or matching controls are necessary. Those controls may be named as future design options.
-- [ ] Conclusions: replace "Under refined tracking their closest observation and the MOGA-derived nominal setting do meet them". The statement must match Sec. VI B: both meet the inequalities at the combined medium and fine levels, but fail with four of five regenerated sources, so membership near the limits is not resolved.
+- [x] Present the three TDR-constrained campaigns as finite-budget, nominal-resolution observations. They do not show that the region is inaccessible, nor that further RF or matching controls are necessary. Those controls may be named as future design options.
+- [x] Conclusions: replace "Under refined tracking their closest observation and the MOGA-derived nominal setting do meet them". The statement must match Sec. VI B: both meet the inequalities at the combined medium and fine levels, but fail with four of five regenerated sources, so membership near the limits is not resolved.
 
 **Done when:** the abstract, contribution 3, Sec. VI B and the Conclusions make the same observational claim about the TDR region.
 
+
+**Done:** "At the edge of the explored domain" is removed from the abstract, contribution 3, Sec. VI B and the Conclusions; they now state rare TDR-feasible observations with micrometre-scale diagnostic margins and membership that changes under refinement. Sec. VI B gives the normalized controls (candidate A 0.48–0.86 in every coordinate; candidate B interior except gun phase 0.96), says two points do not locate a region in six dimensions, and that three finite campaigns do not show inaccessibility. The extra RF and matching controls are design options, not a demonstrated remedy. The Conclusions sentence on refined membership matches Sec. VI B (meets at combined medium/fine, fails with four of five regenerated sources).
 ### C3-06. Restrict the RF-amplitude estimate to what it estimates
 
 **Sources:** Reviewer 1 M4 (R3-04); Reviewer 2 minor 2 (T5).

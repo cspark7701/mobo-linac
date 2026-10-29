@@ -69,8 +69,8 @@ energy spread. Constraint-aware and unconstrained multi-objective Bayesian optim
 compared with weighted-sum Bayesian optimization using matched simulation budgets and shared
 initial designs. Feasibility is defined by a deliberately relaxed computational acceptance
 profile; the stricter optimization requirements of the Korea Light Source technical design are
-met by only a few sampled settings, at the edge of the explored domain, and campaigns
-constrained by them approach that region to within the numerical resolution of the model. A
+met by only a few sampled settings, with small diagnostic margins, and campaigns constrained
+by them approach those limits to within the numerical resolution of the model. A
 refinement check shows that the absolute emittances depend on the tracking resolution.
 All methods identify feasible nondominated operating points, revealing trade-offs between
 transverse beam quality and energy spread. Paired analyses support a higher feasible
@@ -198,8 +198,9 @@ The contributions of this work are the following.
 \item A quantified reach of the KLS technical-design acceptance region. The primary
   evaluations are reclassified against the TDR inequalities; two marginal candidates and a
   MOGA-derived reference are checked under jitter; and three campaigns constrained directly
-  by the TDR inequalities are run. Together these show that the region lies at the edge of
-  the explored domain (Secs.~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
+  by the TDR inequalities are run. At this budget and resolution, TDR-feasible observations
+  are rare and lie within micrometres of the diagnostic limits, and their membership changes
+  under numerical refinement (Secs.~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
 \item A space-filling reference for the same domain: the shared scrambled-Sobol initial
   designs and a budget-matched Sobol arm. It shows how much of the feasible-sampling gain
   any of the optimizers achieve over uniform sampling, and how much is specific to the
@@ -1303,12 +1304,16 @@ errors as a principal sensitivity, supporting their inclusion in future assessme
 
 \subsection{Reach of the TDR acceptance region}
 \label{sec:tdr_reach}
-The archived evidence places the TDR optimization region at the edge of the explored domain.
-Only two of the 4,800 primary evaluations meet its inequalities, both with micrometre-scale
-size and bunch-length margins (Table~\ref{tab:tdr_candidates}). The MOGA-derived nominal
-setting misses them only in vertical divergence, by \SI{2.7}{\micro\radian}, and about a
-quarter of its jittered neighbours pass. The six controls can therefore reach the TDR region,
-but the production-profile campaigns were not aimed at it.
+The archived evidence shows that TDR-feasible observations are rare and close to the diagnostic
+limits. Only two of the 4,800 primary evaluations meet the TDR inequalities, both with
+micrometre-scale size and bunch-length margins (Table~\ref{tab:tdr_candidates}). The
+MOGA-derived nominal setting misses them only in vertical divergence, by
+\SI{2.7}{\micro\radian}, and about a quarter of its jittered neighbours pass. Closeness to a
+diagnostic limit is not closeness to a boundary of the control domain: in normalized controls,
+candidate~A lies between 0.48 and 0.86 in every coordinate, and candidate~B is interior except
+for a gun phase of 0.96. Two points do not locate a feasible region in six dimensions. The
+six controls can therefore produce TDR-feasible settings, but the production-profile campaigns
+were not aimed at them.
 
 Three further constraint-aware campaigns targeted it directly. They used the TDR optimization
 inequalities as constraints, with the primary protocol and the initial designs of the first
@@ -1321,8 +1326,9 @@ otherwise miss by 2.3 and \SI{9.4}{\percent}. After initialization, the horizont
 had the worst relative margin in \SI{62}{\percent} of the targeted campaigns' evaluations and
 vertical divergence in \SI{24}{\percent}. Each campaign still produced 52--58
 production-feasible observations. Targeting the TDR inequalities therefore did not increase TDR
-coverage at this budget: the region is approached to within a few micrometres and
-microradians, but not entered reliably.
+coverage at this budget: the limits are approached to within a few micrometres and
+microradians, but not met. Three finite-budget campaigns at one resolution do not show that the
+region is inaccessible to these controls.
 
 These classifications lie within the numerical resolution of the model
 (Sec.~\ref{sec:problem}). Candidate~B meets the TDR inequalities at all fifteen refinement
@@ -1335,8 +1341,8 @@ both particle-count refinements. Whether a setting within a few percent of the T
 them is therefore not resolved by the production calculation. The statement that the
 TDR-constrained campaigns did not enter the region holds only at that resolution. The TDR
 describes a longer linac with further matching quadrupoles and adjustable RF amplitudes. Those
-are held fixed or absent here, so the present model cannot show how much of the TDR region
-becomes accessible with them.
+are held fixed or absent here; they are design options for future studies, and the present
+model can show neither that they are needed nor how much they would add.
 
 \subsection{Limitations}
 The feasible fronts are empirical sets from finite searches in the recorded domain. They
@@ -1414,12 +1420,13 @@ The engineering conclusion is limited. The production profile is deliberately lo
 KLS TDR optimization requirements, under which only two marginal primary observations are
 acceptable and the MOGA-derived nominal setting misses narrowly. Campaigns that took the TDR
 inequalities as constraints came within a few micrometres of them but found no acceptable
-setting at the production resolution. Under refined tracking their closest observation and the
-MOGA-derived nominal setting do meet them, so membership near the limits is not numerically
-resolved. The six fixed-lattice controls therefore reach the TDR region only at the edge of the
-explored domain. A design study aimed at
-TDR acceptance would need those requirements as its constraints and probably the additional
-matching and RF controls of the full TDR linac. Lattice-jitter tests of the selected settings
+setting at the production resolution. Their closest observation and the MOGA-derived nominal
+setting meet them at the combined medium and fine refinement levels but fail with four of five
+regenerated sources, so membership near the limits is not numerically resolved. TDR-feasible
+settings are therefore rare and marginal in this six-control model at this budget. A design
+study aimed at TDR acceptance would need those requirements as its constraints; the additional
+matching and RF controls of the full TDR linac are options for such a study, not a
+demonstrated remedy. Lattice-jitter tests of the selected settings
 retained feasibility under the simulated lattice-only error model, which is not a reliability
 guarantee. All values are nominal-resolution results. A refinement check of ten reported
 settings showed that the emittances are not converged at that resolution, whereas at those
