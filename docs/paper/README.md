@@ -76,9 +76,11 @@ The manuscript targets Physical Review Accelerators and Beams (author decision,
 `apsrev4-2` bibliography style, has no table of contents and no keywords, and follows APS
 cross-reference style (Sec., Fig., Table, Appendix). The review copy is set in one
 column (`preprint`); replacing `preprint` with `reprint` gives the two-column PRAB layout.
-Figures and generated tables are written as page-wide floats, which also span both columns
-in the two-column layout; generated tables are included through `\inputwide`, so the table
-generators are unchanged, and figure heights are capped at 0.7 of the text height. The historical publisher files
+In the one-column copy the abstract is single-spaced so that it stays on the title page,
+and the Introduction starts on a new page. Figures and generated tables are written as
+page-wide floats, which also span both columns in the two-column layout; generated tables
+are included through `\inputwide`, so the table generators are unchanged, and figure
+heights are capped at 0.7 of the text height. The historical publisher files
 `jinstpub.sty` and `JHEP.bst` remain available but are not loaded. Line numbers are shown
 until `\finaltrue` is set. Build with
 `latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex` from the

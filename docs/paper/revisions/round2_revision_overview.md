@@ -43,7 +43,7 @@ All of these were authorized by the author and run:
 
 ## Front matter and format
 
-- **Journal and format.** The target journal is Physical Review Accelerators and Beams (author decision, 2026-10-29). The manuscript uses REVTeX 4.2 with no table of contents. The review copy uses the one-column `preprint` option and builds to 52 pages; the two-column `reprint` layout builds to 30 pages.
+- **Journal and format.** The target journal is Physical Review Accelerators and Beams (author decision, 2026-10-29). The manuscript uses REVTeX 4.2 with no table of contents. The review copy uses the one-column `preprint` option and builds to 51 pages; the two-column `reprint` layout builds to 30 pages.
 - **Added statements.** A statement of contributions closes the Introduction. A Data availability statement offers the data on request and names no public repository.
 - **Pending.** Funding and acknowledgments remain deferred to the author, and the manuscript keeps `\finalfalse`.
 

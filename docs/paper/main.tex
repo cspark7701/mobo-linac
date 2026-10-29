@@ -27,6 +27,8 @@
 % Campaign-dependent values that are not yet available.
 \newcommand{\pending}[1]{\textcolor{red}{\textbf{[#1]}}}
 % Include a generated figure, or a visible placeholder while the file is missing.
+% Single-space the abstract so that it stays on the title page of the one-column copy.
+\newcommand{\abstractspacing}{\linespread{1}\selectfont}
 \newcommand{\datafigure}[2]{%
   \IfFileExists{#1}{\includegraphics[width=#2,height=0.7\textheight,keepaspectratio]{#1}}%
   {\fbox{\parbox[c][0.25\textheight][c]{#2}{\centering\footnotesize\pending{Pending figure:}\\ \textcolor{red}{\url{#1}}}}}}
@@ -57,6 +59,7 @@
 \affiliation{Center for Accelerator Research, Korea University, Sejong 30019, Republic of Korea}
 
 \begin{abstract}
+\abstractspacing
 Optimization of an electron injector linac requires balancing transverse beam emittances and
 energy spread while satisfying beam transport and transmission constraints. We compare
 Bayesian optimization pipelines on a fixed-lattice S-band injector-linac model derived from the
@@ -83,6 +86,8 @@ beam-quality trade-offs within the stated injector model and computational accep
 \end{abstract}
 
 \maketitle
+% The one-column review copy starts the Introduction on a new page.
+\makeatletter\@ifclasswith{revtex4-2}{preprint}{\clearpage}{}\makeatother
 
 %==========================================================================================
 \section{Introduction}
