@@ -1,0 +1,2581 @@
+diff --git a/scripts/analyze_revision_attribution.py b/scripts/analyze_revision_attribution.py
+new file mode 100644
+index 0000000..d55877a
+--- /dev/null
++++ b/scripts/analyze_revision_attribution.py
+@@ -0,0 +1,256 @@
++#!/usr/bin/env python3
++"""C2-02: attribute the feasible-sampling gap to violated constraint channels.
++
++Descriptive analysis of the immutable primary evaluations. Each post-initialization
++evaluation is classified under the production profile into one exclusive category of
++violated channel groups. Because feasible fraction = 1 - sum of infeasible category shares,
++the paired feasible-fraction gap between two methods divides exactly among the categories.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++from pathlib import Path
++
++import matplotlib
++import numpy as np
++import pandas as pd
++
++matplotlib.use("Agg")
++import matplotlib.pyplot as plt  # noqa: E402
++from matplotlib.patches import Patch  # noqa: E402
++
++ROOT = Path(__file__).resolve().parents[1]
++METHODS = ("constrained_qlognehvi", "unconstrained_qlognehvi", "scalarized_bo")
++LABELS = ("Constrained MOBO", "Unconstrained MOBO", "Scalarized BO")
++COLORS = ("#0072B2", "#D55E00", "#009E73")
++MARKERS = ("o", "^", "s")
++SEEDS = tuple(range(42, 52))
++N_INITIAL, BATCH, BUDGET = 16, 8, 160
++# Upper quarter of the inherited ACC3/ACC4 interval [279.04807728, 341.05876112] deg.
++ACC34_LOW, ACC34_HIGH = 279.04807728, 341.05876112
++ACC34_UPPER_QUARTER = ACC34_LOW + 0.75 * (ACC34_HIGH - ACC34_LOW)
++CATEGORIES = ("energy_only", "transverse_only", "bunch_length_only", "energy_transverse",
++              "energy_bunch_length", "transverse_bunch_length", "energy_transverse_bunch_length",
++              "transmission")
++CATEGORY_LABELS = {"energy_only": "Energy only", "transverse_only": "Transverse only",
++                   "bunch_length_only": "Bunch length only", "energy_transverse": "Energy + transverse",
++                   "energy_bunch_length": "Energy + bunch length",
++                   "transverse_bunch_length": "Transverse + bunch length",
++                   "energy_transverse_bunch_length": "All three groups", "transmission": "Transmission"}
++BOOTSTRAP, RNG_SEED = 10000, 20261027
++
++
++def violations(df: pd.DataFrame, limits: dict) -> pd.DataFrame:
++    """Production-profile channel-group violations of valid evaluations."""
++    energy = ((df.mean_kinetic_energy_eV < limits["min_mean_kinetic_energy_eV"])
++              | (df.mean_kinetic_energy_eV > limits["max_mean_kinetic_energy_eV"]))
++    transverse = ((df.sigma_x_m > limits["max_sigma_x_m"]) | (df.sigma_y_m > limits["max_sigma_y_m"])
++                  | (df.sigma_xp_rad > limits["max_sigma_xp_rad"]) | (df.sigma_yp_rad > limits["max_sigma_yp_rad"]))
++    bunch = df.sigma_z_m > limits["max_sigma_z_m"]
++    transmission = df.transmission_fraction < limits["min_transmission"]
++    return pd.DataFrame({"energy": energy, "transverse": transverse, "bunch_length": bunch,
++                         "transmission": transmission})
++
++
++def categorize(v: pd.DataFrame) -> pd.Series:
++    """One exclusive category per infeasible evaluation; feasible rows are 'feasible'."""
++    out = pd.Series("feasible", index=v.index, dtype=object)
++    out[v.transmission] = "transmission"
++    rest = ~v.transmission
++    e, t, b = v.energy & rest, v.transverse & rest, v.bunch_length & rest
++    out[e & ~t & ~b] = "energy_only"
++    out[~e & t & ~b & rest] = "transverse_only"
++    out[~e & ~t & b & rest] = "bunch_length_only"
++    out[e & t & ~b] = "energy_transverse"
++    out[e & ~t & b] = "energy_bunch_length"
++    out[~e & t & b & rest] = "transverse_bunch_length"
++    out[e & t & b] = "energy_transverse_bunch_length"
++    return out
++
++
++def load_runs(root: Path):
++    runs, manifest = {}, []
++    for method in METHODS:
++        for seed in SEEDS:
++            run = root / f"{method}_seed_{seed}"
++            path = run / "evaluations.csv"
++            digest = hashlib.sha256(path.read_bytes()).hexdigest()
++            marker = json.loads((run / "run_complete.json").read_text())
++            if digest != marker["artifacts"]["evaluations.csv"]:
++                raise ValueError(f"Checksum mismatch for {path}")
++            df = pd.read_csv(path)
++            if len(df) != BUDGET or not df.simulation_valid.all():
++                raise ValueError(f"Unexpected ledger {path}")
++            df["index"] = df.evaluation_id.str.extract(r"(\d+)$")[0].astype(int)
++            df = df.sort_values("index").reset_index(drop=True)
++            if not (df["index"].to_numpy() == np.arange(1, BUDGET + 1)).all():
++                raise ValueError(f"Evaluation identities are not 1..{BUDGET} in {path}")
++            df["batch"] = np.where(df["index"] <= N_INITIAL, 0, (df["index"] - N_INITIAL - 1) // BATCH + 1)
++            limits = json.loads((run / "config.json").read_text())["constraints"]
++            v = violations(df, limits)
++            df["category"] = categorize(v)
++            if not (df.category.eq("feasible") == df.physically_feasible.astype(bool)).all():
++                raise ValueError(f"Recomputed feasibility disagrees with recorded labels in {path}")
++            df = pd.concat([df, v.add_prefix("violates_")], axis=1)
++            runs[(method, seed)] = df
++            manifest.append({"run": run.name, "sha256": digest})
++    return runs, manifest
++
++
++def per_run(runs) -> pd.DataFrame:
++    rows = []
++    for (method, seed), df in runs.items():
++        post = df[df.batch > 0]
++        energy_ok = post[~post.violates_energy]
++        row = {"method": method, "seed": seed, "n_post": len(post),
++               "feasible_fraction": float((post.category == "feasible").mean()),
++               "energy_violation_fraction": float(post.violates_energy.mean()),
++               "transverse_violation_fraction": float(post.violates_transverse.mean()),
++               "bunch_length_violation_fraction": float(post.violates_bunch_length.mean()),
++               "acc34_upper_quarter_fraction": float((post.acc3_acc4_phase_deg > ACC34_UPPER_QUARTER).mean()),
++               "acc34_upper_quarter_energy_violation_fraction":
++                   float(post[post.acc3_acc4_phase_deg > ACC34_UPPER_QUARTER].violates_energy.mean())
++                   if (post.acc3_acc4_phase_deg > ACC34_UPPER_QUARTER).any() else float("nan"),
++               "n_energy_ok": len(energy_ok),
++               "conditional_feasible_fraction_given_energy":
++                   float((energy_ok.category == "feasible").mean()) if len(energy_ok) else float("nan")}
++        for category in CATEGORIES:
++            row[f"share_{category}"] = float((post.category == category).mean())
++        rows.append(row)
++    return pd.DataFrame(rows)
++
++
++def per_batch(runs) -> pd.DataFrame:
++    rows = []
++    for (method, seed), df in runs.items():
++        for batch, group in df.groupby("batch"):
++            rows.append({"method": method, "seed": seed, "batch": int(batch),
++                         "acc34_upper_quarter_fraction": float((group.acc3_acc4_phase_deg > ACC34_UPPER_QUARTER).mean()),
++                         "energy_violation_fraction": float(group.violates_energy.mean()),
++                         "transverse_violation_fraction": float(group.violates_transverse.mean()),
++                         "feasible_fraction": float((group.category == "feasible").mean())})
++    return pd.DataFrame(rows)
++
++
++def paired(run_table: pd.DataFrame, metrics) -> pd.DataFrame:
++    rng = np.random.default_rng(RNG_SEED)
++    index = rng.integers(0, len(SEEDS), size=(BOOTSTRAP, len(SEEDS)))
++    rows = []
++    for metric in metrics:
++        wide = run_table.pivot(index="seed", columns="method", values=metric).loc[list(SEEDS)]
++        for baseline in METHODS[1:]:
++            d = (wide[METHODS[0]] - wide[baseline]).to_numpy(float)
++            if not np.isfinite(d).all():
++                raise ValueError(f"Nonfinite paired difference for {metric}")
++            lo, hi = np.quantile(d[index].mean(axis=1), [0.025, 0.975])
++            rows.append({"metric": metric, "first_method": METHODS[0], "second_method": baseline,
++                         "mean_difference": float(d.mean()), "ci_lower": float(lo), "ci_upper": float(hi),
++                         "n_positive": int((d > 0).sum()), "n_negative": int((d < 0).sum()),
++                         "n_zero": int((d == 0).sum())})
++    return pd.DataFrame(rows)
++
++
++def gap_decomposition(run_table: pd.DataFrame) -> pd.DataFrame:
++    """Mean paired gap in feasible fraction and each category's exact contribution to it."""
++    rows = []
++    for baseline in METHODS[1:]:
++        a = run_table[run_table.method == METHODS[0]].set_index("seed").loc[list(SEEDS)]
++        b = run_table[run_table.method == baseline].set_index("seed").loc[list(SEEDS)]
++        gap = float((a.feasible_fraction - b.feasible_fraction).mean())
++        total = 0.0
++        for category in CATEGORIES:
++            contribution = float((b[f"share_{category}"] - a[f"share_{category}"]).mean())
++            total += contribution
++            rows.append({"baseline": baseline, "category": category, "contribution": contribution,
++                         "fraction_of_gap": contribution / gap if gap else float("nan"), "gap": gap})
++        if not np.isclose(total, gap, atol=1e-12):
++            raise AssertionError("Category contributions do not sum to the feasible-fraction gap")
++    return pd.DataFrame(rows)
++
++
++def figure(batch_table: pd.DataFrame, run_table: pd.DataFrame, path: Path) -> None:
++    fig, axes = plt.subplots(1, 2, figsize=(10.4, 3.9), gridspec_kw={"width_ratios": [1.15, 1]})
++    ax = axes[0]
++    for method, label, color, marker in zip(METHODS, LABELS, COLORS, MARKERS):
++        table = batch_table[batch_table.method == method].pivot(index="batch", columns="seed",
++                                                                 values="acc34_upper_quarter_fraction")
++        # Cumulative occupancy after each batch; batch 0 holds 16 points, later batches 8.
++        weights = np.where(table.index.to_numpy() == 0, N_INITIAL, BATCH)[:, None]
++        cumulative = (table.to_numpy() * weights).cumsum(axis=0) / weights.cumsum(axis=0)
++        x = N_INITIAL + BATCH * table.index.to_numpy()
++        ax.fill_between(x, np.quantile(cumulative, 0.25, axis=1), np.quantile(cumulative, 0.75, axis=1),
++                        color=color, alpha=0.15)
++        ax.plot(x, np.median(cumulative, axis=1), color=color, marker=marker, ms=4, lw=1.4, label=label)
++    ax.set(xlabel="Evaluations per campaign", ylabel="Cumulative fraction in upper ACC3/4 quarter",
++           xlim=(N_INITIAL, BUDGET), ylim=(0, 0.4))
++    ax.grid(alpha=0.35, ls=":")
++    ax.legend(fontsize=8)
++    ax.text(0.02, 0.97, "(a)", transform=ax.transAxes, va="top", fontsize=10)
++    ax = axes[1]
++    styles = {"energy_only": ("0.88", "///"), "energy_transverse": ("0.68", "///"),
++              "energy_bunch_length": ("0.5", "///"), "energy_transverse_bunch_length": ("0.3", "///"),
++              "transverse_only": ("0.8", ""), "bunch_length_only": ("0.6", ""),
++              "transverse_bunch_length": ("0.4", ""), "transmission": ("0.15", "")}
++    order = ("energy_only", "energy_transverse", "energy_bunch_length", "energy_transverse_bunch_length",
++             "transverse_only", "transverse_bunch_length", "bunch_length_only", "transmission")
++    bottom = np.zeros(len(METHODS))
++    handles = []
++    for category in order:
++        heights = np.array([run_table[run_table.method == m][f"share_{category}"].mean() for m in METHODS])
++        if not heights.any():
++            continue
++        shade, hatch = styles[category]
++        handles.append(ax.bar(range(len(METHODS)), heights, bottom=bottom, color=shade, hatch=hatch,
++                              edgecolor="white", linewidth=0.6, label=CATEGORY_LABELS[category]))
++        bottom += heights
++    feasible = np.array([run_table[run_table.method == m].feasible_fraction.mean() for m in METHODS])
++    ax.bar(range(len(METHODS)), feasible, bottom=bottom, color=COLORS, edgecolor="white")
++    handles.append(Patch(facecolor="white", edgecolor="0.3", label="Feasible (method colour)"))
++    ax.set_xticks(range(len(METHODS)), [label.replace(" ", "\n", 1) for label in LABELS], fontsize=8)
++    ax.set(ylabel="Share of post-initialization evaluations", ylim=(0, 1))
++    ax.legend(handles=handles, fontsize=7, loc="upper left", bbox_to_anchor=(1.01, 1.0),
++              title="Hatched: energy band violated", title_fontsize=7)
++    ax.text(0.02, 0.97, "(b)", transform=ax.transAxes, va="top", fontsize=10)
++    fig.tight_layout()
++    fig.savefig(path, bbox_inches="tight", metadata={"CreationDate": None, "ModDate": None})
++    plt.close(fig)
++
++
++def analyze(root: Path, out: Path, figure_path: Path) -> dict:
++    out.mkdir(parents=True, exist_ok=True)
++    runs, manifest = load_runs(root)
++    run_table, batch_table = per_run(runs), per_batch(runs)
++    metrics = ("feasible_fraction", "energy_violation_fraction", "transverse_violation_fraction",
++               "bunch_length_violation_fraction", "acc34_upper_quarter_fraction",
++               "conditional_feasible_fraction_given_energy")
++    effects, decomposition = paired(run_table, metrics), gap_decomposition(run_table)
++    run_table.to_csv(out / "r2_attribution_runs.csv", index=False)
++    batch_table.to_csv(out / "r2_attribution_batches.csv", index=False)
++    effects.to_csv(out / "r2_attribution_paired.csv", index=False)
++    decomposition.to_csv(out / "r2_attribution_gap.csv", index=False)
++    figure(batch_table, run_table, figure_path)
++    summary = {
++        "analysis": "C2-02 descriptive attribution; production profile; post-initialization evaluations 17-160",
++        "acc34_upper_quarter_deg": [ACC34_UPPER_QUARTER, ACC34_HIGH],
++        "bootstrap_resamples": BOOTSTRAP, "analysis_rng": RNG_SEED, "groups": list(SEEDS),
++        "medians": run_table.groupby("method")[list(metrics)].median().to_dict(),
++        "inputs": manifest,
++    }
++    (out / "r2_attribution_metadata.json").write_text(json.dumps(summary, indent=2, sort_keys=True) + "\n")
++    return summary
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--root", type=Path, default=ROOT / "results/paper_production/04_primary/benchmark/per_seed")
++    parser.add_argument("--output", type=Path, default=ROOT / "docs/paper/revisions/evidence")
++    parser.add_argument("--figure", type=Path, default=ROOT / "docs/paper/figures/revision_attribution.pdf")
++    args = parser.parse_args(argv)
++    analyze(args.root, args.output, args.figure)
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/analyze_revision_calibration.py b/scripts/analyze_revision_calibration.py
+new file mode 100644
+index 0000000..894c331
+--- /dev/null
++++ b/scripts/analyze_revision_calibration.py
+@@ -0,0 +1,204 @@
++#!/usr/bin/env python3
++"""C2-05: interpret next-batch surrogate accuracy by stage and region, and test fixed noise.
++
++Part A summarizes the existing C11 next-batch prediction records by optimization stage
++(batches 1-6, 7-12, 13-18) and by whether the predicted observation was feasible under the
++production profile, with run-level variation. Part B (optional, offline, no ASTRA) refits
++every archived pre-proposal training set twice with the production surrogate builder,
++once with the production fixed noise and once with inferred homoscedastic noise, and
++repeats the chronological next-batch coverage check. Only the noise setting differs.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import warnings
++from dataclasses import replace
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++import torch
++
++ROOT = Path(__file__).resolve().parents[1]
++EVIDENCE = ROOT / "docs/paper/revisions/evidence"
++PRIMARY = ROOT / "results/paper_production/04_primary/benchmark/per_seed"
++METHODS = ("constrained_qlognehvi", "unconstrained_qlognehvi", "scalarized_bo")
++OBJECTIVES = ("norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV")
++# Transmission is constant in every primary run, so it carries no predictive test.
++DIAGNOSTICS = ("sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m", "mean_kinetic_energy_eV")
++STAGES = ((1, 6, "early"), (7, 12, "middle"), (13, 18, "late"))
++Z95 = 1.959963984540054
++N_INITIAL, BATCH, BATCHES = 16, 8, 18
++
++
++def stage_of(batch: int) -> str:
++    for low, high, name in STAGES:
++        if low <= batch <= high:
++            return name
++    raise ValueError(f"Batch {batch} outside 1-{BATCHES}")
++
++
++def ledgers() -> dict:
++    frames = {}
++    for method in METHODS:
++        for seed in range(42, 52):
++            run = PRIMARY / f"{method}_seed_{seed}"
++            path = run / "evaluations.csv"
++            marker = json.loads((run / "run_complete.json").read_text())
++            if hashlib.sha256(path.read_bytes()).hexdigest() != marker["artifacts"]["evaluations.csv"]:
++                raise ValueError(f"Checksum mismatch: {path}")
++            frames[run.name] = (pd.read_csv(path), json.loads((run / "config.json").read_text()))
++    return frames
++
++
++def coverage_rows(frame: pd.DataFrame, keys) -> pd.DataFrame:
++    rows = []
++    for key, group in frame.groupby(list(keys)):
++        error = group.observed - group.predicted
++        per_run = group.assign(hit=(error.abs() <= Z95 * group.predictive_std)).groupby("run_id").hit.mean()
++        rows.append(dict(zip(keys, key if isinstance(key, tuple) else (key,)),
++                         n=len(group), runs=int(per_run.size),
++                         coverage95=float((error.abs() <= Z95 * group.predictive_std).mean()),
++                         run_coverage_median=float(per_run.median()),
++                         run_coverage_q25=float(per_run.quantile(0.25)),
++                         run_coverage_q75=float(per_run.quantile(0.75)),
++                         rmse=float(np.sqrt((error ** 2).mean())),
++                         rms_standardized_error=float(np.sqrt(((error / group.predictive_std) ** 2).mean()))))
++    return pd.DataFrame(rows)
++
++
++def part_a(frames: dict) -> pd.DataFrame:
++    """Stage- and region-resolved summaries of the existing C11 records (no refitting)."""
++    records = pd.read_csv(EVIDENCE / "c11_next_batch_predictions.csv")
++    records = records[records.subset == "all"].copy()
++    feasible = {(run, row.evaluation_id): bool(row.physically_feasible)
++                for run, (df, _) in frames.items() for row in df.itertuples()}
++    records["stage"] = records.batch.map(stage_of)
++    records["region"] = [("feasible" if feasible[(r, e)] else "infeasible")
++                         for r, e in zip(records.run_id, records.evaluation_id)]
++    by_stage = coverage_rows(records, ("method", "channel", "stage")).assign(region="all")
++    by_region = coverage_rows(records, ("method", "channel", "region")).assign(stage="all")
++    late = coverage_rows(records[records.stage == "late"], ("method", "channel", "region")).assign(stage="late")
++    return pd.concat([by_stage, by_region, late], ignore_index=True)
++
++
++def predict(model, X, noise_orig: float):
++    with torch.no_grad():
++        posterior = model.posterior(X)
++        mean = posterior.mean.flatten().cpu().numpy()
++        variance = posterior.distribution.covariance_matrix.diagonal(dim1=-2, dim2=-1).flatten().cpu().numpy()
++    return mean, np.sqrt(np.clip(variance, 0, None) + noise_orig)
++
++
++def fit_channel(train_X, train_Y, future_X, bounds, settings, mode, device="cpu"):
++    from mobo_linac.models.gp import build_output_gp, fit_gp_models
++    chosen = settings if mode == "fixed" else replace(settings, noise_mode="inferred", fixed_noise_variance=None,
++                                                      objective_noise_variances=None)
++    with warnings.catch_warnings():
++        warnings.simplefilter("ignore")
++        gp = build_output_gp(train_X, train_Y, bounds, chosen, device=device)
++        fit_gp_models(gp)
++        future_X = future_X.to(device=gp.train_inputs[0].device)
++    scale = float(gp.outcome_transform.stdvs.item())
++    if mode == "fixed":
++        noise_orig = float(gp.likelihood.noise.mean().item()) * scale ** 2
++    else:
++        noise_orig = float(gp.likelihood.noise.item()) * scale ** 2
++    mean, std = predict(gp, future_X, noise_orig)
++    return mean, std, noise_orig, float(train_Y.var(unbiased=True).item())
++
++
++def part_b(frames: dict, limit_runs=None, device="cpu") -> pd.DataFrame:
++    """Refit every pre-proposal training set with fixed and inferred noise (offline)."""
++    from mobo_linac.config import config_from_dict
++    from mobo_linac.models.gp import SurrogateSettings
++    rows = []
++    for index, (run, (df, cfg_dict)) in enumerate(frames.items()):
++        if limit_runs is not None and index >= limit_runs:
++            break
++        config = config_from_dict(cfg_dict)
++        method = run.split("_seed_")[0]
++        names = [v.name for v in config.design_variables]
++        bounds = torch.tensor([[v.lower_bound for v in config.design_variables],
++                               [v.upper_bound for v in config.design_variables]], dtype=torch.double)
++        settings = SurrogateSettings.from_config(config.model)
++        X = torch.tensor(df[names].to_numpy(), dtype=torch.double)
++        if method == "scalarized_bo":
++            scales = np.array([1e-6, 1e-6, 1e6])
++            channels = {"scalarized_cost": -(df[list(OBJECTIVES)].to_numpy() / scales / 3.0).sum(axis=1)}
++            per_output = {"scalarized_cost": settings.for_output(None)}
++        else:
++            channels = {name: -df[name].to_numpy() for name in OBJECTIVES}
++            per_output = {name: settings.for_output(i) for i, name in enumerate(OBJECTIVES)}
++            if method == "constrained_qlognehvi":
++                for name in DIAGNOSTICS:
++                    channels[name] = df[name].to_numpy()
++                    per_output[name] = settings.for_output(None)
++        for batch in range(1, BATCHES + 1):
++            n = N_INITIAL + BATCH * (batch - 1)
++            future = X[n:n + BATCH]
++            for channel, values in channels.items():
++                y = torch.tensor(values[:n], dtype=torch.double).unsqueeze(-1)
++                sign = -1.0 if channel in OBJECTIVES or channel == "scalarized_cost" else 1.0
++                for mode in ("fixed", "inferred"):
++                    mean, std, noise, variance = fit_channel(X[:n], y, future, bounds, per_output[channel], mode,
++                                                                  device)
++                    for j in range(BATCH):
++                        rows.append({"method": method, "run_id": run, "batch": batch, "stage": stage_of(batch),
++                                     "evaluation_id": df.evaluation_id.iloc[n + j], "channel": channel,
++                                     "mode": mode, "observed": sign * values[n + j], "predicted": sign * mean[j],
++                                     "predictive_std": std[j], "noise_variance": noise,
++                                     "relative_noise": noise / variance if variance > 0 else float("nan"),
++                                     "feasible": bool(df.physically_feasible.iloc[n + j])})
++        print(f"refit {run}", flush=True)
++    return pd.DataFrame(rows)
++
++
++def summarize_b(frame: pd.DataFrame) -> pd.DataFrame:
++    out = []
++    for (method, channel, mode), group in frame.groupby(["method", "channel", "mode"]):
++        error = group.observed - group.predicted
++        late = group[group.stage == "late"]
++        late_error = late.observed - late.predicted
++        out.append({"method": method, "channel": channel, "mode": mode, "n": len(group),
++                    "coverage95": float((error.abs() <= Z95 * group.predictive_std).mean()),
++                    "late_coverage95": float((late_error.abs() <= Z95 * late.predictive_std).mean()),
++                    "rmse": float(np.sqrt((error ** 2).mean())),
++                    "late_rmse": float(np.sqrt((late_error ** 2).mean())),
++                    "median_relative_noise": float(group.drop_duplicates(["run_id", "batch"]).relative_noise.median())})
++    return pd.DataFrame(out)
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--part", choices=("a", "b", "both"), default="a")
++    parser.add_argument("--limit-runs", type=int, default=None, help="Refit only the first N runs (testing).")
++    parser.add_argument("--threads", type=int, default=2)
++    parser.add_argument("--device", default="cpu", help="PyTorch device for the offline refits.")
++    args = parser.parse_args(argv)
++    torch.set_num_threads(args.threads)
++    frames = ledgers()
++    if args.part in ("a", "both"):
++        part_a(frames).to_csv(EVIDENCE / "r2_calibration_stages.csv", index=False)
++    if args.part in ("b", "both"):
++        refit = part_b(frames, args.limit_runs, args.device)
++        refit.to_csv(EVIDENCE / "r2_calibration_refit_predictions.csv.gz", index=False)
++        summarize_b(refit).to_csv(EVIDENCE / "r2_calibration_refit_summary.csv", index=False)
++    (EVIDENCE / "r2_calibration_metadata.json").write_text(json.dumps({
++        "analysis": "C2-05; part A uses existing C11 records; part B refits archived training sets offline",
++        "stages": {name: [low, high] for low, high, name in STAGES},
++        "interval": "Gaussian 95% observation interval; latent covariance diagonal plus likelihood noise",
++        "refit_modes": {"fixed": "production deterministic fixed noise",
++                        "inferred": "homoscedastic Gaussian likelihood noise fitted by marginal likelihood"},
++        "excluded_channels": {"transmission_fraction": "constant in all primary runs"},
++        "refit_device": args.device,
++        "input_sha256": {"c11_next_batch_predictions.csv": hashlib.sha256(
++            (EVIDENCE / "c11_next_batch_predictions.csv").read_bytes()).hexdigest()},
++    }, indent=2, sort_keys=True) + "\n")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/analyze_revision_convergence.py b/scripts/analyze_revision_convergence.py
+new file mode 100644
+index 0000000..e320ec9
+--- /dev/null
++++ b/scripts/analyze_revision_convergence.py
+@@ -0,0 +1,164 @@
++#!/usr/bin/env python3
++"""C2-12: numerical-resolution residuals of the reported settings.
++
++Reads the convergence runs written by ``scripts/evaluate_revision_convergence.py``. For each
++setting and quantity it reports the change from the production level to every refined level,
++the spread over regenerated 10k sources, and whether the production, NAPAC and TDR
++classifications and the TDR margins survive refinement. The production-level rerun is also
++compared with the archived value of the same setting.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import sys
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT / "scripts"))
++from analyze_revision_acceptance import profile_masks  # noqa: E402
++from analyze_revision_tdr_campaigns import TDR_LIMITS, margins  # noqa: E402
++
++RUNS = ROOT / "results/revision_round2/convergence"
++MOGA = ROOT / "results/revision_round2/references/moga_nominal/moga_reference.json"
++# Run names and evaluation ids repeat between the primary and TDR-constrained campaigns, so the
++# ledger is chosen by role, as in the driver.
++PRIMARY = "results/paper_production/04_primary/benchmark/per_seed"
++TDR_RUNS = "results/revision_round2/tdr_benchmark/per_seed"
++TDR_CAMPAIGN_ROLE = "tdr_campaign_closest"
++EVIDENCE = ROOT / "docs/paper/revisions/evidence"
++OBJECTIVES = ("norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV")
++DIAGNOSTICS = ("sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m",
++               "mean_kinetic_energy_eV", "transmission_fraction")
++QUANTITIES = OBJECTIVES + DIAGNOSTICS
++RANDOM_SOURCES = tuple(f"source_rand10k_{i}" for i in range(1, 6))
++PROFILES = ("production", "napac2025", "kls_tdr_optimization")
++
++
++def load_runs(directory: Path) -> pd.DataFrame:
++    """One row per (setting, level) with flat objective and diagnostic columns."""
++    stream = directory / "convergence_results.jsonl"
++    marker = json.loads((directory / "complete.json").read_text())
++    if hashlib.sha256(stream.read_bytes()).hexdigest() != marker["results_sha256"]:
++        raise ValueError(f"Checksum mismatch: {stream}")
++    rows = []
++    for line in stream.read_text().splitlines():
++        record = json.loads(line)
++        values = {**(record.get("objectives") or {}), **(record.get("diagnostics") or {})}
++        rows.append({"role": record["role"], "level": record["level"], "status": record["status"],
++                     "simulation_valid": bool(record["simulation_valid"]), "runtime_s": record["runtime_s"],
++                     "run": record.get("run"), "evaluation_id": record.get("evaluation_id"),
++                     **{q: float(values[q]) if values.get(q) is not None else np.nan for q in QUANTITIES}})
++    frame = pd.DataFrame(rows)
++    if len(frame) != marker["tasks"] or frame.duplicated(["role", "level"]).any():
++        raise ValueError("Incomplete or duplicated convergence results")
++    return frame
++
++
++def archived(frame: pd.DataFrame, root: Path = ROOT) -> pd.DataFrame:
++    """Archived production values of each setting, from its run ledger or the MOGA record."""
++    rows = []
++    for role, run, evaluation_id in frame[["role", "run", "evaluation_id"]].drop_duplicates().itertuples(index=False):
++        if run is None or (isinstance(run, float) and np.isnan(run)):
++            record = json.loads(MOGA.read_text())["execution_details"]
++            values = {**record["objectives"], **record["diagnostics"]}
++        else:
++            base = TDR_RUNS if role == TDR_CAMPAIGN_ROLE else PRIMARY
++            ledger = root / base / run / "evaluations.csv"
++            values = pd.read_csv(ledger).set_index("evaluation_id").loc[evaluation_id].to_dict()
++        rows.append({"role": role, **{q: float(values[q]) for q in QUANTITIES}})
++    return pd.DataFrame(rows).set_index("role")
++
++
++def residuals(frame: pd.DataFrame) -> pd.DataFrame:
++    """Long table of each level's change from the production level."""
++    base = frame[frame.level == "production"].set_index("role")
++    rows = []
++    for record in frame.itertuples(index=False):
++        for q in QUANTITIES:
++            reference, value = base.at[record.role, q], getattr(record, q)
++            rows.append({"role": record.role, "level": record.level, "quantity": q, "value": value,
++                         "production": reference, "delta": value - reference,
++                         "delta_rel": (value - reference) / reference if reference else np.nan})
++    return pd.DataFrame(rows)
++
++
++def summary(long: pd.DataFrame) -> pd.DataFrame:
++    """Per setting and quantity: fine-level change, largest single-factor change, source spread."""
++    rows = []
++    for (role, q), group in long.groupby(["role", "quantity"], sort=False):
++        by = group.set_index("level")
++        single = by.drop(index=[*RANDOM_SOURCES, "source_qr10k", "production", "combined_medium", "combined_fine"],
++                         errors="ignore")
++        random = by.loc[[lvl for lvl in RANDOM_SOURCES if lvl in by.index], "value"]
++        rows.append({"role": role, "quantity": q, "production": by.at["production", "value"],
++                     "delta_fine": by.delta.get("combined_fine", np.nan),
++                     "delta_medium": by.delta.get("combined_medium", np.nan),
++                     "delta_rel_fine": by.delta_rel.get("combined_fine", np.nan),
++                     "max_abs_single_factor": single.delta.abs().max() if len(single) else np.nan,
++                     "max_single_factor_level": single.delta.abs().idxmax() if len(single) else None,
++                     "delta_regenerated_qr10k": by.delta.get("source_qr10k", np.nan),
++                     "source_random_std": random.std(ddof=1) if len(random) > 1 else np.nan,
++                     "source_random_mean_delta": random.mean() - by.at["production", "value"] if len(random) else np.nan})
++    return pd.DataFrame(rows)
++
++
++def classification(frame: pd.DataFrame) -> pd.DataFrame:
++    """Profile membership and signed TDR margins (physical units) at every level."""
++    masks = profile_masks(frame)
++    rel = margins(frame)
++    out = frame[["role", "level"]].copy()
++    for name in PROFILES:
++        out[name] = masks[name].to_numpy()
++    for column, kind, limit in TDR_LIMITS:
++        out[f"tdr_margin_{column}"] = rel[column].to_numpy() * limit
++    beam = rel.drop(columns="transmission_fraction")
++    out["tdr_worst_rel_margin"] = beam.min(axis=1).to_numpy()
++    out["tdr_worst_channel"] = beam.idxmin(axis=1).to_numpy()
++    base = out[out.level == "production"].set_index("role")
++    for name in PROFILES:
++        out[f"{name}_changed"] = out[name].to_numpy() != base.loc[out.role, name].to_numpy()
++    return out
++
++
++def analyze(directory: Path = RUNS):
++    frame = load_runs(directory)
++    if not frame.simulation_valid.all():
++        raise ValueError(f"Invalid runs: {frame.loc[~frame.simulation_valid, ['role', 'level']].values.tolist()}")
++    long = residuals(frame)
++    record = archived(frame)
++    base = frame[frame.level == "production"].set_index("role")[list(QUANTITIES)]
++    reproduction = (base - record.loc[base.index]).abs().max(axis=1).rename("max_abs_diff_from_archive")
++    return frame, long, summary(long), classification(frame), reproduction
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--runs", type=Path, default=RUNS)
++    parser.add_argument("--output-dir", type=Path, default=EVIDENCE)
++    args = parser.parse_args(argv)
++    frame, long, table, classes, reproduction = analyze(args.runs)
++    out = args.output_dir
++    out.mkdir(parents=True, exist_ok=True)
++    long.to_csv(out / "r2_convergence_values.csv", index=False)
++    table.to_csv(out / "r2_convergence_summary.csv", index=False)
++    classes.to_csv(out / "r2_convergence_classification.csv", index=False)
++    plan = json.loads((args.runs / "plan.json").read_text())
++    (out / "r2_convergence_metadata.json").write_text(json.dumps({
++        "analysis": "C2-12 numerical-resolution residuals of the reported settings",
++        "runs": str(args.runs.relative_to(ROOT)) if args.runs.is_relative_to(ROOT) else str(args.runs),
++        "levels": plan["levels"], "sources": plan["sources"], "source_input": plan["source_input"],
++        "settings": [{k: s[k] for k in ("role", "run", "evaluation_id")} for s in plan["settings"]],
++        "runtime_s_by_level": frame.groupby("level").runtime_s.median().round(1).to_dict(),
++        "production_rerun_max_abs_diff_from_archive": reproduction.to_dict()},
++        indent=2, sort_keys=True) + "\n")
++    print(table.to_string(index=False))
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/analyze_revision_jitter_checks.py b/scripts/analyze_revision_jitter_checks.py
+new file mode 100644
+index 0000000..f00ea23
+--- /dev/null
++++ b/scripts/analyze_revision_jitter_checks.py
+@@ -0,0 +1,206 @@
++#!/usr/bin/env python3
++"""C2-07/C2-08: lattice-jitter checks of the archived representatives and round2 reference runs.
++
++1. Archived primary audit (no new runs): count perturbed samples that Pareto-dominate their
++   nominal setting and summarize the mean-energy spread produced by the simulated jitter.
++2. RF-amplitude estimate: structure-pair energy gains from the retained ASTRA output of the
++   MOGA-derived re-evaluation, scaled by a 0.2 % amplitude error.
++3. Round2 reference runs: feasibility of the MOGA-derived setting and of the two TDR-passing
++   observations under 50 lattice-jitter trials, classified under the production and TDR
++   profiles with exact Clopper-Pearson bounds.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import sys
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT / "scripts"))
++from analyze_revision_acceptance import profile_masks  # noqa: E402
++from analyze_revision_robustness import binomial_bounds  # noqa: E402
++
++AUDIT = ROOT / "results/paper_production/06_candidate_audit/robustness/robustness_runs"
++REFERENCES = ROOT / "results/revision_round2/references"
++EVIDENCE = ROOT / "docs/paper/revisions/evidence"
++OBJECTIVES = ("norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV")
++DIAGNOSTICS = ("sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad", "sigma_z_m",
++               "mean_kinetic_energy_eV", "transmission_fraction")
++AMPLITUDE_ERROR = 0.002  # 0.2 % RMS, the RF-gradient error of the JKPS operating-error model
++# Structure entrance positions [m] (astra.in C_pos) and a 2.98 m structure length.
++STRUCTURES = {"ACC1": 1.81, "ACC2": 5.61046, "ACC3": 9.41092, "ACC4": 13.21138}
++STRUCTURE_LENGTH = 2.98
++
++
++def records_frame(path: Path) -> pd.DataFrame:
++    data = json.loads(path.read_text())
++    rows = []
++    for record in data["records"]:
++        result, meta = record["result"], record["request"]["metadata"]
++        row = {"role": meta["candidate_label"], "sample": meta["sample_idx"], "valid": result["simulation_valid"],
++               "recorded_feasible": result["physically_feasible"], "execution_kind": record["execution_kind"],
++               "simulation_valid": result["simulation_valid"]}
++        row.update(dict(zip(OBJECTIVES, result["objectives_physical"] or [np.nan] * 3)))
++        row.update({name: result["diagnostics"].get(name, np.nan) for name in DIAGNOSTICS})
++        row["sigma_energy_eV"] = row["sigma_energy_eV"]
++        rows.append(row)
++    return pd.DataFrame(rows)
++
++
++def dominates(a: np.ndarray, b: np.ndarray) -> bool:
++    return bool(np.all(a <= b) and np.any(a < b))
++
++
++def archived_audit() -> pd.DataFrame:
++    paths = sorted(AUDIT.glob("*/robustness_requests.json"))
++    if len(paths) != 1:
++        raise ValueError(f"Expected one primary audit session, found {len(paths)}")
++    frame = records_frame(paths[0])
++    summary = pd.read_csv(paths[0].parents[2] / "robustness_summary.csv")
++    rows = []
++    for role, group in frame.groupby("role", sort=False):
++        nominal_row = summary[summary.candidate_label == role].iloc[0]
++        nominal = np.array([nominal_row[f"nominal_{name}"] for name in OBJECTIVES])
++        values = group[list(OBJECTIVES)].to_numpy(float)
++        dominating = np.array([dominates(v, nominal) for v in values])
++        better = (values < nominal)
++        rows.append({"role": role, "trials": len(group), "valid": int(group.valid.sum()),
++                     "feasible": int(group.recorded_feasible.sum()),
++                     "dominating_nominal": int(dominating.sum()),
++                     "dominating_and_feasible": int((dominating & group.recorded_feasible.to_numpy(bool)).sum()),
++                     **{f"better_{name}": int(better[:, i].sum()) for i, name in enumerate(OBJECTIVES)},
++                     "mean_energy_std_MeV": float(group.mean_kinetic_energy_eV.std(ddof=0) / 1e6),
++                     "min_energy_MeV": float(group.mean_kinetic_energy_eV.min() / 1e6),
++                     "mean_degradation_D": float(nominal_row.mean_objective_degradation)})
++    return pd.DataFrame(rows)
++
++
++def amplitude_estimate() -> dict:
++    zemit = sorted((REFERENCES / "moga_nominal").rglob("astra.Zemit.001"))
++    if not zemit:
++        raise FileNotFoundError("Retained ASTRA longitudinal output of the MOGA-derived re-evaluation is missing")
++    data = np.loadtxt(zemit[0])
++    z, energy = data[:, 0], data[:, 2]
++    at = lambda position: float(energy[np.argmin(abs(z - position))])  # noqa: E731
++    gains = {name: at(start + STRUCTURE_LENGTH) - at(start) for name, start in STRUCTURES.items()}
++    gun = at(STRUCTURES["ACC1"])
++    pairs = {"ACC1/2": gains["ACC1"] + gains["ACC2"], "ACC3/4": gains["ACC3"] + gains["ACC4"]}
++    return {"source": str(zemit[0].relative_to(ROOT)), "gun_exit_MeV": gun, "structure_gain_MeV": gains,
++            "pair_gain_MeV": pairs, "amplitude_error_rms": AMPLITUDE_ERROR,
++            "mean_energy_shift_rms_MeV": {
++                "independent_pairs": AMPLITUDE_ERROR * float(np.hypot(*pairs.values())),
++                "fully_correlated": AMPLITUDE_ERROR * float(sum(pairs.values()) + gun)}}
++
++
++SESSIONS = {"moga": REFERENCES / "moga_jitter", "tdr": REFERENCES / "tdr_candidate_jitter"}
++
++
++def reference_runs(names=("moga", "tdr")) -> tuple[pd.DataFrame, pd.DataFrame]:
++    rows, trials = [], []
++    for name in names:
++        folder = SESSIONS[name]
++        paths = sorted(folder.glob("robustness_runs/*/robustness_requests.json"))
++        if len(paths) != 1:
++            raise FileNotFoundError(f"Round2 {name} jitter session is not complete in {folder}")
++        frame = records_frame(paths[0])
++        masks = profile_masks(frame)
++        for role, group in frame.groupby("role", sort=False):
++            index = group.index
++            entry = {"session": name, "role": role, "trials": len(group), "valid": int(group.valid.sum()),
++                     "execution_kinds": ",".join(sorted(group.execution_kind.unique()))}
++            for profile in ("production", "kls_tdr_optimization", "kls_tdr_optimization_plus_spread"):
++                k = int(masks[profile].loc[index].sum())
++                low, high, one_sided = binomial_bounds(k, len(group))
++                entry.update({f"{profile}_feasible": k, f"{profile}_ci_lower": low, f"{profile}_ci_upper": high,
++                              f"{profile}_one_sided_lower": one_sided})
++            for objective in OBJECTIVES:
++                entry[f"mean_{objective}"] = float(group[objective].mean())
++                entry[f"std_{objective}"] = float(group[objective].std(ddof=0))
++            entry["mean_energy_std_MeV"] = float(group.mean_kinetic_energy_eV.std(ddof=0) / 1e6)
++            # Physical TDR headroom (positive inside the limit) of the worst trial in each channel.
++            entry.update({"min_tdr_margin_sigma_x_um": float((0.30e-3 - group.sigma_x_m).min() * 1e6),
++                          "min_tdr_margin_sigma_y_um": float((0.30e-3 - group.sigma_y_m).min() * 1e6),
++                          "min_tdr_margin_sigma_yp_urad": float((0.2663e-3 - group.sigma_yp_rad).min() * 1e6),
++                          "min_tdr_margin_sigma_z_um": float((1e-3 - group.sigma_z_m).min() * 1e6),
++                          "min_tdr_margin_energy_MeV": float((group.mean_kinetic_energy_eV - 200e6).min() / 1e6)})
++            rows.append(entry)
++            trials.append(group.assign(session=name, **{f"pass_{p}": masks[p].loc[index].to_numpy()
++                                                         for p in ("production", "kls_tdr_optimization")}))
++    return pd.DataFrame(rows), pd.concat(trials, ignore_index=True)
++
++
++def moga_reference() -> dict:
++    record = json.loads((REFERENCES / "moga_nominal/moga_reference.json").read_text())
++    frame = pd.DataFrame([{**record["objectives"], **record["result"]["diagnostics"],
++                           "simulation_valid": record["result"]["simulation_valid"]}])
++    masks = {name: bool(mask.iloc[0]) for name, mask in profile_masks(frame).items()}
++    previous = record["previous_record"]["values"]
++    return {"objectives": record["objectives"], "diagnostics": record["result"]["diagnostics"],
++            "recorded_production_feasible": record["result"]["physically_feasible"], "profiles": masks,
++            "reproduces_previous_record": all(np.isclose(record["objectives"][k], previous[k], rtol=1e-6)
++                                              for k in OBJECTIVES),
++            "relative_rms_energy_spread": record["objectives"]["sigma_energy_eV"]
++                                          / record["result"]["diagnostics"]["mean_kinetic_energy_eV"],
++            "tdr_vertical_divergence_excess_urad": (record["result"]["diagnostics"]["sigma_yp_rad"] - 0.2663e-3) * 1e6,
++            "deck": record["deck"], "previous_record": record["previous_record"]}
++
++
++def moga_front_comparison() -> pd.DataFrame:
++    """Per run: additive epsilon of the feasible front to the MOGA-derived point, and dominance counts.
++
++    Coordinates are micrometre-radian and MeV. A negative epsilon means the run's feasible front
++    already weakly dominates the reference point with that slack.
++    """
++    from analyze_revision_fronts import SCALES, additive_epsilon, load_runs, nondominated
++    record = json.loads((REFERENCES / "moga_nominal/moga_reference.json").read_text())
++    point = np.array([record["objectives"][name] for name in OBJECTIVES]) / SCALES
++    runs, _, _ = load_runs(ROOT / "results/paper_production/04_primary/benchmark/per_seed")
++    rows = []
++    for (method, group), (_, vals, feasible) in runs.items():
++        front = nondominated(vals[feasible])
++        dominating = [dominates(v, point) for v in vals[feasible]]
++        better_all = np.all(vals[feasible] < point, axis=1) if feasible.any() else np.array([])
++        rows.append({"method": method, "group": group, "feasible": int(feasible.sum()),
++                     "epsilon_to_reference": additive_epsilon(front, point[None, :]),
++                     "feasible_dominating_reference": int(sum(dominating)),
++                     "feasible_strictly_better_all": int(better_all.sum()),
++                     "feasible_better_emit_x": int((vals[feasible][:, 0] < point[0]).sum()),
++                     "feasible_better_emit_y": int((vals[feasible][:, 1] < point[1]).sum()),
++                     "feasible_better_sigma_e": int((vals[feasible][:, 2] < point[2]).sum())})
++    return pd.DataFrame(rows)
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--part", choices=("archived", "moga-front", "references", "all"), default="all")
++    args = parser.parse_args(argv)
++    metadata = {"analysis": "C2-07/C2-08 jitter checks", "amplitude_error_rms": AMPLITUDE_ERROR}
++    if args.part in ("archived", "all"):
++        archived_audit().to_csv(EVIDENCE / "r2_jitter_dominance.csv", index=False)
++        metadata["rf_amplitude_estimate"] = amplitude_estimate()
++    if args.part in ("moga-front", "all"):
++        moga_front_comparison().to_csv(EVIDENCE / "r2_moga_reference_comparison.csv", index=False)
++        summary, trials = reference_runs(("moga",))
++        summary.to_csv(EVIDENCE / "r2_moga_jitter_summary.csv", index=False)
++        trials.to_csv(EVIDENCE / "r2_moga_jitter_trials.csv", index=False)
++        metadata["moga_derived_reference"] = moga_reference()
++    if args.part in ("references", "all"):
++        summary, trials = reference_runs(("tdr",))
++        summary.to_csv(EVIDENCE / "r2_tdr_candidate_jitter_summary.csv", index=False)
++        trials.to_csv(EVIDENCE / "r2_tdr_candidate_jitter_trials.csv", index=False)
++    metadata["reference_inputs"] = {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest()
++                                    for p in sorted(REFERENCES.rglob("robustness_requests.json"))}
++    target = EVIDENCE / "r2_jitter_metadata.json"
++    previous = json.loads(target.read_text()) if target.exists() else {}
++    previous.update(metadata)
++    target.write_text(json.dumps(previous, indent=2, sort_keys=True, default=str) + "\n")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/analyze_revision_reference_resampling.py b/scripts/analyze_revision_reference_resampling.py
+new file mode 100644
+index 0000000..90a2f0c
+--- /dev/null
++++ b/scripts/analyze_revision_reference_resampling.py
+@@ -0,0 +1,108 @@
++#!/usr/bin/env python3
++"""C2-06: paired quality effects with the empirical reference rebuilt inside each resample.
++
++The round1 C03/C04 indicators use one empirical reference front (and HV reference point)
++estimated from all tested runs, then treat it as fixed in the paired bootstrap. Here the
++matched groups are resampled with replacement and, inside every resample, the reference
++front and the HV reference (pooled nadir + 25 % of span) are rebuilt from the resampled
++groups only. The resulting percentile intervals for mean paired differences therefore
++include reference-construction uncertainty. The estimand is the mean paired difference of
++terminal indicators over matched groups; no p-value is derived from this procedure.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import sys
++from itertools import combinations
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT / "scripts"))
++from analyze_revision_fronts import (  # noqa: E402
++    METHODS, additive_epsilon, hypervolume, igd_plus, load_runs, nondominated,
++)
++
++ENDPOINTS = ("epsilon", "igd_plus", "hv_25")
++RESAMPLES, RNG_SEED = 2000, 20261027
++
++
++def indicators(fronts: dict, groups: list) -> dict:
++    """Terminal epsilon, IGD+ and HV(25 %) per (method, position) for one group sample."""
++    reference = nondominated(np.vstack([fronts[(m, g)] for g in groups for m in METHODS if len(fronts[(m, g)])]))
++    nadir, span = reference.max(0), np.ptp(reference, axis=0)
++    hv_reference = nadir + 0.25 * span
++    out = {}
++    for position, group in enumerate(groups):
++        for method in METHODS:
++            front = fronts[(method, group)]
++            out[(method, position)] = (additive_epsilon(front, reference), igd_plus(front, reference),
++                                       hypervolume(front, hv_reference))
++    return out
++
++
++def mean_differences(values: dict, n: int) -> dict:
++    result = {}
++    for first, second in combinations(METHODS, 2):
++        for k, endpoint in enumerate(ENDPOINTS):
++            d = np.array([values[(first, i)][k] - values[(second, i)][k] for i in range(n)], float)
++            result[(endpoint, first, second)] = float(d.mean()) if np.isfinite(d).all() else float("nan")
++    return result
++
++
++def analyze(root: Path, out: Path, resamples: int = RESAMPLES) -> pd.DataFrame:
++    runs, groups, manifest = load_runs(root)
++    fronts = {(method, group): nondominated(vals[feasible]) for (method, group), (_, vals, feasible) in runs.items()}
++    observed = mean_differences(indicators(fronts, groups), len(groups))
++    rng = np.random.default_rng(RNG_SEED)
++    draws = {key: [] for key in observed}
++    nonfinite = 0
++    for _ in range(resamples):
++        sample = [groups[i] for i in rng.integers(0, len(groups), size=len(groups))]
++        values = mean_differences(indicators(fronts, sample), len(sample))
++        for key, value in values.items():
++            if np.isfinite(value):
++                draws[key].append(value)
++            else:
++                nonfinite += 1
++    fixed = pd.read_csv(out / "c04_paired_effects.csv")
++    rows = []
++    for (endpoint, first, second), value in observed.items():
++        sample = np.array(draws[(endpoint, first, second)])
++        lo, hi = np.quantile(sample, [0.025, 0.975])
++        reference = fixed[(fixed.endpoint == endpoint) & (fixed.first_method == first) & (fixed.second_method == second)]
++        rows.append({"endpoint": endpoint, "first_method": first, "second_method": second,
++                     "mean_difference": value, "rebuilt_ci_lower": float(lo), "rebuilt_ci_upper": float(hi),
++                     "fixed_ci_lower": float(reference.ci_lower.iloc[0]), "fixed_ci_upper": float(reference.ci_upper.iloc[0]),
++                     "fixed_mean_difference": float(reference.mean_difference.iloc[0]),
++                     "resamples_used": int(sample.size),
++                     "interval_excludes_zero": bool(lo > 0 or hi < 0)})
++    table = pd.DataFrame(rows)
++    table.to_csv(out / "r2_rebuilt_reference_effects.csv", index=False)
++    (out / "r2_rebuilt_reference_metadata.json").write_text(json.dumps({
++        "analysis": "C2-06 exploratory sensitivity; reference front and HV(25%) reference rebuilt in each group resample",
++        "estimand": "mean paired difference (first minus second) of terminal indicators over matched groups",
++        "resamples": resamples, "analysis_rng": RNG_SEED, "nonfinite_draws_dropped": nonfinite,
++        "groups": groups, "no_p_values": True,
++        "inputs": manifest,
++        "c04_paired_effects_sha256": hashlib.sha256((out / "c04_paired_effects.csv").read_bytes()).hexdigest(),
++    }, indent=2) + "\n")
++    return table
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--root", type=Path, default=ROOT / "results/paper_production/04_primary/benchmark/per_seed")
++    parser.add_argument("--output", type=Path, default=ROOT / "docs/paper/revisions/evidence")
++    parser.add_argument("--resamples", type=int, default=RESAMPLES)
++    args = parser.parse_args(argv)
++    print(analyze(args.root, args.output, args.resamples).round(4).to_string(index=False))
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/analyze_revision_space_filling.py b/scripts/analyze_revision_space_filling.py
+new file mode 100644
+index 0000000..798fff3
+--- /dev/null
++++ b/scripts/analyze_revision_space_filling.py
+@@ -0,0 +1,184 @@
++#!/usr/bin/env python3
++"""C2-03: space-filling references for the feasible-sampling comparison.
++
++1. Initialization-only reference: the 160 shared scrambled-Sobol initial points (16 per
++   matched group), which every pipeline evaluates identically. Not a matched arm.
++2. Budget-matched Sobol arm (optional run): 160 points of each group's own scrambled Sobol
++   sequence, whose first 16 are that group's shared initial design; no acquisition.
++
++Channel-group violations use the same production-profile definitions as C2-02.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import sys
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT / "scripts"))
++from analyze_revision_attribution import (  # noqa: E402
++    ACC34_UPPER_QUARTER, METHODS, SEEDS, categorize, load_runs, violations,
++)
++from analyze_revision_fronts import SCALES, additive_epsilon, igd_plus, nondominated  # noqa: E402
++from analyze_revision_robustness import binomial_bounds  # noqa: E402
++
++PRIMARY = ROOT / "results/paper_production/04_primary/benchmark/per_seed"
++SOBOL = ROOT / "results/revision_round2/sobol"
++EVIDENCE = ROOT / "docs/paper/revisions/evidence"
++BOOTSTRAP, RNG_SEED = 10000, 20261027
++VARIABLES = ("solenoid_field_T", "quad_1_gradient_T_m", "quad_2_gradient_T_m", "gun_phase_deg",
++             "acc1_acc2_phase_deg", "acc3_acc4_phase_deg")
++
++
++def rates(frame: pd.DataFrame) -> dict:
++    return {"n": len(frame), "feasible": int((frame.category == "feasible").sum()),
++            "feasible_fraction": float((frame.category == "feasible").mean()),
++            "energy_violation_fraction": float(frame.violates_energy.mean()),
++            "transverse_violation_fraction": float(frame.violates_transverse.mean()),
++            "bunch_length_violation_fraction": float(frame.violates_bunch_length.mean()),
++            "acc34_upper_quarter_fraction": float((frame.acc3_acc4_phase_deg > ACC34_UPPER_QUARTER).mean())}
++
++
++def initial_reference(runs) -> pd.DataFrame:
++    rows = []
++    initial = pd.concat([runs[(METHODS[0], seed)][lambda d: d.batch == 0] for seed in SEEDS], ignore_index=True)
++    entry = {"population": "shared_initial_design", **rates(initial)}
++    low, high, _ = binomial_bounds(entry["feasible"], entry["n"])
++    entry.update(ci_lower=low, ci_upper=high)
++    rows.append(entry)
++    for method in METHODS:
++        post = pd.concat([runs[(method, seed)][lambda d: d.batch > 0] for seed in SEEDS], ignore_index=True)
++        entry = {"population": f"{method}_post_initialization", **rates(post)}
++        low, high, _ = binomial_bounds(entry["feasible"], entry["n"])
++        entry.update(ci_lower=low, ci_upper=high)
++        rows.append(entry)
++    return pd.DataFrame(rows)
++
++
++def load_sobol(runs) -> tuple[dict, list]:
++    arms, manifest = {}, []
++    for seed in SEEDS:
++        run = SOBOL / f"sobol_seed_{seed}"
++        path = run / "evaluations.csv"
++        if not (run / "run_complete.json").exists():
++            raise FileNotFoundError(f"Sobol arm seed {seed} is not complete: {run}")
++        marker = json.loads((run / "run_complete.json").read_text())
++        digest = hashlib.sha256(path.read_bytes()).hexdigest()
++        if digest != marker["artifacts"]["evaluations.csv"]:
++            raise ValueError(f"Checksum mismatch: {path}")
++        df = pd.read_csv(path)
++        df["index"] = df.evaluation_id.str.extract(r"(\d+)$")[0].astype(int)
++        df = df.sort_values("index").reset_index(drop=True)
++        if len(df) != 160 or not (df["index"].to_numpy() == np.arange(1, 161)).all():
++            raise ValueError(f"Unexpected Sobol ledger {path}")
++        shared = runs[(METHODS[0], seed)]
++        np.testing.assert_allclose(df.loc[:15, list(VARIABLES)].to_numpy(), shared.loc[:15, list(VARIABLES)].to_numpy(),
++                                   rtol=0, atol=1e-9)
++        limits = json.loads((run / "config.json").read_text())["constraints"]
++        v = violations(df, limits)
++        df["category"] = categorize(v)
++        if not (df.category.eq("feasible") == df.physically_feasible.astype(bool)).all():
++            raise ValueError(f"Recomputed feasibility disagrees with recorded labels in {path}")
++        df["batch"] = np.where(df["index"] <= 16, 0, (df["index"] - 17) // 8 + 1)
++        arms[seed] = pd.concat([df, v.add_prefix("violates_")], axis=1)
++        manifest.append({"run": run.name, "sha256": digest})
++    return arms, manifest
++
++
++def sobol_comparison(runs, arms) -> tuple[pd.DataFrame, pd.DataFrame]:
++    rows = []
++    for seed in SEEDS:
++        for name, frame in [("sobol", arms[seed])] + [(m, runs[(m, seed)]) for m in METHODS]:
++            post = frame[frame.batch > 0]
++            rows.append({"method": name, "seed": seed, **rates(post)})
++    table = pd.DataFrame(rows)
++    rng = np.random.default_rng(RNG_SEED)
++    index = rng.integers(0, len(SEEDS), size=(BOOTSTRAP, len(SEEDS)))
++    effects = []
++    for metric in ("feasible_fraction", "energy_violation_fraction", "transverse_violation_fraction"):
++        wide = table.pivot(index="seed", columns="method", values=metric).loc[list(SEEDS)]
++        for method in METHODS:
++            d = (wide[method] - wide["sobol"]).to_numpy(float)
++            lo, hi = np.quantile(d[index].mean(axis=1), [0.025, 0.975])
++            effects.append({"metric": metric, "first_method": method, "second_method": "sobol",
++                            "mean_difference": float(d.mean()), "ci_lower": float(lo), "ci_upper": float(hi),
++                            "n_positive": int((d > 0).sum()), "n_negative": int((d < 0).sum())})
++    return table, pd.DataFrame(effects)
++
++
++def paired(table: pd.DataFrame, metric: str, rng) -> list:
++    """Bootstrap the mean of (pipeline - Sobol) over the matched groups."""
++    wide = table.pivot(index="seed", columns="method", values=metric).loc[list(SEEDS)]
++    index = rng.integers(0, len(SEEDS), size=(BOOTSTRAP, len(SEEDS)))
++    rows = []
++    for method in METHODS:
++        d = (wide[method] - wide["sobol"]).to_numpy(float)
++        finite = bool(np.isfinite(d).all())
++        lo, hi = np.quantile(d[index].mean(axis=1), [0.025, 0.975]) if finite else (np.nan, np.nan)
++        rows.append({"metric": metric, "first_method": method, "second_method": "sobol",
++                     "mean_difference": float(d.mean()) if finite else np.nan, "ci_lower": float(lo),
++                     "ci_upper": float(hi), "n_positive": int((d > 0).sum()), "n_negative": int((d < 0).sum())})
++    return rows
++
++
++def sobol_quality(arms, evidence: Path = EVIDENCE) -> tuple[pd.DataFrame, pd.DataFrame]:
++    """Post hoc epsilon and IGD+ of each terminal front against the primary empirical reference.
++
++    The reference and the pipelines' terminal values are those of the primary analysis
++    (c03_*), so the Sobol arm is scored on the same scale; the reference is not rebuilt.
++    """
++    reference = pd.read_csv(evidence / "c03_empirical_reference.csv").to_numpy(float)
++    histories = pd.read_csv(evidence / "c03_run_histories.csv")
++    terminal = histories[histories.evaluations == 160]
++    rows = []
++    for seed in SEEDS:
++        df = arms[seed]
++        values = df[["norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV"]].to_numpy(float) / SCALES
++        front = nondominated(values[(df.category == "feasible").to_numpy()])
++        dominates = (np.any(np.all(front[:, None] <= reference[None], axis=2)
++                            & np.any(front[:, None] < reference[None], axis=2), axis=0).sum() if len(front) else 0)
++        rows.append({"method": "sobol", "seed": seed, "front_size_unique": len(front),
++                     "epsilon": additive_epsilon(front, reference), "igd_plus": igd_plus(front, reference),
++                     "reference_points_dominated": int(dominates)})
++        for method in METHODS:
++            row = terminal[(terminal.method == method) & (terminal.group == seed)].iloc[0]
++            rows.append({"method": method, "seed": seed, "front_size_unique": int(row.front_size_unique),
++                         "epsilon": float(row.epsilon), "igd_plus": float(row.igd_plus)})
++    table = pd.DataFrame(rows)
++    rng = np.random.default_rng(RNG_SEED + 1)
++    effects = paired(table, "epsilon", rng) + paired(table, "igd_plus", rng)
++    return table, pd.DataFrame(effects)
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--part", choices=("initial", "sobol", "all"), default="initial")
++    args = parser.parse_args(argv)
++    runs, manifest = load_runs(PRIMARY)
++    metadata = {"analysis": "C2-03 space-filling references; production profile", "inputs": manifest}
++    if args.part in ("initial", "all"):
++        initial_reference(runs).to_csv(EVIDENCE / "r2_space_filling_initial.csv", index=False)
++    if args.part in ("sobol", "all"):
++        arms, sobol_manifest = load_sobol(runs)
++        table, effects = sobol_comparison(runs, arms)
++        table.to_csv(EVIDENCE / "r2_sobol_arm_runs.csv", index=False)
++        effects.to_csv(EVIDENCE / "r2_sobol_arm_paired.csv", index=False)
++        quality, quality_effects = sobol_quality(arms)
++        quality.to_csv(EVIDENCE / "r2_sobol_arm_quality.csv", index=False)
++        quality_effects.to_csv(EVIDENCE / "r2_sobol_arm_quality_paired.csv", index=False)
++        metadata.update(sobol_quality="post hoc; epsilon and IGD+ against the unchanged primary empirical reference")
++        metadata.update(sobol_inputs=sobol_manifest, bootstrap_resamples=BOOTSTRAP, analysis_rng=RNG_SEED)
++    target = EVIDENCE / "r2_space_filling_metadata.json"
++    previous = json.loads(target.read_text()) if target.exists() else {}
++    previous.update(metadata)
++    target.write_text(json.dumps(previous, indent=2, sort_keys=True) + "\n")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/analyze_revision_tdr_campaigns.py b/scripts/analyze_revision_tdr_campaigns.py
+new file mode 100644
+index 0000000..edb88ee
+--- /dev/null
++++ b/scripts/analyze_revision_tdr_campaigns.py
+@@ -0,0 +1,177 @@
++#!/usr/bin/env python3
++"""C2-01 optional runs: constraint-aware MOBO campaigns under the KLS TDR optimization constraints.
++
++Three matched campaigns (seeds 42-44, 160 evaluations, the primary protocol) use
++``configs/revision_tdr_200MeV.yaml``. Each observation is classified with the same
++acceptance-profile masks used for the primary reclassification, and compared descriptively
++with the TDR-reclassified primary campaigns of the same seeds. Those campaigns share the
++initial designs but were steered by the production constraints, or by none. With three
++groups no test is made.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import sys
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++
++ROOT = Path(__file__).resolve().parents[1]
++sys.path.insert(0, str(ROOT / "scripts"))
++from analyze_revision_acceptance import METHODS, profile_masks  # noqa: E402
++
++TDR_RUNS = ROOT / "results/revision_round2/tdr_benchmark/per_seed"
++PRIMARY = ROOT / "results/paper_production/04_primary/benchmark/per_seed"
++MOGA = ROOT / "results/revision_round2/references/moga_nominal/moga_reference.json"
++EVIDENCE = ROOT / "docs/paper/revisions/evidence"
++SEEDS = (42, 43, 44)
++N_INITIAL, BUDGET = 16, 160
++OBJECTIVES = ("norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV")
++# TDR optimization inequalities as (column, kind, limit); all margins are relative to the limit.
++TDR_LIMITS = (("sigma_x_m", "upper", 0.3e-3), ("sigma_y_m", "upper", 0.3e-3),
++              ("sigma_xp_rad", "upper", 0.2663e-3), ("sigma_yp_rad", "upper", 0.2663e-3),
++              ("sigma_z_m", "upper", 1e-3), ("mean_kinetic_energy_eV", "lower", 200e6),
++              ("transmission_fraction", "lower", 0.9999))
++
++
++def margins(frame: pd.DataFrame) -> pd.DataFrame:
++    """Signed relative margins (positive = satisfied) for each TDR inequality."""
++    out = {}
++    for column, kind, limit in TDR_LIMITS:
++        value = frame[column].astype(float)
++        out[column] = (limit - value) / limit if kind == "upper" else (value - limit) / limit
++    return pd.DataFrame(out, index=frame.index)
++
++
++def load(path: Path, require_complete: bool) -> pd.DataFrame:
++    run = path.parent
++    complete = (run / "run_complete.json").exists()
++    if complete:
++        marker = json.loads((run / "run_complete.json").read_text())
++        if hashlib.sha256(path.read_bytes()).hexdigest() != marker["artifacts"]["evaluations.csv"]:
++            raise ValueError(f"Checksum mismatch: {path}")
++    elif require_complete:
++        raise FileNotFoundError(f"Campaign not complete: {run}")
++    else:
++        path = run / "evaluations_stream.csv"
++    df = pd.read_csv(path)
++    df["index"] = df.evaluation_id.str.extract(r"(\d+)$")[0].astype(int)
++    df = df.sort_values("index").reset_index(drop=True)
++    if complete and (len(df) != BUDGET or not (df["index"].to_numpy() == np.arange(1, BUDGET + 1)).all()):
++        raise ValueError(f"Unexpected ledger {path}")
++    masks = profile_masks(df)
++    for name in ("kls_tdr_optimization", "production", "napac2025"):
++        df[name] = masks[name].to_numpy()
++    return with_margins(df)
++
++
++def with_margins(df: pd.DataFrame) -> pd.DataFrame:
++    # Transmission is 1 in every observation, so its 1e-4 relative margin would always rank
++    # as the closest; the worst margin is taken over the six beam diagnostics.
++    m = margins(df)
++    beam = m.drop(columns="transmission_fraction")
++    df = df.assign(worst_margin=beam.min(axis=1), binding_channel=beam.idxmin(axis=1))
++    return pd.concat([df, m.add_prefix("margin_")], axis=1)
++
++
++def nondominated(points: np.ndarray) -> np.ndarray:
++    keep = np.ones(len(points), dtype=bool)
++    for i, p in enumerate(points):
++        if np.any(np.all(points <= p, axis=1) & np.any(points < p, axis=1)):
++            keep[i] = False
++    return keep
++
++
++def run_row(df: pd.DataFrame, method: str, seed: int) -> dict:
++    post = df[df["index"] > N_INITIAL]
++    tdr = df[df.kls_tdr_optimization]
++    best = df.loc[df.worst_margin.idxmax()]
++    return {"method": method, "seed": seed, "n": len(df), "complete": len(df) == BUDGET,
++            "tdr_feasible": int(df.kls_tdr_optimization.sum()),
++            "tdr_feasible_post_init": int(post.kls_tdr_optimization.sum()),
++            "production_feasible": int(df.production.sum()), "napac_feasible": int(df.napac2025.sum()),
++            "first_tdr_feasible_index": int(tdr["index"].min()) if len(tdr) else None,
++            "best_worst_margin": float(best.worst_margin), "best_worst_margin_id": best.evaluation_id,
++            "best_worst_margin_channel": best.binding_channel,
++            **{f"best_tdr_{name}": float(tdr[name].min()) if len(tdr) else None for name in OBJECTIVES}}
++
++
++def violation_shares(df: pd.DataFrame, method: str, seed: int) -> list[dict]:
++    post = df[df["index"] > N_INITIAL]
++    m = post[[f"margin_{column}" for column, _, _ in TDR_LIMITS]]
++    rows = [{"method": method, "seed": seed, "channel": column, "n": len(post),
++             "violated_fraction": float((m[f"margin_{column}"] <= 0).mean()),
++             "binding_fraction": float((post.binding_channel == column).mean()),
++             "only_violation_fraction": float(((m[f"margin_{column}"] <= 0)
++                                              & ((m > 0).sum(axis=1) == len(TDR_LIMITS) - 1)).mean())}
++            for column, _, _ in TDR_LIMITS]
++    return rows
++
++
++def analyze(require_complete: bool = True):
++    runs, rows, shares, manifest, feasible = {}, [], [], [], []
++    for seed in SEEDS:
++        path = TDR_RUNS / f"constrained_qlognehvi_seed_{seed}" / "evaluations.csv"
++        if not path.parent.exists():
++            if require_complete:
++                raise FileNotFoundError(path.parent)
++            continue
++        runs[("tdr_constrained_qlognehvi", seed)] = load(path, require_complete)
++    for method in METHODS:
++        for seed in SEEDS:
++            runs[(method, seed)] = load(PRIMARY / f"{method}_seed_{seed}" / "evaluations.csv", True)
++    for (method, seed), df in runs.items():
++        rows.append(run_row(df, method, seed))
++        shares.extend(violation_shares(df, method, seed))
++        manifest.append({"method": method, "seed": seed, "n": len(df)})
++        tdr = df[df.kls_tdr_optimization]
++        feasible.append(tdr.assign(method=method, seed=seed))
++        if method == "tdr_constrained_qlognehvi":
++            agree = int((df.kls_tdr_optimization == df.physically_feasible.astype(bool)).sum())
++            manifest[-1]["recorded_label_agreement"] = agree
++    feasible = pd.concat(feasible, ignore_index=True)
++    columns = ["method", "seed", "evaluation_id", *OBJECTIVES, "worst_margin", "binding_channel",
++               "production", "napac2025"]
++    front = feasible[columns].copy()
++    front["pooled_nondominated"] = nondominated(front[list(OBJECTIVES)].to_numpy()) if len(front) else []
++    if MOGA.exists():
++        record = json.loads(MOGA.read_text())["execution_details"]
++        moga = with_margins(pd.DataFrame([{**record["objectives"], **record["diagnostics"]}]))
++        point = moga[list(OBJECTIVES)].to_numpy()[0]
++        front["dominates_moga_reference"] = [bool(np.all(p <= point) and np.any(p < point))
++                                             for p in front[list(OBJECTIVES)].to_numpy()]
++        rows.append({"method": "moga_derived_reference", "seed": None, "n": 1,
++                     "best_worst_margin": float(moga.worst_margin.iloc[0]),
++                     "best_worst_margin_channel": moga.binding_channel.iloc[0]})
++    table = pd.DataFrame(rows)
++    counts = ["seed", "tdr_feasible", "tdr_feasible_post_init", "production_feasible", "napac_feasible",
++              "first_tdr_feasible_index"]
++    table[counts] = table[counts].astype("Int64")
++    return table, pd.DataFrame(shares), front, manifest
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--allow-incomplete", action="store_true", help="Preview on running campaigns.")
++    parser.add_argument("--output-dir", type=Path, default=EVIDENCE)
++    args = parser.parse_args(argv)
++    table, shares, front, manifest = analyze(not args.allow_incomplete)
++    out = args.output_dir
++    out.mkdir(parents=True, exist_ok=True)
++    table.to_csv(out / "r2_tdr_campaign_runs.csv", index=False)
++    shares.to_csv(out / "r2_tdr_campaign_violations.csv", index=False)
++    front.to_csv(out / "r2_tdr_campaign_feasible.csv", index=False)
++    (out / "r2_tdr_campaign_metadata.json").write_text(json.dumps({
++        "analysis": "C2-01 TDR-constrained campaigns; descriptive comparison with TDR-reclassified primary runs",
++        "configuration": "configs/revision_tdr_200MeV.yaml", "seeds": list(SEEDS), "budget": BUDGET,
++        "tdr_limits": [list(limit) for limit in TDR_LIMITS], "inputs": manifest,
++        "preview": bool(args.allow_incomplete)}, indent=2, sort_keys=True) + "\n")
++    print(table.to_string(index=False))
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/build_supplement_manifest.py b/scripts/build_supplement_manifest.py
+new file mode 100644
+index 0000000..2ba41d1
+--- /dev/null
++++ b/scripts/build_supplement_manifest.py
+@@ -0,0 +1,107 @@
++#!/usr/bin/env python3
++"""Build and check the supplement S1 evidence map for the manuscript.
++
++``--build`` writes ``docs/paper/supplement/ledger_manifest.json``: the code commit, the
++configuration hash and the command-line settings of each production step, and the size and
++SHA-256 of every run-level input ledger (evaluations, resolved configuration, completion
++marker) that the evidence files are computed from. The full run directories are not
++distributed. ``--check`` (the default) verifies that every map entry exists, that every
++file in the evidence directory is mapped, that each manuscript location is a defined
++label, and, when the raw results are present, that the recorded ledger checksums still hold.
++"""
++from __future__ import annotations
++
++import argparse
++import csv
++import hashlib
++import json
++import re
++import sys
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++SUPPLEMENT = ROOT / "docs/paper/supplement"
++MAP = SUPPLEMENT / "evidence_map.csv"
++MANIFEST = SUPPLEMENT / "ledger_manifest.json"
++EVIDENCE = ROOT / "docs/paper/revisions/evidence"
++PAPER = ROOT / "docs/paper"
++RESULTS = ("results/paper_production", "results/revision_round2")
++LEDGERS = ("evaluations.csv", "config.json", "run_complete.json")
++
++
++def sha256(path: Path) -> str:
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++
++def step_records() -> list[dict]:
++    records = []
++    for path in sorted((ROOT / RESULTS[0]).glob("*/step_record_*.json")):
++        record = json.loads(path.read_text())
++        records.append({"record": str(path.relative_to(ROOT)), "step": record["parameters"]["step"],
++                        "git_commit": record["git"]["commit"], "git_dirty": record["git"]["dirty"],
++                        "config_sha256": record["config"]["sha256"], "parameters": record["parameters"]})
++    return records
++
++
++def ledgers() -> list[dict]:
++    rows = []
++    for base in RESULTS:
++        for marker in sorted((ROOT / base).rglob("run_complete.json")):
++            for name in LEDGERS:
++                path = marker.parent / name
++                if path.exists():
++                    rows.append({"path": str(path.relative_to(ROOT)), "bytes": path.stat().st_size,
++                                 "sha256": sha256(path)})
++    return rows
++
++
++def build() -> dict:
++    manifest = {"description": "Supplement S1 ledger manifest; raw run directories are not distributed",
++                "production_steps": step_records(), "ledgers": ledgers()}
++    MANIFEST.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
++    return manifest
++
++
++def labels() -> set[str]:
++    sources = [PAPER / "main.tex", *EVIDENCE.glob("*.tex"), *PAPER.glob("*.tex")]
++    return {label for path in sources for label in re.findall(r"\\label\{([^}]*)\}", path.read_text())}
++
++
++def check() -> list[str]:
++    errors = []
++    with MAP.open() as handle:
++        rows = list(csv.DictReader(handle))
++    defined = labels()
++    for row in rows:
++        for key in ("path", "generator"):
++            if row[key] and not (ROOT / row[key]).exists():
++                errors.append(f"{row['item']}: missing {key} {row[key]}")
++        if row["manuscript_location"] and row["manuscript_location"] not in defined:
++            errors.append(f"{row['item']}: undefined label {row['manuscript_location']}")
++    mapped = {row["path"] for row in rows}
++    for path in sorted(EVIDENCE.iterdir()):
++        if str(path.relative_to(ROOT)) not in mapped:
++            errors.append(f"unmapped evidence file {path.relative_to(ROOT)}")
++    if MANIFEST.exists() and (ROOT / RESULTS[0]).exists():
++        for entry in json.loads(MANIFEST.read_text())["ledgers"]:
++            path = ROOT / entry["path"]
++            if path.exists() and sha256(path) != entry["sha256"]:
++                errors.append(f"ledger checksum changed: {entry['path']}")
++    return errors
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--build", action="store_true", help="Rewrite the ledger manifest first.")
++    args = parser.parse_args(argv)
++    if args.build:
++        manifest = build()
++        print(f"{len(manifest['ledgers'])} ledgers, {len(manifest['production_steps'])} step records")
++    errors = check()
++    for error in errors:
++        print(error, file=sys.stderr)
++    return 1 if errors else 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/compare_pareto_fronts.py b/scripts/compare_pareto_fronts.py
+index 960d893..9890ad4 100644
+--- a/scripts/compare_pareto_fronts.py
++++ b/scripts/compare_pareto_fronts.py
+@@ -57,18 +57,30 @@ def limits(fronts, schema):
+     return list(zip(low - pad, high + pad))
+ 
+ 
+-def paper_comparison(fronts, schema):
+-    """Readable portrait panels for a manuscript; all observed points stay visible."""
++def paper_comparison(fronts, schema, reference=None):
++    """Readable portrait panels for a manuscript; all observed points stay visible.
++
++    ``reference`` optionally marks one measured setting, ``{"label": ..., "objectives": {column: SI value}}``.
++    """
+     fig, axes = plt.subplots(3, 1, figsize=(6.5, 8.5), layout="constrained")
+     bounds = limits(fronts, schema)
++    point = None
++    if reference is not None:
++        point = np.array([reference["objectives"][s.column] / s.scale for s in schema.objectives])
+     for ax, pair, letter in zip(axes, combinations(range(3), 2), "abc"):
+         draw(ax, fronts, schema, pair=pair, bounds=bounds)
++        if point is not None:
++            ax.scatter(point[pair[0]], point[pair[1]], marker="*", s=190, color="black",
++                       edgecolors="white", linewidths=.6, zorder=5)
+         ax.set_title(f"({letter})", loc="left", fontsize=11)
+         ax.set_axisbelow(True)
+         ax.grid(visible=True, which="major", axis="both", color="0.65",
+                 linestyle="--", linewidth=.65, alpha=.85)
+     handles = [Line2D([], [], linestyle="", color=color, marker=marker, label=label)
+                for label, (color, marker) in zip(LABELS, STYLES)]
++    if point is not None:
++        handles.append(Line2D([], [], linestyle="", color="black", marker="*", markersize=11,
++                              label=reference["label"]))
+     axes[0].legend(handles=handles, fontsize=8, loc="best")
+     return fig
+ 
+@@ -165,7 +177,7 @@ def small_multiples(groups, schema, path, title, notes, columns):
+     plt.close(fig)
+ 
+ 
+-def generate(root, output, two_d=False, paper_dir=None):
++def generate(root, output, two_d=False, paper_dir=None, reference=None):
+     if output.exists() and any(output.iterdir()):
+         raise FileExistsError("Select a fresh comparison directory; existing outputs are preserved")
+     manifest = pd.read_csv(root / "04_primary/benchmark/campaign_manifest.csv")
+@@ -256,7 +268,7 @@ def generate(root, output, two_d=False, paper_dir=None):
+     if paper_dir is not None:
+         paper_dir.mkdir(parents=True, exist_ok=True)
+         for name, fronts in [("primary_pareto_points", pooled), ("survey_pareto_points", pooled_survey)]:
+-            fig = paper_comparison(fronts, schema)
++            fig = paper_comparison(fronts, schema, reference if name == "primary_pareto_points" else None)
+             fig.savefig(paper_dir / f"{name}.pdf")
+             fig.savefig(paper_dir / f"{name}.png", dpi=200)
+             plt.close(fig)
+@@ -280,5 +292,11 @@ if __name__ == "__main__":
+     parser.add_argument("--output-dir", type=Path, required=True)
+     parser.add_argument("--two-d", action="store_true", help="Only 2D objective pairs; omit every 3D axis")
+     parser.add_argument("--paper-dir", type=Path, help="Also export portrait manuscript panels to this figure directory")
++    parser.add_argument("--reference-json", type=Path,
++                        help="Mark a measured reference setting (moga_reference.json) in the primary manuscript panels")
+     args = parser.parse_args()
+-    generate(args.production_root, args.output_dir, two_d=args.two_d, paper_dir=args.paper_dir)
++    reference = None
++    if args.reference_json is not None:
++        record = json.loads(args.reference_json.read_text())
++        reference = {"label": "MOGA-derived nominal", "objectives": record["objectives"]}
++    generate(args.production_root, args.output_dir, two_d=args.two_d, paper_dir=args.paper_dir, reference=reference)
+diff --git a/scripts/evaluate_revision_convergence.py b/scripts/evaluate_revision_convergence.py
+new file mode 100644
+index 0000000..b980415
+--- /dev/null
++++ b/scripts/evaluate_revision_convergence.py
+@@ -0,0 +1,205 @@
++#!/usr/bin/env python3
++"""Numerical-resolution check of the reported settings (consolidated round2 task C2-12).
++
++Ten settings are re-tracked at refined numerical settings with the production pipeline:
++the MOGA-derived nominal, TDR candidates A and B, the closest observation of the
++TDR-constrained campaigns, and the six selected constraint-aware representatives. The production deck uses 10,000 quasi-random macroparticles, a 32x32
++cylindrical and 32^3 3D space-charge grid, and H_max = 0.01 ns, H_min = 0.001 ns.
++
++The production source ``pal_photo2.ini`` is reproduced with ASTRA's ``generator`` (see
++``SOURCE_INPUT``): its time, radius and momentum marginals agree with the file to print
++precision. Refined sources come from the same input with more particles. Source-sampling
++noise is measured with regenerated 10k sources: one quasi-random and five pseudo-random
++(the generator seeds its random mode from the clock, so each file's SHA-256 is recorded).
++
++Levels change one factor at a time, plus two combined levels; each is applied through
++per-run namelist overrides of the production template. No production output is modified.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++import shutil
++import subprocess
++import time
++from dataclasses import asdict, replace
++from pathlib import Path
++
++from mobo_linac.config import load_config
++from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask
++from mobo_linac.execution.mock import MockEvaluator
++from mobo_linac.io.run_data import read_run_data
++
++ROOT = Path(__file__).resolve().parents[1]
++PRODUCTION_CONFIG = ROOT / "configs/publication_200MeV.yaml"
++PRIMARY = ROOT / "results/paper_production/04_primary/benchmark/per_seed"
++TDR_RUNS = ROOT / "results/revision_round2/tdr_benchmark/per_seed"
++REPRESENTATIVES = ROOT / "results/paper_production/06_candidate_audit/robustness/representatives.json"
++TDR_CANDIDATES = (("tdr_candidate_a", "constrained_qlognehvi_seed_44", "eval_000079"),
++                  ("tdr_candidate_b", "constrained_qlognehvi_seed_51", "eval_000099"))
++# Closest TDR-campaign observation (evidence/r2_tdr_campaign_runs.csv): misses sigma_x and sigma_y' by 0.4 %.
++TDR_CAMPAIGN_CLOSEST = ("tdr_campaign_closest", "constrained_qlognehvi_seed_43", "eval_000122")
++PRODUCTION_SOURCE = "pal_photo2.ini"
++# Generator input that reproduces the production source (probe particles included).
++SOURCE_INPUT = """&INPUT
++ FNAME = '{name}'
++ IPart={particles}
++ Species='electrons'
++ Probe=.T
++ Noise_reduc={quasi}
++ Cathode=.T
++ Q_total=1.0E0
++ Ref_zpos=0.0E0
++ Ref_clock=-0.6383E-3
++ Ref_Ekin=0.0E0
++ Dist_z='g', sig_clock=2.553E-3, C_sig_clock=4
++ Dist_pz='i', LE=0.6E-3, phi_eff=0.0
++ Dist_x='2DGaussian', sig_x=1.118E0, C_sig_x=0.8945
++ Dist_y='2DGaussian', sig_y=1.118E0, C_sig_y=0.8945
++/
++"""
++# name -> (particles, quasi-random)
++SOURCES = {"qr10k.ini": (10000, True), "qr20k.ini": (20000, True), "qr40k.ini": (40000, True),
++           **{f"rand10k_{i}.ini": (10000, False) for i in range(1, 6)}}
++GRID = ("charge:nrad", "charge:nlong_in", "charge:nxf", "charge:nyf", "charge:nzf")
++
++
++def grid(n: int) -> dict:
++    return {key: n for key in GRID}
++
++
++def step(divisor: int) -> dict:
++    return {"newrun:h_max": 0.01 / divisor, "newrun:h_min": 0.001 / divisor}
++
++
++def source(name: str) -> dict:
++    return {"newrun:distribution": name}
++
++
++# level -> (namelist overrides, relative cost); the production level re-tracks the archived deck.
++LEVELS = {
++    "production": ({}, 1),
++    "source_qr10k": (source("qr10k.ini"), 1),
++    **{f"source_rand10k_{i}": (source(f"rand10k_{i}.ini"), 1) for i in range(1, 6)},
++    "particles_20k": (source("qr20k.ini"), 2),
++    "particles_40k": (source("qr40k.ini"), 4),
++    "grid_48": (grid(48), 3),
++    "grid_64": (grid(64), 6),
++    "step_half": (step(2), 2),
++    "step_quarter": (step(4), 4),
++    "combined_medium": ({**source("qr20k.ini"), **grid(48), **step(2)}, 12),
++    "combined_fine": ({**source("qr40k.ini"), **grid(64), **step(4)}, 96),
++}
++
++
++def sha256(path: Path) -> str:
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++
++def settings(config) -> list:
++    """(role, run, evaluation_id, parameters) for the ten reported settings."""
++    chosen = [("moga_derived_nominal", None, None, [v.nominal_value for v in config.design_variables])]
++    roles = json.loads(REPRESENTATIVES.read_text())["roles"]
++    picks = [(*c, PRIMARY) for c in TDR_CANDIDATES] + [(*TDR_CAMPAIGN_CLOSEST, TDR_RUNS)]
++    picks += [(role, ref["run_id"], ref["evaluation_id"], PRIMARY) for role, ref in roles.items()]
++    for role, run, evaluation_id, base in picks:
++        matches = [r for r in read_run_data(base / run).results if r.evaluation_id == evaluation_id]
++        if len(matches) != 1:
++            raise ValueError(f"Expected one recorded {evaluation_id} in {run}")
++        chosen.append((role, run, evaluation_id, list(matches[0].x_physical)))
++    return chosen
++
++
++def make_sources(directory: Path, generator: Path) -> dict:
++    """Generate the source files; returns name -> SHA-256. Pseudo-random files must differ."""
++    directory.mkdir(parents=True, exist_ok=True)
++    digests = {}
++    for name, (particles, quasi) in SOURCES.items():
++        deck = directory / f"{Path(name).stem}.gen.in"
++        deck.write_text(SOURCE_INPUT.format(name=name, particles=particles, quasi=".T" if quasi else ".F"))
++        subprocess.run([str(generator), deck.name], cwd=directory, check=True, capture_output=True)
++        digests[name] = sha256(directory / name)
++        time.sleep(1.1)  # the random mode is clock-seeded
++    random = [digests[name] for name in SOURCES if not SOURCES[name][1]]
++    if len(set(random)) != len(random):
++        raise RuntimeError("Pseudo-random sources are not distinct; the generator seed did not change.")
++    return digests
++
++
++def build_template(config, directory: Path) -> object:
++    """Template with the production deck and maps plus the generated sources."""
++    simulation = config.simulation
++    production = Path(simulation.template_dir)
++    for name in [simulation.input_template, *simulation.static_files]:
++        shutil.copy2(production / name, directory / name)
++    static = list(simulation.static_files) + list(SOURCES)
++    return replace(config, simulation=replace(simulation, template_dir=str(directory), static_files=static))
++
++
++class _ConvergencePlan(CandidateEvaluatorBase):
++    def generate_evaluation_plan(self, candidates):
++        tasks = [EvaluationTask(task_id=f"{role}__{level}", role=role, parameters=list(parameters),
++                                namelist_overrides=dict(overrides) or None,
++                                metadata={"role": role, "level": level, "run": run, "evaluation_id": evaluation_id,
++                                          "purpose": "round2_convergence"})
++                 for role, run, evaluation_id, parameters in candidates
++                 for level, (overrides, _) in LEVELS.items()]
++        # Longest runs first so the pool is not left waiting on the fine level.
++        return sorted(tasks, key=lambda task: -LEVELS[task.metadata["level"]][1])
++
++
++def record(outcome) -> dict:
++    result = outcome.evaluated_result
++    return {"task_id": outcome.task.task_id, **outcome.task.metadata,
++            "status": outcome.execution_details.get("status"), "simulation_valid": result.simulation_valid,
++            "runtime_s": result.runtime_s, "parameters": list(outcome.task.parameters),
++            "namelist_overrides": outcome.task.namelist_overrides,
++            "objectives": outcome.execution_details.get("objectives"),
++            "diagnostics": outcome.execution_details.get("diagnostics"),
++            "eval_dir": outcome.execution_details.get("eval_dir")}
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--output-dir", type=Path, default=ROOT / "results/revision_round2/convergence")
++    parser.add_argument("--workers", type=int, default=8)
++    parser.add_argument("--timeout", type=int, default=24 * 3600, help="Per-run limit in seconds.")
++    parser.add_argument("--roles", nargs="*", help="Restrict to these settings (pilot).")
++    parser.add_argument("--levels", nargs="*", choices=list(LEVELS), help="Restrict to these levels (pilot).")
++    parser.add_argument("--mock-evaluator", action="store_true", help="Rehearse the plumbing without ASTRA.")
++    args = parser.parse_args(argv)
++    out = args.output_dir
++    if out.exists() and any(out.iterdir()):
++        raise SystemExit(f"{out} exists; outputs are immutable, choose a new directory.")
++    production = load_config(PRODUCTION_CONFIG)
++    template = out / "template"
++    template.mkdir(parents=True)
++    digests = make_sources(template, Path(production.simulation.executable).with_name("generator"))
++    config = build_template(production, template)
++    chosen = [c for c in settings(production) if not args.roles or c[0] in args.roles]
++    plan = _ConvergencePlan(config=config, base_output_dir=out / "runs", num_workers=args.workers,
++                            timeout=args.timeout, template_dir=template)
++    tasks = [t for t in plan.generate_evaluation_plan(chosen) if not args.levels or t.metadata["level"] in args.levels]
++    (out / "plan.json").write_text(json.dumps({
++        "production_config_sha256": sha256(PRODUCTION_CONFIG), "astra_sha256": sha256(ROOT / "bin/astra"),
++        "production_source_sha256": sha256(ROOT / PRODUCTION_SOURCE), "sources": digests,
++        "source_input": SOURCE_INPUT, "levels": {k: {"overrides": v[0], "relative_cost": v[1]} for k, v in LEVELS.items()},
++        "settings": [dict(zip(("role", "run", "evaluation_id", "parameters"), c)) for c in chosen],
++        "tasks": [t.task_id for t in tasks], "timeout_s": args.timeout, "workers": args.workers,
++        "mock": args.mock_evaluator, "simulation": asdict(config.simulation)}, indent=2, sort_keys=True) + "\n")
++    stream = out / "convergence_results.jsonl"
++
++    def append(outcome):
++        with stream.open("a") as handle:
++            handle.write(json.dumps(record(outcome), sort_keys=True, default=str) + "\n")
++
++    evaluator = MockEvaluator(config=config) if args.mock_evaluator else None
++    plan.evaluate_plan_parallel(tasks, evaluator=evaluator, on_task_complete=append, run_id="convergence")
++    (out / "complete.json").write_text(json.dumps({"tasks": len(tasks), "results_sha256": sha256(stream)},
++                                                  indent=2) + "\n")
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/evaluate_revision_reference_settings.py b/scripts/evaluate_revision_reference_settings.py
+new file mode 100755
+index 0000000..2dc0572
+--- /dev/null
++++ b/scripts/evaluate_revision_reference_settings.py
+@@ -0,0 +1,131 @@
++#!/usr/bin/env python3
++"""Round2 revision runs for named reference settings (consolidated tasks C2-07 and C2-08).
++
++1. Re-evaluate the MOGA-derived nominal setting once with the production pipeline.
++2. Apply the archived lattice-jitter protocol (50 trials, common seed 42) to that setting.
++3. Apply the same protocol to the two primary observations that pass the TDR optimization
++   inequalities, classified against the TDR profile.
++
++No archived production output is modified; every result goes under ``--output-dir``.
++"""
++from __future__ import annotations
++
++import argparse
++import hashlib
++import json
++from dataclasses import asdict
++from pathlib import Path
++
++from mobo_linac.config import load_config
++from mobo_linac.evaluation import EvaluationResult
++from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask
++from mobo_linac.execution.mock import MockEvaluator
++from mobo_linac.io.run_data import read_run_data
++from mobo_linac.robustness.evaluator import RobustnessEvaluator
++from mobo_linac.result_schema import ResultSchema
++
++ROOT = Path(__file__).resolve().parents[1]
++PRODUCTION_CONFIG = ROOT / "configs/publication_200MeV.yaml"
++TDR_CONFIG = ROOT / "configs/revision_tdr_200MeV.yaml"
++PRIMARY = ROOT / "results/paper_production/04_primary/benchmark/per_seed"
++MOGA_DECK = Path("/home/cspark/Work/projects/linac/beam_tracking/astra.in")
++MOGA_NOTEBOOK = Path("/home/cspark/Work/projects/linac/beam_tracking/linac_optimization-parallel2.ipynb")
++# Values printed by the notebook's rerun of the MOGA-derived deck (cells 12 and 15).
++MOGA_NOTEBOOK_VALUES = {"norm_emit_x_m_rad": 3.4728e-6, "norm_emit_y_m_rad": 3.2968e-6,
++                        "sigma_energy_eV": 394.19e3, "mean_kinetic_energy_eV": 200.19e6}
++# Primary observations that pass the TDR optimization inequalities (evidence/c01_tdr_candidates.csv).
++TDR_CANDIDATES = (("tdr_candidate_a", "constrained_qlognehvi_seed_44", "eval_000079"),
++                  ("tdr_candidate_b", "constrained_qlognehvi_seed_51", "eval_000099"))
++JITTER_TRIALS = 50
++JITTER_SEED = 42  # The archived representatives used seed 42 with common random numbers.
++
++
++def sha256(path: Path) -> str:
++    return hashlib.sha256(path.read_bytes()).hexdigest()
++
++
++class _SingleEvaluation(CandidateEvaluatorBase):
++    def generate_evaluation_plan(self, candidates):
++        return [EvaluationTask(task_id=role, role=role, parameters=list(parameters),
++                               metadata={"role": role, "purpose": "round2_reference_evaluation"})
++                for role, parameters in candidates]
++
++
++def moga_parameters(config) -> list:
++    """The configured nominal vector, after checking it is the MOGA-derived deck."""
++    deck = ROOT / config.simulation.input_template
++    if MOGA_DECK.exists() and sha256(MOGA_DECK) != sha256(deck):
++        raise ValueError(f"{MOGA_DECK} no longer matches {deck}; the nominal is not the MOGA-derived deck.")
++    return [variable.nominal_value for variable in config.design_variables]
++
++
++def evaluate_moga(config, output_dir: Path, evaluator=None) -> EvaluationResult:
++    output_dir.mkdir(parents=True, exist_ok=True)
++    study = _SingleEvaluation(config=config, base_output_dir=output_dir, num_workers=1,
++                              timeout=config.execution.timeout_sec)
++    tasks = study.generate_evaluation_plan([("moga_derived_nominal", moga_parameters(config))])
++    outcome = study.evaluate_plan_parallel(tasks, evaluator=evaluator, run_id="round2_moga_reference")[0]
++    result = outcome.evaluated_result
++    schema = ResultSchema.from_config(config)
++    record = {
++        "role": "moga_derived_nominal",
++        "parameters": dict(zip([v.name for v in config.design_variables], result.x_physical)),
++        "result": result.to_dict(),
++        "objectives": dict(zip(schema.physical_columns, result.objectives_physical or [])),
++        "execution_details": outcome.execution_details,
++        "previous_record": {"source": str(MOGA_NOTEBOOK), "cells": [12, 15], "values": MOGA_NOTEBOOK_VALUES},
++        "deck": {"moga_deck": str(MOGA_DECK), "moga_deck_sha256": sha256(MOGA_DECK) if MOGA_DECK.exists() else None,
++                 "template_sha256": sha256(ROOT / config.simulation.input_template)},
++    }
++    (output_dir / "moga_reference.json").write_text(json.dumps(record, indent=2, sort_keys=True, default=str))
++    return result
++
++
++def tdr_candidates(config) -> list:
++    chosen = []
++    for role, run, evaluation_id in TDR_CANDIDATES:
++        matches = [r for r in read_run_data(PRIMARY / run).results if r.evaluation_id == evaluation_id]
++        if len(matches) != 1:
++            raise ValueError(f"Expected one recorded {evaluation_id} in {run}")
++        chosen.append((role, matches[0]))
++    return chosen
++
++
++def jitter(config, candidates, roles, output_dir: Path, workers: int, evaluator=None) -> list:
++    output_dir.mkdir(parents=True, exist_ok=True)
++    study = RobustnessEvaluator(config=config, base_output_dir=output_dir, num_workers=workers,
++                                timeout=config.execution.timeout_sec)
++    summaries = study.evaluate_candidates(candidates, num_perturbations=JITTER_TRIALS, seed=JITTER_SEED,
++                                          roles=roles, evaluator=evaluator, run_id=output_dir.name)
++    (output_dir / "jitter_summary.json").write_text(json.dumps(summaries, indent=2, sort_keys=True, default=str))
++    return summaries
++
++
++def main(argv=None) -> int:
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument("--output-dir", type=Path, default=ROOT / "results/revision_round2/references")
++    parser.add_argument("--workers", type=int, default=8)
++    parser.add_argument("--mock-evaluator", action="store_true", help="Rehearse the plumbing without ASTRA.")
++    args = parser.parse_args(argv)
++    if args.output_dir.exists() and any(args.output_dir.iterdir()):
++        raise SystemExit(f"{args.output_dir} exists; outputs are immutable, choose a new directory.")
++    args.output_dir.mkdir(parents=True, exist_ok=True)
++    production, tdr = load_config(PRODUCTION_CONFIG), load_config(TDR_CONFIG)
++    mock = (lambda config: MockEvaluator(config=config)) if args.mock_evaluator else (lambda config: None)
++
++    moga = evaluate_moga(production, args.output_dir / "moga_nominal", mock(production))
++    jitter(production, [moga], ["moga_derived_nominal"], args.output_dir / "moga_jitter", args.workers,
++           mock(production))
++    chosen = tdr_candidates(production)
++    jitter(tdr, [result for _, result in chosen], [role for role, _ in chosen],
++           args.output_dir / "tdr_candidate_jitter", args.workers, mock(tdr))
++    (args.output_dir / "plan.json").write_text(json.dumps({
++        "production_config_sha256": sha256(PRODUCTION_CONFIG), "tdr_config_sha256": sha256(TDR_CONFIG),
++        "jitter_trials": JITTER_TRIALS, "jitter_seed": JITTER_SEED, "mock": args.mock_evaluator,
++        "tdr_candidates": [dict(zip(("role", "run", "evaluation_id"), c)) for c in TDR_CANDIDATES],
++        "tdr_constraints": asdict(tdr.constraints)}, indent=2, sort_keys=True))
++    return 0
++
++
++if __name__ == "__main__":
++    raise SystemExit(main())
+diff --git a/scripts/prepare_revision_figures.py b/scripts/prepare_revision_figures.py
+index 74e541b..935fdf4 100644
+--- a/scripts/prepare_revision_figures.py
++++ b/scripts/prepare_revision_figures.py
+@@ -14,6 +14,9 @@ from mobo_linac.plotting.common import PlotSchema
+ from compare_constraint_spaces import Campaign,ALGORITHMS,LABELS,STYLES,PHYSICAL,display_domain,plot_bounds,measured_constraints
+ from prepare_revision_tables import CASES
+ ROOT=Path(__file__).resolve().parents[1];PAPER=ROOT/'docs/paper';BASE=ROOT/'results/paper_production'
++# Round2 C2-07: the re-evaluated MOGA-derived nominal setting, when its record is present.
++_MOGA=ROOT/'results/revision_round2/references/moga_nominal/moga_reference.json'
++MOGA_REFERENCE=json.loads(_MOGA.read_text())['result']['diagnostics'] if _MOGA.exists() else None
+ 
+ 
+ def cumulative_feasible(frame):
+@@ -24,7 +27,8 @@ def save(fig,name,png=False):
+     if png:fig.savefig(PAPER/'figures'/f'{name}.png',dpi=170,bbox_inches='tight')
+     plt.close(fig)
+ 
+-def constraint_view(campaigns,schema):
++def constraint_view(campaigns,schema,reference=None):
++    """``reference``: optional diagnostics of one measured setting, drawn as a black star."""
+     specs={s.column:s for s in schema.constraints};bounds=plot_bounds(campaigns,schema)
+     fig,axes=plt.subplots(3,1,figsize=(7.2,8.6))
+     pairs=[('sigma_x_m','sigma_y_m'),('sigma_xp_rad','sigma_yp_rad'),('mean_kinetic_energy_eV','sigma_z_m')]
+@@ -41,6 +45,9 @@ def constraint_view(campaigns,schema):
+                 ax.scatter(f.loc[mask,x.column]/x.scale,f.loc[mask,y.column]/y.scale,
+                     s=11 if local else 13,marker=marker,facecolors=color if filled else 'none',edgecolors=color,
+                     linewidths=.35,alpha=.8 if filled else .16,zorder=3 if filled else 2)
++        if reference is not None:
++            ax.scatter(reference[x.column]/x.scale,reference[y.column]/y.scale,marker='*',s=70 if local else 110,
++                       color='black',edgecolors='white',linewidths=.5,zorder=6)
+         ax.grid(alpha=.35,linestyle=':',lw=.6);ax.set_axisbelow(True)
+     for letter,ax,(xn,yn) in zip('abc',axes,pairs):
+         x,y=specs[xn],specs[yn];draw(ax,x,y)
+@@ -54,6 +61,8 @@ def constraint_view(campaigns,schema):
+             inset.set_title('Acceptance zoom (same units)',fontsize=7)
+     handles=[Line2D([],[],color=c,marker=m,ls='',label=label) for label,(c,m) in zip(LABELS,STYLES)]
+     handles += [Line2D([],[],color='.2',marker='o',ls='',label='All constraints pass'),Line2D([],[],color='.2',marker='o',mfc='none',ls='',label='At least one fails'),Patch(facecolor='#d8efdc',label='Shown limits satisfied')]
++    if reference is not None:
++        handles.append(Line2D([],[],color='black',marker='*',ms=9,ls='',label='MOGA-derived nominal'))
+     fig.legend(handles=handles,loc='upper center',ncol=3,fontsize=8,frameon=False)
+     count=sum(len(c.frame) for c in campaigns)
+     assert all(np.all(c.frame.transmission_fraction==1) for c in campaigns)
+@@ -76,7 +85,8 @@ def main():
+         campaigns=[]
+         for a,frame in groups.items():
+             valid,_=measured_constraints(frame,schema);campaigns.append(Campaign(a,valid))
+-        save(constraint_view(campaigns,schema),scope+'_constraint_spaces',png=True)
++        reference=MOGA_REFERENCE if scope=='primary' and MOGA_REFERENCE is not None else None
++        save(constraint_view(campaigns,schema,reference),scope+'_constraint_spaces',png=True)
+     fig,axes=plt.subplots(1,2,figsize=(8,3.8),sharex=True,sharey=True)
+     for case,style in zip(CASES,['-', '--', ':', '-.', (0,(3,1,1,1,1,1))]):
+         y=cumulative_feasible(scalar[case]);axes[0].plot(np.arange(1,len(y)+1),y,color=STYLES[2][0],ls=style,lw=1.4,label=CASES[case])
+diff --git a/scripts/prepare_revision_tables.py b/scripts/prepare_revision_tables.py
+index c33641b..e58b37a 100644
+--- a/scripts/prepare_revision_tables.py
++++ b/scripts/prepare_revision_tables.py
+@@ -23,7 +23,6 @@ def main():
+         assert digest==marker['artifacts']['evaluations.csv'];inputs.append({'path':str(p.relative_to(ROOT)),'sha256':digest});return pd.read_csv(p)
+     for case,label in CASES.items():
+         frame=read(BASE/'phase1_scalarized'/case/'evaluations.csv');frames[case]=frame
+-        cfg=json.loads((BASE/'phase1_scalarized'/case/'config.json').read_text())
+         # The suite manifest records executed weights rather than relying on friendly labels.
+         cases=pd.read_csv(BASE/'phase1_scalarized/cases_summary.csv');r=cases[cases.case_id==case].iloc[0]
+         weights=json.loads(r.weights)
+diff --git a/scripts/run_revision_round2_simulations.sh b/scripts/run_revision_round2_simulations.sh
+new file mode 100755
+index 0000000..6db6064
+--- /dev/null
++++ b/scripts/run_revision_round2_simulations.sh
+@@ -0,0 +1,91 @@
++#!/usr/bin/env bash
++# Round2 revision simulations authorized by the author on 2026-10-27
++# (docs/paper/revisions/consolidated_round2_revision_tasks.md).
++#   1. references : MOGA-derived nominal re-evaluation (1 run), its lattice jitter (50 runs) and
++#                   jitter of the two TDR-passing primary observations (100 runs).        ~1 h
++#   2. tdr        : constraint-aware qLogNEHVI under the KLS TDR optimization constraints,
++#                   seeds 42-44, 160 evaluations each (16 shared Sobol + 18 batches of 8). ~10 h
++#   3. sobol      : budget-matched Sobol arm, seeds 42-51, 160 points of each seed's scrambled
++#                   Sobol sequence (its first 16 are the shared initial design), no acquisition. ~10 h
++#   4. convergence: numerical-resolution check of ten reported settings at 15 resolution levels
++#                   (task C2-12, authorized 2026-10-28; not part of "all").                ~8 h
++# Usage: scripts/run_revision_round2_simulations.sh [references|tdr|sobol|all|convergence]
++# Outputs are immutable: a stage refuses to start if its output directory already has content.
++set -Eeuo pipefail
++cd "$(dirname "${BASH_SOURCE[0]}")/.."
++OUT="${ROUND2_ROOT:-results/revision_round2}"
++WORKERS="${WORKERS:-8}"
++DEVICE="${DEVICE:-cuda:0}"
++PYTHON_BIN="${PYTHON_BIN:-python3}"
++STAGE="${1:-all}"
++mkdir -p "$OUT/logs"
++
++record() {  # record STAGE STATUS: append a provenance line for the stage
++  "$PYTHON_BIN" - "$OUT/run_record.jsonl" "$1" "$2" <<'EOF'
++import hashlib, json, subprocess, sys, time
++from pathlib import Path
++sha = lambda p: hashlib.sha256(Path(p).read_bytes()).hexdigest()
++entry = {"stage": sys.argv[2], "status": sys.argv[3], "time": time.strftime("%Y-%m-%dT%H:%M:%S"),
++         "commit": subprocess.run(["git", "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip(),
++         "dirty": bool(subprocess.run(["git", "status", "--porcelain", "--", "src", "scripts", "configs"],
++                                      capture_output=True, text=True).stdout.strip()),
++         "configs": {p: sha(p) for p in ("configs/publication_200MeV.yaml", "configs/revision_tdr_200MeV.yaml")},
++         "astra_sha256": sha("bin/astra")}
++with open(sys.argv[1], "a") as handle:
++    handle.write(json.dumps(entry, sort_keys=True) + "\n")
++EOF
++}
++
++fresh() { [[ ! -e "$1" ]] || [[ -z "$(ls -A "$1")" ]] || { echo "ERROR: $1 already has content" >&2; exit 1; }; }
++
++run_references() {
++  fresh "$OUT/references"
++  record references started
++  "$PYTHON_BIN" scripts/evaluate_revision_reference_settings.py --output-dir "$OUT/references" --workers "$WORKERS"
++  record references completed
++}
++
++run_tdr() {
++  fresh "$OUT/tdr_benchmark"
++  record tdr started
++  "$PYTHON_BIN" -m mobo_linac.cli run-benchmark --config configs/revision_tdr_200MeV.yaml \
++    --algorithms constrained_qlognehvi --seeds 42 43 44 --budget 160 --n-sobol-init 16 --batch-size 8 \
++    --num-workers "$WORKERS" --max-concurrent-campaigns 1 --total-workers "$WORKERS" --campaign-threads 1 \
++    --device "$DEVICE" --output-dir "$OUT/tdr_benchmark"
++  record tdr completed
++}
++
++run_sobol() {
++  record sobol started
++  for seed in 42 43 44 45 46 47 48 49 50 51; do
++    local dir="$OUT/sobol/sobol_seed_$seed"
++    if [[ -f "$dir/run_complete.json" ]]; then echo "Skipping completed $dir"; continue; fi
++    fresh "$dir"
++    # The reporting reference is the primary benchmark's frozen model-space reference.
++    "$PYTHON_BIN" -m mobo_linac.cli run-unconstrained --config configs/publication_200MeV.yaml \
++      --num-initial-samples 160 --n-iterations 0 --seed "$seed" --num-workers "$WORKERS" --device cpu \
++      --output-dir "$dir" --reporting-ref-point -0.0000015 -0.0000015 -1500000.0 --quiet
++  done
++  record sobol completed
++}
++
++run_convergence() {
++  fresh "$OUT/convergence"
++  record convergence started
++  # Ten fine-level runs dominate; CONVERGENCE_WORKERS above ten lets the cheaper levels proceed alongside.
++  "$PYTHON_BIN" scripts/evaluate_revision_convergence.py --output-dir "$OUT/convergence" \
++    --workers "${CONVERGENCE_WORKERS:-16}"
++  record convergence completed
++}
++
++case "$STAGE" in
++  references) run_references 2>&1 | tee "$OUT/logs/references.log" ;;
++  tdr) run_tdr 2>&1 | tee "$OUT/logs/tdr.log" ;;
++  sobol) run_sobol 2>&1 | tee "$OUT/logs/sobol.log" ;;
++  convergence) run_convergence 2>&1 | tee "$OUT/logs/convergence.log" ;;
++  all)
++    run_references 2>&1 | tee "$OUT/logs/references.log"
++    run_tdr 2>&1 | tee "$OUT/logs/tdr.log"
++    run_sobol 2>&1 | tee "$OUT/logs/sobol.log" ;;
++  *) echo "Unknown stage: $STAGE" >&2; exit 2 ;;
++esac
+diff --git a/tests/test_paper_outputs.py b/tests/test_paper_outputs.py
+index 031c00a..6e4e019 100644
+--- a/tests/test_paper_outputs.py
++++ b/tests/test_paper_outputs.py
+@@ -508,13 +508,10 @@ def test_manuscript_inputs_generated_tables(project_root):
+     main_tex = project_root / "docs" / "paper" / "main.tex"
+     assert main_tex.exists(), "docs/paper/main.tex not found."
+     content = main_tex.read_text()
+-    required_inputs = [
+-        r"\input{primary_results_table}",
+-        r"\input{results_table}",
+-        r"\input{robustness_table}",
+-    ]
++    # Two-column-wide tables are included through \inputwide, a wrapper of \input.
++    required_inputs = ["primary_results_table", "results_table", "robustness_table"]
+     for inp in required_inputs:
+-        assert inp in content, (
++        assert rf"\input{{{inp}}}" in content or rf"\inputwide{{{inp}}}" in content, (
+             f"main.tex does not include '\\input{{...}}' for: {inp}"
+         )
+ 
+diff --git a/tests/test_revision_attribution.py b/tests/test_revision_attribution.py
+new file mode 100644
+index 0000000..b7c5591
+--- /dev/null
++++ b/tests/test_revision_attribution.py
+@@ -0,0 +1,63 @@
++import importlib.util
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++LIMITS = {"max_sigma_x_m": 1e-3, "max_sigma_y_m": 1e-3, "max_sigma_xp_rad": 1e-3, "max_sigma_yp_rad": 1e-3,
++          "max_sigma_z_m": 1e-3, "min_mean_kinetic_energy_eV": 195e6, "max_mean_kinetic_energy_eV": 205e6,
++          "min_transmission": 0.9}
++
++
++@pytest.fixture
++def analysis():
++    spec = importlib.util.spec_from_file_location("attribution", ROOT / "scripts/analyze_revision_attribution.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def frame(**overrides):
++    base = dict(sigma_x_m=0.5e-3, sigma_y_m=0.5e-3, sigma_xp_rad=0.5e-3, sigma_yp_rad=0.5e-3, sigma_z_m=0.9e-3,
++                mean_kinetic_energy_eV=200e6, transmission_fraction=1.0)
++    base.update(overrides)
++    return pd.DataFrame([base])
++
++
++@pytest.mark.parametrize("overrides,expected", [
++    ({}, "feasible"),
++    ({"mean_kinetic_energy_eV": 194e6}, "energy_only"),
++    ({"mean_kinetic_energy_eV": 206e6}, "energy_only"),
++    ({"sigma_yp_rad": 1.1e-3}, "transverse_only"),
++    ({"sigma_z_m": 1.1e-3}, "bunch_length_only"),
++    ({"mean_kinetic_energy_eV": 190e6, "sigma_x_m": 2e-3}, "energy_transverse"),
++    ({"mean_kinetic_energy_eV": 190e6, "sigma_z_m": 2e-3}, "energy_bunch_length"),
++    ({"sigma_x_m": 2e-3, "sigma_z_m": 2e-3}, "transverse_bunch_length"),
++    ({"mean_kinetic_energy_eV": 190e6, "sigma_x_m": 2e-3, "sigma_z_m": 2e-3}, "energy_transverse_bunch_length"),
++    ({"transmission_fraction": 0.5, "sigma_x_m": 2e-3}, "transmission"),
++    ({"sigma_x_m": 1e-3, "mean_kinetic_energy_eV": 195e6}, "feasible"),  # limits are inclusive
++])
++def test_exclusive_categories(analysis, overrides, expected):
++    assert analysis.categorize(analysis.violations(frame(**overrides), LIMITS)).iloc[0] == expected
++
++
++def test_gap_divides_exactly_among_categories(analysis):
++    rng = np.random.default_rng(0)
++    rows = []
++    for method in analysis.METHODS:
++        for seed in analysis.SEEDS:
++            shares = rng.dirichlet(np.ones(len(analysis.CATEGORIES) + 1))
++            row = {"method": method, "seed": seed, "feasible_fraction": shares[-1]}
++            row.update({f"share_{c}": value for c, value in zip(analysis.CATEGORIES, shares[:-1])})
++            rows.append(row)
++    table = pd.DataFrame(rows)
++    gaps = analysis.gap_decomposition(table)
++    for baseline, group in gaps.groupby("baseline"):
++        assert group.contribution.sum() == pytest.approx(group.gap.iloc[0])
++        assert group.fraction_of_gap.sum() == pytest.approx(1.0)
++
++
++def test_upper_quarter_boundary(analysis):
++    assert analysis.ACC34_UPPER_QUARTER == pytest.approx(325.5561, abs=1e-4)
+diff --git a/tests/test_revision_calibration.py b/tests/test_revision_calibration.py
+new file mode 100644
+index 0000000..f7462a2
+--- /dev/null
++++ b/tests/test_revision_calibration.py
+@@ -0,0 +1,52 @@
++import importlib.util
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++@pytest.fixture
++def analysis():
++    spec = importlib.util.spec_from_file_location("calibration", ROOT / "scripts/analyze_revision_calibration.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def test_stage_boundaries(analysis):
++    assert [analysis.stage_of(b) for b in (1, 6, 7, 12, 13, 18)] == ["early"] * 2 + ["middle"] * 2 + ["late"] * 2
++    with pytest.raises(ValueError):
++        analysis.stage_of(19)
++
++
++def test_coverage_rows_counts_hits_per_run(analysis):
++    frame = pd.DataFrame({"method": "m", "channel": "c", "run_id": ["a", "a", "b", "b"],
++                          "observed": [0.0, 3.0, 0.0, 0.0], "predicted": 0.0, "predictive_std": 1.0})
++    row = analysis.coverage_rows(frame, ("method", "channel")).iloc[0]
++    assert row.n == 4 and row.runs == 2
++    assert row.coverage95 == pytest.approx(0.75)
++    assert row.run_coverage_median == pytest.approx(0.75)
++    assert row.rmse == pytest.approx(1.5)
++
++
++def test_summarize_b_separates_modes_and_late_stage(analysis):
++    frame = pd.DataFrame({"method": "m", "channel": "c", "run_id": "a", "batch": [1, 13, 1, 13],
++                          "stage": ["early", "late"] * 2, "mode": ["fixed"] * 2 + ["inferred"] * 2,
++                          "observed": [3.0, 0.0, 0.0, 0.0], "predicted": 0.0, "predictive_std": 1.0,
++                          "relative_noise": [1e-6, 1e-6, 1e-3, 2e-3]})
++    out = analysis.summarize_b(frame).set_index("mode")
++    assert out.loc["fixed", "coverage95"] == pytest.approx(0.5)
++    assert out.loc["fixed", "late_coverage95"] == pytest.approx(1.0)
++    assert out.loc["inferred", "coverage95"] == pytest.approx(1.0)
++    assert out.loc["inferred", "median_relative_noise"] == pytest.approx(1.5e-3)
++
++
++def test_archived_summary_is_consistent():
++    summary = pd.read_csv(ROOT / "docs/paper/revisions/evidence/r2_calibration_refit_summary.csv")
++    assert set(summary["mode"]) == {"fixed", "inferred"}
++    assert (summary.n == 1440).all()
++    wide = summary.pivot_table(index=["method", "channel"], columns="mode", values="coverage95")
++    assert np.all(wide.inferred >= wide.fixed)
+diff --git a/tests/test_revision_convergence.py b/tests/test_revision_convergence.py
+new file mode 100644
+index 0000000..9ffac57
+--- /dev/null
++++ b/tests/test_revision_convergence.py
+@@ -0,0 +1,90 @@
++import hashlib
++import json
++import sys
++from pathlib import Path
++
++import pandas as pd
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++import analyze_revision_convergence as analysis  # noqa: E402
++import evaluate_revision_convergence as driver  # noqa: E402
++
++BASE = {"norm_emit_x_m_rad": 3.0e-6, "norm_emit_y_m_rad": 3.0e-6, "sigma_energy_eV": 4.0e5,
++        "sigma_x_m": 0.299e-3, "sigma_y_m": 0.25e-3, "sigma_xp_rad": 0.1e-3, "sigma_yp_rad": 0.2e-3,
++        "sigma_z_m": 0.95e-3, "mean_kinetic_energy_eV": 200.2e6, "transmission_fraction": 1.0}
++
++
++def write_runs(directory: Path, shift: dict) -> None:
++    """Two settings at every level; ``shift`` adds an offset to sigma_x per level."""
++    lines = []
++    for role in ("a", "b"):
++        for level in driver.LEVELS:
++            objectives = {k: BASE[k] for k in analysis.OBJECTIVES}
++            diagnostics = {k: BASE[k] for k in analysis.DIAGNOSTICS}
++            diagnostics["sigma_x_m"] += shift.get(level, 0.0)
++            lines.append(json.dumps({"role": role, "level": level, "status": "SUCCESS", "simulation_valid": True,
++                                     "runtime_s": driver.LEVELS[level][1] * 10.0, "run": None,
++                                     "evaluation_id": None, "objectives": objectives,
++                                     "diagnostics": diagnostics}))
++    stream = directory / "convergence_results.jsonl"
++    stream.write_text("\n".join(lines) + "\n")
++    (directory / "complete.json").write_text(json.dumps(
++        {"tasks": len(lines), "results_sha256": hashlib.sha256(stream.read_bytes()).hexdigest()}))
++
++
++def test_levels_change_one_factor_or_both_combined_and_run_longest_first():
++    assert set(driver.LEVELS["grid_64"][0]) == set(driver.GRID)
++    assert driver.LEVELS["step_quarter"][0] == {"newrun:h_max": 0.0025, "newrun:h_min": 0.00025}
++    fine = driver.LEVELS["combined_fine"][0]
++    assert fine["newrun:distribution"] == "qr40k.ini" and fine["charge:nrad"] == 64 and fine["newrun:h_max"] == 0.0025
++    assert driver.LEVELS["production"][0] == {}
++    plan = driver._ConvergencePlan.__new__(driver._ConvergencePlan)
++    tasks = plan.generate_evaluation_plan([("s", None, None, [0.0] * 6)])
++    assert len(tasks) == len(driver.LEVELS) and tasks[0].metadata["level"] == "combined_fine"
++    assert next(t for t in tasks if t.metadata["level"] == "production").namelist_overrides is None
++
++
++def test_source_input_reproduces_the_production_recipe():
++    deck = driver.SOURCE_INPUT.format(name="x.ini", particles=40000, quasi=".T")
++    assert "IPart=40000" in deck and "Noise_reduc=.T" in deck and "2DGaussian" in deck
++    assert sum(not quasi for _, quasi in driver.SOURCES.values()) == 5
++
++
++def test_residuals_summary_and_classification(tmp_path):
++    write_runs(tmp_path, {"combined_fine": 2e-6, "grid_64": -1e-6, "source_rand10k_1": 1e-6,
++                          "source_rand10k_2": -1e-6})
++    frame = analysis.load_runs(tmp_path)
++    long = analysis.residuals(frame)
++    table = analysis.summary(long).set_index(["role", "quantity"])
++    row = table.loc[("a", "sigma_x_m")]
++    assert row.delta_fine == pytest.approx(2e-6)
++    assert row.max_abs_single_factor == pytest.approx(1e-6) and row.max_single_factor_level == "grid_64"
++    assert row.source_random_std == pytest.approx(pd.Series([1e-6, -1e-6, 0, 0, 0]).std())
++    assert table.loc[("a", "sigma_energy_eV")].delta_fine == 0
++    classes = analysis.classification(frame).set_index(["role", "level"])
++    assert classes.loc[("a", "production"), "kls_tdr_optimization"]
++    assert not classes.loc[("a", "combined_fine"), "kls_tdr_optimization"]
++    assert classes.loc[("a", "combined_fine"), "kls_tdr_optimization_changed"]
++    assert classes.loc[("a", "combined_fine"), "tdr_margin_sigma_x_m"] == pytest.approx(-1e-6)
++    assert classes.loc[("a", "combined_fine"), "production"]
++
++
++def test_load_runs_rejects_a_changed_stream(tmp_path):
++    write_runs(tmp_path, {})
++    with (tmp_path / "convergence_results.jsonl").open("a") as handle:
++        handle.write("\n")
++    with pytest.raises(ValueError, match="Checksum"):
++        analysis.load_runs(tmp_path)
++
++
++def test_archived_reads_the_tdr_campaign_ledger_by_role(tmp_path):
++    for base, value in ((analysis.PRIMARY, 1.0), (analysis.TDR_RUNS, 2.0)):
++        run = tmp_path / base / "constrained_qlognehvi_seed_43"
++        run.mkdir(parents=True)
++        pd.DataFrame([{"evaluation_id": "eval_000122", **{q: value for q in analysis.QUANTITIES}}]).to_csv(
++            run / "evaluations.csv", index=False)
++    frame = pd.DataFrame({"role": ["tdr_campaign_closest", "knee_point"],
++                          "run": ["constrained_qlognehvi_seed_43"] * 2, "evaluation_id": ["eval_000122"] * 2})
++    record = analysis.archived(frame, root=tmp_path)
++    assert record.at["tdr_campaign_closest", "sigma_x_m"] == 2.0 and record.at["knee_point", "sigma_x_m"] == 1.0
+diff --git a/tests/test_revision_jitter_checks.py b/tests/test_revision_jitter_checks.py
+new file mode 100644
+index 0000000..c3d0671
+--- /dev/null
++++ b/tests/test_revision_jitter_checks.py
+@@ -0,0 +1,39 @@
++import importlib.util
++from pathlib import Path
++
++import numpy as np
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++@pytest.fixture
++def analysis(monkeypatch):
++    monkeypatch.syspath_prepend(str(ROOT / "scripts"))
++    spec = importlib.util.spec_from_file_location("jitter_checks", ROOT / "scripts/analyze_revision_jitter_checks.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def test_dominance_requires_one_strict_improvement(analysis):
++    assert analysis.dominates(np.array([1, 1, 1]), np.array([1, 2, 1]))
++    assert not analysis.dominates(np.array([1, 1, 1]), np.array([1, 1, 1]))
++    assert not analysis.dominates(np.array([0, 2, 1]), np.array([1, 1, 1]))
++
++
++def test_amplitude_estimate_from_structure_gains(analysis, tmp_path, monkeypatch):
++    # Linear 50 MeV gain in each 2.98 m structure after a 4 MeV gun.
++    z = np.linspace(0, 16.2, 3241)
++    energy = np.full_like(z, 4.0)
++    for start in analysis.STRUCTURES.values():
++        energy += 50.0 * np.clip((z - start) / analysis.STRUCTURE_LENGTH, 0, 1)
++    folder = tmp_path / "moga_nominal/work"
++    folder.mkdir(parents=True)
++    np.savetxt(folder / "astra.Zemit.001", np.column_stack([z, z, energy, z, z, z, z]))
++    monkeypatch.setattr(analysis, "REFERENCES", tmp_path)
++    monkeypatch.setattr(analysis, "ROOT", tmp_path)
++    estimate = analysis.amplitude_estimate()
++    assert estimate["pair_gain_MeV"]["ACC1/2"] == pytest.approx(100, abs=0.2)
++    assert estimate["mean_energy_shift_rms_MeV"]["independent_pairs"] == pytest.approx(0.002 * np.hypot(100, 100), rel=1e-2)
++    assert estimate["mean_energy_shift_rms_MeV"]["fully_correlated"] == pytest.approx(0.002 * 204, rel=1e-2)
+diff --git a/tests/test_revision_reference_resampling.py b/tests/test_revision_reference_resampling.py
+new file mode 100644
+index 0000000..d2b0721
+--- /dev/null
++++ b/tests/test_revision_reference_resampling.py
+@@ -0,0 +1,48 @@
++import importlib.util
++from pathlib import Path
++
++import numpy as np
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++@pytest.fixture
++def analysis(monkeypatch):
++    monkeypatch.syspath_prepend(str(ROOT / "scripts"))
++    spec = importlib.util.spec_from_file_location("reference_resampling",
++                                                  ROOT / "scripts/analyze_revision_reference_resampling.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def synthetic_fronts(analysis, shift):
++    rng = np.random.default_rng(1)
++    fronts = {}
++    for group in ("g1", "g2", "g3"):
++        for k, method in enumerate(analysis.METHODS):
++            points = rng.uniform(1, 2, size=(4, 3)) + (0 if k == 0 else shift)
++            fronts[(method, group)] = analysis.nondominated(points)
++    return fronts
++
++
++def test_reference_is_rebuilt_from_the_sampled_groups(analysis):
++    fronts = synthetic_fronts(analysis, 0.5)
++    full = analysis.indicators(fronts, ["g1", "g2", "g3"])
++    single = analysis.indicators(fronts, ["g1"])
++    # With one group the pooled reference contains that group's best points only.
++    assert single[(analysis.METHODS[0], 0)] != full[(analysis.METHODS[0], 0)]
++    # Repeating a group in the sample does not change its indicator values.
++    repeated = analysis.indicators(fronts, ["g1", "g1"])
++    assert repeated[(analysis.METHODS[0], 0)] == repeated[(analysis.METHODS[0], 1)]
++
++
++def test_dominating_method_has_better_paired_differences(analysis):
++    fronts = synthetic_fronts(analysis, 0.5)
++    values = analysis.indicators(fronts, ["g1", "g2", "g3"])
++    diffs = analysis.mean_differences(values, 3)
++    first, second = analysis.METHODS[0], analysis.METHODS[1]
++    assert diffs[("epsilon", first, second)] < 0
++    assert diffs[("igd_plus", first, second)] < 0
++    assert diffs[("hv_25", first, second)] > 0
+diff --git a/tests/test_revision_reference_settings.py b/tests/test_revision_reference_settings.py
+new file mode 100644
+index 0000000..c1e3aea
+--- /dev/null
++++ b/tests/test_revision_reference_settings.py
+@@ -0,0 +1,50 @@
++import importlib.util
++import json
++from pathlib import Path
++
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++SCRIPT = ROOT / "scripts/evaluate_revision_reference_settings.py"
++
++
++def load():
++    spec = importlib.util.spec_from_file_location("reference_settings", SCRIPT)
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def test_tdr_config_changes_only_constraints():
++    from mobo_linac.config import load_config
++    production = load_config(ROOT / "configs/publication_200MeV.yaml")
++    tdr = load_config(ROOT / "configs/revision_tdr_200MeV.yaml")
++    assert tdr.design_variables == production.design_variables
++    assert tdr.objectives == production.objectives
++    assert tdr.execution == production.execution and tdr.model == production.model
++    assert (tdr.constraints.max_sigma_x_m, tdr.constraints.max_sigma_xp_rad) == (0.30e-3, 0.2663e-3)
++    assert tdr.constraints.min_mean_kinetic_energy_eV == 200e6
++    # 9,998 of 9,999 counted particles must fail, matching the TDR's strict T > 0.9999.
++    assert 9998 / 9999 < tdr.constraints.min_transmission <= 1.0
++
++
++def test_moga_parameters_are_the_configured_nominal():
++    from mobo_linac.config import load_config
++    module = load()
++    config = load_config(module.PRODUCTION_CONFIG)
++    assert module.moga_parameters(config) == [v.nominal_value for v in config.design_variables]
++
++
++@pytest.mark.skipif(not (ROOT / "results/paper_production/04_primary").exists(),
++                    reason="archived primary campaigns are not distributed")
++def test_mock_rehearsal_writes_all_outputs(tmp_path):
++    module = load()
++    assert module.main(["--output-dir", str(tmp_path / "refs"), "--workers", "2", "--mock-evaluator"]) == 0
++    plan = json.loads((tmp_path / "refs/plan.json").read_text())
++    assert plan["mock"] is True and plan["jitter_trials"] == 50
++    tdr = json.loads((tmp_path / "refs/tdr_candidate_jitter/jitter_summary.json").read_text())
++    assert [s["candidate_label"] for s in tdr] == ["tdr_candidate_a", "tdr_candidate_b"]
++    moga = json.loads((tmp_path / "refs/moga_nominal/moga_reference.json").read_text())
++    assert moga["role"] == "moga_derived_nominal"
++    with pytest.raises(SystemExit):
++        module.main(["--output-dir", str(tmp_path / "refs"), "--mock-evaluator"])
+diff --git a/tests/test_revision_space_filling.py b/tests/test_revision_space_filling.py
+new file mode 100644
+index 0000000..8ce0d54
+--- /dev/null
++++ b/tests/test_revision_space_filling.py
+@@ -0,0 +1,56 @@
++import importlib.util
++from pathlib import Path
++
++import pandas as pd
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++@pytest.fixture
++def analysis(monkeypatch):
++    monkeypatch.syspath_prepend(str(ROOT / "scripts"))
++    spec = importlib.util.spec_from_file_location("space_filling", ROOT / "scripts/analyze_revision_space_filling.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def test_rates_count_channel_groups(analysis):
++    frame = pd.DataFrame({"category": ["feasible", "energy_only", "transverse_only", "feasible"],
++                          "violates_energy": [False, True, False, False],
++                          "violates_transverse": [False, False, True, False],
++                          "violates_bunch_length": [False, False, False, False],
++                          "acc3_acc4_phase_deg": [300.0, 330.0, 280.0, 340.0]})
++    rates = analysis.rates(frame)
++    assert rates["feasible"] == 2 and rates["feasible_fraction"] == 0.5
++    assert rates["energy_violation_fraction"] == 0.25 and rates["transverse_violation_fraction"] == 0.25
++    assert rates["acc34_upper_quarter_fraction"] == 0.5
++
++
++@pytest.mark.skipif(not (ROOT / "results/paper_production/04_primary").exists(),
++                    reason="archived primary campaigns are not distributed")
++def test_initial_reference_matches_archived_counts(analysis):
++    runs, _ = analysis.load_runs(analysis.PRIMARY)
++    table = analysis.initial_reference(runs).set_index("population")
++    assert table.loc["shared_initial_design", "feasible"] == 5
++    assert table.loc["shared_initial_design", "n"] == 160
++
++
++def test_sobol_quality_scores_against_the_unchanged_reference(analysis, tmp_path, monkeypatch):
++    monkeypatch.setattr(analysis, "SEEDS", (1, 2))
++    pd.DataFrame({"emit_x_um_rad": [1.0, 2.0], "emit_y_um_rad": [2.0, 1.0],
++                  "sigma_energy_MeV": [0.5, 0.5]}).to_csv(tmp_path / "c03_empirical_reference.csv", index=False)
++    pipelines = [{"method": m, "group": g, "evaluations": 160, "front_size_unique": 3,
++                  "epsilon": 0.1 * g, "igd_plus": 0.05 * g} for m in analysis.METHODS for g in (1, 2)]
++    pd.DataFrame(pipelines).to_csv(tmp_path / "c03_run_histories.csv", index=False)
++    arms = {seed: pd.DataFrame({"norm_emit_x_m_rad": [1.5e-6, 3e-6], "norm_emit_y_m_rad": [2.5e-6, 3e-6],
++                                "sigma_energy_eV": [0.5e6, 0.4e6], "category": ["feasible", "energy_only"]})
++            for seed in (1, 2)}
++    table, effects = analysis.sobol_quality(arms, tmp_path)
++    sobol = table[table.method == "sobol"].iloc[0]
++    # The only feasible Sobol point (1.5, 2.5, 0.5) needs a shift of 1.5 to cover (2, 1, 0.5).
++    assert sobol.front_size_unique == 1 and sobol.epsilon == pytest.approx(1.5)
++    assert sobol.reference_points_dominated == 0
++    row = effects[(effects.metric == "epsilon") & (effects.first_method == analysis.METHODS[0])].iloc[0]
++    assert row.mean_difference == pytest.approx(0.15 - 1.5) and row.n_negative == 2
+diff --git a/tests/test_revision_tdr_campaigns.py b/tests/test_revision_tdr_campaigns.py
+new file mode 100644
+index 0000000..17471b1
+--- /dev/null
++++ b/tests/test_revision_tdr_campaigns.py
+@@ -0,0 +1,43 @@
++import importlib.util
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++import pytest
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++@pytest.fixture
++def analysis(monkeypatch):
++    monkeypatch.syspath_prepend(str(ROOT / "scripts"))
++    spec = importlib.util.spec_from_file_location("tdr_campaigns", ROOT / "scripts/analyze_revision_tdr_campaigns.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def frame(**overrides):
++    row = {"sigma_x_m": 0.29e-3, "sigma_y_m": 0.25e-3, "sigma_xp_rad": 0.1e-3, "sigma_yp_rad": 0.27e-3,
++           "sigma_z_m": 0.95e-3, "mean_kinetic_energy_eV": 200.2e6, "transmission_fraction": 1.0}
++    row.update(overrides)
++    return pd.DataFrame([row])
++
++
++def test_margins_are_signed_and_relative(analysis):
++    m = analysis.margins(frame()).iloc[0]
++    assert m.sigma_x_m == pytest.approx(1 / 30)
++    assert m.sigma_yp_rad == pytest.approx((0.2663 - 0.27) / 0.2663)
++    assert m.mean_kinetic_energy_eV == pytest.approx(0.001)
++    assert m.transmission_fraction == pytest.approx(1e-4, rel=1e-3)
++
++
++def test_worst_margin_ignores_transmission(analysis):
++    out = analysis.with_margins(frame(sigma_yp_rad=0.2e-3))
++    assert out.binding_channel.iloc[0] == "mean_kinetic_energy_eV"
++    assert out.worst_margin.iloc[0] == pytest.approx(0.001)
++
++
++def test_nondominated(analysis):
++    points = np.array([[1, 1, 1], [2, 2, 2], [0, 3, 1], [1, 1, 1]])
++    assert analysis.nondominated(points).tolist() == [True, False, True, True]
+diff --git a/tests/test_supplement_map.py b/tests/test_supplement_map.py
+new file mode 100644
+index 0000000..4f42d62
+--- /dev/null
++++ b/tests/test_supplement_map.py
+@@ -0,0 +1,33 @@
++import csv
++import importlib.util
++import json
++from pathlib import Path
++
++ROOT = Path(__file__).resolve().parents[1]
++
++
++def load():
++    spec = importlib.util.spec_from_file_location("supplement", ROOT / "scripts/build_supplement_manifest.py")
++    module = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(module)
++    return module
++
++
++def test_evidence_map_is_complete_and_resolvable():
++    assert load().check() == []
++
++
++def test_map_items_are_documented():
++    with (ROOT / "docs/paper/supplement/evidence_map.csv").open() as handle:
++        items = {row["item"] for row in csv.DictReader(handle)}
++    readme = (ROOT / "docs/paper/supplement/README.md").read_text()
++    assert all(f"| {item} |" in readme for item in items)
++    assert items == {f"S1.{n}" for n in range(1, 16)}
++
++
++def test_manifest_records_clean_production_commits():
++    manifest = json.loads((ROOT / "docs/paper/supplement/ledger_manifest.json").read_text())
++    steps = {entry["step"]: entry for entry in manifest["production_steps"]}
++    assert steps["04_primary"]["git_commit"].startswith("8ad6c2c")
++    assert not any(entry["git_dirty"] for entry in manifest["production_steps"])
++    assert all(len(entry["sha256"]) == 64 for entry in manifest["ledgers"])

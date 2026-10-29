@@ -6,7 +6,7 @@
 
 **Purpose:** A single working queue that merges the two round2 task lists and the MOGA-data reusability assessment. Overlapping requests are merged, each reviewer's specific concerns are kept, and the dispositions are explicit. The individual reviewer documents remain the source records. This document does not itself authorize simulations. **On 2026-10-27 the author authorized all optional runs listed below, with three seeds for the TDR-constrained campaigns.**
 
-## Status (2026-10-28)
+## Status (2026-10-29)
 
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
@@ -18,9 +18,9 @@
 | C2-06 | Done, routes (a) and (b) | `0e60cfc` | — |
 | C2-07 | Done, including the run and jitter | `7416fb5` | — |
 | C2-08 | Done, including the optional jitter runs | `245162b` | — |
-| C2-09 | Done | `c7fbbc0` | Rebuild `ledger_manifest.json` after the remaining runs complete |
+| C2-09 | Done | `c7fbbc0` | — (manifest rebuilt with the Sobol ledgers in `ec0e183`) |
 | C2-10 | PRAB format adopted (REVTeX 4.2), table of contents removed; Data availability statement and statement of contributions added; **open until the reviewers accept** | `559f460` | A possible fifth contribution after C2-12 (none added); related-work positioning; funding and acknowledgments, `\finaltrue` |
-| C2-11 | Drafts written, not committed; **open until the reviewers accept** | — | Fill the C2-12/13/14 results and page count; diff and inventory; validation; commit |
+| C2-11 | Closed 2026-10-29 (author decision) | see C2-11 | — |
 | C2-12 | Done | see C2-12 | Emittances not converged at production resolution (−12 to −43 % at the fine level); production classifications stable; TDR membership near the limits not resolved |
 | C2-13 | Done | see C2-13 | No TDR-feasible setting in 480 evaluations; closest miss 0.4 % |
 | C2-14 | Done | see C2-14 | Sobol arm 2.8 % feasible; every pipeline exceeds it in all ten matched groups |
@@ -28,7 +28,7 @@
 
 All work is committed locally only; nothing has been pushed.
 
-**Closure rule for C2-10 and C2-11 (author decision, 2026-10-28):** these two tasks are closed only when both reviewers judge the revised manuscript acceptable. Finishing their checklists does not close them.
+**Closure rule for C2-10 and C2-11 (author decision, 2026-10-28):** these two tasks are closed only when both reviewers judge the revised manuscript acceptable. Finishing their checklists does not close them. **Amended 2026-10-29:** the author closed C2-11 directly. C2-10 remains under the original rule.
 
 **Runs:**
 - **TDR-constrained campaigns (C2-13):** complete at 12:05 on 2026-10-28. None of the three campaigns has a TDR-feasible observation.
@@ -303,14 +303,16 @@ Tasks:
 
 **Sources:** Reviewer 1 R2-08; Reviewer 2 Q14.
 
-- [ ] *(Drafted; TDR, Sobol and page-count placeholders remain.)* Write `docs/paper/reviews/reviewer1_round2_response.md` and `docs/paper/reviews/reviewer2_round2_response.md`, mapping every major and minor comment to a change, evidence or a reasoned non-adoption. Distinguish narrowed claims from newly supplied validation.
+- [x] *(Committed 2026-10-29 with the C2-12/13/14 results, the PRAB format, Roman section numbering and the page count.)* Write `docs/paper/reviews/reviewer1_round2_response.md` and `docs/paper/reviews/reviewer2_round2_response.md`, mapping every major and minor comment to a change, evidence or a reasoned non-adoption. Distinguish narrowed claims from newly supplied validation.
 - [x] *(In the draft.)* In the Reviewer 2 response, explain the C2-07 distinction: the MOGA-derived nominal setting is reused as a reference point, and this does not reverse the round1 decision against MOGA benchmarks.
 - [x] *(In the drafts, 2026-10-29.)* State in both responses (M2, N4(b)) that the earlier author confirmation of converged settings is withdrawn, because the C2-12 check shows the emittances are not converged at those settings.
-- [ ] Produce a manuscript diff against `9077875`, separating analysis code from narrative edits, and a changed-file inventory.
-- [ ] Check data, table and link consistency, and run focused tests for any changed analysis code. Build the PDF and inspect the affected pages.
-- [ ] List the optional simulations that were authorized and run, and those that were not.
+- [x] Produce a manuscript diff against `9077875`, separating analysis code from narrative edits, and a changed-file inventory (`round2_manuscript.diff`, `round2_analysis_code.diff`, `round2_changed_files.json`).
+- [x] Check data, table and link consistency, and run focused tests for any changed analysis code. Build the PDF and inspect the affected pages.
+- [x] List the optional simulations that were authorized and run, and those that were not (`round2_revision_overview.md`).
 
 **Done when:** every comment of both reviewers has a traceable disposition and the unresolved items remain visible. **Closed only when the reviewers judge the revised manuscript acceptable.**
+
+**Closed 2026-10-29 by the author**, superseding the closure rule for this task. The responses, diffs, inventory and overview are committed together with Task 00286.
 
 ### C2-12. Measure the numerical resolution of the reported settings
 

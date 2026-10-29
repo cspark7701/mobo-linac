@@ -1,0 +1,516 @@
+{
+  "baseline": "9077875",
+  "note": "Round2 revision files relative to the reviewed baseline, with current SHA-256 hashes. Excludes the packaging files (diffs, this inventory, the overview) and the closing task summary to avoid self-reference. Raw simulation outputs under results/ are not tracked and are identified through docs/paper/supplement/ledger_manifest.json.",
+  "files": [
+    {
+      "path": ".gitignore",
+      "status": "M",
+      "sha256": "3a2bc77974a3df1713c8a4a1aabf5b85d5088603f4f388fc2278c35ab5ffc965"
+    },
+    {
+      "path": "configs/revision_tdr_200MeV.yaml",
+      "status": "A",
+      "sha256": "c48aa68e09f73fb2442421c12074fc6ceb34b664e447f20e1a38fed47281ec6e"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00261_reviewer2_round2_manuscript_review.md",
+      "status": "A",
+      "sha256": "43e93b68315e8b8ec93b8d7578ba9d9c92b918c42f5d76beeb9edb0976ab4f21"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00262_reviewer1_round2_manuscript_review.md",
+      "status": "A",
+      "sha256": "470d7d184be2b52d6e2dbec0768ed01fa3683f595d239923a18d4ce28fb1dffa"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00263_moga_data_reusability_assessment.md",
+      "status": "A",
+      "sha256": "04eb910ae986f49b5187ae99a396b58c95d06b8c788923ed24026a6fb7d84801"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00264_consolidate_round2_revision_tasks.md",
+      "status": "A",
+      "sha256": "92d1b196c26ce3b79d5ae525205f91fe5cd35411b4238cc3765ff8e4f8cb1ac5"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00265_round2_simulation_drivers.md",
+      "status": "A",
+      "sha256": "152d5d841795d5a44c8664136c51c5d0399e418b97f467b948d754a16d3f58c0"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00266_c2_02_feasible_sampling_attribution.md",
+      "status": "A",
+      "sha256": "0a2b0b1dc08f43ce0787145d00c39ceb0c856b1cbf1cef0447311dec7aad57f0"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00267_c2_04_numerical_resolution_disposition.md",
+      "status": "A",
+      "sha256": "6b4e418c4a56c7cee308070c3a14e408c22b8b56bf5f580630eaea14081f7a89"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00268_c2_06_reference_dependent_inference.md",
+      "status": "A",
+      "sha256": "f0ca52dabb9dd0ae5f97871d074f46faa2f9ddfdf6a42d2130083eb785e3eaa9"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00269_c2_07_moga_derived_reference.md",
+      "status": "A",
+      "sha256": "35f61b15c3f26da85a65e21d730d50124c8d30f940fa1e10bf64a07b2eecc54a"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00270_c2_01_study_target_and_tdr_framing.md",
+      "status": "A",
+      "sha256": "a7afb544a0b859ad9bf69071a35a3386c2bd1edfeec97610e1dac80d3cca6580"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00271_c2_03_space_filling_reference.md",
+      "status": "A",
+      "sha256": "19e4511ed99d47f2afbb89f7b880fb386dea6f83d261601e7d57cc2ba33d4edc"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00272_c2_10_terminology_length_and_front_matter.md",
+      "status": "A",
+      "sha256": "5d0286be9852a5d025a431cbf630a1085d70ef4c234f7c29a9be3fe7656d3b76"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00273_c2_08_robustness_interpretation.md",
+      "status": "A",
+      "sha256": "4635e6f52ec20b00a2456985752209b8a9fdcfaf33e0256077ed1518cf746a13"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00274_c2_05_surrogate_predictive_accuracy.md",
+      "status": "A",
+      "sha256": "bbe4f19fea9419a530811b806e0b8f24357b95970e91c4f9bc8a5d1f24159379"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00275_c2_09_supplement_evidence_map.md",
+      "status": "A",
+      "sha256": "fbb317dc9af4f1974c0931df9f1972681a3f4f6f84834c7774a93112bfcc02bc"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00276_fix_ci_lint_unused_variable.md",
+      "status": "A",
+      "sha256": "e02fad51e38a41bc35d093549a47dcae1aab6653e38d996bbdfcec747dc6ee61"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00277_fix_ci_script_wrapper_rule.md",
+      "status": "A",
+      "sha256": "6d4ab5374f074194161b89b1ddc4641fd1c0d3f6d7865c57687ff32d3d06ce87"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00278_integrate_tdr_constrained_campaigns.md",
+      "status": "A",
+      "sha256": "b2d8f6b407c0b1a6405945a27a0c747a0a155122ba95bed3331cb25179f510ab"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00279_prepare_numerical_resolution_check.md",
+      "status": "A",
+      "sha256": "6be4afe39660305d78da6bc8075b01514582d7e930a98f9c24c9944ea06bdd16"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00280_add_data_availability_and_submission_tasks.md",
+      "status": "A",
+      "sha256": "5fd05bc74d1123218cfd4b6950c0fe12898542b3022818bfd77d7739dd844dcb"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00281_add_statement_of_contributions.md",
+      "status": "A",
+      "sha256": "02f1d09b490038d94fc544c4a6fec3c1ee0674678d09cf5a46bc9ce4cbd30be6"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00282_integrate_sobol_arm.md",
+      "status": "A",
+      "sha256": "b33d725ea61f4ed6b66397adc821c1e5d9c4ddf638e068fe613efa105b4e74e2"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00283_integrate_numerical_resolution_check.md",
+      "status": "A",
+      "sha256": "9bbbc2d75a133b439abc7e9500ac36d0c348f0908dae74a7b9a4c9eb81540e6b"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00284_close_c2_04_withdraw_convergence_confirmation.md",
+      "status": "A",
+      "sha256": "e4a298dcd621ed2984b5869be60fe50e83bfba1adc50997ec4e4cf857d4c4133"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00285_convert_manuscript_to_prab.md",
+      "status": "A",
+      "sha256": "7367d8159573bc586ce8ccaa911f2af9a2463f351a51b9c955b678684b8a68ce"
+    },
+    {
+      "path": "docs/paper/README.md",
+      "status": "M",
+      "sha256": "51150790bdc34f5beabe5da72f553986a26a08cf447510a6abad23c4116262cc"
+    },
+    {
+      "path": "docs/paper/figures/primary_constraint_spaces.pdf",
+      "status": "M",
+      "sha256": "277ed7a85d439ad0ca275b07d8876b9b32985cc7eca00840d09fdbc4df3122dc"
+    },
+    {
+      "path": "docs/paper/figures/primary_constraint_spaces.png",
+      "status": "M",
+      "sha256": "666539eeadf9b1e27a2fd7f637f136cf58a61dee3aa944dd2f1a38a81db6ae98"
+    },
+    {
+      "path": "docs/paper/figures/primary_pareto_points.pdf",
+      "status": "M",
+      "sha256": "d35edf268ab334bc40f3f538661d650b04d6f8f1905ccd57b0d3bd09d5f255bb"
+    },
+    {
+      "path": "docs/paper/figures/primary_pareto_points.png",
+      "status": "M",
+      "sha256": "a6fcfc0c03d966054ca3894cda59b9502bb3bfb2ebf3d1bfff0ff3e24529a071"
+    },
+    {
+      "path": "docs/paper/figures/revision_attribution.pdf",
+      "status": "A",
+      "sha256": "6cc805ef8cb3c3a8f157be35ca33ff396c8ff2a7ecde0aef5f43c0bed351a529"
+    },
+    {
+      "path": "docs/paper/main.tex",
+      "status": "M",
+      "sha256": "3f838f96da26426128099579b8092bd8c4f03680b9ad2603d3d7673a436b8701"
+    },
+    {
+      "path": "docs/paper/reviews/reviewer1_round2_report.md",
+      "status": "A",
+      "sha256": "4e0a3e5227e14439794bf9d23b8f6ac8058e15903a2c1dc2a1d2dfe08120b798"
+    },
+    {
+      "path": "docs/paper/reviews/reviewer1_round2_response.md",
+      "status": "A",
+      "sha256": "6842d726715be72aead34ae1f24f7f430f0ec863728479bdbef78ad61c9a08c5"
+    },
+    {
+      "path": "docs/paper/reviews/reviewer2_round2_report.md",
+      "status": "A",
+      "sha256": "35bff7dfae35821d4b5619127993d23fb4815fdbb37151587edfe6915967be23"
+    },
+    {
+      "path": "docs/paper/reviews/reviewer2_round2_response.md",
+      "status": "A",
+      "sha256": "fbd48414a8eb8e0e59aaaf181c55c85f66e1f3eaa5a655e570356fd54a9773b0"
+    },
+    {
+      "path": "docs/paper/revisions/consolidated_round2_revision_tasks.md",
+      "status": "A",
+      "sha256": "efe382216cff7c33316147ea9f4ff19a77a76cd41e3469f0ea4d4ee132f035d4"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_attribution_batches.csv",
+      "status": "A",
+      "sha256": "2e4a2bfb6f98023aff5e51220fc3cb1a17a64e0db0ea82310d4aa37bc382daa0"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_attribution_gap.csv",
+      "status": "A",
+      "sha256": "071f85c0eabfdbd38f068f992be2ec57c478f52c3ca1ea9290d6aed991f29de4"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_attribution_metadata.json",
+      "status": "A",
+      "sha256": "0500c1a98777d4f6404e1655478e5164aab6bba271570b15d7be530360b3bb9b"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_attribution_paired.csv",
+      "status": "A",
+      "sha256": "f646fac8a4cf361ffb45c54476192424ba0a62270e2516307bcd1bd9c31e4be7"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_attribution_runs.csv",
+      "status": "A",
+      "sha256": "ee983bbbb4862de77b879e4000ac6d6e05ab683639bdb61a994d284e41fb4c11"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_calibration_metadata.json",
+      "status": "A",
+      "sha256": "1c0d58ed16310db5579dbea1bd88503dca7a724683828500dda933e8f6767bda"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_calibration_refit_predictions.csv.gz",
+      "status": "A",
+      "sha256": "b412d013435d6c8b53cd728084411ed6e058c74bbf06850014da164bcf65c442"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_calibration_refit_summary.csv",
+      "status": "A",
+      "sha256": "efad52b94f80c7abcba9c86679e8c0fcd195dfe6fb4cef882258af6cd8b51cc5"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_calibration_stages.csv",
+      "status": "A",
+      "sha256": "66d809ed5ee22ec9f274d5f75d1920e377488c48b1506cae98d42cdb76db9ea3"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_convergence_classification.csv",
+      "status": "A",
+      "sha256": "f70c05893f17a1118313649446a144d48fab3c98666b4afad20634513d8334a6"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_convergence_metadata.json",
+      "status": "A",
+      "sha256": "22dff14b3d5776b9a72f3ca07ee3d080fe6e74a2e8a76af677379c617c7a9011"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_convergence_summary.csv",
+      "status": "A",
+      "sha256": "4cd68bd73aa7c531fd86e28b8714ee51606b530bc4fb08bcd1b62c8f3f6df223"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_convergence_values.csv",
+      "status": "A",
+      "sha256": "3b9738783706b136133c80caa3d42544562c8d423abf49db0cc8de2a174f5030"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_jitter_dominance.csv",
+      "status": "A",
+      "sha256": "93731fab105b14348055a3b5d81f32ede2645a1600fa88fa2d2bd0b730b260d6"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_jitter_metadata.json",
+      "status": "A",
+      "sha256": "cd5642072984dae690cb98278277e629ceb17cd2bc45c70478fe6aedb883ee07"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_moga_jitter_summary.csv",
+      "status": "A",
+      "sha256": "abd1b533ee739f2cef7f4f85a423dfc2ed46dd0d8fe1e68ee1fdf39e754f18bc"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_moga_jitter_trials.csv",
+      "status": "A",
+      "sha256": "ad04292c1351d74988d3b634891084de13c8eecc1f8726e0bc2792ea62927fcb"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_moga_reference_comparison.csv",
+      "status": "A",
+      "sha256": "6e333007ac4bfaeb6c2957107951564d196d690048896e7c7c13424b9e9050ff"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_numerical_disposition.md",
+      "status": "A",
+      "sha256": "bb15da208360e182999dd23c6b0bf62f0823413f763033fb40b1f13b1bfb9873"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_rebuilt_reference_effects.csv",
+      "status": "A",
+      "sha256": "1fa0c82778aabc7e35dac26e1dbf863ad67723c88e10d7f1a33f7dabe3c94c7a"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_rebuilt_reference_metadata.json",
+      "status": "A",
+      "sha256": "d5c1728529c59bf6b6e395c72c7dc20ade6d128cfc4b40981a584b754b358414"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_sobol_arm_paired.csv",
+      "status": "A",
+      "sha256": "c572df5ae908d8a8f82381a31cb6ab567f7c8629137be4cc835ad65b2123c6a2"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_sobol_arm_quality.csv",
+      "status": "A",
+      "sha256": "68ab0fd65c870d2138610bd50ef007333f712ece7d12f033546a07e4e81f8003"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_sobol_arm_quality_paired.csv",
+      "status": "A",
+      "sha256": "86104df683e899d6006edd5bbdd05f1b64e03b443f2c23e86a8bde7a4a12e9c2"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_sobol_arm_runs.csv",
+      "status": "A",
+      "sha256": "805f5455d8ba890efd0c08e61a376179a3ffa1a0061373f08966b5fa72d39036"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_space_filling_initial.csv",
+      "status": "A",
+      "sha256": "cd10beb0384508706d345511c35b8a81a73dc5e6f0c6e7a323eba27084f5fe0c"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_space_filling_metadata.json",
+      "status": "A",
+      "sha256": "c32a2e55046a97c7a8e67648b242ba3be2e1524c74f94d32099b8d4cd2109c2a"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_tdr_campaign_feasible.csv",
+      "status": "A",
+      "sha256": "e0ec95bdddaf3df0c8e945de34dc7d57bb880830ba0e113ffb3533c27fda5237"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_tdr_campaign_metadata.json",
+      "status": "A",
+      "sha256": "618dcd8d99ceb7323ec526f9dea44ab2a29e30cc4ba3c019c09ca27aec44ef0d"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_tdr_campaign_runs.csv",
+      "status": "A",
+      "sha256": "ce11ebb4acb3bfc2fbec7071e841759470f4352a5676ed3ecac3cb4d70458f22"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_tdr_campaign_violations.csv",
+      "status": "A",
+      "sha256": "c6109d17baa9352955a9440a1b4255da8c8773ea6715dad74e555b897e961ed8"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_tdr_candidate_jitter_summary.csv",
+      "status": "A",
+      "sha256": "4d3a683de57fef08ec7c5c2a557e46319d7b0343dc88020523f5e38d2ec80c02"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r2_tdr_candidate_jitter_trials.csv",
+      "status": "A",
+      "sha256": "4f44e24eafceea54d77879f2be2e08a4ac12ee3eb39bb4fcd4413ae5808634d2"
+    },
+    {
+      "path": "docs/paper/revisions/moga_reuse_assessment.md",
+      "status": "A",
+      "sha256": "1cfd32f26d700c78b532c914c20bf948cdbbfecdb20c2944e14857cd645dd0cc"
+    },
+    {
+      "path": "docs/paper/revisions/reviewer1_round2_revision_tasks.md",
+      "status": "A",
+      "sha256": "42ce764876ca32068fc822b6be54390877e9b41b4d4182ad5d64cac325168bdf"
+    },
+    {
+      "path": "docs/paper/revisions/reviewer2_round2_revision_tasks.md",
+      "status": "A",
+      "sha256": "7a6d93cbb43469bcc789e341223b6d85c9d88d959e18154fafb18de6759696ae"
+    },
+    {
+      "path": "docs/paper/supplement/README.md",
+      "status": "A",
+      "sha256": "67d8185364de64fea2576477631eaa535a7972ad8343feab49f29e93d1ce1ff7"
+    },
+    {
+      "path": "docs/paper/supplement/evidence_map.csv",
+      "status": "A",
+      "sha256": "f84bca0ab191b5d6fff66b19b4187c6c39c3915d772f2cb4c983194e2dbf471f"
+    },
+    {
+      "path": "docs/paper/supplement/ledger_manifest.json",
+      "status": "A",
+      "sha256": "00108ad152208b355db67be3a8e616331f981d82d4ad1412c88febade9a9fe6a"
+    },
+    {
+      "path": "scripts/analyze_revision_attribution.py",
+      "status": "A",
+      "sha256": "c500e008094779de7b4fc05a2f5ae2de1fe7849270a1766a7af40a52fc6de760"
+    },
+    {
+      "path": "scripts/analyze_revision_calibration.py",
+      "status": "A",
+      "sha256": "be1ccbe4ba42c0cd02cb22b9f9c3e95dcd4c2a2dd66af54dbea55237bd1c9369"
+    },
+    {
+      "path": "scripts/analyze_revision_convergence.py",
+      "status": "A",
+      "sha256": "dcc1503ec5ec122a49c38c95ff0440c2876ed204c04a8c15e0459e8baabb8fa1"
+    },
+    {
+      "path": "scripts/analyze_revision_jitter_checks.py",
+      "status": "A",
+      "sha256": "b4d946a16e386aa11bb04356ef0d2b581c9cd439ad0a82807ae967973b17a8c4"
+    },
+    {
+      "path": "scripts/analyze_revision_reference_resampling.py",
+      "status": "A",
+      "sha256": "717b6cd54381b093e9b95022acff969c2bbf5bfbfbaea67ab67369d91dde9974"
+    },
+    {
+      "path": "scripts/analyze_revision_space_filling.py",
+      "status": "A",
+      "sha256": "33163af0c7a1978aef88acce21d8390a32521446bb895a27759a724c0cb9eead"
+    },
+    {
+      "path": "scripts/analyze_revision_tdr_campaigns.py",
+      "status": "A",
+      "sha256": "f7ef16c00dd29c7f908f4f407a72be89a6e2daa8178085bb4c5e58f888e393a9"
+    },
+    {
+      "path": "scripts/build_supplement_manifest.py",
+      "status": "A",
+      "sha256": "fca8a72bbf42a2186c34a7d7e324fd813fd21dbe8ca517db5e9935c93b513684"
+    },
+    {
+      "path": "scripts/compare_pareto_fronts.py",
+      "status": "M",
+      "sha256": "c6ef4d4b38d1b5ee5822c8f3a281003ebcac3153dd327af7e7896f990f3aadc1"
+    },
+    {
+      "path": "scripts/evaluate_revision_convergence.py",
+      "status": "A",
+      "sha256": "f0061b9c0cac9d01cca40d83df56e12239100e9979d10d6d66fdd795ec605b24"
+    },
+    {
+      "path": "scripts/evaluate_revision_reference_settings.py",
+      "status": "A",
+      "sha256": "0573222f9376e9121201a29292cfddfc0456b29af69a5a0aa3f001e0b3adec13"
+    },
+    {
+      "path": "scripts/prepare_revision_figures.py",
+      "status": "M",
+      "sha256": "436d639ace637e96aa258f3e62530b8eecec065a3914fc3f52190b7a7fae8972"
+    },
+    {
+      "path": "scripts/prepare_revision_tables.py",
+      "status": "M",
+      "sha256": "bb414437aa870cf0782506aaf0825a181ad995b1db20b523ea73f78ee402f3f5"
+    },
+    {
+      "path": "scripts/run_revision_round2_simulations.sh",
+      "status": "A",
+      "sha256": "ceeef5aaac43b74dec5ea74c912c62dd40c7bac703363f14f4547f050b22946a"
+    },
+    {
+      "path": "tests/test_paper_outputs.py",
+      "status": "M",
+      "sha256": "10d4de9f01634e071719521ab0bf3805785fefd5565767e309b56d304bb1ccdc"
+    },
+    {
+      "path": "tests/test_revision_attribution.py",
+      "status": "A",
+      "sha256": "5c7a130a45ddd15ec1bf52c939392a13eae46f5a517f23f26392bbdb9f25e4e9"
+    },
+    {
+      "path": "tests/test_revision_calibration.py",
+      "status": "A",
+      "sha256": "95cd4ae88914eda21d989feaf8c515947ad7f99716ee2c3a2d3fbe4c61808772"
+    },
+    {
+      "path": "tests/test_revision_convergence.py",
+      "status": "A",
+      "sha256": "8a4e5956306872a7410a5595b0d5779405a4c8dbc8bfcebed3d70cdda8f34c77"
+    },
+    {
+      "path": "tests/test_revision_jitter_checks.py",
+      "status": "A",
+      "sha256": "86e41255c9f7c8cdb89f07b03460e39236a8f75dce2c3a5d91fd51652fc31f37"
+    },
+    {
+      "path": "tests/test_revision_reference_resampling.py",
+      "status": "A",
+      "sha256": "a545bdaa582fab837340b32781cacf25d1ca19030434dd50640f4ed8b40b7d85"
+    },
+    {
+      "path": "tests/test_revision_reference_settings.py",
+      "status": "A",
+      "sha256": "60c4c18bef729a8d3216fdb834d07d87b0116e5c1bd130b25e9fc0b67ec9ce01"
+    },
+    {
+      "path": "tests/test_revision_space_filling.py",
+      "status": "A",
+      "sha256": "e3bae7986085dc92f09063ce6c181970b1a691e346cef10ea1d32c5052939994"
+    },
+    {
+      "path": "tests/test_revision_tdr_campaigns.py",
+      "status": "A",
+      "sha256": "f54b07cc4da5253686e59b8032b1343da35bbbeed4da5cb010a91f0e513b01c1"
+    },
+    {
+      "path": "tests/test_supplement_map.py",
+      "status": "A",
+      "sha256": "7c8970a006395c24f14a152aab7ad6ae793cd5d57d586015565f521b085fee99"
+    }
+  ]
+}
