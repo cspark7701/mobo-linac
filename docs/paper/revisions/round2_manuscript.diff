@@ -1,5 +1,5 @@
 diff --git a/docs/paper/main.tex b/docs/paper/main.tex
-index 2d21211..f839520 100644
+index 2d21211..7b99c77 100644
 --- a/docs/paper/main.tex
 +++ b/docs/paper/main.tex
 @@ -1,17 +1,14 @@
@@ -797,16 +797,7 @@ index 2d21211..f839520 100644
  
  \subsection{Exploratory weighting survey}
  The independently initialized weighting survey found additional feasible trade-offs, with
-@@ -754,7 +924,7 @@ without discarding the rejected observations in the full-range panels. The corre
- survey view is retained in Appendix~\ref{app:survey}; detailed companion plots retain every
- individual campaign and weighting case.
- 
--\begin{figure}[htbp]
-+\begin{figure*}[htbp]
- \centering
- \datafigure{figures/primary_constraint_spaces.pdf}{\linewidth}
- \caption{Primary comparison in constraint space, pooling all valid evaluations from ten runs per
-@@ -763,9 +933,10 @@ Filled markers pass all constraints, while open markers fail at least one channe
+@@ -763,7 +933,8 @@ Filled markers pass all constraints, while open markers fail at least one channe
  shaded projection alone does not imply joint feasibility. Colors and marker shapes identify
  algorithms; full-range panels retain all measured coordinates and insets show the transverse
  acceptance region in the same units. Constant transmission is stated in the annotation rather
@@ -814,10 +805,7 @@ index 2d21211..f839520 100644
 +than repeated as an empty scatter panel. The star marks the re-evaluated MOGA-derived nominal
 +setting.}
  \label{fig:primary_constraints}
--\end{figure}
-+\end{figure*}
- 
- 
+ \end{figure}
  
 @@ -790,7 +961,11 @@ log acquisition value within $1.5\times10^{-13}$. Temperatures 0.001 and 0.1 wer
  examined as sensitivity settings. The highest-ranked probe candidate remained unchanged in
@@ -1332,12 +1320,7 @@ index 2d21211..f839520 100644
  \caption{Operating-point survey: pairwise projections of the feasible three-objective
  nondominated sets. Markers denote evaluated settings without interpolation or connecting lines.
  The scalarized set pools five weighting cases (880 simulations), whereas each MOBO set uses
-@@ -1080,27 +1504,23 @@ The scalarized set pools five weighting cases (880 simulations), whereas each MO
- \end{figure}
- 
- 
--\begin{figure}[htbp]
-+\begin{figure*}[htbp]
+@@ -1084,7 +1508,7 @@ The scalarized set pools five weighting cases (880 simulations), whereas each MO
  \centering
  \datafigure{figures/survey_constraint_spaces.pdf}{\linewidth}
  \caption{Operating-point survey in constraint space, using the same shading and joint-feasibility
@@ -1346,9 +1329,8 @@ index 2d21211..f839520 100644
  (880 evaluations), whereas each MOBO campaign has 176 evaluations. Differences in point density
  must therefore be interpreted with these unequal budgets in mind. Insets use the same
  transverse units; the constant-transmission annotation retains that required diagnostic.}
- \label{fig:survey_constraints}
--\end{figure}
-+\end{figure*}
+@@ -1092,15 +1516,11 @@ transverse units; the constant-transmission annotation retains that required dia
+ \end{figure}
  \FloatBarrier
  
 -\input{revisions/evidence/c11_predictive}
