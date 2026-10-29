@@ -1176,27 +1176,32 @@ extreme have 2 and 1 such trials, and the other two settings none. The selected 
 therefore not locally converged along the jitter directions. Small control changes can still
 improve all three objectives, as expected after a finite search of 160 evaluations.
 
-The jitter model omits RF-amplitude errors, but a first-order estimate bounds their effect on
-the limiting energy margin. In the re-evaluated nominal tracking
-(Sec.~\ref{sec:moga_reference}) the gun delivers \SI{4.1}{\mega\electronvolt} and the two
-structure pairs \SI{93.3}{\mega\electronvolt} and \SI{102.8}{\mega\electronvolt}. A
-\SI{0.2}{\percent} RMS amplitude error, the RF-gradient error of the JKPS model, therefore
-shifts the mean energy by \SI{0.28}{\mega\electronvolt} RMS if the pairs vary independently and
-by \SI{0.40}{\mega\electronvolt} if all amplitudes vary together. This is about ten times the
+The jitter model omits RF-amplitude errors. A conditional, linearized estimate indicates their
+effect on the mean energy only. It takes the energy gains of the re-evaluated MOGA-derived
+nominal tracking (Sec.~\ref{sec:moga_reference}): \SI{4.1}{\mega\electronvolt} from the gun and
+\SI{93.3}{\mega\electronvolt} and \SI{102.8}{\mega\electronvolt} from the two structure
+pairs. It assumes that each gain scales linearly with its amplitude at fixed phase. A
+\SI{0.2}{\percent} RMS amplitude error, the RF-gradient error of the JKPS model, then shifts the
+mean energy by \SI{0.28}{\mega\electronvolt} RMS if the pairs vary independently and by
+\SI{0.40}{\mega\electronvolt} if all amplitudes vary together. This is about ten times the
 \SIrange{0.014}{0.046}{\mega\electronvolt} RMS energy variation produced by the simulated phase
-jitter, but small against the smallest lower-energy headroom of \SI{3.11}{\mega\electronvolt},
-which is at least 7.8 standard deviations away. A common amplitude change also scales the
-correlated energy spread by the same relative amount, about \SI{0.8}{\kilo\electronvolt}. The
-estimate suggests that amplitude jitter would not change the production-profile
-classification of the representatives, but it does not replace a tracked amplitude study.
+jitter, and about an eighth of the smallest lower-energy headroom of the representatives,
+\SI{3.11}{\mega\electronvolt}. The estimate is not a bound. It does not cover the bunch-length
+and upper-energy margins that limit other representatives, nor the changes in phase slippage,
+focusing, chirp and transverse diagnostics that an amplitude change also produces, so it does
+not establish that the representatives stay feasible under amplitude jitter.
 
 The two TDR-passing observations of Table~\ref{tab:tdr_candidates} were assessed with the same
 50-trial protocol and classified against the TDR inequalities. Both remained
 production-feasible in every trial, but only 36 and 44 of the 50 perturbed settings met the TDR
 inequalities (exact \SI{95}{\percent} intervals 0.58--0.84 and 0.76--0.95). The failures were
 mainly of the horizontal-size limit and, for candidate B, also the vertical divergence. Under
-the archived fragility threshold of 0.8, candidate A would be classified as fragile. These
-marginal settings therefore do not provide jitter-tolerant TDR operation in this model.
+the archived fragility threshold of 0.8, candidate A would be classified as fragile. Their TDR
+lower-energy margins, \SI{0.31}{\mega\electronvolt} and \SI{0.14}{\mega\electronvolt}, are
+comparable to the linearized amplitude-induced shift of
+\SIrange{0.28}{0.40}{\mega\electronvolt} RMS, which indicates that amplitude jitter would cause
+further TDR failures. These marginal settings therefore do not provide jitter-tolerant TDR
+operation in this model.
 
 \IfFileExists{robustness_table.tex}{\inputwide{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
 robustness of the representatives.}{tab:robustness_summary}}
@@ -1296,8 +1301,9 @@ The JKPS operating-error model used RF-gradient and phase standard deviations of
 \SI{0.2}{\degree}, with \SI{0.1}{\percent} magnet-strength errors. It also studied \SI{100}{\micro\metre}
 position errors and \SI{0.4}{\milli\radian} rotations, using 1,000 samples per stage with a Gaussian distribution
 truncated at two standard deviations. Our tests use \SI{0.1}{\degree} RF-phase and \SI{0.1}{\percent} magnet-strength
-errors with 50 samples per representative. They omit tracked RF-gradient errors, which are
-estimated only to first order in Sec.~\ref{sec:robustness_results}, and alignment errors. Thus the
+errors with 50 samples per representative. They omit tracked RF-gradient errors, whose effect on the
+mean energy alone is estimated by linearization in Sec.~\ref{sec:robustness_results}, and
+alignment errors. Thus the
 observed feasibility under lattice jitter complements the earlier tolerance study; it does not
 show greater robustness under its broader error model. The earlier study identified alignment
 errors as a principal sensitivity, supporting their inclusion in future assessments.

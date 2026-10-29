@@ -21,7 +21,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-03 | Done | see below | — |
 | C3-04 | Done | see below | — |
 | C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — |
-| C3-06 | Not started | — | — |
+| C3-06 | Done | see below | — |
 | C3-07 | Not started | — | — |
 | C3-08 | Not started | — | — |
 | C3-09 | Not started | — | — |
@@ -75,7 +75,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-03 | Done | see below | — | C3-01 |
 | C3-04 | Done | see below | — | None |
 | C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — | C3-01 |
-| C3-06 | P0 | RF-amplitude estimate restricted to what it estimates | Manuscript | None |
+| C3-06 | Done | see below | — | None |
 | C3-07 | P0 | Supplement input inventory and data availability | Local documentation; supplement map; reproduction checks | C3-02, C3-04 (new evidence files) |
 | C3-08 | P1 | Summary-claims audit | Manuscript | C3-01 to C3-06 |
 | C3-09 | P1 | Surrogate-undercoverage wording | Manuscript; optional offline split | None |
@@ -216,16 +216,18 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Sources:** Reviewer 1 M4 (R3-04); Reviewer 2 minor 2 (T5).
 
-- [ ] Name the reference setting used: the re-evaluated MOGA-derived nominal setting, with gains of 4.1, 93.3 and 102.8 MeV.
-- [ ] Also name the gain-scaling approximation and the two correlation assumptions.
-- [ ] Describe 0.28 and 0.40 MeV RMS as conditional linearized estimates. Replace "bounds their effect".
-- [ ] Remove the inference that the 3.11 MeV lower-energy headroom preserves the full production-profile feasibility of every representative. The bunch-length and upper-energy margins, and the effects on phase slippage, focusing and chirp, are not estimated.
-- [ ] Explain the assumption behind scaling the energy spread by the same fraction (about 0.8 keV), or remove it.
-- [ ] In the TDR-candidate jitter paragraph, compare the same estimate with the TDR lower-energy margins of candidates A and B: 0.31 and 0.14 MeV, about 0.4–1.1 RMS shifts. State this as an indication, not a bound, that amplitude jitter would cause further TDR failures.
-- [ ] Keep the tracked lattice-only results as their own evidence.
+- [x] Name the reference setting used: the re-evaluated MOGA-derived nominal setting, with gains of 4.1, 93.3 and 102.8 MeV.
+- [x] Also name the gain-scaling approximation and the two correlation assumptions.
+- [x] Describe 0.28 and 0.40 MeV RMS as conditional linearized estimates. Replace "bounds their effect".
+- [x] Remove the inference that the 3.11 MeV lower-energy headroom preserves the full production-profile feasibility of every representative. The bunch-length and upper-energy margins, and the effects on phase slippage, focusing and chirp, are not estimated.
+- [x] Explain the assumption behind scaling the energy spread by the same fraction (about 0.8 keV), or remove it.
+- [x] In the TDR-candidate jitter paragraph, compare the same estimate with the TDR lower-energy margins of candidates A and B: 0.31 and 0.14 MeV, about 0.4–1.1 RMS shifts. State this as an indication, not a bound, that amplitude jitter would cause further TDR failures.
+- [x] Keep the tracked lattice-only results as their own evidence.
 
 **Done when:** every conclusion is limited to the quantity the estimate actually provides. No new error campaign is needed.
 
+
+**Done:** Sec. V I names the reference setting (re-evaluated MOGA-derived nominal; gains 4.1, 93.3, 102.8 MeV), the linear gain-scaling approximation at fixed phase and the two correlation assumptions, and calls 0.28/0.40 MeV RMS a conditional linearized estimate, not a bound. The all-constraint classification inference and the σ_E scaling sentence are removed; the text states the margins and effects the estimate does not cover. The TDR-candidate paragraph compares the estimate with the TDR lower-energy margins (0.31 and 0.14 MeV) as an indication of further TDR failures. The Discussion sentence on JKPS errors is aligned.
 ### C3-07. Make the reproduction dependencies and the data availability statement accurate
 
 **Sources:** Reviewer 1 M5 (R3-05); Reviewer 2 minor 5 (T8).
