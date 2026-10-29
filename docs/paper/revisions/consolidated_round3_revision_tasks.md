@@ -24,7 +24,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-06 | Done | see below | — |
 | C3-07 | Done | see below | — |
 | C3-08 | Done (a final audit follows the route (b) scope text) | see below | — |
-| C3-09 | Not started | — | — |
+| C3-09 | Done (optional fallback split not done) | see below | — |
 | C3-10 | Not started | — | — |
 | C3-11 | **Authorized** 2026-10-29 as part of route (b), 20 workers; stage A running | this commit | Stage A ≈ 4–5 h; stage B ≈ 1–2 days at the selected level |
 | C3-12 | Not started | — | — |
@@ -78,7 +78,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-06 | Done | see below | — | None |
 | C3-07 | Done | see below | — | C3-02, C3-04 (new evidence files) |
 | C3-08 | Done (a final audit follows the route (b) scope text) | see below | — | C3-01 to C3-06 |
-| C3-09 | P1 | Surrogate-undercoverage wording | Manuscript; optional offline split | None |
+| C3-09 | Done (optional fallback split not done) | see below | — | None |
 | C3-10 | P2 | Precision, length, style and source hygiene | Manuscript; tests | C3-01 to C3-09 |
 | C3-11 | Optional 🖥 | Refined re-tracking of selected points | ASTRA runs; analysis | Author authorization; only if needed after C3-01 |
 | C3-12 | P2 | Point-by-point responses and validation | Documentation; focused checks; PDF build | All of the above |
@@ -267,12 +267,14 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Sources:** Reviewer 1 minor 2 (R3-06, second item). Reviewer 2 has no further request.
 
-- [ ] In Sec. V G and the Limitations, label kernel misspecification and adaptive test points as hypotheses for the remaining undercoverage. The inferred-noise refit shows sensitivity to regularization only.
-- [ ] Do not count the 88 refit fallbacks to initial hyperparameters as equivalent fits.
-- [ ] *Optional, offline:* repeat the coverage comparison with the fallback cases separated, using existing refit records. Otherwise keep the wording descriptive.
+- [x] In Sec. V G and the Limitations, label kernel misspecification and adaptive test points as hypotheses for the remaining undercoverage. The inferred-noise refit shows sensitivity to regularization only.
+- [x] Do not count the 88 refit fallbacks to initial hyperparameters as equivalent fits.
+- [ ] *Optional, offline (not done; the refit records carry no fallback flag):* repeat the coverage comparison with the fallback cases separated, using existing refit records. Otherwise keep the wording descriptive.
 
 **Done when:** no causal explanation of undercoverage is stated as established.
 
+
+**Done:** Sec. V G now introduces fixed noise, kernel misspecification and adaptive test points as three hypotheses, none isolated. The inferred-noise refit is described as showing sensitivity to the regularization; kernel misspecification and adaptive selection remain untested hypotheses for the remainder. The 88 refits restored to initial hyperparameters are stated to be non-equivalent fits that the archived refit records do not identify, so the refit coverage includes them. The optional split was not done: the records carry no fallback flag, so it would require redoing the refits. The Limitations wording was already descriptive.
 ### C3-10. Precision, length, style and source hygiene
 
 **Sources:** Reviewer 1 minors 3–4 (R3-06, last items); Reviewer 2 minors 3, 4, 6–9 (T6, T7, T9–T12).
