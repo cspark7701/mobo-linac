@@ -20,10 +20,10 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-02 | Done | see below | — |
 | C3-03 | Done | see below | — |
 | C3-04 | Done | see below | — |
-| C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — |
+| C3-05 | Done | see below | — |
 | C3-06 | Done | see below | — |
 | C3-07 | Done | see below | — |
-| C3-08 | Done (a final audit follows the route (b) scope text) | see below | — |
+| C3-08 | Done (final audit after the route (a) scope text) | see below | — |
 | C3-09 | Done (optional fallback split not done) | see below | — |
 | C3-10 | Done (lead-with restructuring with the C3-01 scope text) | see below | — |
 | C3-11 | Withdrawn with route (b) (2026-10-30); stage A run, stage B not run | this commit | — |
@@ -74,10 +74,10 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-02 | Done | see below | — | C3-01 |
 | C3-03 | Done | see below | — | C3-01 |
 | C3-04 | Done | see below | — | None |
-| C3-05 | Done (refined TDR membership to be updated with the stage A ladder) | see below | — | C3-01 |
+| C3-05 | Done | see below | — | C3-01 |
 | C3-06 | Done | see below | — | None |
 | C3-07 | Done | see below | — | C3-02, C3-04 (new evidence files) |
-| C3-08 | Done (a final audit follows the route (b) scope text) | see below | — | C3-01 to C3-06 |
+| C3-08 | Done (final audit after the route (a) scope text) | see below | — | C3-01 to C3-06 |
 | C3-09 | Done (optional fallback split not done) | see below | — | None |
 | C3-10 | Done (lead-with restructuring with the C3-01 scope text) | see below | — | C3-01 to C3-09 |
 | C3-11 | Withdrawn | Refined re-tracking of selected points | ASTRA runs; analysis | Not needed on route (a) |
@@ -209,6 +209,8 @@ The selected level (80k, 96 cells, H/8) would have taken about 14–16 days for 
 
 
 **Done:** "At the edge of the explored domain" is removed from the abstract, contribution 3, Sec. VI B and the Conclusions; they now state rare TDR-feasible observations with micrometre-scale diagnostic margins and membership that changes under refinement. Sec. VI B gives the normalized controls (candidate A 0.48–0.86 in every coordinate; candidate B interior except gun phase 0.96), says two points do not locate a region in six dimensions, and that three finite campaigns do not show inaccessibility. The extra RF and matching controls are design options, not a demonstrated remedy. The Conclusions sentence on refined membership matches Sec. VI B (meets at combined medium/fine, fails with four of five regenerated sources).
+
+**Route (a) (2026-10-30):** No refined TDR membership is added. The manuscript states that membership near the TDR limits is not numerically resolved: the closest TDR-constrained observation and the MOGA-derived nominal setting pass at the medium and fine levels but fail with four of five regenerated sources.
 ### C3-06. Restrict the RF-amplitude estimate to what it estimates
 
 **Sources:** Reviewer 1 M4 (R3-04); Reviewer 2 minor 2 (T5).
@@ -262,6 +264,14 @@ The selected level (80k, 96 cells, H/8) would have taken about 14–16 days for 
 
 
 **Done:** Contribution 1 no longer lists "a fixed reference point and predeclared endpoints": the feasible fraction was predeclared, and the failed fixed-reference hypervolume endpoint is replaced by labelled post-hoc indicators. Sec. V J, the Discussion and the Conclusions say that no primary feasible observation Pareto-dominates the MOGA-derived nominal setting at the nominal resolution, keep the single-objective improvements, and add that the reference is not established as an optimum. Audit of the summary sections: the abstract now says that objective-quality comparisons depend on the fixed numerical model and that the jitter assessment is lattice-only, and the Conclusions sentence on regeneration points to the S1 input inventory.
+
+**Final audit (2026-10-30, after the C3-01 scope text):** The abstract, the five contributions, the Discussion, the Limitations and the Conclusions agree on four points:
+- the comparison is made within the nominal numerical model;
+- the feasible-sampling advantage persists under the bounding shifts;
+- front quality is conditional on the empirical reference and the fixed numerical model;
+- TDR membership near the limits is not resolved.
+
+No sentence claims a physically resolved ranking, uniform superiority or an engineering-ready setting. The remaining uses of "outperform" and "superiority" are negations or references to the literature.
 ### C3-09. Word the surrogate undercoverage as hypotheses
 
 **Sources:** Reviewer 1 minor 2 (R3-06, second item). Reviewer 2 has no further request.
