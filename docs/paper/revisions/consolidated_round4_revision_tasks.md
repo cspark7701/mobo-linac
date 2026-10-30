@@ -22,7 +22,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | C4-04 | Done | TASK_00314 | — |
 | C4-05 | Done | TASK_00315 | — |
 | C4-06 | Done | TASK_00316 | — |
-| C4-07 | Not started | — | — |
+| C4-07 | Done | TASK_00319 | — |
 | C4-08 | Done | TASK_00317 | — |
 | C4-09 | Not started | — | — |
 | C4-10 | Done | TASK_00318 | — |
@@ -163,11 +163,13 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 1 C3 (R4-03).
 
-- [ ] Remove the conflict between the percent column headings and the MeV row: state in the caption that all entries are percent except mean energy (MeV), or set the energy row apart.
-- [ ] Define the denominator of the "fine vs medium" column (relative to the medium level, or as computed) and state that its entries are maximum magnitudes, whereas the first two columns are signed ranges.
-- [ ] Verify the caption against `evidence/r2_convergence_summary.csv` or the generating formula. Keep all values unchanged.
+- [x] Remove the conflict between the percent column headings and the MeV row: state in the caption that all entries are percent except mean energy (MeV), or set the energy row apart.
+- [x] Define the denominator of the "fine vs medium" column (relative to the medium level, or as computed) and state that its entries are maximum magnitudes, whereas the first two columns are signed ranges.
+- [x] Verify the caption against `evidence/r2_convergence_summary.csv` or the generating formula. Keep all values unchanged.
 
 **Done when:** every entry has one unambiguous unit and convention, in the source and in the rendered table.
+
+**Done:** Table I headings no longer carry units. A "Relative change [%]" block holds the six relative rows and a separate "Absolute change [MeV]" block holds the mean energy. The caption states that the fine and step-only columns are signed changes relative to the production value, that "fine vs medium" is the largest magnitude of the difference between the two combined levels relative to the medium value, and that the source s.d. is relative to the production value; mean energy is recorded to 0.01 MeV. Every entry was recomputed from `evidence/r2_convergence_values.csv` and is unchanged. The step-only energy cell, previously a dash, now gives the recorded range −0.04 to 0.01 MeV.
 
 ### C4-08. Qualify the comparison with Kim et al.
 

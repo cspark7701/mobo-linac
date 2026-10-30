@@ -303,24 +303,32 @@ uncertainty.
 \begin{table*}[htbp]
 \centering
 \caption{Change of the exit-plane quantities of the ten re-tracked settings under numerical
-refinement, relative to the production resolution (range over settings). ``Fine'' combines
-\num{40000} particles, 64-cell grids and a quarter of the integration step; ``step only''
-quarters the step with the production source; ``fine vs medium'' compares the two combined
-levels; ``source s.d.''\ is the standard deviation over five regenerated \num{10000}-particle
-random sources. These are observed sensitivities at ten settings, not error bounds.}
+refinement (range over settings). ``Fine'' combines \num{40000} particles, 64-cell grids and a
+quarter of the integration step; ``step only'' quarters the step with the production source.
+These two columns give signed changes relative to the production value. ``Fine vs medium''
+gives the largest magnitude of the difference between the two combined levels, relative to the
+medium value. ``Source s.d.''\ is the standard deviation over five regenerated
+\num{10000}-particle random sources, relative to the production value. Entries are percentages
+except in the mean-energy row, which gives absolute changes in \si{\mega\electronvolt}; mean
+energy is recorded to \SI{0.01}{\mega\electronvolt}. These are observed sensitivities at ten
+settings, not error bounds.}
 \label{tab:resolution}
 \small
+\setlength{\tabcolsep}{9pt}
 \begin{tabular}{lrrrr}
 \toprule
-Quantity & Fine [\%] & Step only [\%] & Fine vs medium [\%] & Source s.d.\ [\%] \\
+Quantity & Fine & Step only & Fine vs medium & Source s.d. \\
 \midrule
+\multicolumn{5}{l}{\textit{Relative change [\%]}} \\
 $\enx$ & $-33.5$ to $-11.7$ & $-28.1$ to $-4.6$ & $\le 8.4$ & 1.0--6.3 \\
 $\eny$ & $-43.1$ to $-17.1$ & $-37.6$ to $-10.8$ & $\le 8.7$ & 1.3--12.1 \\
 $\sigma_E$ & $-3.6$ to $0.6$ & $-3.9$ to $0.2$ & $\le 1.2$ & 0.2--0.6 \\
 $\sigma_x$, $\sigma_y$ & $-21.9$ to $-0.2$ & $-20.9$ to $1.2$ & $\le 2.7$ & 0.4--6.6 \\
 $\sigma_{x'}$, $\sigma_{y'}$ & $-21.0$ to $0.2$ & $-15.4$ to $1.2$ & $\le 2.5$ & 0.4--2.9 \\
 $\sigma_z$ & $-0.8$ to $-0.7$ & $-1.0$ to $-0.9$ & $\le 0.3$ & 0.1--0.2 \\
-$E_\mathrm{kin}$ [\si{\mega\electronvolt}] & $-0.05$ to $0.01$ & --- & $\le 0.02$ & $\le 0.005$ \\
+\midrule
+\multicolumn{5}{l}{\textit{Absolute change [\si{\mega\electronvolt}]}} \\
+$E_\mathrm{kin}$ & $-0.05$ to $0.01$ & $-0.04$ to $0.01$ & $\le 0.02$ & $\le 0.005$ \\
 \bottomrule
 \end{tabular}
 \end{table*}
