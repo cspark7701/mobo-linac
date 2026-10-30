@@ -5,7 +5,7 @@ C4-06 of the round4 revision (Reviewer 1 C2). The RF-amplitude implication for t
 
 ## Key Changes
 - **Removed.** The claim that the comparison "indicates that amplitude jitter would cause further TDR failures".
-- **Added (Sec. V D, robustness results):**
+- **Added (Sec. V I, robustness to lattice jitter):**
   - the 0.28–0.40 MeV RMS shift is estimated from the energy gains of the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B;
   - because it is comparable to their 0.31 and 0.14 MeV lower-energy margins, the omitted amplitude errors could reduce their TDR acceptance further and merit a candidate-specific study;
   - no failure count or probability is inferred.

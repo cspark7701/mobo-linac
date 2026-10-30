@@ -25,7 +25,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | C4-07 | Not started | — | — |
 | C4-08 | Done | TASK_00317 | — |
 | C4-09 | Not started | — | — |
-| C4-10 | Not started | — | — |
+| C4-10 | Done | TASK_00318 | — |
 | C4-11 | Not started | — | — |
 
 ## Sources
@@ -157,7 +157,7 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Done when:** the text distinguishes a scale-based risk indication from demonstrated amplitude-induced failures.
 
-**Done:** Sec. V D no longer says that amplitude jitter "would cause further TDR failures". It states that the 0.28–0.40 MeV RMS shift is estimated from the energy gains of the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B; that, because the scales are comparable, the omitted amplitude errors could reduce their TDR acceptance further and merit a candidate-specific study; and that no failure count or probability is inferred. The lattice-only counts 36/50 and 44/50 and their intervals are unchanged. No other passage makes an amplitude claim about the candidates.
+**Done:** Sec. V I no longer says that amplitude jitter "would cause further TDR failures". It states that the 0.28–0.40 MeV RMS shift is estimated from the energy gains of the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B; that, because the scales are comparable, the omitted amplitude errors could reduce their TDR acceptance further and merit a candidate-specific study; and that no failure count or probability is inferred. The lattice-only counts 36/50 and 44/50 and their intervals are unchanged. No other passage makes an amplitude claim about the candidates.
 
 ### C4-07. Table I units and comparison convention
 
@@ -191,11 +191,13 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 2 comment 3 (T3).
 
-- [ ] The round3 response (M1, item 3) says that "Sec. II A, the Limitations and the Conclusions" describe the ten settings as feasible and mostly from constraint-aware searches; only Sec. II A does. Prefer adding the half-sentence to the Limitations, which also makes the manuscript more explicit. Otherwise correct the response.
-- [ ] Re-read both round3 responses against the current manuscript for other mismatches.
-- [ ] Record the correction in the round4 responses rather than silently rewriting history.
+- [x] The round3 response (M1, item 3) says that "Sec. II A, the Limitations and the Conclusions" describe the ten settings as feasible and mostly from constraint-aware searches; only Sec. II A does. Prefer adding the half-sentence to the Limitations, which also makes the manuscript more explicit. Otherwise correct the response.
+- [x] Re-read both round3 responses against the current manuscript for other mismatches.
+- [x] Record the correction in the round4 responses rather than silently rewriting history.
 
 **Done when:** every location named in the responses contains the statement attributed to it.
+
+**Done:** The Limitations now say that the ten re-tracked settings "are feasible and mostly from constraint-aware searches", so Sec. II A and the Limitations contain the population statement; the Conclusions name "those ten settings" only. Re-reading both round3 responses against the manuscript found five further mismatches, recorded for the round4 responses (C4-11) instead of rewriting the round3 files: (1) R1 M1 item 2 says Table I separates grid changes and gives the classification changes; it has fine, step-only, fine-vs-medium and source columns, and the classification changes are in the Sec. II A text. (2) R1 minor 3 and R2 minor 3 name Table X for the nominal-resolution label and the archived-digits caption; that is Table XI (objectives), Table X lists the controls. (3) R1 minor 3 says running-text values are rounded to three significant figures; this holds for emittances and energy spreads, not for margins, phases or published values. (4) R2 R3(b) quotes the shares as in Sec. V C and the Conclusions; the shares appear only in Sec. V C. (5) R2 minor 2 reports the amplitude sentence that C4-06 has since made conditional. All other named locations contain the attributed statements.
 
 ### C4-11. Responses and validation
 
