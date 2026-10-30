@@ -1,0 +1,161 @@
+{
+ "baseline": "887673c",
+ "note": "Round4 revision files relative to the reviewed baseline, with current SHA-256 hashes (none for deleted files). Excludes the packaging files (diffs, this inventory, the overview) and the closing task summary to avoid self-reference. Raw simulation outputs under results/ are not tracked and are identified through docs/paper/supplement/ledger_manifest.json.",
+ "counts": {
+  "A": 26,
+  "M": 4,
+  "D": 0
+ },
+ "files": [
+  {
+   "path": "docs/exec-plans/completed/TASK_00309_reviewer2_round4_report.md",
+   "status": "A",
+   "sha256": "532cab8abd6aaefd97691662a9d823d0f735af64a436fe25295bf07ec0d395ba"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00310_reviewer1_round4_manuscript_review.md",
+   "status": "A",
+   "sha256": "60507196184ebdaaf75b84e1249d7e51f9f2860a8b331f50d4270c9558f511a4"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00311_consolidate_round4_revision_tasks.md",
+   "status": "A",
+   "sha256": "8c9ad390d0c84d269b1a1c155ae968edbf8462791e1f9786c7130c8bb501d7a2"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00312_c4_01_common_shift_scenarios.md",
+   "status": "A",
+   "sha256": "929b308f16d291d748408c60fbaa6383b3d3af3cba568268f3834ff34ee0907d"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00313_c4_03_tdr_membership.md",
+   "status": "A",
+   "sha256": "9524fe90c57311e4bdfa8858b6390f5386601e51dbe24c586dd5c6f1cf35938a"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00314_c4_04_regeneration_claim.md",
+   "status": "A",
+   "sha256": "ba1c5134caa48ca77741c33fb7651b583373c0531b6db86192790db31a04886c"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00315_c4_05_pareto_set_size.md",
+   "status": "A",
+   "sha256": "4466d49a4fd50d53c6f41d096631e01934744741882f450dab72e7b4cbcf3404"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00316_c4_06_rf_amplitude_conditional.md",
+   "status": "A",
+   "sha256": "d1b8a2189a896f058e4cfed391b0e7c9140f37341f43f4c748f8ab86bdf8a074"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00317_c4_08_kim_comparison.md",
+   "status": "A",
+   "sha256": "081ec55c3115a4993595c57d3bbecdacb55b6fa13ab63a6a34f0133e780be193"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00318_c4_10_round3_response_accuracy.md",
+   "status": "A",
+   "sha256": "612487bbb7b54b43b19be28684333c23a448655594f5ab9fda1e184e61471ffa"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00319_c4_07_table1_units.md",
+   "status": "A",
+   "sha256": "610ea1ab73e96a79a74f24f909c6bfe8ff28bd2573d7491c591e3fd498464ebf"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00320_c4_09_fallback_wording.md",
+   "status": "A",
+   "sha256": "16795ea6212cb1ee2c7b3695b10e8f596ca687566a8147d3a7a8e19936181fbd"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00321_c4_02_shift_scenarios.md",
+   "status": "A",
+   "sha256": "d1dc981ea129b5589fa4ec05d5d43efbb4a288a08849af7bbd374a0602fc0f68"
+  },
+  {
+   "path": "docs/paper/main.tex",
+   "status": "M",
+   "sha256": "0b19581d07335973601550f031429f4dbf8296d3a87f9b1f91c9dc8a04d93b67"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer1_round4_report.md",
+   "status": "A",
+   "sha256": "b1c634eb54b46da9b22f2043cea50dc8eccdbe511dcac246a60f76999cf34ceb"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer1_round4_response.md",
+   "status": "A",
+   "sha256": "7b37598b5e18150d472a942a1eeebae6d6d2c5e1d37bbd9bbb912cb34f53701e"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer2_round4_report.md",
+   "status": "A",
+   "sha256": "c33a05954bdb1de831890d717841927d24162005f559783c735329198161a036"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer2_round4_response.md",
+   "status": "A",
+   "sha256": "9cf252ad5f699581eb829e233e2ef772d949bd3974359d4cf87a260a600cb4d9"
+  },
+  {
+   "path": "docs/paper/revisions/consolidated_round4_revision_tasks.md",
+   "status": "A",
+   "sha256": "5f086a2664f2e0b7b7fad8193fc220b337333669ec9315320553f698a231403a"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r4_shift_scenarios_differential.csv",
+   "status": "A",
+   "sha256": "05d203fcb9820a8b9cfb8c15855b6ca6eeb7f11c501c8aa818312c2067ec1268"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r4_shift_scenarios_metadata.json",
+   "status": "A",
+   "sha256": "7fb40bc649ba7caa184f133bae201fcf5186cc4fdbf3ce464b9a96f6125b2114"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r4_shift_scenarios_upward_paired.csv",
+   "status": "A",
+   "sha256": "fb751191f6462e582b0bcb92c741653191bc12048c319f56d199cac97d5de1b3"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r4_shift_scenarios_upward_runs.csv",
+   "status": "A",
+   "sha256": "1cb6c3ec07dc5094ebd6cac1e30a543f49a95866ea1f535877d1aadc595a668f"
+  },
+  {
+   "path": "docs/paper/revisions/reviewer1_round4_revision_tasks.md",
+   "status": "A",
+   "sha256": "7d08f6b430b8969aaf0593ef6ed7dde783dacc9f96123fcf03f0f95e27bc49ab"
+  },
+  {
+   "path": "docs/paper/revisions/reviewer2_round4_revision_tasks.md",
+   "status": "A",
+   "sha256": "06b801b0465bc552bf56139a57c300e2ca179fda5967a5cbd1cc4ad4365c3f8a"
+  },
+  {
+   "path": "docs/paper/supplement/README.md",
+   "status": "M",
+   "sha256": "4d2672c1e49694fa379704fa9d5a7abd0a3cf9fcfc8335558969c5986f7da0d5"
+  },
+  {
+   "path": "docs/paper/supplement/evidence_map.csv",
+   "status": "M",
+   "sha256": "6ef0495ab632da0f0945c26b7820da89942dce92be39c197ea390e216c546d27"
+  },
+  {
+   "path": "docs/paper/supplement/input_inventory.csv",
+   "status": "M",
+   "sha256": "f48503c4ac025c7d6721bc96230c96cd70a8e623ce0335d7c7fdb81ca9f49083"
+  },
+  {
+   "path": "scripts/analyze_revision_shift_scenarios.py",
+   "status": "A",
+   "sha256": "f582df63f14e81b17f6585f332a9c6fdd4cbb054d48bb52ea7c2d97d141cd402"
+  },
+  {
+   "path": "tests/test_revision_shift_scenarios.py",
+   "status": "A",
+   "sha256": "13ecae3d5d52b225cb89c17fc8f70192047bfa13125dfe4836fc4a381eb7719f"
+  }
+ ]
+}

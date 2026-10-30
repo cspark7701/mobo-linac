@@ -14,6 +14,8 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 
 ## Status (2026-10-30)
 
+All round4 tasks, C4-01 to C4-11, are closed. C4-09's optional length moves were not made (reason under C4-09).
+
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
 | C4-01 | Done | TASK_00312 | — |
@@ -26,7 +28,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | C4-08 | Done | TASK_00317 | — |
 | C4-09 | Done | TASK_00320 | — |
 | C4-10 | Done | TASK_00318 | — |
-| C4-11 | Not started | — | — |
+| C4-11 | Done | TASK_00322 | — |
 
 ## Sources
 
@@ -147,7 +149,7 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Done when:** no objective-space quantity is stated without the nominal-model condition.
 
-**Done:** The first Discussion sentence now states only the larger feasible fraction. The larger feasible Pareto set moved into the objective-quality sentence, which says that these objective-space results, "the set size among them", hold only for the fixed source file at the production resolution. Sec. V A labels the median cardinalities as depending on the nominal-resolution objective values. The abstract and the Conclusions state only that feasible nondominated settings exist, not their number.
+**Done:** The first Discussion sentence now states only the larger feasible fraction. The larger feasible Pareto set moved into the objective-quality sentence, which says that these objective-space results, "the set size among them", hold only for the fixed source file at the production resolution. Sec. V B labels the median cardinalities as depending on the nominal-resolution objective values. The abstract and the Conclusions state only that feasible nondominated settings exist, not their number.
 
 ### C4-06. Keep the RF-amplitude implication for the TDR candidates conditional
 
@@ -209,16 +211,18 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 1 R4-04; Reviewer 2 T10.
 
-- [ ] Write `docs/paper/reviews/reviewer1_round4_response.md` (C1–C3) and `reviewer2_round4_response.md` (comments 1–9). In the Reviewer 2 response, explain why Reviewer 1's "scenario" wording was used instead of "bounding shifts" (comment 9).
-- [ ] Confirm the narrower scope is intact: no physical Pareto-rank validation, machine acceptance or corrected-method efficacy.
-- [ ] Package the manuscript diff and the code diff against `887673c`, a changed-file inventory and a round4 overview, as in round3.
-- [ ] Validate:
+- [x] Write `docs/paper/reviews/reviewer1_round4_response.md` (C1–C3) and `reviewer2_round4_response.md` (comments 1–9). In the Reviewer 2 response, explain why Reviewer 1's "scenario" wording was used instead of "bounding shifts" (comment 9).
+- [x] Confirm the narrower scope is intact: no physical Pareto-rank validation, machine acceptance or corrected-method efficacy.
+- [x] Package the manuscript diff and the code diff against `887673c`, a changed-file inventory and a round4 overview, as in round3.
+- [x] Validate:
   - `ruff`, the documentation-sync check and the full test suite with 100 % coverage;
   - the supplement manifest check and the regeneration check;
   - both PDF builds, inspecting Table I and the changed summary passages.
-- [ ] Do not equate task closure with reviewer agreement or journal acceptance.
+- [x] Do not equate task closure with reviewer agreement or journal acceptance.
 
 **Done when:** every comment of both reviewers has a traceable disposition and the validation status is reported honestly.
+
+**Done:** Responses: `docs/paper/reviews/reviewer1_round4_response.md` (C1–C3, scope, corrections to the round3 response) and `reviewer2_round4_response.md` (comments 1–9, why Reviewer 1's scenario wording was used for comment 9, corrections to the round3 response). Package against `887673c`: `round4_manuscript.diff`, `round4_analysis_code.diff`, `round4_changed_files.json` and `round4_revision_overview.md`. Validation is recorded in TASK_00322. Closing the tasks does not establish reviewer agreement or journal acceptance.
 
 ---
 

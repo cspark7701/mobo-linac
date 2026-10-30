@@ -8,7 +8,7 @@ C4-05 of the round4 revision (Reviewer 2 comment 4). The size of the feasible Pa
   - The first sentence now states only the larger feasible fraction.
   - The larger feasible Pareto set moved into the objective-quality sentence ("Evidence for objective quality, including its larger feasible Pareto set, is weaker in kind").
   - The conditioning sentence names the set size: "These objective-space results, the set size among them, also hold only for the fixed source file at the production resolution".
-- **Sec. V A.** The median feasible Pareto cardinalities are labelled as depending on the objective values at the nominal resolution.
+- **Sec. V B.** The median feasible Pareto cardinalities are labelled as depending on the objective values at the nominal resolution.
 - **Abstract and Conclusions.** Checked: they state only that feasible nondominated settings exist, with no set size and no unconditioned front-quality claim.
 - Task C4-05 is marked done in the consolidated round4 task list.
 
