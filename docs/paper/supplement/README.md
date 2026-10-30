@@ -113,7 +113,7 @@ The complete file-level map, with the manuscript label and generator of each fil
 | S1.10 | Lattice jitter: margins, statistics, dominance by perturbed neighbours, RF-amplitude estimate, TDR-candidate jitter | Robustness results |
 | S1.11 | MOGA-derived reference: provenance assessment, re-evaluation, epsilon to each front, jitter | MOGA-derived reference |
 | S1.12 | Campaign wall-clock costs and paired ratios | Results (cost) |
-| S1.13 | Numerical-resolution disposition and the refinement check of ten reported settings (150 runs; generator `scripts/evaluate_revision_convergence.py`) | Section 2 (nominal resolution); TDR reach |
+| S1.13 | Numerical-resolution disposition, the refinement check of ten reported settings (150 runs; generator `scripts/evaluate_revision_convergence.py`) and the post-hoc diagnostic-shift scenarios of the feasible fractions | Section 2 (nominal resolution); Primary comparison; TDR reach |
 | S1.14 | Exploratory operating-point survey | Appendix C |
 | S1.15 | Revision bookkeeping: comparison matrix, prior-work notes, figure provenance, validation | none |
 

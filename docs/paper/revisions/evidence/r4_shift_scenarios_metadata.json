@@ -1,0 +1,59 @@
+{
+  "analysis": "C4-02 upward and differential diagnostic-shift scenarios (post hoc)",
+  "differential": {
+    "constrained_qlognehvi - scalarized_bo": {
+      "mean": 0.2111,
+      "n_positive": 10,
+      "smallest": 0.1319
+    },
+    "constrained_qlognehvi - sobol": {
+      "mean": 0.3604,
+      "n_positive": 10,
+      "smallest": 0.2708
+    },
+    "constrained_qlognehvi - unconstrained_qlognehvi": {
+      "mean": 0.166,
+      "n_positive": 10,
+      "smallest": 0.0625
+    }
+  },
+  "groups": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ],
+  "note": "Sensitivity scenarios on archived diagnostics; not re-tracking, a refinement model for every evaluation, or an error bound.",
+  "sources": [
+    "docs/paper/revisions/evidence/r2_convergence_values.csv",
+    "docs/paper/revisions/evidence/r2_convergence_summary.csv"
+  ],
+  "upward_all_groups_positive": true,
+  "upward_level": "step_quarter",
+  "upward_post_init_difference_nominal": {
+    "constrained_qlognehvi - scalarized_bo": 0.3111,
+    "constrained_qlognehvi - sobol": 0.4167,
+    "constrained_qlognehvi - unconstrained_qlognehvi": 0.2792
+  },
+  "upward_post_init_difference_range": {
+    "constrained_qlognehvi - scalarized_bo": [
+      0.2799,
+      0.3292
+    ],
+    "constrained_qlognehvi - sobol": [
+      0.3736,
+      0.4382
+    ],
+    "constrained_qlognehvi - unconstrained_qlognehvi": [
+      0.2458,
+      0.2951
+    ]
+  },
+  "upward_scale": 1.012
+}

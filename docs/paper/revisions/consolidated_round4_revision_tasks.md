@@ -17,7 +17,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
 | C4-01 | Done | TASK_00312 | — |
-| C4-02 | Not started (optional) | — | — |
+| C4-02 | Done | TASK_00321 | — |
 | C4-03 | Done | TASK_00313 | — |
 | C4-04 | Done | TASK_00314 | — |
 | C4-05 | Done | TASK_00315 | — |
@@ -104,15 +104,17 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 2 comment 5 (T5). Reviewer 1 says no extra scenarios are required for C1, so this task is optional.
 
-- [ ] If done, extend `scripts/analyze_revision_resolution_bounds.py` (with a test) or add a small script for two additions:
+- [x] If done, extend `scripts/analyze_revision_resolution_bounds.py` (with a test) or add a small script for two additions:
   - the upward transverse scale ×1.012;
   - a per-group differential case: the lowest constraint-aware post-initialization fraction over all scenarios, minus each baseline's highest.
-- [ ] Write new evidence files (`r4_*`), add them to Supplement S1 and the input inventory, and rebuild the manifest.
-- [ ] Add one sentence to Sec. V B, worded as additional scenarios, not a bound. Reviewer 2's computation gives:
+- [x] Write new evidence files (`r4_*`), add them to Supplement S1 and the input inventory, and rebuild the manifest.
+- [x] Add one sentence to Sec. V B, worded as additional scenarios, not a bound. Reviewer 2's computation gives:
   - ×1.012: differences 0.279 and 0.311;
   - differential case: means 0.166 and 0.211, smallest group differences 0.062 and 0.132, all ten groups positive.
 
 **Done when:** either the sentence and the evidence are added with scenario wording, or the task is recorded as not done with a reason.
+
+**Done:** New `scripts/analyze_revision_shift_scenarios.py` (with `tests/test_revision_shift_scenarios.py`) writes `evidence/r4_shift_scenarios_{upward_runs,upward_paired,differential}.csv` and `_metadata.json`, mapped to S1.13 and listed in the input inventory (level 2a). Upward scale ×1.012 (largest step-only increase of a size or divergence): post-initialization differences 0.279 and 0.311 at nominal bunch length and energy, 0.246–0.295 and 0.280–0.329 with the shifts; every interval excludes zero and every group is positive. Differential case: means 0.166 and 0.211, smallest group differences 0.062 and 0.132, all ten groups positive. These reproduce Reviewer 2's values. One sentence in Sec. V B reports them as further post-hoc scenarios; the existing caveat now reads "None of these scenarios is re-tracking …, a refinement model for every evaluation or a worst-case error bound". The `r3_*` files are unchanged.
 
 ### C4-03. Refined TDR membership in contribution 3
 

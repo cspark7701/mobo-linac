@@ -12,6 +12,7 @@ scripts/analyze_revision_pairs.py,ledgers;derived_evidence,evaluations.csv; evid
 scripts/analyze_revision_predictions.py,ledgers;gp_checkpoints,evaluations.csv; config.json; run_complete.json; gp_checkpoint/*.pt,2b
 scripts/analyze_revision_reference_resampling.py,ledgers;derived_evidence,evaluations.csv; evidence files,2a
 scripts/analyze_revision_resolution_bounds.py,ledgers;derived_evidence,evaluations.csv; r2_convergence_summary.csv,2a
+scripts/analyze_revision_shift_scenarios.py,ledgers;derived_evidence,evaluations.csv; r2_convergence_summary.csv; r2_convergence_values.csv,2a
 scripts/analyze_revision_robustness.py,run_records;tracking_outputs,robustness_summary*; robustness_runs/*/robustness_requests.json; astra.Xemit.001; astra.Yemit.001; astra.Zemit.001,2b
 scripts/analyze_revision_scaling.py,run_records;gp_checkpoints,proposal_history.json; gp_checkpoint/*.pt,2b
 scripts/analyze_revision_settings.py,ledgers;run_records;tracking_outputs,evaluations.csv; config.json; run_complete.json; robustness/representatives.json; astra.*emit.001,2b
