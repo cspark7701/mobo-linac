@@ -23,7 +23,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | C4-05 | Done | TASK_00315 | — |
 | C4-06 | Done | TASK_00316 | — |
 | C4-07 | Not started | — | — |
-| C4-08 | Not started | — | — |
+| C4-08 | Done | TASK_00317 | — |
 | C4-09 | Not started | — | — |
 | C4-10 | Not started | — | — |
 | C4-11 | Not started | — | — |
@@ -173,9 +173,11 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 2 comment 6 (T6).
 
-- [ ] Sec. VI A: add that the difference between the present ideal-distance point and the tracked example of Ref. [Kim2024] (about 10–25 % in emittance) is of the order of the refinement changes and the source spread, so it is not resolved numerically.
+- [x] Sec. VI A: add that the difference between the present ideal-distance point and the tracked example of Ref. [Kim2024] (about 10–25 % in emittance) is of the order of the refinement changes and the source spread, so it is not resolved numerically.
 
 **Done when:** no absolute-emittance comparison is presented without the nominal-resolution qualification.
+
+**Done:** Sec. VI A now says that the emittance differences between the present ideal-distance point and the tracked example of Ref. [Kim2024] (about 10–25 %) are of the order of the refinement changes and the source spread of Table I, and that both calculations use a comparable nominal resolution, so they are not resolved numerically. It adds that the energy-spread difference (about 21 %) is larger than its refinement change (at most about 4 %). The other absolute-emittance comparisons are already conditioned (the MOGA-derived reference at the nominal resolution) or not made (JKPS geometric emittances).
 
 ### C4-09. Editorial: fallback wording and length
 
