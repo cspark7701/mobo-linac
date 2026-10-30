@@ -19,7 +19,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 | C5-01 | Done | TASK_00326 | — |
 | C5-02 | Done | TASK_00327 | — |
 | C5-03 | Done | TASK_00328 | — |
-| C5-04 | Not started | — | — |
+| C5-04 | Done | TASK_00329 | — |
 | C5-05 | Not started | — | — |
 | C5-06 | Not started | — | — |
 | C5-07 | Not started (optional) | — | — |
@@ -111,8 +111,10 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 2 comment 4 (U4).
 
-- [ ] Replace "≤ 0.005" in the source-spread cell of the mean-energy row with "< 0.01" or a note that it is below the recording step. The caption already says that mean energy is recorded to 0.01 MeV.
-- [ ] Keep all other values unchanged.
+- [x] Replace "≤ 0.005" in the source-spread cell of the mean-energy row with "< 0.01" or a note that it is below the recording step. The caption already says that mean energy is recorded to 0.01 MeV.
+- [x] Keep all other values unchanged.
+
+**Done:** The mean-energy source-spread cell of Table I now reads "<0.01" instead of "≤ 0.005", and the caption adds that the source spread lies below the 0.01 MeV recording step. The largest recorded value is 0.0055 MeV (`r2_convergence_values.csv`). All other entries are unchanged.
 
 ### C5-05. Interpretation note for the round3 scenario files
 
