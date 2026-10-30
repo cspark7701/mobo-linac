@@ -18,7 +18,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 |---|---|---|---|
 | C5-01 | Done | TASK_00326 | — |
 | C5-02 | Done | TASK_00327 | — |
-| C5-03 | Not started | — | — |
+| C5-03 | Done | TASK_00328 | — |
 | C5-04 | Not started | — | — |
 | C5-05 | Not started | — | — |
 | C5-06 | Not started | — | — |
@@ -103,7 +103,9 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 2 comment 3 (U3).
 
-- [ ] "one candidate passes at every refinement level and the other fails at some" → "at every refinement and source level". Candidate A also fails with two of the five regenerated sources.
+- [x] "one candidate passes at every refinement level and the other fails at some" → "at every refinement and source level". Candidate A also fails with two of the five regenerated sources.
+
+**Done:** Contribution 3 now reads "one candidate passes at every refinement and source level and the other fails at some", matching Sec. VI B (candidate A fails on the 64-cell grid and with two of five regenerated sources).
 
 ### C5-04. Mean-energy source spread in Table I
 
