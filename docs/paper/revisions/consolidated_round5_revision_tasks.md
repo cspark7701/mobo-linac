@@ -22,7 +22,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 | C5-04 | Done | TASK_00329 | — |
 | C5-05 | Not started | — | — |
 | C5-06 | Done | TASK_00330 | — |
-| C5-07 | Not started (optional) | — | — |
+| C5-07 | Done | TASK_00331 | — |
 | C5-08 | Not started (optional) | — | — |
 | C5-09 | Not started | — | — |
 
@@ -138,10 +138,12 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 1 E1 (R5-01).
 
-- [ ] Replace "absolute emittances should not be quoted without a converged calculation" with wording that separates reporting nominal-model values from treating them as converged physical predictions. For example: "absolute emittances should not be interpreted as numerically converged physical predictions".
-- [ ] Keep every reported value, the nonconvergence finding and the nominal-model scope.
+- [x] Replace "absolute emittances should not be quoted without a converged calculation" with wording that separates reporting nominal-model values from treating them as converged physical predictions. For example: "absolute emittances should not be interpreted as numerically converged physical predictions".
+- [x] Keep every reported value, the nonconvergence finding and the nominal-model scope.
 
 **Done when:** either the sentence is changed, or its non-adoption is recorded in the response.
+
+**Done:** Adopted. The Conclusions now say "absolute emittances should not be interpreted as numerically converged physical predictions" instead of "should not be quoted without a converged calculation", which conflicted with the qualified nominal-model emittances the paper itself quotes. Every value, the nonconvergence finding and the scope are unchanged.
 
 ### C5-08. Optional: common upward scale ×1.17
 
