@@ -912,14 +912,16 @@ zero, and every difference, including those of each pipeline over the Sobol arm,
 all ten matched groups in every scenario. The constraint-aware fraction is the most sensitive to
 the bunch-length limit: a \SI{1}{\percent} longer bunch lowers its mean from 0.405 to 0.364,
 compared with 0.157 to 0.145 and 0.125 to 0.113 for the baselines, because that pipeline samples
-close to the limit. Two further post-hoc sensitivity checks leave every paired difference
+close to the limit. Three further post-hoc sensitivity checks leave every paired difference
 positive in all ten groups. Scaling sizes and
 divergences up by 1.012, the largest step-only increase, gives post-initialization differences of
-0.279 and 0.311 (0.246--0.295 and 0.280--0.329 with the bunch-length and energy shifts). A
+0.279 and 0.311 (0.246--0.295 and 0.280--0.329 with the bunch-length and energy shifts).
+Scaling them up by 1.17, which covers the largest increase at any single level (one size with
+one regenerated source), gives 0.276 and 0.300 (0.242--0.292 and 0.267--0.317). A
 differential case that pairs, in each matched group, the lowest constraint-aware fraction over
 the 27 scenarios with the highest fraction of each baseline gives mean differences of 0.166 and
 0.211; the smallest group differences are 0.062 and 0.132, and all ten are positive. None of
-these scenarios is re-tracking of the primary campaigns, a refinement
+these checks is re-tracking of the primary campaigns, a refinement
 model for every evaluation or a worst-case error bound. Stability in them does not establish
 stability under setting- or channel-dependent changes or under converged tracking. The objective-quality indicators are more strongly
 conditional on the numerical model. The emittance changes are large and differ between

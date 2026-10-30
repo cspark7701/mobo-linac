@@ -23,7 +23,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 | C5-05 | Done | TASK_00332 | — |
 | C5-06 | Done | TASK_00330 | — |
 | C5-07 | Done | TASK_00331 | — |
-| C5-08 | Not started (optional) | — | — |
+| C5-08 | Done | TASK_00333 | — |
 | C5-09 | Not started | — | — |
 
 ## Sources
@@ -151,14 +151,16 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 2 comment 6 (U6).
 
-- [ ] If done, extend `scripts/analyze_revision_shift_scenarios.py` (with a test) or add a small script for a common upward scale of ×1.17. That is the largest single-level increase of a size or divergence in `r2_convergence_values.csv`: σ_y of the crowding-distance setting with one random source, +16.2 %.
-- [ ] Write the result to a new evidence file without overwriting `r4_*`. Map it in S1.13 and the inventory, and rebuild the manifest.
-- [ ] Add a half-sentence in Sec. V B, worded as a scenario, next to the C5-06 sentence. Reviewer 2's check gives, at ×1.17:
+- [x] If done, extend `scripts/analyze_revision_shift_scenarios.py` (with a test) or add a small script for a common upward scale of ×1.17. That is the largest single-level increase of a size or divergence in `r2_convergence_values.csv`: σ_y of the crowding-distance setting with one random source, +16.2 %.
+- [x] Write the result to a new evidence file without overwriting `r4_*`. Map it in S1.13 and the inventory, and rebuild the manifest.
+- [x] Add a half-sentence in Sec. V B, worded as a scenario, next to the C5-06 sentence. Reviewer 2's check gives, at ×1.17:
   - differences of 0.276 and 0.300 at nominal bunch length and energy;
   - 0.242–0.292 and 0.267–0.317 over the nine shifts;
   - smallest lower interval limits of 0.20 and 0.24, and all ten groups positive.
 
 **Done when:** either the sentence and the evidence are added with scenario wording, or the task is recorded as not done with a reason.
+
+**Done:** New `scripts/analyze_revision_upward_max.py` (with `tests/test_revision_upward_max.py`) finds the largest increase of a size or divergence at any refinement or source level (σ_y of the crowding-distance setting with source_rand10k_2, +16.2 %), rounds the scale up to ×1.17 and reclassifies the archived primary and Sobol-arm evaluations with the nine bunch-length and energy shifts. Results: differences 0.276 and 0.300 at nominal bunch length and energy, 0.242–0.292 and 0.267–0.317 over the shifts, smallest lower interval limits 0.200 and 0.240, all ten groups positive for every pair. Evidence `r5_upward_max_{runs,paired}.csv` and `_metadata.json`, mapped to S1.13 and in the input inventory (level 2a); `r4_*` unchanged. Sec. V B adds the half-sentence and now speaks of three further sensitivity checks, "none of these checks" being re-tracking or an error bound.
 
 ### C5-09. Responses and validation
 

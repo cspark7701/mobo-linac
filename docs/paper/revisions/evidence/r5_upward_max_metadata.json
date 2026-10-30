@@ -1,0 +1,49 @@
+{
+  "all_groups_positive_post_init": true,
+  "analysis": "C5-08 largest observed upward size scale (post hoc)",
+  "groups": [
+    42,
+    43,
+    44,
+    45,
+    46,
+    47,
+    48,
+    49,
+    50,
+    51
+  ],
+  "largest_increase": {
+    "delta_rel": 0.1622187842454714,
+    "level": "source_rand10k_2",
+    "quantity": "sigma_y_m",
+    "role": "crowding_distance_max",
+    "scale": 1.17
+  },
+  "note": "Sensitivity scenario on archived diagnostics; not re-tracking, a refinement model for every evaluation, or an error bound.",
+  "post_init_difference_nominal": {
+    "constrained_qlognehvi - scalarized_bo": 0.3,
+    "constrained_qlognehvi - sobol": 0.3792,
+    "constrained_qlognehvi - unconstrained_qlognehvi": 0.2764
+  },
+  "post_init_difference_range": {
+    "constrained_qlognehvi - scalarized_bo": [
+      0.2674,
+      0.3167
+    ],
+    "constrained_qlognehvi - sobol": [
+      0.3375,
+      0.4
+    ],
+    "constrained_qlognehvi - unconstrained_qlognehvi": [
+      0.2417,
+      0.2917
+    ]
+  },
+  "post_init_smallest_ci_lower": {
+    "constrained_qlognehvi - scalarized_bo": 0.2403,
+    "constrained_qlognehvi - sobol": 0.3076,
+    "constrained_qlognehvi - unconstrained_qlognehvi": 0.2
+  },
+  "source": "docs/paper/revisions/evidence/r2_convergence_values.csv"
+}

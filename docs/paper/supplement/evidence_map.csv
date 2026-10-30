@@ -116,6 +116,9 @@ S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r4_shift_sc
 S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r4_shift_scenarios_upward_paired.csv,scripts/analyze_revision_shift_scenarios.py
 S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r4_shift_scenarios_differential.csv,scripts/analyze_revision_shift_scenarios.py
 S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r4_shift_scenarios_metadata.json,scripts/analyze_revision_shift_scenarios.py
+S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r5_upward_max_runs.csv,scripts/analyze_revision_upward_max.py
+S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r5_upward_max_paired.csv,scripts/analyze_revision_upward_max.py
+S1.13,Numerical resolution,sec:primary,docs/paper/revisions/evidence/r5_upward_max_metadata.json,scripts/analyze_revision_upward_max.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_runs.csv,scripts/analyze_revision_sobol_uncertainty.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_summary.csv,scripts/analyze_revision_sobol_uncertainty.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_metadata.json,scripts/analyze_revision_sobol_uncertainty.py
