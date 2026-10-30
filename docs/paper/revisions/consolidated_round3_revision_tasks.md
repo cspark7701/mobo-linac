@@ -12,11 +12,11 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 
 **Excluded at the author's direction (2026-10-29):** funding and acknowledgments, together with `\finaltrue` (remainder of C2-10), and the Zenodo deposition (C2-15). They are not tracked here.
 
-## Status (2026-10-29)
+## Status (2026-10-30)
 
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
-| C3-01 | **Route (b) chosen** by the author (2026-10-29); validation design predeclared; stage A running | this commit | Stage A (resolution ladder), level selection, stage B, then the manuscript scope |
+| C3-01 | Done: **route (a)** (author, 2026-10-30), replacing route (b) | this commit | — |
 | C3-02 | Done | see below | — |
 | C3-03 | Done | see below | — |
 | C3-04 | Done | see below | — |
@@ -25,8 +25,8 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-07 | Done | see below | — |
 | C3-08 | Done (a final audit follows the route (b) scope text) | see below | — |
 | C3-09 | Done (optional fallback split not done) | see below | — |
-| C3-10 | Done, except the lead-with restructuring (with the route (b) scope text) | see below | — |
-| C3-11 | **Authorized** 2026-10-29 as part of route (b), 20 workers; stage A running | this commit | Stage A ≈ 4–5 h; stage B ≈ 1–2 days at the selected level |
+| C3-10 | Done (lead-with restructuring with the C3-01 scope text) | see below | — |
+| C3-11 | Withdrawn with route (b) (2026-10-30); stage A run, stage B not run | this commit | — |
 | C3-12 | Not started | — | — |
 
 All work is committed locally only; nothing has been pushed.
@@ -79,8 +79,8 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-07 | Done | see below | — | C3-02, C3-04 (new evidence files) |
 | C3-08 | Done (a final audit follows the route (b) scope text) | see below | — | C3-01 to C3-06 |
 | C3-09 | Done (optional fallback split not done) | see below | — | None |
-| C3-10 | Done, except the lead-with restructuring (with the route (b) scope text) | see below | — | C3-01 to C3-09 |
-| C3-11 | Optional 🖥 | Refined re-tracking of selected points | ASTRA runs; analysis | Author authorization; only if needed after C3-01 |
+| C3-10 | Done (lead-with restructuring with the C3-01 scope text) | see below | — | C3-01 to C3-09 |
+| C3-11 | Withdrawn | Refined re-tracking of selected points | ASTRA runs; analysis | Not needed on route (a) |
 | C3-12 | P2 | Point-by-point responses and validation | Documentation; focused checks; PDF build | All of the above |
 
 ---
@@ -89,29 +89,26 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 
 **Sources:** Reviewer 1 M1 (R3-01, first item); Reviewer 2 R2 (context).
 
-**Decision (author, 2026-10-29): route (b), a physically resolved comparison.** Reviewer 1 makes numerical validation an acceptance requirement on this route. The validation is run under C3-11 with 20 workers. Its design was fixed before any refined result, in `evidence/r3_validation_design.json` and `evidence/r3_validation_sample.csv` (SHA-256 `c79d6ecf…a2b8`), with the driver `scripts/evaluate_revision_validation.py`:
-- **Stage A, resolution ladder.** The ten C2-12 settings are tracked beyond the C2-12 fine level (40k particles, 64-cell grids, H/4), one factor at a time: H/8, H/16, 80k particles, and 80k particles with 96-cell grids (40 runs). Why it is needed: in C2-12, H/2 → H/4 still changes ε_y by up to 9.5 %, and at 10k particles the 64-cell grid is noisy (up to +27 %).
-- **Level selection (predeclared).** For each factor, take the coarsest value whose next refinement changes every beam quantity by ≤ 3 % (energy ≤ 0.05 MeV) at all ten settings. A factor without such evidence is flagged "not shown converged". If stage B would take more than 3 days with 20 workers, report to the author before launching.
-- **Stage B, method-balanced sample (704 points).** All four arms:
-  - every per-run feasible Pareto point (136, 64, 41 and 23);
-  - every post-initialization observation whose classification can change under the C2-12 bounds (142, 106, 94 and 18);
-  - two random post-initialization observations per run (80).
-- **Stage B endpoints.**
-  - refined classification and flip rates per arm and stratum;
-  - stratum-weighted refined feasible fractions;
-  - paired differences with group-bootstrap intervals;
-  - refined per-run fronts and the quality indicators against a refined pooled reference.
-- **Manuscript.** The scope text (title, abstract, contributions, Results, Conclusions) is revised once stage B results exist. Until then the manuscript is unchanged, because a route (b) claim cannot precede its evidence.
-- **Run log.** Stage A was launched 2026-10-29 at about 15:55 (`results/revision_round3/ladder/`, 20 workers).
+**Decision (author, 2026-10-30): route (a), a comparison of the specified pipelines on the nominal numerical model.** It replaces route (b), which the author chose on 2026-10-29 and withdrew after stage A (see the record below). At the author's direction, the manuscript contains nothing about route (b), including the stage A results.
 
-- [ ] **Author decision.** Choose between:
+*Route (b) record (not used in the manuscript).* The predeclared design (driver `scripts/evaluate_revision_validation.py`, commit `e32f63a`) extended the C2-12 fine level (40k particles, 64-cell grids, H/4) one factor at a time for the ten C2-12 settings (stage A), and would then have re-tracked a method-balanced sample of 704 archived observations (stage B). Stage A finished on 2026-10-29 (40 runs, all valid; `results/revision_round3/ladder/`). Under the predeclared 3 % rule:
+- step: H/8 vs H/4 changes ε_y by 3.6 % (fail), H/16 vs H/8 by at most 1.4 % (pass), so H/8;
+- particles: 80k vs 40k changes ε_y by 3.2 % (fail), so 80k, not shown converged;
+- grid: 96 vs 64 cells (at 80k) lowers ε_x by up to 4.4 % and ε_y by up to 7.6 % (fail), so 96 cells, not shown converged;
+- only emittances fail. Sizes and divergences change by at most 2.6 %, bunch length by 0.2 %, mean energy by at most 0.01 MeV, and transmission does not change.
+
+The selected level (80k, 96 cells, H/8) would have taken about 14–16 days for stage B with 20 workers, beyond the 3-day gate. The author then chose route (a). Stage B was not run. The design files were removed from the supplement evidence directory (see C3-07); they remain in commit `e32f63a`, and the stage A outputs remain under `results/revision_round3/`.
+
+- [x] **Author decision.** Route (a) (2026-10-30). The options were:
   - **(a)** a comparison of the specified pipelines on the nominal numerical model, with the measured resolution sensitivity as a stated result (**recommended**; no new simulations);
   - **(b)** a physically resolved injector-optimization comparison, which requires C3-11 or a broader validation design with separate authorization.
-- [ ] Under (a): align the title (if needed), abstract, contributions, Results framing and Conclusions so that every Pareto and algorithm comparison sits explicitly within the nominal numerical model.
-- [ ] Remove implications of physical rank stability or engineering-ready settings.
-- [ ] Make the resolution limitation a visible result, e.g. a fifth contribution or an explicit sentence in the contributions paragraph. It must not be presented as a convergence result.
+- [x] Under (a): align the title (if needed), abstract, contributions, Results framing and Conclusions so that every Pareto and algorithm comparison sits explicitly within the nominal numerical model.
+- [x] Remove implications of physical rank stability or engineering-ready settings.
+- [x] Make the resolution limitation a visible result, e.g. a fifth contribution or an explicit sentence in the contributions paragraph. It must not be presented as a convergence result.
 
 **Done when:** the chosen scope is recorded here, and the title, abstract, contributions and Conclusions make the same claim.
+
+**Done:** The abstract now leads with the pipeline comparison and the measured numerical limitation. It states that tracking is at a fixed nominal resolution, that the emittances are not converged there, that the feasible-sampling advantage persists under the measured refinement shifts, and that the results are not a physically resolved optimization of the injector. The Introduction states that every Pareto and algorithm comparison refers to the fixed source file and tracking resolution. A fifth contribution reports the measured numerical sensitivity as a stated limitation, not a convergence result. The closing sentence of the contributions excludes a physically resolved ranking of the methods. The Results opening and the first paragraph of the Conclusions say that the comparison is made within the nominal numerical model. The title already names a model and is unchanged. "Engineering" appears only in negations or in references to the TDR.
 
 ### C3-02. Bound the primary comparison under the measured refinement shifts, and show the resolution result
 
@@ -146,7 +143,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 - the resolution result is visible in a display item.
 
 
-**Done:** Bounds over 27 shift combinations (sizes and divergences ×0.78/0.89/1, σ_z ±1 %, E ±0.05 MeV): median feasible fraction 0.369–0.466 constraint-aware, 0.147–0.213 unconstrained, 0.113–0.181 scalarized; post-initialization paired differences 0.239–0.294 and 0.279–0.335, every interval above zero and every difference (including each pipeline over the Sobol arm) positive in all ten groups; +1 % bunch length lowers the constraint-aware mean from 0.405 to 0.364. New Table `tab:resolution` (Sec. II A), population statements, front-quality caveat (Sec. V B, Discussion), Limitations and Conclusions. Evidence `evidence/r3_resolution_bounds_*` (S1.13). Stage B will supersede the bounds as the main evidence on route (b).
+**Done:** Bounds over 27 shift combinations (sizes and divergences ×0.78/0.89/1, σ_z ±1 %, E ±0.05 MeV): median feasible fraction 0.369–0.466 constraint-aware, 0.147–0.213 unconstrained, 0.113–0.181 scalarized; post-initialization paired differences 0.239–0.294 and 0.279–0.335, every interval above zero and every difference (including each pipeline over the Sobol arm) positive in all ten groups; +1 % bunch length lowers the constraint-aware mean from 0.405 to 0.364. New Table `tab:resolution` (Sec. II A), population statements, front-quality caveat (Sec. V B, Discussion), Limitations and Conclusions. Evidence `evidence/r3_resolution_bounds_*` (S1.13). On route (a) the bounds are the population-level resolution evidence.
 ### C3-03. State the attribution per baseline, as an accounting decomposition
 
 **Sources:** Reviewer 2 R1 (T1); Reviewer 1 M3, second part (R3-03, items 4–6).
@@ -286,7 +283,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 - [x] Sec. III A: qualify "deterministic". The calculation is deterministic for the fixed source file, whose sampling error (1–12 % in emittance) is common to all methods and is not represented by the GP noise.
 
 *Length and readability:*
-- [ ] Lead with the pipeline comparison and the measured numerical limitation (Reviewer 1 minor 4). *Deferred to the route (b) scope text.*
+- [x] Lead with the pipeline comparison and the measured numerical limitation (Reviewer 1 minor 4). *Done with the C3-01 scope text: the abstract opens with the comparison, then the limitation.*
 - [x] Move the details of Sec. V F (offline smoothing sensitivity) to an appendix, keeping a short summary in the main text.
 - [x] Move the stage-, region- and refit-detail paragraphs of Sec. V G to Appendix D, keeping the 79–89 % coverage, the causes (as hypotheses, C3-09) and "part, but not all".
 - [x] Shorten the resolution-check description in Sec. II A to its findings, alongside the C3-02 display item. Move the level definitions to an appendix or to S1.13.
@@ -302,8 +299,8 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 **Done when:** the labels and captions carry the nominal-resolution scope, the source is clean, and both layouts build without errors, undefined references or overfull boxes.
 
 
-**Done:** Nominal-resolution labels on Tables IV, V and X (also in the two table generators) and on both Pareto figures; Sec. V H states that quoted digits identify archived evaluations; running-text emittances and spreads rounded to three significant figures (published values of earlier studies kept as published). Sec. III A qualifies determinism with the 1–12 % source-sampling spread. Sec. V F is a short summary with the probe moved to new Appendix `app:smoothing`; the stage, region and refit detail of Sec. V G moved to Appendix D with a summary kept; Sec. II A reduced to its findings with the level definitions in Appendix A. Abstract sentence split. APS style: Ref., Sec. 4.3. The `% C05` comment removed; `tests/test_manuscript_hygiene.py` fails on revision-tag comments in main.tex and its included inputs (unincluded evidence snippets keep their headers). Table `tab:resolution` is full-width. Builds: one-column 56 pages, two-column 31 pages, both without errors, undefined references or overfull boxes. Not done: reordering to lead with the comparison and the numerical limitation; deferred to the route (b) scope text, since stage B decides that limitation.
-### C3-11. 🖥 Refined re-tracking of selected points (required on route (b))
+**Done:** Nominal-resolution labels on Tables IV, V and X (also in the two table generators) and on both Pareto figures; Sec. V H states that quoted digits identify archived evaluations; running-text emittances and spreads rounded to three significant figures (published values of earlier studies kept as published). Sec. III A qualifies determinism with the 1–12 % source-sampling spread. Sec. V F is a short summary with the probe moved to new Appendix `app:smoothing`; the stage, region and refit detail of Sec. V G moved to Appendix D with a summary kept; Sec. II A reduced to its findings with the level definitions in Appendix A. Abstract sentence split. APS style: Ref., Sec. 4.3. The `% C05` comment removed; `tests/test_manuscript_hygiene.py` fails on revision-tag comments in main.tex and its included inputs (unincluded evidence snippets keep their headers). Table `tab:resolution` is full-width. Builds: one-column 56 pages, two-column 31 pages, both without errors, undefined references or overfull boxes. The lead-with reordering was done with the C3-01 scope text (2026-10-30).
+### C3-11. 🖥 Refined re-tracking of selected points (withdrawn)
 
 **Sources:** Reviewer 2 R2, optional; Reviewer 1 M1, conditional on route (b). **Authorized by the author on 2026-10-29 together with route (b), with 20 workers.** The design is the one recorded under C3-01; it covers both reviewers' variants. The 53 pooled-reference points are part of the per-run front stratum.
 
@@ -312,6 +309,8 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 - [ ] Record any run separately from the production campaigns, as with C2-12.
 
 **Done when:** not applicable unless authorized.
+
+**Status (2026-10-30):** Withdrawn together with route (b). Stage A ran, stage B did not, and neither variant above is pursued. See the route (b) record under C3-01.
 
 ### C3-12. Responses and validation
 

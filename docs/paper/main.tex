@@ -62,28 +62,29 @@
 \abstractspacing
 Optimization of an electron injector linac requires balancing transverse beam emittances and
 energy spread while satisfying beam transport and transmission constraints. We compare
-Bayesian optimization pipelines on a fixed-lattice S-band injector-linac model derived from the
-Korea Light Source design, using ASTRA space-charge tracking simulations. Magnetic strengths and
-RF phases are varied to minimize the horizontal and vertical normalized RMS emittances and RMS
-energy spread. Constraint-aware and unconstrained multi-objective Bayesian optimization are
-compared with weighted-sum Bayesian optimization using matched simulation budgets and shared
-initial designs. Feasibility is defined by a deliberately relaxed computational acceptance
-profile. The stricter optimization requirements of the Korea Light Source technical design are
-met by only a few sampled settings, with small diagnostic margins. Campaigns constrained by
-them approach those limits to within the numerical resolution of the model. A
-refinement check shows that the absolute emittances depend on the tracking resolution.
-All methods identify feasible nondominated operating points, revealing trade-offs between
-transverse beam quality and energy spread. Paired analyses support a higher feasible
-sampling fraction for constraint-aware acquisition, which persists among energy-acceptable
-settings and lies mainly in the transverse limits against unconstrained optimization but in
-the energy band against weighted-sum optimization; all pipelines sample feasible settings more often
-than a budget-matched space-filling search, while the weighted-sum implementation has the lowest
-computational overhead.
-Objective-quality comparisons depend on the indicator, the comparator and the fixed numerical
-model. A survey of scalarization weightings explores additional trade-offs, and a limited
-lattice-only jitter assessment retains feasibility for the selected operating points. The results demonstrate the use of
-constraint-aware Bayesian optimization to identify feasible injector-linac settings and map
-beam-quality trade-offs within the stated injector model and computational acceptance profile.
+specified Bayesian optimization pipelines on a fixed-lattice S-band injector-linac model derived
+from the Korea Light Source design, using ASTRA space-charge tracking at a fixed nominal
+numerical resolution. Magnetic strengths and RF phases are varied to minimize the horizontal and
+vertical normalized RMS emittances and RMS energy spread. Constraint-aware and unconstrained
+multi-objective Bayesian optimization are compared with weighted-sum Bayesian optimization using
+matched simulation budgets and shared initial designs, under a deliberately relaxed
+computational acceptance profile. Paired analyses support a higher feasible sampling fraction
+for constraint-aware acquisition, which persists among energy-acceptable settings and lies
+mainly in the transverse limits against unconstrained optimization but in the energy band
+against weighted-sum optimization. All pipelines sample feasible settings more often than a
+budget-matched space-filling search, while the weighted-sum implementation has the lowest
+computational overhead. A refinement check shows that the absolute emittances are not converged
+at the nominal resolution. The feasible-sampling advantage persists under the measured
+refinement shifts, whereas objective-quality comparisons depend on the indicator, the
+comparator and the fixed numerical model. All methods identify feasible nondominated operating
+points, revealing trade-offs between transverse beam quality and energy spread. The stricter
+optimization requirements of the Korea Light Source technical design are met by only a few
+sampled settings, with small diagnostic margins, and campaigns constrained by them approach
+those limits to within the numerical resolution of the model. A survey of scalarization
+weightings explores additional trade-offs, and a limited lattice-only jitter assessment retains
+feasibility for the selected operating points. The results compare the specified pipelines
+within the nominal numerical model and computational acceptance profile; they are not a
+physically resolved optimization of the injector.
 \end{abstract}
 
 \maketitle
@@ -170,6 +171,10 @@ present work formulates the fixed-lattice injector problem with separate transve
 and energy-spread objectives and assesses selected operating points under lattice
 perturbations. The objective is to characterize the empirical feasible Pareto
 sets and the efficiency of feasible sampling, rather than to select a single weighted optimum.
+The study is a comparison of specified pipelines on a nominal numerical model: every Pareto
+and algorithm comparison refers to the fixed source file and tracking resolution of
+Sec.~\ref{sec:problem}, and the measured sensitivity to that resolution is reported as a
+result.
 
 The comparison combines objective-space views with diagnostic-space views so that an attractive
 beam-quality trade-off can be traced to its constraint status. Feasible nondominated points are
@@ -206,10 +211,19 @@ The contributions of this work are the following.
   designs and a budget-matched Sobol arm. It shows how much of the feasible-sampling gain
   any of the optimizers achieve over uniform sampling, and how much is specific to the
   constraint-aware pipeline (Sec.~\ref{sec:attribution}).
+\item A measured numerical sensitivity of the model. Ten reported settings re-tracked at
+  refined particle, grid and step resolutions show that the emittances are not converged at
+  the nominal resolution and change by tens of percent, whereas at those settings the energy
+  spread, bunch length, mean energy, transmission and production-profile classifications are
+  stable. Under bounding shifts taken from this check the feasible-sampling comparison is
+  preserved; the front-quality comparisons are not tested at a converged resolution
+  (Secs.~\ref{sec:problem} and~\ref{sec:primary}). This is a stated limitation of the
+  nominal model, not a convergence result.
 \end{enumerate}
-These results describe the recorded pipelines on a fixed lattice at the nominal tracking
-resolution, at which the emittances are not converged (Sec.~\ref{sec:problem}). They do not establish a unit-invariant acquisition, global optimality of the
-reported fronts, or engineering acceptance of any setting.
+These results describe the recorded pipelines on a fixed lattice within the nominal numerical
+model. They do not establish a physically resolved ranking of the methods, a unit-invariant
+acquisition, global optimality of the reported fronts, or engineering acceptance of any
+setting.
 
 %==========================================================================================
 \section{Injector model and optimization problem}
@@ -754,8 +768,9 @@ with the same protocol.
 %==========================================================================================
 \section{Results}
 \label{sec:results}
-The evidence for each result in this section is identified in supplement S1
-(Appendix~\ref{app:implementation}).
+All results in this section compare the specified pipelines within the nominal numerical
+model of Sec.~\ref{sec:problem}, whose emittances are not converged; the evidence for each
+result is identified in supplement S1 (Appendix~\ref{app:implementation}).
 
 \subsection{Simulation validity and computational comparison}
 All 4,800 simulations of the primary comparison were valid; no simulation-invalid failure was
@@ -1365,6 +1380,8 @@ comparison with accelerator measurements is made in this simulation study.
 We compared three specified Bayesian optimization pipelines on a six-control, three-objective
 injector-linac model derived from the KLS design, with seven diagnostic channels and eight
 inequalities, in a paired, budget-matched study of ten runs with failure-inclusive accounting.
+The comparison is made within the nominal numerical model: one fixed source file at a
+tracking resolution at which the emittances are not converged.
 All simulations were valid, and every pipeline found feasible nondominated settings that expose
 the trade-offs between transverse emittance and energy spread.
 
