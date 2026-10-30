@@ -1,0 +1,937 @@
+diff --git a/docs/paper/main.tex b/docs/paper/main.tex
+index 1c85689..e272e07 100644
+--- a/docs/paper/main.tex
++++ b/docs/paper/main.tex
+@@ -60,29 +60,29 @@
+ 
+ \begin{abstract}
+ \abstractspacing
+-Optimization of an electron injector linac requires balancing transverse beam emittances and
+-energy spread while satisfying beam transport and transmission constraints. We compare
+-Bayesian optimization pipelines on a fixed-lattice S-band injector-linac model derived from the
+-Korea Light Source design, using ASTRA space-charge tracking simulations. Magnetic strengths and
+-RF phases are varied to minimize the horizontal and vertical normalized RMS emittances and RMS
+-energy spread. Constraint-aware and unconstrained multi-objective Bayesian optimization are
+-compared with weighted-sum Bayesian optimization using matched simulation budgets and shared
+-initial designs. Feasibility is defined by a deliberately relaxed computational acceptance
+-profile; the stricter optimization requirements of the Korea Light Source technical design are
+-met by only a few sampled settings, at the edge of the explored domain, and campaigns
+-constrained by them approach that region to within the numerical resolution of the model. A
+-refinement check shows that the absolute emittances depend on the tracking resolution.
+-All methods identify feasible nondominated operating points, revealing trade-offs between
+-transverse beam quality and energy spread. Paired analyses support a higher feasible
+-sampling fraction for constraint-aware acquisition, which arises mainly from meeting the
+-transverse beam-size and divergence limits; all pipelines sample feasible settings more often
+-than a budget-matched space-filling search, while the weighted-sum implementation has the lowest
+-computational overhead.
+-Objective-quality comparisons depend on the indicator and comparator. A survey of
+-scalarization weightings explores additional trade-offs, and a limited lattice-jitter assessment
+-retains feasibility for the selected operating points. The results demonstrate the use of
+-constraint-aware Bayesian optimization to identify feasible injector-linac settings and map
+-beam-quality trade-offs within the stated injector model and computational acceptance profile.
++Injector-linac optimization must balance transverse emittances and energy spread while
++satisfying beam transport and transmission constraints. We compare specified Bayesian
++optimization pipelines on a fixed-lattice S-band injector-linac model derived from the Korea
++Light Source design, using ASTRA space-charge tracking at a fixed nominal numerical resolution.
++Magnetic strengths and RF phases are varied to minimize the horizontal and vertical normalized
++RMS emittances and RMS energy spread. Constraint-aware and unconstrained multi-objective
++Bayesian optimization are compared with weighted-sum Bayesian optimization using matched
++simulation budgets and shared initial designs, under a deliberately relaxed computational
++acceptance profile. Paired analyses support a higher feasible sampling fraction for
++constraint-aware acquisition, which persists among energy-acceptable settings and lies mainly
++in the transverse limits against unconstrained optimization but in the energy band against
++weighted-sum optimization. All pipelines sample feasible settings more often than a
++budget-matched space-filling search; the weighted-sum implementation has the lowest
++computational overhead. A refinement check shows that the absolute emittances are not
++converged at the nominal resolution. The feasible-sampling advantage persists under the
++measured refinement shifts, whereas objective-quality comparisons depend on the indicator,
++the comparator and the fixed numerical model. All methods identify feasible nondominated
++settings that expose trade-offs between transverse beam quality and energy spread. The stricter
++Korea Light Source technical-design requirements are met by only a few sampled settings, with
++small diagnostic margins; campaigns constrained by them approach but do not meet them at the
++nominal resolution. A lattice-only jitter assessment retains feasibility for
++selected operating points. The results hold within the nominal numerical model
++and acceptance profile and are not a physically resolved injector optimization.
+ \end{abstract}
+ 
+ \maketitle
+@@ -133,7 +133,7 @@ and multi-objective online tuning~\cite{Roussel2021}; comparisons with reinforce
+ optimizers have also been reported~\cite{Kaiser2024}. These applications motivate using
+ probabilistic models to reduce the number of expensive evaluations, while the present study
+ addresses a simulation-based injector design problem with competing objectives and explicit
+-beam-quality limits. The wider accelerator BO literature is reviewed in ref.~\cite{Roussel2024}.
++beam-quality limits. The wider accelerator BO literature is reviewed in Ref.~\cite{Roussel2024}.
+ 
+ Multi-objective BO (MOBO) extends BO to the Pareto front. Early methods either scalarize the
+ objectives with random weights, as in ParEGO~\cite{Knowles2006}, or select candidates by their
+@@ -169,6 +169,10 @@ present work formulates the fixed-lattice injector problem with separate transve
+ and energy-spread objectives and assesses selected operating points under lattice
+ perturbations. The objective is to characterize the empirical feasible Pareto
+ sets and the efficiency of feasible sampling, rather than to select a single weighted optimum.
++The study is a comparison of specified pipelines on a nominal numerical model: every Pareto
++and algorithm comparison refers to the fixed source file and tracking resolution of
++Sec.~\ref{sec:problem}, and the measured sensitivity to that resolution is reported as a
++result.
+ 
+ The comparison combines objective-space views with diagnostic-space views so that an attractive
+ beam-quality trade-off can be traced to its constraint status. Feasible nondominated points are
+@@ -185,27 +189,39 @@ The contributions of this work are the following.
+ \item A constraint-aware comparison of multi-objective BO with two baselines, unconstrained
+   MOBO and weighted-sum BO, on a space-charge-tracked injector with eight explicit
+   beam-quality inequalities. The comparison uses ten paired runs per method with equal
+-  simulation budgets, shared initial designs, a fixed reference point and predeclared
+-  endpoints, and counts failed simulations
++  simulation budgets and shared initial designs, and counts failed simulations. The
++  feasible fraction was predeclared; the predeclared fixed-reference hypervolume endpoint
++  failed and is replaced by labelled post-hoc front-quality indicators
+   (Secs.~\ref{sec:design}--\ref{sec:primary}).
+-\item An attribution of the feasible-sampling advantage of the constraint-aware pipeline
+-  by violated channel group. The advantage comes mainly from satisfying the transverse size
+-  and divergence limits more often, and it persists among evaluations that already meet the
+-  energy band. It is not produced by the setting of the energy-band weight or by the upper
+-  ACC3/ACC4 phase window (Sec.~\ref{sec:attribution}).
++\item An accounting of the feasible-sampling advantage of the constraint-aware pipeline
++  by violated channel group. The advantage persists among evaluations that meet the energy
++  band. Against unconstrained MOBO it lies mainly in transverse size and divergence
++  violations, whereas against weighted-sum BO energy-band violations account for the larger
++  share. Neither the effective step weight of the energy band nor the upper ACC3/ACC4 phase
++  window explains it alone (Sec.~\ref{sec:attribution}).
+ \item A quantified reach of the KLS technical-design acceptance region. The primary
+   evaluations are reclassified against the TDR inequalities; two marginal candidates and a
+   MOGA-derived reference are checked under jitter; and three campaigns constrained directly
+-  by the TDR inequalities are run. Together these show that the region lies at the edge of
+-  the explored domain (Secs.~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
++  by the TDR inequalities are run. At this budget and resolution, TDR-feasible observations
++  are rare and lie within micrometres of the diagnostic limits, and their membership changes
++  under numerical refinement (Secs.~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
+ \item A space-filling reference for the same domain: the shared scrambled-Sobol initial
+   designs and a budget-matched Sobol arm. It shows how much of the feasible-sampling gain
+   any of the optimizers achieve over uniform sampling, and how much is specific to the
+   constraint-aware pipeline (Sec.~\ref{sec:attribution}).
++\item A measured numerical sensitivity of the model. Ten reported settings re-tracked at
++  refined particle, grid and step resolutions show that the emittances are not converged at
++  the nominal resolution and change by tens of percent, whereas at those settings the energy
++  spread, bunch length, mean energy, transmission and production-profile classifications are
++  stable. Under bounding shifts taken from this check the feasible-sampling comparison is
++  preserved; the front-quality comparisons are not tested at a converged resolution
++  (Secs.~\ref{sec:problem} and~\ref{sec:primary}). This is a stated limitation of the
++  nominal model, not a convergence result.
+ \end{enumerate}
+-These results describe the recorded pipelines on a fixed lattice at the nominal tracking
+-resolution, at which the emittances are not converged (Sec.~\ref{sec:problem}). They do not establish a unit-invariant acquisition, global optimality of the
+-reported fronts, or engineering acceptance of any setting.
++These results describe the recorded pipelines on a fixed lattice within the nominal numerical
++model. They do not establish a physically resolved ranking of the methods, a unit-invariant
++acquisition, global optimality of the reported fronts, or engineering acceptance of any
++setting.
+ 
+ %==========================================================================================
+ \section{Injector model and optimization problem}
+@@ -250,42 +266,64 @@ radius and momentum marginals reproduce those of the file; this does not establi
+ original recipe.
+ 
+ The tracking resolution was adopted from the previous study of this injector by Kim et
+-al.~\cite{Kim2024KLSMOGA}, whose section 4.3 reports \num{10000} macroparticles, 32 radial and
++al.~\cite{Kim2024KLSMOGA}, whose Sec.~4.3 reports \num{10000} macroparticles, 32 radial and
+ at most 32 longitudinal space-charge cells, and mirror image charges. The present calculation
+ uses the same particle-count scale, cylindrical grid dimensions and image-charge treatment.
+ Its archived inputs additionally specify a Cartesian \(32^3\) grid and a solver transition at
+ \SI{5.25}{\metre}, which that published description does not state. No refinement
+-residual is quoted there, so we re-tracked ten reported settings with refined numerics: the
++residual is quoted there, so we re-tracked ten reported settings at 15 numerical levels: the
+ MOGA-derived nominal setting, the two TDR candidates (Table~\ref{tab:tdr_candidates}), the
+ closest observation of the TDR-constrained campaigns (Sec.~\ref{sec:tdr_reach}) and the six
+-representatives of Sec.~\ref{sec:settings}. Each factor was refined alone and then all
+-together: \num{20000} and \num{40000} particles from the reconstructed source, 48 and 64
+-cells in every space-charge grid dimension, and half and a quarter of the maximum and minimum
+-integration steps. The medium level combines the first refinement of each factor and the fine
+-level the second. Five independently seeded random sources of \num{10000} particles measure
+-the sampling spread. Reruns at the production settings reproduce the archived values to
+-floating-point precision, so the calculations are deterministic for a fixed distribution
+-(Supplement S1.13).
+-
+-The emittances are not converged at the production resolution. At the fine level they are
+-lower by \SIrange{12}{34}{\percent} horizontally and \SIrange{17}{43}{\percent} vertically,
+-mainly through the integration step: quartering the step alone lowers them by up to
+-\SI{28}{\percent} and \SI{38}{\percent}. The fine values still differ from the medium ones by
+-up to \SI{9}{\percent}, so they are not converged either. Across the ten settings the order of
+-the horizontal and vertical emittances is largely but not fully kept (Spearman coefficients
+-0.79 and 0.94). The random sources spread the emittances by \SIrange{1}{12}{\percent} (standard
+-deviation). The energy spread changes by at most \SI{4}{\percent} and keeps its order, the
+-bunch length by at most \SI{1}{\percent}, the mean energy by at most
+-\SI{0.05}{\mega\electronvolt}, and the transmission not at all. Beam sizes and divergences fall by up to
+-\SI{22}{\percent}. All ten settings remain feasible under the production profile at every
+-level, whereas TDR classifications within a few percent of the limits change
+-(Sec.~\ref{sec:tdr_reach}). All objective values, feasibility classifications and margins
++representatives of Sec.~\ref{sec:settings}. The levels refine the particle count, the
++space-charge grids and the integration step singly and together, and regenerate the source
++(Appendix~\ref{app:implementation}). Reruns at the production settings reproduce the
++archived values to floating-point precision (Supplement S1.13).
++
++The emittances are not converged at the production resolution (Table~\ref{tab:resolution}).
++At the fine level they are lower by \SIrange{12}{34}{\percent} horizontally and
++\SIrange{17}{43}{\percent} vertically, mainly through the integration step, and they still
++differ from the medium level by up to \SI{9}{\percent}. The order of the emittances across the
++ten settings is largely but not fully kept (Spearman coefficients 0.79 and 0.94). The energy
++spread, bunch length, mean energy and transmission change little, whereas beam sizes and
++divergences fall by up to \SI{22}{\percent}. A regenerated source reproduces the
++marginals of the production file, not necessarily its multidimensional distribution, whereas
++the step refinement uses the production file itself. All ten settings remain feasible under the
++production profile at every level, whereas TDR classifications within a few percent of the
++limits change (Sec.~\ref{sec:tdr_reach}). These ten settings are feasible and come mostly from
++constraint-aware searches. They contain no rejected or baseline observation, so their stable
++classification does not show that the classifications of the primary evaluations are stable;
++Sec.~\ref{sec:primary} bounds that effect. All objective values, feasibility classifications and margins
+ are therefore results at the nominal resolution. The absolute emittances exceed the refined
+ values, and the method comparisons hold within this fixed numerical model. The fixed GP
+ observation variance provides regularization and does not measure tracking-discretization
+ uncertainty.
+ 
+ 
++\begin{table*}[htbp]
++\centering
++\caption{Change of the exit-plane quantities of the ten re-tracked settings under numerical
++refinement, relative to the production resolution (range over settings). ``Fine'' combines
++\num{40000} particles, 64-cell grids and a quarter of the integration step; ``step only''
++quarters the step with the production source; ``fine vs medium'' compares the two combined
++levels; ``source s.d.''\ is the standard deviation over five regenerated \num{10000}-particle
++random sources. These are observed sensitivities at ten settings, not error bounds.}
++\label{tab:resolution}
++\small
++\begin{tabular}{lrrrr}
++\toprule
++Quantity & Fine [\%] & Step only [\%] & Fine vs medium [\%] & Source s.d.\ [\%] \\
++\midrule
++$\enx$ & $-33.5$ to $-11.7$ & $-28.1$ to $-4.6$ & $\le 8.4$ & 1.0--6.3 \\
++$\eny$ & $-43.1$ to $-17.1$ & $-37.6$ to $-10.8$ & $\le 8.7$ & 1.3--12.1 \\
++$\sigma_E$ & $-3.6$ to $0.6$ & $-3.9$ to $0.2$ & $\le 1.2$ & 0.2--0.6 \\
++$\sigma_x$, $\sigma_y$ & $-21.9$ to $-0.2$ & $-20.9$ to $1.2$ & $\le 2.7$ & 0.4--6.6 \\
++$\sigma_{x'}$, $\sigma_{y'}$ & $-21.0$ to $0.2$ & $-15.4$ to $1.2$ & $\le 2.5$ & 0.4--2.9 \\
++$\sigma_z$ & $-0.8$ to $-0.7$ & $-1.0$ to $-0.9$ & $\le 0.3$ & 0.1--0.2 \\
++$E_\mathrm{kin}$ [\si{\mega\electronvolt}] & $-0.05$ to $0.01$ & --- & $\le 0.02$ & $\le 0.005$ \\
++\bottomrule
++\end{tabular}
++\end{table*}
++
+ \begin{figure*}[htbp]
+ \centering
+ \datafigure{figures/injector_linac_layout.pdf}{\linewidth}
+@@ -303,7 +341,7 @@ common phases, $\phi_\mathrm{acc1/2}$ applied to ACC1 and ACC2 and $\phi_\mathrm
+ ACC3 and ACC4. The nominal machine setting is a MOGA-derived operating point from the earlier
+ injector work, adapted to the present field amplitudes. Its ASTRA deck is identical to the
+ template used here, but it is not the tracked solution published in
+-ref.~\cite{Kim2024KLSMOGA}, which used a different gun field, cavity gradients, phase ranges
++Ref.~\cite{Kim2024KLSMOGA}, which used a different gun field, cavity gradients, phase ranges
+ and constraints. Magnetic settings may vary by \SI{\pm50}{\percent} around this
+ nominal setting. The RF inputs are absolute wave phases at the start of tracking because automatic phasing is
+ switched off~\cite{Floettmann2017Astra}. They are not calibrated off-crest angles. The recorded
+@@ -489,7 +527,10 @@ input, the observation noise is not inferred but fixed to
+   \eta &= 10^{-6},\qquad \sigma^2_\mathrm{floor} = 10^{-24},
+ \end{aligned}
+ \end{equation}
+-for output $m$. This regularizes the kernel matrices numerically. Because the effective
++for output $m$. This regularizes the kernel matrices numerically. Determinism holds for the
++fixed source file: its sampling error, which spreads the emittances by
++\SIrange{1}{12}{\percent} between regenerated sources (Table~\ref{tab:resolution}), is common
++to all methods and is not represented by this noise term. Because the effective
+ likelihood variance is nonzero, the posterior mean need not interpolate every observation
+ exactly. For constraint-aware optimization, each of the seven diagnostics is modelled by a
+ further GP of the same form, giving ten independent GPs; the energy diagnostic supplies both
+@@ -559,7 +600,7 @@ Batches are optimized jointly with multi-start L-BFGS-B~\cite{Byrd1995}: 1,024 q
+ raw samples, 10 restarts and at most 200 iterations. If the optimizer fails or returns an invalid
+ batch, it is retried with a reduced budget, and as a last resort the batch is drawn from the
+ campaign's scrambled Sobol sequence~\cite{Owen1998}; every such fallback is recorded with the
+-proposal and reported. % C05 replacement for the acquisition-reference explanation.
++proposal and reported.
+ The acquisition reference is recomputed before each MOBO proposal from all
+ valid observations, including physically infeasible observations. In negated
+ model coordinates it is
+@@ -725,8 +766,9 @@ with the same protocol.
+ %==========================================================================================
+ \section{Results}
+ \label{sec:results}
+-The evidence for each result in this section is identified in supplement S1
+-(Appendix~\ref{app:implementation}).
++All results in this section compare the specified pipelines within the nominal numerical
++model of Sec.~\ref{sec:problem}, whose emittances are not converged; the evidence for each
++result is identified in supplement S1 (Appendix~\ref{app:implementation}).
+ 
+ \subsection{Simulation validity and computational comparison}
+ All 4,800 simulations of the primary comparison were valid; no simulation-invalid failure was
+@@ -770,7 +812,8 @@ an apparently better two-dimensional projection establishes superiority across a
+ nondominated sets, using ten runs of 160 simulations per method. Markers are evaluated ASTRA
+ settings. Smaller objective values are preferred. All feasible three-objective trade-offs are
+ retained, including points that appear dominated in a two-dimensional projection. The star
+-marks the re-evaluated MOGA-derived nominal setting (Sec.~\ref{sec:moga_reference}).}
++marks the re-evaluated MOGA-derived nominal setting (Sec.~\ref{sec:moga_reference}). Values
++are at the production tracking resolution (Sec.~\ref{sec:problem}).}
+ \label{fig:primary_pareto}
+ \end{figure}
+ 
+@@ -840,6 +883,25 @@ were also closer to the pooled front, but this objective-quality evidence depend
+ data-derived reference and does not establish uniform algorithm superiority or global
+ optimality.
+ 
++To bound the effect of the numerical resolution on the feasible fractions, we reclassified the
++archived diagnostics of all primary and Sobol-arm evaluations under shifts taken from
++Table~\ref{tab:resolution}: beam sizes and divergences scaled by 0.78, 0.89 or 1, bunch length
++changed by \SI{\pm1}{\percent}, and mean energy shifted by
++\SI{\pm0.05}{\mega\electronvolt} (27 combinations; post hoc). The median feasible fraction
++ranges from 0.369 to 0.466 for constraint-aware MOBO, compared with 0.147--0.213 and
++0.113--0.181 for the unconstrained and scalarized pipelines. After initialization, the mean
++paired differences of the constraint-aware pipeline stay between 0.239 and 0.294 against
++unconstrained MOBO and between 0.279 and 0.335 against scalarized BO; every interval excludes
++zero, and every difference, including those of each pipeline over the Sobol arm, is positive in
++all ten matched groups under every shift. The constraint-aware fraction is the most sensitive to
++the bunch-length limit: a \SI{1}{\percent} longer bunch lowers its mean from 0.405 to 0.364,
++compared with 0.157 to 0.145 and 0.125 to 0.113 for the baselines, because that pipeline samples
++close to the limit. These shifts bound the changes observed at ten settings; they are not a
++refinement model for every evaluation. The objective-quality indicators are more strongly
++conditional on the numerical model. The emittance changes are large and differ between
++settings, and the random-source spread is comparable to many paired epsilon and IGD+
++differences, so those comparisons hold for the fixed source file at the production resolution.
++
+ \subsection{Sources of the feasible-sampling difference}
+ \label{sec:attribution}
+ Two properties of the recorded setup could produce a feasible-sampling advantage without
+@@ -850,13 +912,16 @@ classified each post-initialization evaluation (evaluations 17--160) of the prim
+ one exclusive category of violated channel groups: energy band, transverse size or
+ divergence, and bunch length. Transmission was never violated. Because the feasible fraction
+ equals one minus the sum of the infeasible category shares, each paired feasible-fraction
+-difference divides exactly among these categories. The analysis is descriptive and uses only
+-the archived evaluations.
++difference divides exactly among these categories. This is an accounting of the observed
++gaps, not a causal identification of acquisition terms. The analysis is descriptive and uses
++only the archived evaluations.
+ 
+-The upper ACC3/ACC4 quarter is not the main source of the difference.
++The upper ACC3/ACC4 quarter contributes, but is not the main source of the difference.
+ Constraint-aware MOBO placed a median \SI{15.3}{\percent} of its post-initialization
+ evaluations there, compared with \SI{22.6}{\percent} and \SI{24.7}{\percent} for the
+-unconstrained and scalarized pipelines (Fig.~\ref{fig:attribution}a). Relative to
++unconstrained and scalarized pipelines (Fig.~\ref{fig:attribution}a). Because every evaluation
++there is infeasible, the lower mean occupancy (by 0.060 and 0.094) corresponds to about a fifth
++and a third of the respective gaps. Relative to
+ unconstrained MOBO, the mean paired gap of 0.276 (\SI{95}{\percent} interval 0.229--0.325)
+ comes mostly from transverse-only violations, which account for \SI{62}{\percent} of it; the
+ categories involving the energy band account for \SI{34}{\percent}. Relative to scalarized
+@@ -869,30 +934,36 @@ more frequent for the constraint-aware pipeline in both comparisons
+ Among evaluations that satisfy the energy band, the median fraction meeting all remaining
+ inequalities was 0.578 for constraint-aware MOBO, compared with 0.254 and 0.231 for the
+ baselines. The mean paired differences were 0.328 (0.268--0.389) and 0.342 (0.293--0.392),
+-positive in all ten matched groups for each comparison. The feasible-sampling advantage of
+-the recorded constrained pipeline therefore extends beyond the energy boundary: it largely
+-reflects more frequent satisfaction of the transverse size and divergence limits, even though
+-those channels receive the softest weights. This attribution describes the executed
++positive in all ten matched groups for each comparison. These conditional fractions compare
++populations that each method selected, so they do not isolate an energy-independent
++mechanism. They do show that the feasible-sampling advantage of the recorded constrained
++pipeline is not confined to the energy boundary: among energy-acceptable evaluations it meets
++the transverse size and divergence limits more often, even though those channels receive the
++softest weights. This attribution describes the executed
+ raw-residual pipeline on the recorded domain. It does not predict the behaviour of a
+ normalized-residual method or of a campaign in a restricted phase window.
+ 
+ A budget-matched Sobol arm provides a space-filling reference for the same domain. In each
+ of ten runs the scrambled Sobol sequence of the matched group was continued to 160 points
+ without a surrogate or an acquisition function, so its first 16 points are that group's
+-shared initial design. Only 41 of its 1,440 post-initialization points are feasible, a rate of
+-\SI{2.8}{\percent} (exact \SI{95}{\percent} interval \SIrange{2.1}{3.8}{\percent}), consistent
+-with the 5 of 160 shared initial points (\SI{3.1}{\percent}). Every pipeline exceeds this rate
+-in all ten matched groups. The mean paired differences in post-initialization feasible
++shared initial design. Only 41 of its 1,440 post-initialization points are feasible
++(\SI{2.8}{\percent}), consistent with the 5 of 160 shared initial points (\SI{3.1}{\percent}).
++Points within one scrambled sequence are not independent, so the sampling unit is the run: the
++ten run-level fractions range from \SI{1.4}{\percent} to \SI{4.9}{\percent} (standard deviation
++1.3 percentage points; bootstrap interval over the ten runs \SIrange{2.1}{3.6}{\percent}, which
++is approximate with ten replicates). Every pipeline exceeds the Sobol arm in all ten matched
++groups. The mean paired differences in post-initialization feasible
+ fraction are 0.418 (0.384--0.453) for constraint-aware MOBO, 0.142 (0.115--0.172) for
+ unconstrained MOBO and 0.107 (0.088--0.127) for scalarized BO. The constraint-blind pipelines
+-therefore sample feasible settings several times more often than uniform sampling, and at
+-least two thirds of the constraint-aware gain over the Sobol arm exceeds what either of them
+-achieves. The
++therefore sample feasible settings several times more often than space-filling sampling, but
++they account for at most about one third of the constraint-aware gain over the Sobol arm
++(shares of 0.34 and 0.26). The
+ same channel classification shows why. Transverse violations fall from \SI{95.3}{\percent} of
+ the Sobol points to \SI{76.0}{\percent} for both baselines, and bunch-length violations from
+-\SI{55.1}{\percent} to \SIrange{32}{33}{\percent}. Energy-band violations change little: from
+-\SI{39.0}{\percent} to \SI{32.2}{\percent} for unconstrained MOBO and \SI{42.6}{\percent} for
+-scalarized BO, a small but consistent increase (paired difference 0.035, 0.017--0.052).
++\SI{55.1}{\percent} to \SIrange{32}{33}{\percent}. Energy-band violations change less and in
++opposite directions: they fall from \SI{39.0}{\percent} to \SI{32.2}{\percent} for
++unconstrained MOBO (paired difference $-0.069$, $-0.098$ to $-0.041$) and rise slightly to
++\SI{42.6}{\percent} for scalarized BO ($+0.035$, 0.017--0.052).
+ Minimizing emittance and energy spread thus favours smaller transverse sizes, divergences and
+ bunch lengths, whereas nothing in the baselines' targets steers the mean energy. The Sobol
+ arm's terminal feasible fronts are also farther from the unchanged empirical reference, with
+@@ -947,30 +1018,13 @@ setting.}
+ 
+ \FloatBarrier
+ \subsection{Offline sensitivity of constraint smoothing}
+-To quantify the unit dependence of the recorded constraint weights, we evaluated single-point
+-qLogNEHVI on 32 fixed Sobol candidates using frozen early, middle and late surrogate snapshots
+-from the prescribed constraint-aware run. Each evaluation used 128 common posterior samples
+-and the same full baseline without pruning, isolating residual scaling from changes in
+-baseline selection. This diagnostic does not replay the production eight-point optimizer.
+-Changing the diagnostic representation from metres/radians/electron-volts to
+-millimetres/milliradians/mega-electron-volts while retaining the raw numerical temperature
+-changed candidate ranks: Spearman correlations with the original ranking were
+-0.793, 0.852 and 0.880, with three or four of the original top five candidates retained.
+-
+-As a unit-invariant sensitivity convention, we divided size, divergence and length residuals
+-by their upper thresholds, energy residuals by the \SI{5}{\mega\electronvolt} half-band,
+-and transmission residuals by the allowed loss fraction of 0.1. These scales express distance
+-relative to the stated production acceptance profile; they are not tuned engineering
+-uncertainties. At dimensionless temperature 0.01, equivalent unit representations agreed in
+-log acquisition value within $1.5\times10^{-13}$. Temperatures 0.001 and 0.1 were also
+-examined as sensitivity settings. The highest-ranked probe candidate remained unchanged in
+-all cases, while lower ranks varied. No normalized-residual campaign was executed, so these
+-calculations establish unit dependence and sensitivity, not improved feasible sampling or
+-beam quality for a corrected method. The probe also differs from production in using single
+-candidates rather than eight-point batches, no baseline pruning and one run, so an unchanged
+-top-ranked probe does not show that the production optimizer is invariant to residual units.
+-The three-pipeline comparison measures the executed implementation; this diagnostic only
+-shows that the implementation's constraint weighting depends on the chosen units.
++A frozen-surrogate probe shows that the recorded constraint weights depend on the residual
++units. Expressing the diagnostics in millimetres, milliradians and mega-electron-volts instead
++of metres, radians and electron-volts, at the same raw temperature, changes the candidate
++ranks (Spearman correlations 0.79--0.88 with the original ranking). A threshold-normalized
++convention removes this unit dependence, but no normalized-residual campaign was run, so the
++probe establishes unit dependence only, not improved feasible sampling or beam quality for a
++corrected method. Appendix~\ref{app:smoothing} gives the probe and its limits.
+ 
+ \subsection{Predictive checks on unseen batches}
+ \label{sec:predictive_checks}
+@@ -999,7 +1053,7 @@ For diagnostic observations near a production boundary, coverage ranges from app
+ in Appendix~\ref{app:predictive}. Transmission is constant; perfect prediction of its
+ observed value cannot validate discrimination of losses.
+ 
+-Three causes plausibly contribute to the undercoverage. First, the likelihood variance is
++Three hypotheses could explain the undercoverage; none is isolated here. First, the likelihood variance is
+ fixed at $\eta=10^{-6}$ of the training variance, so the intervals contain almost no
+ irreducible term and depend entirely on the posterior variance of a stationary kernel.
+ Second, a single Mat\'ern-5/2 length scale per control cannot represent both the smooth
+@@ -1011,49 +1065,27 @@ predictions make the feasibility weights too sharp, both towards one and towards
+ They change which candidates are proposed. They do not affect the reported diagnostics,
+ which are tracked values.
+ 
+-The whole-trajectory RMSE combines all stages and both regions. For constraint-aware MOBO,
+-the horizontal-emittance coverage is \SI{89.9}{\percent} for production-feasible next-batch
+-observations and \SI{69.5}{\percent} for infeasible ones, with RMSE of
+-\SI{2.60}{\micro\metre\radian} and \SI{10.33}{\micro\metre\radian}. The corresponding
+-values for the unconstrained method are \SI{92.7}{\percent} and \SI{75.0}{\percent}. For
+-the transverse diagnostics, coverage rises from \SIrange{75.6}{80.0}{\percent} in batches
+-1--6 to \SIrange{88.3}{91.0}{\percent} in batches 13--18, and for energy from
+-\SI{67.5}{\percent} to \SI{97.5}{\percent}. Bunch length is the exception: its coverage
+-falls from \SI{89.2}{\percent} to \SI{84.4}{\percent}, and is \SI{73.5}{\percent} for late
+-infeasible observations. The
+-emittance coverage does not improve monotonically with stage
+-(\SI{74.0}{\percent}, \SI{83.3}{\percent} and \SI{78.5}{\percent}). In the late stage, the
+-horizontal-emittance RMSE for feasible observations is \SI{0.98}{\micro\metre\radian}. The
+-surrogates are therefore least reliable away from the feasible set, where infeasible
+-proposals are most common. Even near the feasible region, the intervals remain below their
+-nominal coverage, so no claim of calibrated local prediction is made.
+-
+-To test the first cause, we refitted every archived pre-proposal training set offline with
+-the production surrogate builder twice. One fit used the production fixed noise and the
+-other used homoscedastic noise inferred by marginal likelihood. The chronological
+-next-batch check was then repeated. The fixed-noise refits reproduce the coverage of the
+-saved snapshots to within \num{0.5} percentage points. Inferred noise raises the
+-constraint-aware coverage to \SI{83.4}{\percent}, \SI{86.6}{\percent} and
+-\SI{92.7}{\percent} for the three objectives. The diagnostic coverage rises to
+-\SIrange{86.9}{93.9}{\percent}, and the RMSE changes by at most \SI{14}{\percent},
+-except for energy. For energy, the RMSE falls from \SI{0.89}{\mega\electronvolt} to
+-\SI{0.14}{\mega\electronvolt}. The fitted noise is \numrange{e-4}{e-3} of the training
+-variance. For energy and bunch length, it lies at the lower bound of the fitting
+-constraint, so the energy improvement reflects regularization of a nearly
+-interpolating fit, not detected simulation noise. Inferred noise thus removes part,
+-but not all, of the undercoverage. Most of the remainder is consistent with kernel
+-misspecification and adaptive test points. The production campaigns are unchanged.
+-In \num{88} of \num{4680} refits, both optimizers failed and the hyperparameters were
+-restored to their initial values, as in production.
++Refitting every archived training set offline with homoscedastic noise inferred by marginal
++likelihood raises the constraint-aware objective coverage to \SIrange{83.4}{92.7}{\percent}
++and the diagnostic coverage to \SIrange{86.9}{93.9}{\percent}. Inferred noise thus removes
++part, but not all, of the undercoverage, which shows that the coverage is sensitive to the
++regularization; kernel misspecification and adaptive test points remain hypotheses for the
++remainder. The undercoverage is largest for infeasible observations, so the surrogates are
++least reliable away from the feasible set. Appendix~\ref{app:predictive} gives the stage- and
++region-resolved coverage and the details of the refit. The production campaigns are
++unchanged.
+ 
+ \subsection{Interpretation of selected settings}
+ \label{sec:settings}
+ Appendix~\ref{app:settings} gives the complete controls and objectives of the six distinct
+ settings selected from the primary constraint-aware front. The horizontal-emittance extreme
+-has \SI{2.8061}{\micro\metre\radian} horizontal and \SI{6.8492}{\micro\metre\radian}
++has \SI{2.81}{\micro\metre\radian} horizontal and \SI{6.85}{\micro\metre\radian}
+ vertical emittance, whereas the energy-spread extreme trades larger, nearly equal emittances
+-for \SI{0.36286}{\mega\electronvolt} spread. These roles describe different compromises
+-within one selected front; they are not six independently optimized operational modes. The
++for \SI{0.363}{\mega\electronvolt} spread. These roles describe different compromises
++within one selected front; they are not six independently optimized operational modes.
++Values quoted here and in Table~\ref{tab:selected_objectives} are at the production
++resolution; their digits identify archived evaluations and are not resolved physical values,
++since the emittances change by tens of percent under refinement (Table~\ref{tab:resolution}). The
+ nominal setting itself was re-evaluated separately and is compared with these fronts in
+ Sec.~\ref{sec:moga_reference}.
+ 
+@@ -1061,8 +1093,8 @@ The quadrupole centers are at \SI{8.70046}{\metre} and \SI{12.50092}{\metre}, ea
+ \SI{0.065}{\metre} effective length. They lie between ACC2/ACC3 and ACC3/ACC4,
+ respectively, rather than after the complete linac. For the horizontal-emittance extreme,
+ the saved normalized emittances are nearly equal near \SI{5.2}{\metre}
+-(\SI{3.2985}{\micro\metre\radian} and \SI{3.3001}{\micro\metre\radian}), but are
+-\SI{2.9298}{\micro\metre\radian} and \SI{4.1003}{\micro\metre\radian} near
++(\SI{3.30}{\micro\metre\radian} in both planes), but are
++\SI{2.93}{\micro\metre\radian} and \SI{4.10}{\micro\metre\radian} near
+ \SI{12.4}{\metre}. The initially similar source moments and growing downstream asymmetry
+ are consistent with differing transport through the quadrupole lattice. They do not isolate
+ quadrupole chromaticity, solenoid coupling, space charge or numerical effects as the cause;
+@@ -1114,27 +1146,32 @@ extreme have 2 and 1 such trials, and the other two settings none. The selected
+ therefore not locally converged along the jitter directions. Small control changes can still
+ improve all three objectives, as expected after a finite search of 160 evaluations.
+ 
+-The jitter model omits RF-amplitude errors, but a first-order estimate bounds their effect on
+-the limiting energy margin. In the re-evaluated nominal tracking
+-(Sec.~\ref{sec:moga_reference}) the gun delivers \SI{4.1}{\mega\electronvolt} and the two
+-structure pairs \SI{93.3}{\mega\electronvolt} and \SI{102.8}{\mega\electronvolt}. A
+-\SI{0.2}{\percent} RMS amplitude error, the RF-gradient error of the JKPS model, therefore
+-shifts the mean energy by \SI{0.28}{\mega\electronvolt} RMS if the pairs vary independently and
+-by \SI{0.40}{\mega\electronvolt} if all amplitudes vary together. This is about ten times the
++The jitter model omits RF-amplitude errors. A conditional, linearized estimate indicates their
++effect on the mean energy only. It takes the energy gains of the re-evaluated MOGA-derived
++nominal tracking (Sec.~\ref{sec:moga_reference}): \SI{4.1}{\mega\electronvolt} from the gun and
++\SI{93.3}{\mega\electronvolt} and \SI{102.8}{\mega\electronvolt} from the two structure
++pairs. It assumes that each gain scales linearly with its amplitude at fixed phase. A
++\SI{0.2}{\percent} RMS amplitude error, the RF-gradient error of the JKPS model, then shifts the
++mean energy by \SI{0.28}{\mega\electronvolt} RMS if the pairs vary independently and by
++\SI{0.40}{\mega\electronvolt} if all amplitudes vary together. This is about ten times the
+ \SIrange{0.014}{0.046}{\mega\electronvolt} RMS energy variation produced by the simulated phase
+-jitter, but small against the smallest lower-energy headroom of \SI{3.11}{\mega\electronvolt},
+-which is at least 7.8 standard deviations away. A common amplitude change also scales the
+-correlated energy spread by the same relative amount, about \SI{0.8}{\kilo\electronvolt}. The
+-estimate suggests that amplitude jitter would not change the production-profile
+-classification of the representatives, but it does not replace a tracked amplitude study.
++jitter, and about an eighth of the smallest lower-energy headroom of the representatives,
++\SI{3.11}{\mega\electronvolt}. The estimate is not a bound. It does not cover the bunch-length
++and upper-energy margins that limit other representatives, nor the changes in phase slippage,
++focusing, chirp and transverse diagnostics that an amplitude change also produces, so it does
++not establish that the representatives stay feasible under amplitude jitter.
+ 
+ The two TDR-passing observations of Table~\ref{tab:tdr_candidates} were assessed with the same
+ 50-trial protocol and classified against the TDR inequalities. Both remained
+ production-feasible in every trial, but only 36 and 44 of the 50 perturbed settings met the TDR
+ inequalities (exact \SI{95}{\percent} intervals 0.58--0.84 and 0.76--0.95). The failures were
+ mainly of the horizontal-size limit and, for candidate B, also the vertical divergence. Under
+-the archived fragility threshold of 0.8, candidate A would be classified as fragile. These
+-marginal settings therefore do not provide jitter-tolerant TDR operation in this model.
++the archived fragility threshold of 0.8, candidate A would be classified as fragile. Their TDR
++lower-energy margins, \SI{0.31}{\mega\electronvolt} and \SI{0.14}{\mega\electronvolt}, are
++comparable to the linearized amplitude-induced shift of
++\SIrange{0.28}{0.40}{\mega\electronvolt} RMS, which indicates that amplitude jitter would cause
++further TDR failures. These marginal settings therefore do not provide jitter-tolerant TDR
++operation in this model.
+ 
+ \IfFileExists{robustness_table.tex}{\inputwide{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
+ robustness of the representatives.}{tab:robustness_summary}}
+@@ -1143,8 +1180,8 @@ robustness of the representatives.}{tab:robustness_summary}}
+ \label{sec:moga_reference}
+ The nominal setting at the centre of the search domain was re-evaluated once with the
+ production pipeline. The run reproduced the values previously recorded for the same deck,
+-with $(\enx,\eny,\sigma_E)=(\SI{3.4728}{\micro\metre\radian},\
+-\SI{3.2968}{\micro\metre\radian},\ \SI{0.39419}{\mega\electronvolt})$ at
++with $(\enx,\eny,\sigma_E)=(\SI{3.47}{\micro\metre\radian},\
++\SI{3.30}{\micro\metre\radian},\ \SI{0.394}{\mega\electronvolt})$ at
+ \SI{200.19}{\mega\electronvolt} and full transmission. It satisfies all eight production
+ inequalities and the NAPAC profile. Against the TDR optimization requirements it fails only the
+ vertical divergence, with \SI{0.2690}{\milli\radian} against \SI{0.2663}{\milli\radian}.
+@@ -1156,14 +1193,15 @@ and 9) or smaller energy spread (67, 32 and 10), but none improved all three obj
+ simultaneously. The additive epsilon by which a run's feasible front must be relaxed to weakly
+ dominate the setting had medians of 0.039, 0.195 and 0.134 in the normalized units, with
+ ranges 0.003--0.088, 0.025--0.634 and 0.024--0.293. The constraint-aware fronts therefore came
+-closest to this reference, but within 160 evaluations no pipeline exceeded it. The empirical
+-fronts map trade-offs around the earlier operating point; they do not demonstrate an
+-improvement on it.
++closest to this reference, but within 160 evaluations no primary feasible observation
++Pareto-dominated it at the nominal resolution. The empirical fronts contain improvements in
++individual objectives and map trade-offs around the earlier operating point; the reference is
++not thereby established as an optimum.
+ 
+ Under the same lattice-jitter protocol as the representatives, all 50 perturbed settings
+ satisfied the production profile (exact \SI{95}{\percent} interval 0.929--1). The mean
+ objective ratio was $D=1.030$, with mean emittances of 3.60 and
+-\SI{3.47}{\micro\metre\radian} and a mean energy spread of \SI{0.3948}{\mega\electronvolt}. The
++\SI{3.47}{\micro\metre\radian} and a mean energy spread of \SI{0.395}{\mega\electronvolt}. The
+ smallest normalized margin was at the upper energy bound. Twelve of the 50 perturbed settings
+ met the TDR optimization inequalities (0.131--0.382), mostly failing the vertical divergence or
+ horizontal size limits. The nominal setting therefore lies close to the TDR boundary. This is a
+@@ -1180,14 +1218,17 @@ baselines without any estimated reference. Evidence for objective quality is wea
+ the paired epsilon, IGD+ and hypervolume differences favour the constraint-aware pipeline even
+ when the reference is rebuilt in each resample, but they are measured against a reference
+ estimated from the same runs, and the exploratory signed-rank calculations against
+-unconstrained MOBO do not pass the multiplicity correction. A larger
++unconstrained MOBO do not pass the multiplicity correction. They also hold only for the fixed
++source file at the production resolution, whereas the feasible-sampling advantage persists
++under the bounding shifts of the refinement check. A larger
+ feasible set therefore should not be read as uniform superiority of the observed Pareto front.
+ The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
+-infeasible upper ACC3/ACC4 phase region: it persists among energy-acceptable evaluations and
+-comes largely from the transverse size and divergence limits. None of the pipelines found a
+-feasible setting that dominates the MOGA-derived nominal setting at the centre of the search
+-domain, so the reported fronts describe trade-offs around that earlier operating point rather
+-than an improvement on it. All methods identified feasible nondominated settings,
++infeasible upper ACC3/ACC4 phase region, although both contribute: it persists among
++energy-acceptable evaluations. Against unconstrained MOBO it lies mainly in the transverse size
++and divergence violations, and against weighted-sum BO mainly in the energy band. No primary
++feasible observation Pareto-dominates the MOGA-derived nominal setting at the centre of the
++search domain at the nominal resolution, although many improve on it in individual objectives;
++the reported fronts therefore describe trade-offs around that earlier operating point. All methods identified feasible nondominated settings,
+ with the objective projections exposing the trade-offs between transverse emittance and energy spread.
+ The sampled lattice-jitter tests identify several operating points that remain feasible within
+ the simulated tolerance model; this does not establish performance on the real machine.
+@@ -1198,13 +1239,13 @@ Kim et al.\ optimized RF-cavity geometry and injector beam dynamics with
+ MOGA~\cite{Kim2024KLSMOGA}. Their abstract reports approximately
+ \SI{3.79}{\micro\metre\radian} horizontal normalized emittance and
+ \SI{0.30737}{\mega\electronvolt} energy spread. These summary values differ from the
+-specific tracked setting in section 4.3, which gives horizontal and vertical normalized
++specific tracked setting in their Sec.~4.3, which gives horizontal and vertical normalized
+ emittances of \SI{3.9586}{\micro\metre\radian} and \SI{3.9424}{\micro\metre\radian},
+ and \SI{0.165}{\percent} RMS energy spread at \SI{201.79}{\mega\electronvolt}
+ (approximately \SI{0.3330}{\mega\electronvolt}). The distinction matters when comparing
+ individual operating points. The present primary ideal-distance point has
+-$(\enx,\eny,\sigma_E)=(\SI{2.9983}{\micro\metre\radian},\
+-\SI{3.5207}{\micro\metre\radian},\ \SI{0.4034}{\mega\electronvolt})$.
++$(\enx,\eny,\sigma_E)=(\SI{3.00}{\micro\metre\radian},\
++\SI{3.52}{\micro\metre\radian},\ \SI{0.403}{\mega\electronvolt})$.
+ It exchanges lower transverse emittances for higher energy spread relative to that tracked
+ example. Different acceptance limits and settings prevent attributing this exchange solely to
+ the algorithm. The earlier source was specified by laser parameters, whereas the present study
+@@ -1231,20 +1272,25 @@ The JKPS operating-error model used RF-gradient and phase standard deviations of
+ \SI{0.2}{\degree}, with \SI{0.1}{\percent} magnet-strength errors. It also studied \SI{100}{\micro\metre}
+ position errors and \SI{0.4}{\milli\radian} rotations, using 1,000 samples per stage with a Gaussian distribution
+ truncated at two standard deviations. Our tests use \SI{0.1}{\degree} RF-phase and \SI{0.1}{\percent} magnet-strength
+-errors with 50 samples per representative. They omit tracked RF-gradient errors, which are
+-estimated only to first order in Sec.~\ref{sec:robustness_results}, and alignment errors. Thus the
++errors with 50 samples per representative. They omit tracked RF-gradient errors, whose effect on the
++mean energy alone is estimated by linearization in Sec.~\ref{sec:robustness_results}, and
++alignment errors. Thus the
+ observed feasibility under lattice jitter complements the earlier tolerance study; it does not
+ show greater robustness under its broader error model. The earlier study identified alignment
+ errors as a principal sensitivity, supporting their inclusion in future assessments.
+ 
+ \subsection{Reach of the TDR acceptance region}
+ \label{sec:tdr_reach}
+-The archived evidence places the TDR optimization region at the edge of the explored domain.
+-Only two of the 4,800 primary evaluations meet its inequalities, both with micrometre-scale
+-size and bunch-length margins (Table~\ref{tab:tdr_candidates}). The MOGA-derived nominal
+-setting misses them only in vertical divergence, by \SI{2.7}{\micro\radian}, and about a
+-quarter of its jittered neighbours pass. The six controls can therefore reach the TDR region,
+-but the production-profile campaigns were not aimed at it.
++The archived evidence shows that TDR-feasible observations are rare and close to the diagnostic
++limits. Only two of the 4,800 primary evaluations meet the TDR inequalities, both with
++micrometre-scale size and bunch-length margins (Table~\ref{tab:tdr_candidates}). The
++MOGA-derived nominal setting misses them only in vertical divergence, by
++\SI{2.7}{\micro\radian}, and about a quarter of its jittered neighbours pass. Closeness to a
++diagnostic limit is not closeness to a boundary of the control domain: in normalized controls,
++candidate~A lies between 0.48 and 0.86 in every coordinate, and candidate~B is interior except
++for a gun phase of 0.96. Two points do not locate a feasible region in six dimensions. The
++six controls can therefore produce TDR-feasible settings, but the production-profile campaigns
++were not aimed at them.
+ 
+ Three further constraint-aware campaigns targeted it directly. They used the TDR optimization
+ inequalities as constraints, with the primary protocol and the initial designs of the first
+@@ -1257,8 +1303,9 @@ otherwise miss by 2.3 and \SI{9.4}{\percent}. After initialization, the horizont
+ had the worst relative margin in \SI{62}{\percent} of the targeted campaigns' evaluations and
+ vertical divergence in \SI{24}{\percent}. Each campaign still produced 52--58
+ production-feasible observations. Targeting the TDR inequalities therefore did not increase TDR
+-coverage at this budget: the region is approached to within a few micrometres and
+-microradians, but not entered reliably.
++coverage at this budget: the limits are approached to within a few micrometres and
++microradians, but not met. Three finite-budget campaigns at one resolution do not show that the
++region is inaccessible to these controls.
+ 
+ These classifications lie within the numerical resolution of the model
+ (Sec.~\ref{sec:problem}). Candidate~B meets the TDR inequalities at all fifteen refinement
+@@ -1271,8 +1318,8 @@ both particle-count refinements. Whether a setting within a few percent of the T
+ them is therefore not resolved by the production calculation. The statement that the
+ TDR-constrained campaigns did not enter the region holds only at that resolution. The TDR
+ describes a longer linac with further matching quadrupoles and adjustable RF amplitudes. Those
+-are held fixed or absent here, so the present model cannot show how much of the TDR region
+-becomes accessible with them.
++are held fixed or absent here; they are design options for future studies, and the present
++model can show neither that they are needed nor how much they would add.
+ 
+ \subsection{Limitations}
+ The feasible fronts are empirical sets from finite searches in the recorded domain. They
+@@ -1289,9 +1336,10 @@ normalization probes supply no physical-performance evidence for a corrected met
+ The tracking model uses one fixed source file and the particle, grid and step resolution of
+ the previous injector study. The refinement check of Sec.~\ref{sec:problem} shows that the
+ emittances are not converged at this resolution and that TDR classifications near the limits
+-change under refinement, so all results are nominal-resolution results. Whether the method
+-comparison would change at a converged resolution has not been tested; that would require
+-repeating the campaigns. Small margins in particular are not interpreted as numerically
++change under refinement, so all results are nominal-resolution results. Reclassifying the
++archived evaluations under bounding shifts preserves the feasible-sampling comparison, but the
++shifts come from ten settings and do not model refinement at every evaluation. Whether the
++front-quality comparison would change at a converged resolution has not been tested. Small margins in particular are not interpreted as numerically
+ resolved: the two TDR-passing observations clear the horizontal-size limit by
+ about 2.5 and \SI{8.9}{\micro\metre} and the bunch-length limit by about 8.2 and
+ \SI{8.0}{\micro\metre}. Likewise, the selected settings are not presented as numerically
+@@ -1330,36 +1378,44 @@ comparison with accelerator measurements is made in this simulation study.
+ We compared three specified Bayesian optimization pipelines on a six-control, three-objective
+ injector-linac model derived from the KLS design, with seven diagnostic channels and eight
+ inequalities, in a paired, budget-matched study of ten runs with failure-inclusive accounting.
++The comparison is made within the nominal numerical model: one fixed source file at a
++tracking resolution at which the emittances are not converged.
+ All simulations were valid, and every pipeline found feasible nondominated settings that expose
+ the trade-offs between transverse emittance and energy spread.
+ 
+ The best-supported result is a feasible-sampling advantage of the constraint-aware pipeline
+ under the stated computational profile. It holds in every matched group without any estimated
+-reference, persists among energy-acceptable evaluations and comes mainly from the transverse
+-size and divergence limits. All three pipelines sample feasible settings more often than a
+-budget-matched Sobol search, and most of the constraint-aware advantage over that search
+-exceeds what the constraint-blind pipelines achieve. Indicators of front quality also favour the constraint-aware
++reference and persists among energy-acceptable evaluations. Against unconstrained MOBO it lies
++mainly in the transverse size and divergence limits, and against weighted-sum BO mainly in the
++energy band. All three pipelines sample feasible settings more often than a
++budget-matched Sobol search, but the constraint-blind pipelines account for at most about one
++third of the constraint-aware gain over that search. Indicators of front quality also favour the constraint-aware
+ pipeline, including when the empirical reference is rebuilt in each resample, but they rest
+ on a reference estimated from the same runs and do not establish uniform superiority or global
+-optimality. None of the pipelines found a feasible setting that dominates the MOGA-derived
+-nominal setting at the centre of the domain.
++optimality. No primary feasible observation Pareto-dominates the MOGA-derived nominal setting
++at the centre of the domain at the nominal resolution, although many improve on it in
++individual objectives.
+ 
+ The engineering conclusion is limited. The production profile is deliberately looser than the
+ KLS TDR optimization requirements, under which only two marginal primary observations are
+ acceptable and the MOGA-derived nominal setting misses narrowly. Campaigns that took the TDR
+ inequalities as constraints came within a few micrometres of them but found no acceptable
+-setting at the production resolution. Under refined tracking their closest observation and the
+-MOGA-derived nominal setting do meet them, so membership near the limits is not numerically
+-resolved. The six fixed-lattice controls therefore reach the TDR region only at the edge of the
+-explored domain. A design study aimed at
+-TDR acceptance would need those requirements as its constraints and probably the additional
+-matching and RF controls of the full TDR linac. Lattice-jitter tests of the selected settings
++setting at the production resolution. Their closest observation and the MOGA-derived nominal
++setting meet them at the combined medium and fine refinement levels but fail with four of five
++regenerated sources, so membership near the limits is not numerically resolved. TDR-feasible
++settings are therefore rare and marginal in this six-control model at this budget. A design
++study aimed at TDR acceptance would need those requirements as its constraints; the additional
++matching and RF controls of the full TDR linac are options for such a study, not a
++demonstrated remedy. Lattice-jitter tests of the selected settings
+ retained feasibility under the simulated lattice-only error model, which is not a reliability
+ guarantee. All values are nominal-resolution results. A refinement check of ten reported
+-settings showed that the emittances are not converged at that resolution, whereas the energy
+-spread, bunch length, mean energy, transmission and production-profile classifications are
+-stable; absolute emittances should not be quoted without a converged calculation. The recorded
+-data and analysis scripts support regeneration of all values. Future work will repeat the
++settings showed that the emittances are not converged at that resolution, whereas at those
++ten settings the energy spread, bunch length, mean energy, transmission and production-profile
++classifications are stable; absolute emittances should not be quoted without a converged
++calculation. Under the corresponding bounding shifts the feasible-sampling advantage of the
++constraint-aware pipeline persists in every matched group. The archived
++runs and analysis scripts support regeneration of all reported values; Supplement S1 lists the
++inputs that each requires. Future work will repeat the
+ comparison at a converged tracking resolution, extend the robustness analysis to source
+ fluctuations with a validated distribution generator, distribute the simulations across compute
+ nodes, and test the optimized settings on the machine.
+@@ -1373,8 +1429,9 @@ nodes, and test the optimized settings on the machine.
+ The data that support the findings of this study are available from the corresponding author
+ upon reasonable request. They comprise the evaluation ledgers and run records of every
+ campaign, the complete simulation run directories, the configuration files and the analysis
+-scripts that generate the reported results. Supplement S1 (Appendix~\ref{app:implementation})
+-identifies each item.
++scripts that generate the reported results. Supplement S1 (Appendix~\ref{app:implementation}),
++which is supplied with the manuscript for review, contains the code, configurations and
++evidence files, and identifies the inputs that each reported result requires.
+ 
+ \appendix
+ \section{Executed implementation details}
+@@ -1383,7 +1440,9 @@ This appendix records implementation details of the executed pipelines that matt
+ reproduction but not for the physical argument.
+ 
+ \paragraph{Supporting package.} Supplement S1 is the versioned \texttt{mobo\_linac}~1.0.0
+-repository snapshot that accompanies this manuscript. Its evidence map
++repository snapshot supplied with this manuscript for review and otherwise available from the
++author on request; it is identified by the commit hash recorded in the review package. Its
++evidence map
+ (\path{docs/paper/supplement/README.md}) assigns item numbers S1.1--S1.15 to the reported
+ results and links each to its evidence file and generating script. Every production step was
+ started from a recorded clean commit. The primary benchmark used \texttt{8ad6c2c}, the
+@@ -1393,9 +1452,12 @@ revision-analysis scripts are distinct from this production code. They read the
+ run ledgers and verify their checksums, and they do not modify run directories. The
+ configuration's development benchmark defaults were overridden on the command line. These
+ overrides, the ledger checksums and the configuration hash are listed in item S1.1. The
+-complete run directories (about \SI{44}{\giga\byte}) are not distributed. The
+-\SI{10}{\mega\byte} of evaluation ledgers that suffice to regenerate every evidence file are
+-identified by checksum. Sampler base draws were not archived.
++complete run directories (about \SI{44}{\giga\byte}) are not distributed with S1 and are
++available from the author. The evidence files do not all need the same inputs. Those computed
++from the evaluation ledgers alone, about \SI{10}{\mega\byte} identified by checksum, regenerate
++from that minimal set, as tested for representative cases. Others also need run records, saved
++GP checkpoints, retained tracking outputs or the re-tracking records; S1 lists the inputs of
++every item. Sampler base draws were not archived, so proposals cannot be replayed bitwise.
+ 
+ \paragraph{Surrogate noise and fitting.} The fixed-noise expression of
+ Sec.~\ref{sec:methods} specifies the requested variance in each output's recorded units. The
+@@ -1422,6 +1484,16 @@ draws were not saved; bitwise replay of the proposals is therefore not possible.
+ dimension and baseline sizes remain below the Sobol engine's dimension limit. The posterior
+ sample counts differ from the 1,024 raw candidate-initialization samples.
+ 
++\paragraph{Resolution check.} The production resolution is \num{10000} quasi-random
++particles, a $32\times32$ cylindrical and a $32^3$ Cartesian space-charge grid, and maximum
++and minimum integration steps of \SI{0.01}{\nano\second} and \SI{0.001}{\nano\second}. Each
++factor was refined alone and then all together: \num{20000} and \num{40000} particles from
++the reconstructed source, 48 and 64 cells in every grid dimension, and half and a quarter of
++both steps. The medium level combines the first refinement of each factor and the fine level
++the second. One regenerated quasi-random and five independently seeded random sources of
++\num{10000} particles measure the source dependence. The reconstructed generator input
++reproduces the time, radius and momentum marginals of the production file.
++
+ \paragraph{Campaign time.} To avoid double-counting concurrent workers, the union of recorded
+ evaluation start and end intervals was formed for each campaign. The remainder of campaign
+ time combines model fitting, acquisition optimization, scheduling, setup and export; the logs
+@@ -1475,9 +1547,9 @@ Table~\ref{tab:campaign_summary} and Figs.~\ref{fig:survey_feasible} and~\ref{fi
+ operating-point survey of Sec.~\ref{sec:survey}, and Table~\ref{tab:phase1_cases} the five
+ weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
+ 106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
+-feasible horizontal emittances were \SI{2.7076}{\micro\metre\radian}, \SI{3.1141}{\micro\metre\radian} and \SI{2.6513}{\micro\metre\radian}, and the best feasible
+-vertical emittances were \SI{3.1349}{\micro\metre\radian}, \SI{3.1712}{\micro\metre\radian} and \SI{3.0264}{\micro\metre\radian}. Their minimum feasible energy spreads
+-were \SI{0.3393}{\mega\electronvolt}, \SI{0.3905}{\mega\electronvolt} and \SI{0.3467}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
++feasible horizontal emittances were \SI{2.71}{\micro\metre\radian}, \SI{3.11}{\micro\metre\radian} and \SI{2.65}{\micro\metre\radian}, and the best feasible
++vertical emittances were \SI{3.13}{\micro\metre\radian}, \SI{3.17}{\micro\metre\radian} and \SI{3.03}{\micro\metre\radian}. Their minimum feasible energy spreads
++were \SI{0.339}{\mega\electronvolt}, \SI{0.391}{\mega\electronvolt} and \SI{0.347}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
+ operating point. Table~\ref{tab:phase1_cases} uses the same feasible-only convention for each weighting. The differing
+ budgets and independently initialized cases prevent interpreting this descriptive survey as an algorithm ranking.
+ 
+@@ -1504,7 +1576,8 @@ colors as the primary comparison. All evaluations are valid in these campaigns.}
+ \caption{Operating-point survey: pairwise projections of the feasible three-objective
+ nondominated sets. Markers denote evaluated settings without interpolation or connecting lines.
+ The scalarized set pools five weighting cases (880 simulations), whereas each MOBO set uses
+-176 simulations. This descriptive comparison has unequal budgets and supports no algorithm ranking.}
++176 simulations. This descriptive comparison has unequal budgets and supports no algorithm ranking.
++Values are at the production tracking resolution.}
+ \label{fig:pareto}
+ \end{figure}
+ 
+@@ -1522,10 +1595,74 @@ transverse units; the constant-transmission annotation retains that required dia
+ \FloatBarrier
+ 
+ \inputwide{revisions/evidence/c11_predictive}
++
++The whole-trajectory RMSE combines all stages and both regions. For constraint-aware MOBO,
++the horizontal-emittance coverage is \SI{89.9}{\percent} for production-feasible next-batch
++observations and \SI{69.5}{\percent} for infeasible ones, with RMSE of
++\SI{2.60}{\micro\metre\radian} and \SI{10.33}{\micro\metre\radian}. The corresponding
++values for the unconstrained method are \SI{92.7}{\percent} and \SI{75.0}{\percent}. For
++the transverse diagnostics, coverage rises from \SIrange{75.6}{80.0}{\percent} in batches
++1--6 to \SIrange{88.3}{91.0}{\percent} in batches 13--18, and for energy from
++\SI{67.5}{\percent} to \SI{97.5}{\percent}. Bunch length is the exception: its coverage
++falls from \SI{89.2}{\percent} to \SI{84.4}{\percent}, and is \SI{73.5}{\percent} for late
++infeasible observations. The
++emittance coverage does not improve monotonically with stage
++(\SI{74.0}{\percent}, \SI{83.3}{\percent} and \SI{78.5}{\percent}). In the late stage, the
++horizontal-emittance RMSE for feasible observations is \SI{0.98}{\micro\metre\radian}. The
++surrogates are therefore least reliable away from the feasible set, where infeasible
++proposals are most common. Even near the feasible region, the intervals remain below their
++nominal coverage, so no claim of calibrated local prediction is made.
++
++To test the first hypothesis, we refitted every archived pre-proposal training set offline with
++the production surrogate builder twice. One fit used the production fixed noise and the
++other used homoscedastic noise inferred by marginal likelihood. The chronological
++next-batch check was then repeated. The fixed-noise refits reproduce the coverage of the
++saved snapshots to within \num{0.5} percentage points. Inferred noise raises the
++constraint-aware coverage to \SI{83.4}{\percent}, \SI{86.6}{\percent} and
++\SI{92.7}{\percent} for the three objectives. The diagnostic coverage rises to
++\SIrange{86.9}{93.9}{\percent}, and the RMSE changes by at most \SI{14}{\percent},
++except for energy. For energy, the RMSE falls from \SI{0.89}{\mega\electronvolt} to
++\SI{0.14}{\mega\electronvolt}. The fitted noise is \numrange{e-4}{e-3} of the training
++variance. For energy and bunch length, it lies at the lower bound of the fitting
++constraint, so the energy improvement reflects regularization of a nearly
++interpolating fit, not detected simulation noise. Inferred noise thus removes part,
++but not all, of the undercoverage, which shows that the coverage is sensitive to the
++regularization. Kernel misspecification and adaptive test points remain hypotheses for the
++remainder; this check does not test them.
++In \num{88} of \num{4680} refits, both optimizers failed and the hyperparameters were
++restored to their initial values, as in production. These are not equivalent fits, and the
++refit records do not identify them, so the reported refit coverage includes them.
+ \FloatBarrier
+ \inputwide{revisions/evidence/c08_settings}
+ \FloatBarrier
+ 
++\section{Offline sensitivity of constraint smoothing}
++\label{app:smoothing}
++To quantify the unit dependence of the recorded constraint weights, we evaluated single-point
++qLogNEHVI on 32 fixed Sobol candidates using frozen early, middle and late surrogate snapshots
++from the prescribed constraint-aware run. Each evaluation used 128 common posterior samples
++and the same full baseline without pruning, isolating residual scaling from changes in
++baseline selection. This diagnostic does not replay the production eight-point optimizer.
++Changing the diagnostic representation from metres/radians/electron-volts to
++millimetres/milliradians/mega-electron-volts while retaining the raw numerical temperature
++changed candidate ranks: Spearman correlations with the original ranking were
++0.793, 0.852 and 0.880, with three or four of the original top five candidates retained.
++
++As a unit-invariant sensitivity convention, we divided size, divergence and length residuals
++by their upper thresholds, energy residuals by the \SI{5}{\mega\electronvolt} half-band,
++and transmission residuals by the allowed loss fraction of 0.1. These scales express distance
++relative to the stated production acceptance profile; they are not tuned engineering
++uncertainties. At dimensionless temperature 0.01, equivalent unit representations agreed in
++log acquisition value within $1.5\times10^{-13}$. Temperatures 0.001 and 0.1 were also
++examined as sensitivity settings. The highest-ranked probe candidate remained unchanged in
++all cases, while lower ranks varied. No normalized-residual campaign was executed, so these
++calculations establish unit dependence and sensitivity, not improved feasible sampling or
++beam quality for a corrected method. The probe also differs from production in using single
++candidates rather than eight-point batches, no baseline pruning and one run, so an unchanged
++top-ranked probe does not show that the production optimizer is invariant to residual units.
++The three-pipeline comparison measures the executed implementation; this diagnostic only
++shows that the implementation's constraint weighting depends on the chosen units.
++
+ \bibliography{references}
+ 
+ \end{document}
+diff --git a/docs/paper/primary_results_table.tex b/docs/paper/primary_results_table.tex
+index 8304f8f..23d34cc 100644
+--- a/docs/paper/primary_results_table.tex
++++ b/docs/paper/primary_results_table.tex
+@@ -4,7 +4,7 @@
+ \caption{Primary comparison over ten paired runs, 160 simulations per campaign.
+ Entries are medians with 95\% percentile bootstrap intervals (1,000 resamples with a fixed seed number).
+ Pareto sizes count feasible observations nondominated jointly in all three objectives.
+-First-feasible counts are omitted because they mix shared initialization with adaptive search.}
++First-feasible counts are omitted because they mix shared initialization with adaptive search. All values are at the production tracking resolution (Sec.~\ref{sec:problem}).}
+ \label{tab:primary}
+ \small
+ \begin{tabular}{lccc}
+diff --git a/docs/paper/revisions/evidence/c08_settings.tex b/docs/paper/revisions/evidence/c08_settings.tex
+index be65aa5..6c6ba25 100644
+--- a/docs/paper/revisions/evidence/c08_settings.tex
++++ b/docs/paper/revisions/evidence/c08_settings.tex
+@@ -22,7 +22,9 @@ Centroid-distance point & 0.19598 & 1.332 & -3.280 & 33.374 & -37.933 & 305.578
+ Crowding-distance point & 0.19619 & 1.458 & -3.326 & 36.608 & -38.335 & 314.902 \\
+ \bottomrule\end{tabular}\end{table}
+ \begin{table}[htbp]\centering
+-\caption{Nominal objectives of the same settings. The emittances use
++\caption{Nominal objectives of the same settings at the production tracking resolution
++(Sec.~\ref{sec:problem}). The digits identify archived evaluations; they are not resolved
++physical values. The emittances use
+ \si{\micro\metre\radian} and the spread uses \si{\mega\electronvolt}.}
+ \label{tab:selected_objectives}
+ \begin{tabular}{lrrr}\toprule
+diff --git a/docs/paper/robustness_table.tex b/docs/paper/robustness_table.tex
+index 1d41226..5919c5f 100644
+--- a/docs/paper/robustness_table.tex
++++ b/docs/paper/robustness_table.tex
+@@ -3,7 +3,7 @@
+ \caption{Primary lattice-jitter results, evaluated against the production profile. Each setting
+ has 50 feasible outcomes in 50 trials; its two-sided exact 95\% binomial interval is
+ $[0.929,1]$. $D$ is the mean objective ratio and $\mu_{\min}$ is the minimum
+-threshold-normalized margin; neither is a reliability probability.}
++threshold-normalized margin; neither is a reliability probability. All values are at the production tracking resolution (Sec.~\ref{sec:problem}).}
+ \label{tab:robustness_summary}
+ \begin{tabular}{lrrl}\toprule
+ Setting & $D$ & $\mu_{\min}$ & Limiting inequality \\\midrule

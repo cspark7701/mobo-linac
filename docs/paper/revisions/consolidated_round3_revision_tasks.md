@@ -8,7 +8,7 @@
 
 Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its present form, and both describe a route to acceptance that needs **no new simulations**. The route is a sharply framed comparison of the specified pipelines on the nominal numerical model.
 
-**Purpose:** A single working queue that merges the two round3 task lists. Overlapping requests are merged, each reviewer's specific concerns are kept, and conflicts are resolved explicitly. The individual reviewer documents remain the source records. This document does not authorize simulations, manuscript edits or publication actions.
+**Purpose:** A single working queue that merges the two round3 task lists. Overlapping requests are merged, each reviewer's specific concerns are kept, and conflicts are resolved explicitly. The individual reviewer documents remain the source records. This document does not authorize simulations, manuscript edits or publication actions. **All tasks C3-01 to C3-12 are closed (2026-10-30).**
 
 **Excluded at the author's direction (2026-10-29):** funding and acknowledgments, together with `\finaltrue` (remainder of C2-10), and the Zenodo deposition (C2-15). They are not tracked here.
 
@@ -27,7 +27,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-09 | Done (optional fallback split not done) | see below | — |
 | C3-10 | Done (lead-with restructuring with the C3-01 scope text) | see below | — |
 | C3-11 | Closed (2026-10-30): withdrawn with route (b); stage A run, stage B not run | this commit | — |
-| C3-12 | Not started | — | — |
+| C3-12 | Done (2026-10-30) | this commit | — |
 
 All work is committed locally only; nothing has been pushed.
 
@@ -81,7 +81,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-09 | Done (optional fallback split not done) | see below | — | None |
 | C3-10 | Done (lead-with restructuring with the C3-01 scope text) | see below | — | C3-01 to C3-09 |
 | C3-11 | Closed | Refined re-tracking of selected points | ASTRA runs; analysis | Not needed on route (a) |
-| C3-12 | P2 | Point-by-point responses and validation | Documentation; focused checks; PDF build | All of the above |
+| C3-12 | Done | Point-by-point responses and validation | Documentation; focused checks; PDF build | All of the above |
 
 ---
 
@@ -328,17 +328,22 @@ No sentence claims a physically resolved ranking, uniform superiority or an engi
 
 **Sources:** Reviewer 1 R3-07; Reviewer 2 T13.
 
-- [ ] Write `docs/paper/reviews/reviewer1_round3_response.md` and `reviewer2_round3_response.md`. Map each major and minor comment to the changes made, the evidence, or a reasoned non-adoption.
-- [ ] In the Reviewer 2 response, correct the round2 statement that all revision-integration comments had been removed.
-- [ ] Package the manuscript diff against `00190d8`, the analysis-code diff, the changed-file inventory and a round3 overview, as in round2.
-- [ ] Validate:
+- [x] Write `docs/paper/reviews/reviewer1_round3_response.md` and `reviewer2_round3_response.md`. Map each major and minor comment to the changes made, the evidence, or a reasoned non-adoption.
+- [x] In the Reviewer 2 response, correct the round2 statement that all revision-integration comments had been removed.
+- [x] Package the manuscript diff against `00190d8`, the analysis-code diff, the changed-file inventory and a round3 overview, as in round2.
+- [x] Validate:
   - `ruff`, the documentation-sync check and the full test suite with 100 % coverage;
   - the supplement manifest check;
   - both PDF builds.
-- [ ] Inspect the changed tables and figures and their nominal-resolution captions.
-- [ ] Distinguish narrower claims from new validation. Do not equate task closure with reviewer agreement or journal acceptance.
+- [x] Inspect the changed tables and figures and their nominal-resolution captions.
+- [x] Distinguish narrower claims from new validation. Do not equate task closure with reviewer agreement or journal acceptance.
 
 **Done when:** every comment of both reviewers has a traceable disposition, the retained claims match the evidence, and the validation status is reported honestly.
+
+**Done:**
+- **Responses.** `reviewer1_round3_response.md` (M1–M5 and four minors) and `reviewer2_round3_response.md` (R1–R3 and nine minors). Each comment is mapped to its manuscript change and evidence, or to a reasoned non-adoption: the fallback split, the 53-point re-tracking and a converged-resolution comparison. The Reviewer 2 response corrects the round2 statement on revision comments. Following the author's direction for the manuscript, neither response mentions route (b).
+- **Package.** `round3_manuscript.diff`, `round3_analysis_code.diff`, `round3_changed_files.json` (against `00190d8`) and `round3_revision_overview.md`.
+- **Validation.** It is recorded in Task 00308. The overview distinguishes the narrower claims from new validation, and says that task closure is not reviewer agreement or acceptance.
 
 ---
 

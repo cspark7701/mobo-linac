@@ -1,0 +1,276 @@
+{
+  "baseline": "00190d8",
+  "note": "Round3 revision files relative to the reviewed baseline, with current SHA-256 hashes (none for deleted files). Excludes the packaging files (diffs, this inventory, the overview) and the closing task summary to avoid self-reference. Raw simulation outputs under results/ are not tracked and are identified through docs/paper/supplement/ledger_manifest.json.",
+  "counts": {
+    "A": 42,
+    "M": 11,
+    "D": 0
+  },
+  "files": [
+    {
+      "path": "docs/exec-plans/completed/TASK_00290_reviewer2_round3_report.md",
+      "status": "A",
+      "sha256": "f3f601e631c4a631d6157b52a4f3a7748f91d4461e482963c846968a6ac2625e"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00291_reviewer1_round3_manuscript_review.md",
+      "status": "A",
+      "sha256": "67a7808adc58b79e54478d6e9dd392e9d49898d00b8e9e54006dea833d61ea1d"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00292_consolidate_round3_tasks.md",
+      "status": "A",
+      "sha256": "4e621c24a2f4bdb381390cd459d9922bf74f73af58cfb038a60353866e4613eb"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00293_route_b_validation_design.md",
+      "status": "A",
+      "sha256": "c59fa9e414b04ca4ab413eb2d245c95962a2e2738b8ad1703296bce44b08558e"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00294_c3_02_resolution_bounds.md",
+      "status": "A",
+      "sha256": "a2d60538d0fb759c94434c6cc106c9ab49b32394277dd0506710ea1ec1a50b44"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00295_c3_03_attribution_per_baseline.md",
+      "status": "A",
+      "sha256": "52db7b7d1badcbdbd8ebdab8ec0b5e639b096a8dbf5a57d6d062cdb70306c29b"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00296_c3_04_sobol_uncertainty.md",
+      "status": "A",
+      "sha256": "2ffc65052614678aec86a300eaeacf5f8659fc31f0998e0fc24db988f2df7365"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00297_c3_05_tdr_reach.md",
+      "status": "A",
+      "sha256": "cff9a5641901f96025b84d6ac80ede46cef9e206ea64ca66946dc6a98fdebaf3"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00298_c3_06_rf_amplitude_scope.md",
+      "status": "A",
+      "sha256": "d2022e96506692eb04c5c09a620b23e2e466f8ae290578342d451b50f8f71020"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00299_c3_07_supplement_inputs.md",
+      "status": "A",
+      "sha256": "1e76044fcd45230f6c067254ec6f6dadf3909ee8a9fd8478a4b89bd1aa84b02a"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00300_c3_08_summary_claims.md",
+      "status": "A",
+      "sha256": "409d24580dbe5bfd88415dd3e4f4e10063960ccb6321cb72b5e2b58ff48940da"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00301_c3_09_surrogate_hypotheses.md",
+      "status": "A",
+      "sha256": "e1f1425312747fb30929c537e28ee107307778f223e3dc88cce947290d0e6c08"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00302_c3_10_editorial_pass.md",
+      "status": "A",
+      "sha256": "b7094591000feea5263db17f5792125b58c5e1495ba78bcd7981ebd0ffa1fd28"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00303_c3_01_route_a_scope.md",
+      "status": "A",
+      "sha256": "fbdeb34b9bd936f3084215c0158aa8714bf43ce98b5ac9ea2a16bc5b91ac3899"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00304_c3_07_remove_route_b_supplement.md",
+      "status": "A",
+      "sha256": "01cd5674ab6ac78731435d4a51d01f79a10744980a00606399b8894809e3cc70"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00305_c3_05_c3_08_route_a_closure.md",
+      "status": "A",
+      "sha256": "089a35ff777baec8dd6a93e5c424cf8ec0e4e5daa462842176bbd63604264d8a"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00306_abstract_length.md",
+      "status": "A",
+      "sha256": "7f24caaa2b1d5debc99255a67c6df943c2b0bc34ea2f663972d8c2b1d4cd3243"
+    },
+    {
+      "path": "docs/exec-plans/completed/TASK_00307_c3_11_close.md",
+      "status": "A",
+      "sha256": "c9e6b7a8eca5db2bcf1a1735f283c1d56c3f7d777a4e1367ab9f16253b55bf62"
+    },
+    {
+      "path": "docs/paper/main.tex",
+      "status": "M",
+      "sha256": "4d6b3891ac65cad453168b6b3997209f8d57295223293d797d85e0cc5263d45c"
+    },
+    {
+      "path": "docs/paper/primary_results_table.tex",
+      "status": "M",
+      "sha256": "d23abacfecd13d875d13df3acbf277c0775377b2c09c1058fd482945b1cb70e7"
+    },
+    {
+      "path": "docs/paper/reviews/reviewer1_round3_report.md",
+      "status": "A",
+      "sha256": "fe808fe7646fdb468c4e3e0e453ff7a6e774d3e19db03a441a9fa26988808a68"
+    },
+    {
+      "path": "docs/paper/reviews/reviewer1_round3_response.md",
+      "status": "A",
+      "sha256": "62d5049e15f8138a5af5756250e6cf72bbbe360c2125212eb33e20cf89fcecdc"
+    },
+    {
+      "path": "docs/paper/reviews/reviewer2_round3_report.md",
+      "status": "A",
+      "sha256": "a2bf45a80599cfc842c41e920dc1184c47f10d23447a67d137584a25f08c7ad3"
+    },
+    {
+      "path": "docs/paper/reviews/reviewer2_round3_response.md",
+      "status": "A",
+      "sha256": "e57aeb9d29ce51e5da3369a55cf426bbca7bcd1758ba9c2bb78bbf908e57adb4"
+    },
+    {
+      "path": "docs/paper/revisions/consolidated_round3_revision_tasks.md",
+      "status": "A",
+      "sha256": "334c583108f350c1a621a068eb8f2610514b5c340363e390aae50e5cdaf3bb46"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/c08_settings.tex",
+      "status": "M",
+      "sha256": "41e67b0a4c813ddc4b55a5557d29dd1c448cc50ca5d60f90c0fec0b24ac73ace"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r3_regeneration_check.json",
+      "status": "A",
+      "sha256": "5532beb35595886e887f73067cfb8f349253d161acac32d06e350d1accc0f116"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r3_resolution_bounds_metadata.json",
+      "status": "A",
+      "sha256": "13b14711892d1766dd97590dae19b6b50070d07e428f479745a63763a0887f66"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r3_resolution_bounds_paired.csv",
+      "status": "A",
+      "sha256": "3b540c8e30ab2356db67f134d1b1b19766ebaf3b02ee5b474583d86d9a2922ee"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r3_resolution_bounds_runs.csv",
+      "status": "A",
+      "sha256": "b311ebd9afe74b5ed7cd3b61a716e9c5a74351b76717e21191e25819081cc908"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r3_sobol_uncertainty_metadata.json",
+      "status": "A",
+      "sha256": "a0dcea0d71d12a1b629e9e358d4215b686db63029f4845cd897722fd820fa358"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r3_sobol_uncertainty_runs.csv",
+      "status": "A",
+      "sha256": "3584600a150712261967ffd913dfb1d9892b9b56fd58347a46a3e605f075a9a3"
+    },
+    {
+      "path": "docs/paper/revisions/evidence/r3_sobol_uncertainty_summary.csv",
+      "status": "A",
+      "sha256": "3789117d322f2087aade0a17bcfc3d642e3f6ffb78181e06950210c58ee8fafa"
+    },
+    {
+      "path": "docs/paper/revisions/reviewer1_round3_revision_tasks.md",
+      "status": "A",
+      "sha256": "4b75fe4dc8a4374807c8fb20533ba5c5dc0e4f405936fef8aa69aff2096b523e"
+    },
+    {
+      "path": "docs/paper/revisions/reviewer2_round3_revision_tasks.md",
+      "status": "A",
+      "sha256": "3efec694d208e9252263fe05bda65cb551eddd5022e92df189d6b8d034beb505"
+    },
+    {
+      "path": "docs/paper/robustness_table.tex",
+      "status": "M",
+      "sha256": "9b340c974fdd884a484ec9db7bd35f4355253ecdcd1a08ccc2b849aa4e171205"
+    },
+    {
+      "path": "docs/paper/supplement/README.md",
+      "status": "M",
+      "sha256": "fabafb1de1e7970272857ac05188f64974a93e2bf4b4295e3b15326982622478"
+    },
+    {
+      "path": "docs/paper/supplement/evidence_map.csv",
+      "status": "M",
+      "sha256": "2279acfda426a62c955f737902963aef5855d7a98b826fb203bbfcab071ad19d"
+    },
+    {
+      "path": "docs/paper/supplement/input_inventory.csv",
+      "status": "A",
+      "sha256": "961e7d54ffe8dc303601b57aedf48071d51c2bf8e0190f0d658d0e212dd3ce5f"
+    },
+    {
+      "path": "scripts/analyze_revision_resolution_bounds.py",
+      "status": "A",
+      "sha256": "508e3d9b679ecb523dbf6aa0d217edadd43c5da1ff6fe0a97cefb72178054119"
+    },
+    {
+      "path": "scripts/analyze_revision_robustness.py",
+      "status": "M",
+      "sha256": "7a4e4f1759b463ecc19612bbf0af673ec9dbac1772cd9daacb13535dc6fdea40"
+    },
+    {
+      "path": "scripts/analyze_revision_sobol_uncertainty.py",
+      "status": "A",
+      "sha256": "fe2e2a40793d562fafc8eccf38261152e9240c0065f620c6efb06929cc612df8"
+    },
+    {
+      "path": "scripts/build_supplement_manifest.py",
+      "status": "M",
+      "sha256": "ede4ca967b2008b192772221b1be6dbb50ac5d1f3dd14344dfdb798c5d1544c8"
+    },
+    {
+      "path": "scripts/check_supplement_regeneration.py",
+      "status": "A",
+      "sha256": "85137bf2328396074b4b0523bf68c9f0e06b3df1029f6107275e7334eaae50b4"
+    },
+    {
+      "path": "scripts/evaluate_revision_convergence.py",
+      "status": "M",
+      "sha256": "2f64833e969b38459a1a4341233ce7760636cdef1271168f12e7b2cc72ea1d25"
+    },
+    {
+      "path": "scripts/evaluate_revision_validation.py",
+      "status": "A",
+      "sha256": "21dbb3a6b2f140c66e0fc47adc3eabe0803d50cd234cd2f19536b872e00a0292"
+    },
+    {
+      "path": "scripts/generate_primary_paper_table.py",
+      "status": "M",
+      "sha256": "a1b74e691cae197fae43c9c98ef023113829d3569795a2af011b925b5cedc2d1"
+    },
+    {
+      "path": "scripts/revision_ledgers.py",
+      "status": "A",
+      "sha256": "61b5e182567125de3a5613dea5e5124bf1cff806f2365c0ce647ccf5f8e0b7f0"
+    },
+    {
+      "path": "tests/test_manuscript_hygiene.py",
+      "status": "A",
+      "sha256": "b59b837fa04c01f880fc9f87aa7ee92c0f791afc314b1cac23ba266f6f233b62"
+    },
+    {
+      "path": "tests/test_revision_resolution_bounds.py",
+      "status": "A",
+      "sha256": "6bd80225114bea4d39e0a1b526b4bd6fd7b12f71521ad7ddbb1d66f43dca60a4"
+    },
+    {
+      "path": "tests/test_revision_sobol_uncertainty.py",
+      "status": "A",
+      "sha256": "825aaff78a236a2f69941115c5262482449a68784e2eb735a64608311ef6eb69"
+    },
+    {
+      "path": "tests/test_revision_validation.py",
+      "status": "A",
+      "sha256": "6499dcb777c5c3f4d711c47c41038d5b03e76fb7e654f69ebce35ce97e091083"
+    },
+    {
+      "path": "tests/test_supplement_map.py",
+      "status": "M",
+      "sha256": "17af7bb6a0c8bb870028bf74c26af150f9abd7d4267f7bd1a4a64e27c3dfe220"
+    }
+  ]
+}
