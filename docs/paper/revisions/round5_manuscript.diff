@@ -1,0 +1,96 @@
+diff --git a/docs/paper/main.tex b/docs/paper/main.tex
+index 4e9e28a..3eeac33 100644
+--- a/docs/paper/main.tex
++++ b/docs/paper/main.tex
+@@ -204,8 +204,8 @@ The contributions of this work are the following.
+   MOGA-derived reference are checked under jitter; and three campaigns constrained directly
+   by the TDR inequalities are run. At this budget and resolution, TDR-feasible observations
+   are rare and lie within micrometres of the diagnostic limits, where membership is not
+-  resolved numerically: one candidate passes at every refinement level and the other fails at
+-  some (Secs.~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
++  resolved numerically: one candidate passes at every refinement and source level and the
++  other fails at some (Secs.~\ref{sec:moga_reference} and~\ref{sec:tdr_reach}).
+ \item A space-filling reference for the same domain: the shared scrambled-Sobol initial
+   designs and a budget-matched Sobol arm. It shows how much of the feasible-sampling gain
+   any of the optimizers achieve over uniform sampling, and how much is specific to the
+@@ -310,7 +310,8 @@ gives the largest magnitude of the difference between the two combined levels, r
+ medium value. ``Source s.d.''\ is the standard deviation over five regenerated
+ \num{10000}-particle random sources, relative to the production value. Entries are percentages
+ except in the mean-energy row, which gives absolute changes in \si{\mega\electronvolt}; mean
+-energy is recorded to \SI{0.01}{\mega\electronvolt}. These are observed sensitivities at ten
++energy is recorded to \SI{0.01}{\mega\electronvolt}, and its source spread lies below that
++step. These are observed sensitivities at ten
+ settings, not error bounds.}
+ \label{tab:resolution}
+ \small
+@@ -328,7 +329,7 @@ $\sigma_{x'}$, $\sigma_{y'}$ & $-21.0$ to $0.2$ & $-15.4$ to $1.2$ & $\le 2.5$ &
+ $\sigma_z$ & $-0.8$ to $-0.7$ & $-1.0$ to $-0.9$ & $\le 0.3$ & 0.1--0.2 \\
+ \midrule
+ \multicolumn{5}{l}{\textit{Absolute change [\si{\mega\electronvolt}]}} \\
+-$E_\mathrm{kin}$ & $-0.05$ to $0.01$ & $-0.04$ to $0.01$ & $\le 0.02$ & $\le 0.005$ \\
++$E_\mathrm{kin}$ & $-0.05$ to $0.01$ & $-0.04$ to $0.01$ & $\le 0.02$ & $<0.01$ \\
+ \bottomrule
+ \end{tabular}
+ \end{table*}
+@@ -911,13 +912,16 @@ zero, and every difference, including those of each pipeline over the Sobol arm,
+ all ten matched groups in every scenario. The constraint-aware fraction is the most sensitive to
+ the bunch-length limit: a \SI{1}{\percent} longer bunch lowers its mean from 0.405 to 0.364,
+ compared with 0.157 to 0.145 and 0.125 to 0.113 for the baselines, because that pipeline samples
+-close to the limit. Two further post-hoc scenarios give the same result. Scaling sizes and
++close to the limit. Three further post-hoc sensitivity checks leave every paired difference
++positive in all ten groups. Scaling sizes and
+ divergences up by 1.012, the largest step-only increase, gives post-initialization differences of
+-0.279 and 0.311 (0.246--0.295 and 0.280--0.329 with the bunch-length and energy shifts). A
++0.279 and 0.311 (0.246--0.295 and 0.280--0.329 with the bunch-length and energy shifts).
++Scaling them up by 1.17, which covers the largest increase at any single level (one size with
++one regenerated source), gives 0.276 and 0.300 (0.242--0.292 and 0.267--0.317). A
+ differential case that pairs, in each matched group, the lowest constraint-aware fraction over
+ the 27 scenarios with the highest fraction of each baseline gives mean differences of 0.166 and
+ 0.211; the smallest group differences are 0.062 and 0.132, and all ten are positive. None of
+-these scenarios is re-tracking of the primary campaigns, a refinement
++these checks is re-tracking of the primary campaigns, a refinement
+ model for every evaluation or a worst-case error bound. Stability in them does not establish
+ stability under setting- or channel-dependent changes or under converged tracking. The objective-quality indicators are more strongly
+ conditional on the numerical model. The emittance changes are large and differ between
+@@ -1195,8 +1199,9 @@ comparable to the linearized amplitude-induced shift of
+ the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B.
+ Because the scales are comparable, the omitted amplitude errors could reduce their TDR
+ acceptance further and merit a candidate-specific study; no failure count or probability is
+-inferred. Under the lattice-only model, these marginal settings already do not provide
+-jitter-tolerant TDR operation.
++inferred. Under the lattice-only model and the archived threshold, candidate A is fragile;
++candidate B passes the threshold, but its interval does not exclude values below it. Neither
++retains TDR acceptance in every trial.
+ 
+ \IfFileExists{robustness_table.tex}{\inputwide{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
+ robustness of the representatives.}{tab:robustness_summary}}
+@@ -1274,10 +1279,14 @@ $(\enx,\eny,\sigma_E)=(\SI{3.00}{\micro\metre\radian},\
+ \SI{3.52}{\micro\metre\radian},\ \SI{0.403}{\mega\electronvolt})$.
+ It exchanges lower transverse emittances for higher energy spread relative to that tracked
+ example. Different acceptance limits and settings prevent attributing this exchange solely to
+-the algorithm. The emittance differences, about 10--\SI{25}{\percent}, are moreover of the order
+-of the refinement changes and the source spread of Table~\ref{tab:resolution}, and both
+-calculations use a comparable nominal resolution, so they are not resolved numerically. The
+-energy-spread difference is larger than its refinement change. The earlier source was specified by laser parameters, whereas the present study
++the algorithm. The emittance differences, about 10--\SI{25}{\percent}, are moreover not resolved
++numerically. Both calculations use a comparable nominal resolution, so a common refinement offset
++would largely cancel, but the refinement change depends on the setting
++(\SIrange{12}{34}{\percent} in $\enx$ and \SIrange{17}{43}{\percent} in $\eny$ across the
++ten re-tracked settings; Table~\ref{tab:resolution}), and the two sources differ. The
++energy-spread difference exceeds its refinement change, but the published value is not
++established to be the projected RMS spread including chirp used here, so it is not compared
++quantitatively. The earlier source was specified by laser parameters, whereas the present study
+ reuses one fixed distribution file; equality of their full initial distributions is not established.
+ 
+ The NAPAC comparison~\cite{Park2025NAPAC} used independently varied cavity phases and
+@@ -1442,8 +1451,8 @@ retained feasibility under the simulated lattice-only error model, which is not
+ guarantee. All values are nominal-resolution results. A refinement check of ten reported
+ settings showed that the emittances are not converged at that resolution, whereas at those
+ ten settings the energy spread, bunch length, mean energy, transmission and production-profile
+-classifications are stable; absolute emittances should not be quoted without a converged
+-calculation. In the corresponding common-shift scenarios the feasible-sampling advantage of the
++classifications are stable; absolute emittances should not be interpreted as numerically
++converged physical predictions. In the corresponding common-shift scenarios the feasible-sampling advantage of the
+ constraint-aware pipeline persists in every matched group. Supplement S1
+ identifies the inputs of every reported value, and representative analyses that need only the
+ evaluation ledgers were regenerated from that minimal set; the other analyses need further archived

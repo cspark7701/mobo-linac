@@ -14,6 +14,8 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 
 ## Status (2026-10-30)
 
+All round5 tasks, C5-01 to C5-09, are closed. Both optional items (C5-07, C5-08) were done.
+
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
 | C5-01 | Done | TASK_00326 | — |
@@ -24,7 +26,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 | C5-06 | Done | TASK_00330 | — |
 | C5-07 | Done | TASK_00331 | — |
 | C5-08 | Done | TASK_00333 | — |
-| C5-09 | Not started | — | — |
+| C5-09 | Done | TASK_00334 | — |
 
 ## Sources
 
@@ -166,17 +168,19 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 1 R5-03; Reviewer 2 U8.
 
-- [ ] Write `docs/paper/reviews/reviewer1_round5_response.md` (E1, E2) and `reviewer2_round5_response.md` (comments 1–7). Record each optional item as adopted or not.
-- [ ] In the Reviewer 1 response, correct the round4 response (C1, item 4). The largest size increase in the refinement records is 16.2 %, with a regenerated source; 13 % is the 64-cell-grid maximum. Mention it in the Reviewer 2 response (comment 6) as well.
-- [ ] Package the manuscript diff (and the code diff, if C5-08 is done) against `c1e9d21`, a changed-file inventory and a round5 overview, as in round4.
-- [ ] Validate:
+- [x] Write `docs/paper/reviews/reviewer1_round5_response.md` (E1, E2) and `reviewer2_round5_response.md` (comments 1–7). Record each optional item as adopted or not.
+- [x] In the Reviewer 1 response, correct the round4 response (C1, item 4). The largest size increase in the refinement records is 16.2 %, with a regenerated source; 13 % is the 64-cell-grid maximum. Mention it in the Reviewer 2 response (comment 6) as well.
+- [x] Package the manuscript diff (and the code diff, if C5-08 is done) against `c1e9d21`, a changed-file inventory and a round5 overview, as in round4.
+- [x] Validate:
   - `ruff`, the documentation-sync check and the documentation-link test;
   - the full test suite with 100 % coverage, only if code changes (C5-08);
   - the supplement manifest check and the regeneration check;
   - both PDF builds, inspecting Table I and the changed passages; the abstract stays at 262 words with no numbers.
-- [ ] Do not equate task closure with reviewer agreement or journal acceptance.
+- [x] Do not equate task closure with reviewer agreement or journal acceptance.
 
 **Done when:** every comment of both reviewers has a traceable disposition, and the validation status is reported honestly.
+
+**Done:** Responses: `docs/paper/reviews/reviewer1_round5_response.md` (E1, E2 adopted; correction of the round4 "13 %" to 16.2 %) and `reviewer2_round5_response.md` (comments 1–7, all adopted). Package against `c1e9d21`: `round5_manuscript.diff`, `round5_analysis_code.diff`, `round5_changed_files.json` and `round5_revision_overview.md`. Validation is recorded in TASK_00334. The full test suite was not rerun, at the author's direction. Closing the tasks does not establish reviewer agreement or journal acceptance.
 
 ---
 

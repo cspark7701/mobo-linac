@@ -1,0 +1,146 @@
+{
+ "baseline": "c1e9d21",
+ "note": "Round5 revision files relative to the reviewed baseline, with current SHA-256 hashes (none for deleted files). Excludes the packaging files (diffs, this inventory, the overview) and the closing task summary to avoid self-reference. Raw simulation outputs under results/ are not tracked and are identified through docs/paper/supplement/ledger_manifest.json.",
+ "counts": {
+  "A": 23,
+  "M": 4,
+  "D": 0
+ },
+ "files": [
+  {
+   "path": "docs/exec-plans/completed/TASK_00323_reviewer2_round5_report.md",
+   "status": "A",
+   "sha256": "66ea2a945c3be4d3d922d0a99659eb58b8e623dda3fd7da8c57140190993871a"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00324_reviewer1_round5_manuscript_review.md",
+   "status": "A",
+   "sha256": "3f33635204156bfa5818da007ced05b325bc2d7a5e5474366ea92fec205313dc"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00325_consolidate_round5_revision_tasks.md",
+   "status": "A",
+   "sha256": "c60e1498c98583b97808dd5fb9ff9da0045be80494af0c844d6a793d15fdda9e"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00326_c5_01_candidate_jitter.md",
+   "status": "A",
+   "sha256": "241a9ea576abfc7184e2ae2514c121cc728b6fa99e04d9f0e67703b40aab5ee5"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00327_c5_02_kim_comparison.md",
+   "status": "A",
+   "sha256": "c46185e3a8bf399db11365deda6be3de013b96623c79ac78fd1391d4f577cf6e"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00328_c5_03_contribution3_levels.md",
+   "status": "A",
+   "sha256": "a55eab29b06671cd651b0e0656d7d3b9852068a611bcd00bdce0b6d9cac70fc0"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00329_c5_04_table1_energy_spread.md",
+   "status": "A",
+   "sha256": "4f3879ce843dce277519383a20d241c83bbef06cc580314fbfcbb78681da1624"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00330_c5_06_sensitivity_checks_wording.md",
+   "status": "A",
+   "sha256": "a8cc659fe2e96ceaadb2dc0e122a680e79e0d0ece11513a955d860577acf0f20"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00331_c5_07_emittance_quotation.md",
+   "status": "A",
+   "sha256": "c0348732c08835f6680efa46f607b7157d3743b7c2f1679775f75f136ff7f744"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00332_c5_05_supplement_interpretation_note.md",
+   "status": "A",
+   "sha256": "93cbac826fdf9d70a3db9c1687d95df67b27f32dc309205ab93e3dc9fdc2a494"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00333_c5_08_upward_max_scale.md",
+   "status": "A",
+   "sha256": "2f952238ee34b4999c8fbc897398962b6c79e2a111bc7506a550b49d0414f290"
+  },
+  {
+   "path": "docs/paper/main.tex",
+   "status": "M",
+   "sha256": "1a78695727225de46c43195146cda8f98c0f5589eab6541c875d5ad8f98f9ebd"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer1_round5_report.md",
+   "status": "A",
+   "sha256": "bf279fd2aafe973f326434588f76bb4e81c8fdec4c45f5389bacda5f266b96b9"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer1_round5_response.md",
+   "status": "A",
+   "sha256": "09eb761ebb4be3e5d953c9d134633262a20cccd4b64b1d4b2229a5e08daf7959"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer2_round5_report.md",
+   "status": "A",
+   "sha256": "296ac673982766dea942b8fbee873cfba9b20f2e7a8f1a787977b35ff43104a8"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer2_round5_response.md",
+   "status": "A",
+   "sha256": "17c140c86511e0958efc8871809d194be6427cc04340a43125c8022d785acbd2"
+  },
+  {
+   "path": "docs/paper/revisions/consolidated_round5_revision_tasks.md",
+   "status": "A",
+   "sha256": "6aa2db1832619b27302aa0b9acff09cb1d536dd3a0d79694f11f482a224fd022"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r5_upward_max_metadata.json",
+   "status": "A",
+   "sha256": "2d416e978d6d7c59e3290f5e104f679dfccf28c7ec918abe4a4f6ecefbf65fce"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r5_upward_max_paired.csv",
+   "status": "A",
+   "sha256": "262da3de71b0f199e54eeb91e1853eaaecb88a7c4efdc781ffd1b313de05cc08"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r5_upward_max_runs.csv",
+   "status": "A",
+   "sha256": "8963095cd747beb93f89b59dc52136ea25c39029c92abc51724cf5c0a92c18b4"
+  },
+  {
+   "path": "docs/paper/revisions/reviewer1_round5_revision_tasks.md",
+   "status": "A",
+   "sha256": "0a418a10fd35158dac34f1658402765c0964f3671bbe05b245364ed083bd87aa"
+  },
+  {
+   "path": "docs/paper/revisions/reviewer2_round5_revision_tasks.md",
+   "status": "A",
+   "sha256": "b924063aa26a65e5020fd698c89d7ad14452b8bc95b416ab8e9e51525b60f658"
+  },
+  {
+   "path": "docs/paper/supplement/README.md",
+   "status": "M",
+   "sha256": "181f00b9182083573ef19b0c6c082eb83034961172631d721113444d730978aa"
+  },
+  {
+   "path": "docs/paper/supplement/evidence_map.csv",
+   "status": "M",
+   "sha256": "897ccbadef8dcd77d78fea404721583fa82964084582f74501202929a710cf8b"
+  },
+  {
+   "path": "docs/paper/supplement/input_inventory.csv",
+   "status": "M",
+   "sha256": "0467eedd216eecbff62470eb6cb94e78a8c8353168bca3b876f44657e3bf7ea5"
+  },
+  {
+   "path": "scripts/analyze_revision_upward_max.py",
+   "status": "A",
+   "sha256": "67bca74cc5937535d6d4821c45cd3cfb332f6952d0ad1a86dd6bdf321773094a"
+  },
+  {
+   "path": "tests/test_revision_upward_max.py",
+   "status": "A",
+   "sha256": "228afb19c6f9765f7eccb505cd1dd951f2348a501255df4d30145c1318b3f603"
+  }
+ ]
+}
