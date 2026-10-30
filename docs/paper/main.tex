@@ -1,10 +1,12 @@
-% Physical Review Accelerators and Beams manuscript (REVTeX 4.2).
+% Physical Review Accelerators and Beams manuscript (REVTeX 4.2), two-column submission layout.
+% Replace reprint with preprint for the one-column copy; scripts/build_prab_submission.py
+% writes the flat upload folder and the Supplemental Material archive.
 %
 % Results are produced by scripts/production/01_preflight.sh ... 07_paper_outputs.sh.
 % Campaign values are generated from the completed October 2026 production runs.
 % The remaining funding/acknowledgment marker is explicitly deferred to the author.
 % Set \finaltrue only after every \pending marker has been replaced.
-\documentclass[aps,prab,preprint,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
+\documentclass[aps,prab,reprint,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
 
 \usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
@@ -278,7 +280,8 @@ closest observation of the TDR-constrained campaigns (Sec.~\ref{sec:tdr_reach}) 
 representatives of Sec.~\ref{sec:settings}. The levels refine the particle count, the
 space-charge grids and the integration step singly and together, and regenerate the source
 (Appendix~\ref{app:implementation}). Reruns at the production settings reproduce the
-archived values to floating-point precision (Supplement S1.13).
+archived values to floating-point precision (Supplement S1.13 in the Supplemental
+Material~\cite{SupplementalMaterial}).
 
 The emittances are not converged at the production resolution (Table~\ref{tab:resolution}).
 At the fine level they are lower by \SIrange{12}{34}{\percent} horizontally and
@@ -1471,7 +1474,7 @@ The data that support the findings of this study are available from the correspo
 upon reasonable request. They comprise the evaluation ledgers and run records of every
 campaign, the complete simulation run directories, the configuration files and the analysis
 scripts that generate the reported results. Supplement S1 (Appendix~\ref{app:implementation}),
-which is supplied with the manuscript for review, contains the code, configurations and
+provided as Supplemental Material~\cite{SupplementalMaterial}, contains the code, configurations and
 evidence files, and identifies the inputs that each reported result requires.
 
 \appendix
@@ -1481,8 +1484,8 @@ This appendix records implementation details of the executed pipelines that matt
 reproduction but not for the physical argument.
 
 \paragraph{Supporting package.} Supplement S1 is the versioned \texttt{mobo\_linac}~1.0.0
-repository snapshot supplied with this manuscript for review and otherwise available from the
-author on request; it is identified by the commit hash recorded in the review package. Its
+repository snapshot provided as Supplemental Material~\cite{SupplementalMaterial}; it is
+identified by the commit hash recorded with the archive. Its
 evidence map
 (\path{docs/paper/supplement/README.md}) assigns item numbers S1.1--S1.15 to the reported
 results and links each to its evidence file and generating script. Every production step was

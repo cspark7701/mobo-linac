@@ -74,9 +74,9 @@ completion of funding and acknowledgments before submission.
 The manuscript targets Physical Review Accelerators and Beams (author decision,
 2026-10-29). It uses REVTeX 4.2 (`revtex4-2`, options `aps,prab,preprint`) with the
 `apsrev4-2` bibliography style, has no table of contents and no keywords, and follows APS
-cross-reference style (Sec., Fig., Table, Appendix). The review copy is set in one
-column (`preprint`); replacing `preprint` with `reprint` gives the two-column PRAB layout.
-In the one-column copy the abstract is single-spaced so that it stays on the title page,
+cross-reference style (Sec., Fig., Table, Appendix). The submission copy is set in the
+two-column PRAB layout (`reprint`); replacing `reprint` with `preprint` gives the one-column
+copy. In the one-column copy the abstract is single-spaced so that it stays on the title page,
 and the Introduction starts on a new page. Figures and generated tables are written as
 page-wide floats, which also span both columns in the two-column layout; generated tables
 are included through `\inputwide`, so the table generators are unchanged, and figure
@@ -85,6 +85,15 @@ heights are capped at 0.7 of the text height. The historical publisher files
 until `\finaltrue` is set. Build with
 `latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex` from the
 repository root; repeated passes resolve the references.
+
+The supplement is cited as APS Supplemental Material (`SupplementalMaterial` in
+`references.bib`, "[URL will be inserted by publisher]"). After the build above,
+`python scripts/build_prab_submission.py --compile` writes the upload folder
+`build/prab_submission/`: `manuscript.tex` with the generated tables and the bibliography
+(`main.bbl`) inlined, the cited figures without subdirectories, `supplement_S1.zip` (a
+`git archive` of the committed snapshot without `docs/paper/reviews/`) and
+`submission_manifest.json` with the commit and the SHA-256 of every file. `--compile`
+builds the flat copy to check that it is self-contained. The folder is not committed.
 
 The primary and survey Pareto panels are scatter-only and keep every measured feasible
 three-objective nondominated observation. No connecting lines, interpolation, or fitted

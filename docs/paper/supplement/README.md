@@ -1,11 +1,11 @@
 # Supplement S1: evidence map for the manuscript
 
-This supplement is the `mobo-linac` repository snapshot supplied with the manuscript
-"Multi-objective Bayesian optimization of a 200 MeV injector-linac model derived from the
-Korea Light Source design" for review. Outside review it is available from the author on
-request, as stated in the manuscript's Data availability section. The snapshot is identified
-by the commit hash recorded in the review package (the revision overview and its
-changed-file inventory). It identifies, for each result reported in the article, the
+This supplement is the `mobo-linac` repository snapshot provided as the Supplemental Material
+of the manuscript "Multi-objective Bayesian optimization of a 200 MeV injector-linac model
+derived from the Korea Light Source design", as stated in its Data availability section.
+`scripts/build_prab_submission.py` writes it as `supplement_S1.zip`, without the referee
+correspondence in `docs/paper/reviews/`, and records the snapshot's commit hash in
+`submission_manifest.json`. It identifies, for each result reported in the article, the
 file that holds it, the script that computes that file, and the run-level inputs.
 Item numbers S1.1–S1.15 are the identifiers the manuscript cites. Internal task numbers are
 not needed to use it.
