@@ -1177,9 +1177,12 @@ mainly of the horizontal-size limit and, for candidate B, also the vertical dive
 the archived fragility threshold of 0.8, candidate A would be classified as fragile. Their TDR
 lower-energy margins, \SI{0.31}{\mega\electronvolt} and \SI{0.14}{\mega\electronvolt}, are
 comparable to the linearized amplitude-induced shift of
-\SIrange{0.28}{0.40}{\mega\electronvolt} RMS, which indicates that amplitude jitter would cause
-further TDR failures. These marginal settings therefore do not provide jitter-tolerant TDR
-operation in this model.
+\SIrange{0.28}{0.40}{\mega\electronvolt} RMS. That shift is estimated from the energy gains of
+the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B.
+Because the scales are comparable, the omitted amplitude errors could reduce their TDR
+acceptance further and merit a candidate-specific study; no failure count or probability is
+inferred. Under the lattice-only model, these marginal settings already do not provide
+jitter-tolerant TDR operation.
 
 \IfFileExists{robustness_table.tex}{\inputwide{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
 robustness of the representatives.}{tab:robustness_summary}}

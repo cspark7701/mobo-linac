@@ -21,7 +21,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | C4-03 | Done | TASK_00313 | — |
 | C4-04 | Done | TASK_00314 | — |
 | C4-05 | Done | TASK_00315 | — |
-| C4-06 | Not started | — | — |
+| C4-06 | Done | TASK_00316 | — |
 | C4-07 | Not started | — | — |
 | C4-08 | Not started | — | — |
 | C4-09 | Not started | — | — |
@@ -151,11 +151,13 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 1 C2 (R4-02); Reviewer 2 round3 minor 2 (the comparison itself).
 
-- [ ] Replace "indicates that amplitude jitter would cause further TDR failures" with a conditional statement. Because the scales are comparable, omitted amplitude errors could reduce TDR acceptance and merit a candidate-specific study.
-- [ ] Say that the gain estimate comes from the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B.
-- [ ] Keep the measured lattice-only counts (36/50 and 44/50) and their intervals. Infer no failure count or probability.
+- [x] Replace "indicates that amplitude jitter would cause further TDR failures" with a conditional statement. Because the scales are comparable, omitted amplitude errors could reduce TDR acceptance and merit a candidate-specific study.
+- [x] Say that the gain estimate comes from the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B.
+- [x] Keep the measured lattice-only counts (36/50 and 44/50) and their intervals. Infer no failure count or probability.
 
 **Done when:** the text distinguishes a scale-based risk indication from demonstrated amplitude-induced failures.
+
+**Done:** Sec. V D no longer says that amplitude jitter "would cause further TDR failures". It states that the 0.28–0.40 MeV RMS shift is estimated from the energy gains of the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B; that, because the scales are comparable, the omitted amplitude errors could reduce their TDR acceptance further and merit a candidate-specific study; and that no failure count or probability is inferred. The lattice-only counts 36/50 and 44/50 and their intervals are unchanged. No other passage makes an amplitude claim about the candidates.
 
 ### C4-07. Table I units and comparison convention
 
