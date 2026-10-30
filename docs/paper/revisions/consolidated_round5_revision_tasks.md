@@ -17,7 +17,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
 | C5-01 | Done | TASK_00326 | — |
-| C5-02 | Not started | — | — |
+| C5-02 | Done | TASK_00327 | — |
 | C5-03 | Not started | — | — |
 | C5-04 | Not started | — | — |
 | C5-05 | Not started | — | — |
@@ -92,10 +92,12 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 2 comment 2 (U2).
 
-- [ ] **(a)** Sec. VI A: base "not resolved numerically" on the setting dependence of the refinement change (12–34 % in ε_x and 17–43 % in ε_y across the ten settings) and on the different sources, not on the size of the change. A common offset at the same nominal resolution would largely cancel.
-- [ ] **(b)** Qualify "The energy-spread difference is larger than its refinement change". The present σ_E is the projected RMS spread including chirp (Sec. II B); say that the definition of the published 0.165 % is not established to be the same, or restrict the sentence to the numerical point.
+- [x] **(a)** Sec. VI A: base "not resolved numerically" on the setting dependence of the refinement change (12–34 % in ε_x and 17–43 % in ε_y across the ten settings) and on the different sources, not on the size of the change. A common offset at the same nominal resolution would largely cancel.
+- [x] **(b)** Qualify "The energy-spread difference is larger than its refinement change". The present σ_E is the projected RMS spread including chirp (Sec. II B); say that the definition of the published 0.165 % is not established to be the same, or restrict the sentence to the numerical point.
 
 **Done when:** the paragraph makes no emittance or energy-spread comparison stronger than the evidence supports.
+
+**Done:** Sec. VI A now says that the emittance differences (about 10–25 %) are not resolved numerically because the refinement change depends on the setting (12–34 % in ε_x and 17–43 % in ε_y across the ten re-tracked settings; Table I) and the two sources differ; a common refinement offset at the shared nominal resolution would largely cancel. The energy-spread sentence now says that the difference exceeds its refinement change, but that the published value is not established to be the projected RMS spread including chirp used here, so it is not compared quantitatively.
 
 ### C5-03. Contribution 3 precision
 
