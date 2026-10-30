@@ -18,7 +18,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 |---|---|---|---|
 | C4-01 | Done | TASK_00312 | — |
 | C4-02 | Not started (optional) | — | — |
-| C4-03 | Not started | — | — |
+| C4-03 | Done | TASK_00313 | — |
 | C4-04 | Not started | — | — |
 | C4-05 | Not started | — | — |
 | C4-06 | Not started | — | — |
@@ -118,10 +118,12 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 2 comment 1 (T1).
 
-- [ ] Contribution 3: replace "their membership changes under numerical refinement" with a statement true for both candidates. Candidate B passes at all fifteen levels; candidate A fails on the 64-cell grid and with two of five sources. For example: "membership near the limits is not resolved numerically".
-- [ ] Check the abstract and Sec. VI B for the same generalization.
+- [x] Contribution 3: replace "their membership changes under numerical refinement" with a statement true for both candidates. Candidate B passes at all fifteen levels; candidate A fails on the 64-cell grid and with two of five sources. For example: "membership near the limits is not resolved numerically".
+- [x] Check the abstract and Sec. VI B for the same generalization.
 
 **Done when:** contribution 3, Sec. VI B and the Conclusions agree.
+
+**Done:** Contribution 3 now says that TDR-feasible observations lie within micrometres of the diagnostic limits, "where membership is not resolved numerically: one candidate passes at every refinement level and the other fails at some". This matches Sec. VI B (candidate B passes at all fifteen levels; candidate A fails on the 64-cell grid and with two of five sources) and the Conclusions ("membership near the limits is not numerically resolved"). The abstract makes no membership claim.
 
 ### C4-04. Regeneration claim of the Conclusions
 
