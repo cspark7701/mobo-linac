@@ -26,7 +26,7 @@ Both reviewed the manuscript at `00190d8`. Neither finds it acceptable in its pr
 | C3-08 | Done (final audit after the route (a) scope text) | see below | — |
 | C3-09 | Done (optional fallback split not done) | see below | — |
 | C3-10 | Done (lead-with restructuring with the C3-01 scope text) | see below | — |
-| C3-11 | Withdrawn with route (b) (2026-10-30); stage A run, stage B not run | this commit | — |
+| C3-11 | Closed (2026-10-30): withdrawn with route (b); stage A run, stage B not run | this commit | — |
 | C3-12 | Not started | — | — |
 
 All work is committed locally only; nothing has been pushed.
@@ -80,7 +80,7 @@ Priority: **P0** is required by at least one reviewer (a major comment); **P1** 
 | C3-08 | Done (final audit after the route (a) scope text) | see below | — | C3-01 to C3-06 |
 | C3-09 | Done (optional fallback split not done) | see below | — | None |
 | C3-10 | Done (lead-with restructuring with the C3-01 scope text) | see below | — | C3-01 to C3-09 |
-| C3-11 | Withdrawn | Refined re-tracking of selected points | ASTRA runs; analysis | Not needed on route (a) |
+| C3-11 | Closed | Refined re-tracking of selected points | ASTRA runs; analysis | Not needed on route (a) |
 | C3-12 | P2 | Point-by-point responses and validation | Documentation; focused checks; PDF build | All of the above |
 
 ---
@@ -312,17 +312,17 @@ No sentence claims a physically resolved ranking, uniform superiority or an engi
 
 
 **Done:** Nominal-resolution labels on Tables IV, V and X (also in the two table generators) and on both Pareto figures; Sec. V H states that quoted digits identify archived evaluations; running-text emittances and spreads rounded to three significant figures (published values of earlier studies kept as published). Sec. III A qualifies determinism with the 1–12 % source-sampling spread. Sec. V F is a short summary with the probe moved to new Appendix `app:smoothing`; the stage, region and refit detail of Sec. V G moved to Appendix D with a summary kept; Sec. II A reduced to its findings with the level definitions in Appendix A. Abstract sentence split. APS style: Ref., Sec. 4.3. The `% C05` comment removed; `tests/test_manuscript_hygiene.py` fails on revision-tag comments in main.tex and its included inputs (unincluded evidence snippets keep their headers). Table `tab:resolution` is full-width. Builds: one-column 56 pages, two-column 31 pages, both without errors, undefined references or overfull boxes. The lead-with reordering was done with the C3-01 scope text (2026-10-30). The abstract was then shortened to 262 words, against 263 at `00190d8`, so the corrections do not lengthen it. The weighting survey is no longer mentioned, and the TDR-campaign clause reads "approach but do not meet them at the nominal resolution".
-### C3-11. 🖥 Refined re-tracking of selected points (withdrawn)
+### C3-11. 🖥 Refined re-tracking of selected points (closed)
 
 **Sources:** Reviewer 2 R2, optional; Reviewer 1 M1, conditional on route (b). **Authorized by the author on 2026-10-29 together with route (b), with 20 workers.** The design is the one recorded under C3-01; it covers both reviewers' variants. The 53 pooled-reference points are part of the per-run front stratum.
 
-- [ ] *Reviewer 2 variant:* re-track the 53 pooled-reference points at the `combined_medium` level, at about 20 min per run (roughly 2 h with eight workers). Report whether each method keeps its points on the refined pooled front.
-- [ ] *Reviewer 1 variant (route (b) only):* first write a tolerance-based, method-balanced validation design. It must include rejected and boundary observations of every arm and state what the design can and cannot establish. Obtain separate approval before tracking. Full campaign replication is not the first step.
-- [ ] Record any run separately from the production campaigns, as with C2-12.
+- [x] *Reviewer 2 variant:* **not run** (closed). re-track the 53 pooled-reference points at the `combined_medium` level, at about 20 min per run (roughly 2 h with eight workers). Report whether each method keeps its points on the refined pooled front.
+- [x] *Reviewer 1 variant (route (b) only):* **design written and stage A run; stage B not run** (closed). first write a tolerance-based, method-balanced validation design. It must include rejected and boundary observations of every arm and state what the design can and cannot establish. Obtain separate approval before tracking. Full campaign replication is not the first step.
+- [x] Record any run separately from the production campaigns, as with C2-12. Stage A is in `results/revision_round3/ladder/`, apart from production.
 
 **Done when:** not applicable unless authorized.
 
-**Status (2026-10-30):** Withdrawn together with route (b). Stage A ran, stage B did not, and neither variant above is pursued. See the route (b) record under C3-01.
+**Closed (2026-10-30):** Withdrawn together with route (b) at the author's direction. Stage A ran and stage B did not. Neither variant is pursued, and nothing from this task enters the manuscript or Supplement S1. The responses record the 53-point re-tracking as not run. See the route (b) record under C3-01.
 
 ### C3-12. Responses and validation
 
