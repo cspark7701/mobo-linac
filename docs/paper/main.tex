@@ -60,31 +60,29 @@
 
 \begin{abstract}
 \abstractspacing
-Optimization of an electron injector linac requires balancing transverse beam emittances and
-energy spread while satisfying beam transport and transmission constraints. We compare
-specified Bayesian optimization pipelines on a fixed-lattice S-band injector-linac model derived
-from the Korea Light Source design, using ASTRA space-charge tracking at a fixed nominal
-numerical resolution. Magnetic strengths and RF phases are varied to minimize the horizontal and
-vertical normalized RMS emittances and RMS energy spread. Constraint-aware and unconstrained
-multi-objective Bayesian optimization are compared with weighted-sum Bayesian optimization using
-matched simulation budgets and shared initial designs, under a deliberately relaxed
-computational acceptance profile. Paired analyses support a higher feasible sampling fraction
-for constraint-aware acquisition, which persists among energy-acceptable settings and lies
-mainly in the transverse limits against unconstrained optimization but in the energy band
-against weighted-sum optimization. All pipelines sample feasible settings more often than a
-budget-matched space-filling search, while the weighted-sum implementation has the lowest
-computational overhead. A refinement check shows that the absolute emittances are not converged
-at the nominal resolution. The feasible-sampling advantage persists under the measured
-refinement shifts, whereas objective-quality comparisons depend on the indicator, the
-comparator and the fixed numerical model. All methods identify feasible nondominated operating
-points, revealing trade-offs between transverse beam quality and energy spread. The stricter
-optimization requirements of the Korea Light Source technical design are met by only a few
-sampled settings, with small diagnostic margins, and campaigns constrained by them approach
-those limits to within the numerical resolution of the model. A survey of scalarization
-weightings explores additional trade-offs, and a limited lattice-only jitter assessment retains
-feasibility for the selected operating points. The results compare the specified pipelines
-within the nominal numerical model and computational acceptance profile; they are not a
-physically resolved optimization of the injector.
+Injector-linac optimization must balance transverse emittances and energy spread while
+satisfying beam transport and transmission constraints. We compare specified Bayesian
+optimization pipelines on a fixed-lattice S-band injector-linac model derived from the Korea
+Light Source design, using ASTRA space-charge tracking at a fixed nominal numerical resolution.
+Magnetic strengths and RF phases are varied to minimize the horizontal and vertical normalized
+RMS emittances and RMS energy spread. Constraint-aware and unconstrained multi-objective
+Bayesian optimization are compared with weighted-sum Bayesian optimization using matched
+simulation budgets and shared initial designs, under a deliberately relaxed computational
+acceptance profile. Paired analyses support a higher feasible sampling fraction for
+constraint-aware acquisition, which persists among energy-acceptable settings and lies mainly
+in the transverse limits against unconstrained optimization but in the energy band against
+weighted-sum optimization. All pipelines sample feasible settings more often than a
+budget-matched space-filling search; the weighted-sum implementation has the lowest
+computational overhead. A refinement check shows that the absolute emittances are not
+converged at the nominal resolution. The feasible-sampling advantage persists under the
+measured refinement shifts, whereas objective-quality comparisons depend on the indicator,
+the comparator and the fixed numerical model. All methods identify feasible nondominated
+settings that expose trade-offs between transverse beam quality and energy spread. The stricter
+Korea Light Source technical-design requirements are met by only a few sampled settings, with
+small diagnostic margins; campaigns constrained by them approach but do not meet them at the
+nominal resolution. A lattice-only jitter assessment retains feasibility for
+selected operating points. The results hold within the nominal numerical model
+and acceptance profile and are not a physically resolved injector optimization.
 \end{abstract}
 
 \maketitle
