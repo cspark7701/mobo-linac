@@ -21,7 +21,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 | C5-03 | Done | TASK_00328 | — |
 | C5-04 | Done | TASK_00329 | — |
 | C5-05 | Not started | — | — |
-| C5-06 | Not started | — | — |
+| C5-06 | Done | TASK_00330 | — |
 | C5-07 | Not started (optional) | — | — |
 | C5-08 | Not started (optional) | — | — |
 | C5-09 | Not started | — | — |
@@ -127,10 +127,12 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 1 E2 (R5-02); Reviewer 2 comment 7 (U7).
 
-- [ ] Replace "Two further post-hoc scenarios give the same result" with, for example, "Two further post-hoc sensitivity checks leave every paired difference positive in all ten groups".
-- [ ] Keep the upward family, the differential calculation, the reported values and the statement that none of these is an error bound.
+- [x] Replace "Two further post-hoc scenarios give the same result" with, for example, "Two further post-hoc sensitivity checks leave every paired difference positive in all ten groups".
+- [x] Keep the upward family, the differential calculation, the reported values and the statement that none of these is an error bound.
 
 **Done when:** the text distinguishes the two constructions from the shifts inside them and states exactly what they show.
+
+**Done:** Sec. V B now reads "Two further post-hoc sensitivity checks leave every paired difference positive in all ten groups" instead of "Two further post-hoc scenarios give the same result". The upward family, the differential calculation, the reported values and the statement that none of these is an error bound are unchanged. This settles Reviewer 1 E2 and Reviewer 2 comment 7.
 
 ### C5-07. Optional: the emittance-quotation sentence (Conclusions)
 
