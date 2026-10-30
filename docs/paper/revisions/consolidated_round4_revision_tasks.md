@@ -20,7 +20,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | C4-02 | Not started (optional) | — | — |
 | C4-03 | Done | TASK_00313 | — |
 | C4-04 | Done | TASK_00314 | — |
-| C4-05 | Not started | — | — |
+| C4-05 | Done | TASK_00315 | — |
 | C4-06 | Not started | — | — |
 | C4-07 | Not started | — | — |
 | C4-08 | Not started | — | — |
@@ -140,10 +140,12 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 2 comment 4 (T4).
 
-- [ ] First sentence of the Discussion: attach the nominal-resolution condition to "a larger feasible Pareto set", or move the set size to the front-quality sentence, which is already conditioned.
-- [ ] Check the abstract and the Conclusions for unconditioned set-size or front-quality claims.
+- [x] First sentence of the Discussion: attach the nominal-resolution condition to "a larger feasible Pareto set", or move the set size to the front-quality sentence, which is already conditioned.
+- [x] Check the abstract and the Conclusions for unconditioned set-size or front-quality claims.
 
 **Done when:** no objective-space quantity is stated without the nominal-model condition.
+
+**Done:** The first Discussion sentence now states only the larger feasible fraction. The larger feasible Pareto set moved into the objective-quality sentence, which says that these objective-space results, "the set size among them", hold only for the fixed source file at the production resolution. Sec. V A labels the median cardinalities as depending on the nominal-resolution objective values. The abstract and the Conclusions state only that feasible nondominated settings exist, not their number.
 
 ### C4-06. Keep the RF-amplitude implication for the TDR candidates conditional
 

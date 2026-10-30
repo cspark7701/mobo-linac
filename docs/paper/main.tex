@@ -822,7 +822,8 @@ Table~\ref{tab:primary} summarizes the measured feasible sampling fractions and 
 while Fig.~\ref{fig:benchmark} shows how the feasible fraction evolves during optimization.
 Median feasible fractions were \SI{40.6}{\percent} [\SI{35.6}{\percent}, \SI{45.6}{\percent}], \SI{15.0}{\percent} [\SI{12.8}{\percent}, \SI{18.8}{\percent}] and
 \SI{12.5}{\percent} [\SI{11.2}{\percent}, \SI{13.8}{\percent}] for the constraint-aware, unconstrained and weighted-sum algorithms.
-Median feasible Pareto cardinalities were 13.5, 7.0 and 4.0. All three methods therefore
+Median feasible Pareto cardinalities, which depend on the objective values at the nominal
+resolution, were 13.5, 7.0 and 4.0. All three methods therefore
 identified feasible nondominated solutions.
 
 Five of the ten shared initial designs already contained a feasible setting. First-feasible
@@ -1218,14 +1219,15 @@ supports no statement about MOGA sample efficiency.
 %==========================================================================================
 \section{Discussion}
 \label{sec:discussion}
-Constraint-aware acquisition produced a larger feasible fraction and a larger feasible Pareto
-set over ten runs, while completing campaigns more slowly than the unconstrained and
+Constraint-aware acquisition produced a larger feasible fraction over ten runs, while completing campaigns more slowly than the unconstrained and
 weighted-sum methods. The paired analysis supports its feasible-sampling advantage over both
-baselines without any estimated reference. Evidence for objective quality is weaker in kind:
+baselines without any estimated reference. Evidence for objective quality, including its
+larger feasible Pareto set, is weaker in kind:
 the paired epsilon, IGD+ and hypervolume differences favour the constraint-aware pipeline even
 when the reference is rebuilt in each resample, but they are measured against a reference
 estimated from the same runs, and the exploratory signed-rank calculations against
-unconstrained MOBO do not pass the multiplicity correction. They also hold only for the fixed
+unconstrained MOBO do not pass the multiplicity correction. These objective-space results,
+the set size among them, also hold only for the fixed
 source file at the production resolution, whereas the feasible-sampling advantage persists
 in the common-shift scenarios motivated by the refinement check. A larger
 feasible set therefore should not be read as uniform superiority of the observed Pareto front.
