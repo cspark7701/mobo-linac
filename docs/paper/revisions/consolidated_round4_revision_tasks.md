@@ -16,7 +16,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
-| C4-01 | Not started | — | — |
+| C4-01 | Done | TASK_00312 | — |
 | C4-02 | Not started (optional) | — | — |
 | C4-03 | Not started | — | — |
 | C4-04 | Not started | — | — |
@@ -84,19 +84,21 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 1 C1 (R4-01); Reviewer 2 comment 9 (T9) and the text part of comment 5(a).
 
-- [ ] Replace every description of the analysis as a bound:
+- [x] Replace every description of the analysis as a bound:
   - "To bound the effect of the numerical resolution" (Sec. V B);
   - "Sec. V B bounds that effect" (Sec. II A);
   - "bounding shifts" (Discussion, Limitations, Conclusions, contribution 5).
 
   Use "post-hoc common-shift sensitivity scenarios motivated by the ten-setting refinement check", or an equivalent concise phrase.
-- [ ] In the main result (Sec. V B), state that each scenario applies the same transverse factor, bunch-length factor and energy shift to every evaluation of every method.
-- [ ] State that stability in these 27 scenarios does not establish stability under setting- or channel-dependent changes or under converged tracking.
-- [ ] State that the grid does not enclose every measured change: it omits the small positive transverse changes of Table I (up to 1.2 %, step only).
-- [ ] Abstract: "persists in the tested diagnostic-shift scenarios" (Reviewer 1's wording; this also settles Reviewer 2's comment 9). Keep the abstract free of numbers and ≤ 262 words.
-- [ ] Keep the computed values, the 27 scenarios and the `r3_resolution_bounds_*` filenames. If the metadata note is updated, record it as an interpretation correction.
+- [x] In the main result (Sec. V B), state that each scenario applies the same transverse factor, bunch-length factor and energy shift to every evaluation of every method.
+- [x] State that stability in these 27 scenarios does not establish stability under setting- or channel-dependent changes or under converged tracking.
+- [x] State that the grid does not enclose every measured change: it omits the small positive transverse changes of Table I (up to 1.2 %, step only).
+- [x] Abstract: "persists in the tested diagnostic-shift scenarios" (Reviewer 1's wording; this also settles Reviewer 2's comment 9). Keep the abstract free of numbers and ≤ 262 words.
+- [x] Keep the computed values, the 27 scenarios and the `r3_resolution_bounds_*` filenames. If the metadata note is updated, record it as an interpretation correction.
 
 **Done when:** no reader can mistake the scenarios for re-tracking of the primary campaigns, a worst-case error bound or demonstrated convergence. Abstract, contribution 5, Secs. II A and V B, the Discussion, the Limitations and the Conclusions use the same wording.
+
+**Done:** Every description of the 27 transformations as a bound is replaced by post-hoc common-shift sensitivity scenarios: abstract ("persists in the tested diagnostic-shift scenarios", still 262 words and no digits), contribution 5, Sec. II A, Sec. V B, the Discussion, the Limitations and the Conclusions. Sec. V B states that every scenario applies the same changes to every evaluation of every method, that the grid omits the measured increases of sizes and divergences (up to 1.2 % step only; larger for some single-factor and source levels at individual settings), and that stability in the scenarios does not establish stability under setting- or channel-dependent changes or converged tracking. Values, scenarios and the `r3_resolution_bounds_*` files are unchanged; their metadata note is not rewritten.
 
 ### C4-02. Optional: upward-shift and differential scenarios
 

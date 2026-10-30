@@ -74,8 +74,8 @@ in the transverse limits against unconstrained optimization but in the energy ba
 weighted-sum optimization. All pipelines sample feasible settings more often than a
 budget-matched space-filling search; the weighted-sum implementation has the lowest
 computational overhead. A refinement check shows that the absolute emittances are not
-converged at the nominal resolution. The feasible-sampling advantage persists under the
-measured refinement shifts, whereas objective-quality comparisons depend on the indicator,
+converged at the nominal resolution. The feasible-sampling advantage persists in the
+tested diagnostic-shift scenarios, whereas objective-quality comparisons depend on the indicator,
 the comparator and the fixed numerical model. All methods identify feasible nondominated
 settings that expose trade-offs between transverse beam quality and energy spread. The stricter
 Korea Light Source technical-design requirements are met by only a few sampled settings, with
@@ -213,8 +213,8 @@ The contributions of this work are the following.
   refined particle, grid and step resolutions show that the emittances are not converged at
   the nominal resolution and change by tens of percent, whereas at those settings the energy
   spread, bunch length, mean energy, transmission and production-profile classifications are
-  stable. Under bounding shifts taken from this check the feasible-sampling comparison is
-  preserved; the front-quality comparisons are not tested at a converged resolution
+  stable. In post-hoc common-shift scenarios motivated by this check the feasible-sampling
+  comparison is preserved; the front-quality comparisons are not tested at a converged resolution
   (Secs.~\ref{sec:problem} and~\ref{sec:primary}). This is a stated limitation of the
   nominal model, not a convergence result.
 \end{enumerate}
@@ -292,7 +292,7 @@ production profile at every level, whereas TDR classifications within a few perc
 limits change (Sec.~\ref{sec:tdr_reach}). These ten settings are feasible and come mostly from
 constraint-aware searches. They contain no rejected or baseline observation, so their stable
 classification does not show that the classifications of the primary evaluations are stable;
-Sec.~\ref{sec:primary} bounds that effect. All objective values, feasibility classifications and margins
+Sec.~\ref{sec:primary} examines that effect in post-hoc common-shift scenarios. All objective values, feasibility classifications and margins
 are therefore results at the nominal resolution. The absolute emittances exceed the refined
 values, and the method comparisons hold within this fixed numerical model. The fixed GP
 observation variance provides regularization and does not measure tracking-discretization
@@ -883,21 +883,27 @@ were also closer to the pooled front, but this objective-quality evidence depend
 data-derived reference and does not establish uniform algorithm superiority or global
 optimality.
 
-To bound the effect of the numerical resolution on the feasible fractions, we reclassified the
-archived diagnostics of all primary and Sobol-arm evaluations under shifts taken from
-Table~\ref{tab:resolution}: beam sizes and divergences scaled by 0.78, 0.89 or 1, bunch length
+To examine how the numerical resolution could affect the feasible fractions, we reclassified
+the archived diagnostics of all primary and Sobol-arm evaluations in post-hoc common-shift
+sensitivity scenarios motivated by the refinement check (Table~\ref{tab:resolution}). Each
+scenario applies the same transverse factor, bunch-length factor and energy shift to every
+evaluation of every method: beam sizes and divergences scaled by 0.78, 0.89 or 1, bunch length
 changed by \SI{\pm1}{\percent}, and mean energy shifted by
-\SI{\pm0.05}{\mega\electronvolt} (27 combinations; post hoc). The median feasible fraction
+\SI{\pm0.05}{\mega\electronvolt} (27 scenarios). The grid does not enclose every measured
+change. It omits the increases of sizes and divergences, up to \SI{1.2}{\percent} in the
+step-only column of Table~\ref{tab:resolution} and larger for some single-factor and
+regenerated-source levels at individual settings. The median feasible fraction
 ranges from 0.369 to 0.466 for constraint-aware MOBO, compared with 0.147--0.213 and
 0.113--0.181 for the unconstrained and scalarized pipelines. After initialization, the mean
 paired differences of the constraint-aware pipeline stay between 0.239 and 0.294 against
 unconstrained MOBO and between 0.279 and 0.335 against scalarized BO; every interval excludes
 zero, and every difference, including those of each pipeline over the Sobol arm, is positive in
-all ten matched groups under every shift. The constraint-aware fraction is the most sensitive to
+all ten matched groups in every scenario. The constraint-aware fraction is the most sensitive to
 the bunch-length limit: a \SI{1}{\percent} longer bunch lowers its mean from 0.405 to 0.364,
 compared with 0.157 to 0.145 and 0.125 to 0.113 for the baselines, because that pipeline samples
-close to the limit. These shifts bound the changes observed at ten settings; they are not a
-refinement model for every evaluation. The objective-quality indicators are more strongly
+close to the limit. The scenarios are not re-tracking of the primary campaigns, a refinement
+model for every evaluation or a worst-case error bound. Stability in them does not establish
+stability under setting- or channel-dependent changes or under converged tracking. The objective-quality indicators are more strongly
 conditional on the numerical model. The emittance changes are large and differ between
 settings, and the random-source spread is comparable to many paired epsilon and IGD+
 differences, so those comparisons hold for the fixed source file at the production resolution.
@@ -1220,7 +1226,7 @@ when the reference is rebuilt in each resample, but they are measured against a 
 estimated from the same runs, and the exploratory signed-rank calculations against
 unconstrained MOBO do not pass the multiplicity correction. They also hold only for the fixed
 source file at the production resolution, whereas the feasible-sampling advantage persists
-under the bounding shifts of the refinement check. A larger
+in the common-shift scenarios motivated by the refinement check. A larger
 feasible set therefore should not be read as uniform superiority of the observed Pareto front.
 The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
 infeasible upper ACC3/ACC4 phase region, although both contribute: it persists among
@@ -1337,8 +1343,9 @@ The tracking model uses one fixed source file and the particle, grid and step re
 the previous injector study. The refinement check of Sec.~\ref{sec:problem} shows that the
 emittances are not converged at this resolution and that TDR classifications near the limits
 change under refinement, so all results are nominal-resolution results. Reclassifying the
-archived evaluations under bounding shifts preserves the feasible-sampling comparison, but the
-shifts come from ten settings and do not model refinement at every evaluation. Whether the
+archived evaluations in common-shift scenarios preserves the feasible-sampling comparison, but
+the shifts come from ten settings, apply the same change to every evaluation and do not model
+setting- or channel-dependent refinement. Whether the
 front-quality comparison would change at a converged resolution has not been tested. Small margins in particular are not interpreted as numerically
 resolved: the two TDR-passing observations clear the horizontal-size limit by
 about 2.5 and \SI{8.9}{\micro\metre} and the bunch-length limit by about 8.2 and
@@ -1412,7 +1419,7 @@ guarantee. All values are nominal-resolution results. A refinement check of ten 
 settings showed that the emittances are not converged at that resolution, whereas at those
 ten settings the energy spread, bunch length, mean energy, transmission and production-profile
 classifications are stable; absolute emittances should not be quoted without a converged
-calculation. Under the corresponding bounding shifts the feasible-sampling advantage of the
+calculation. In the corresponding common-shift scenarios the feasible-sampling advantage of the
 constraint-aware pipeline persists in every matched group. The archived
 runs and analysis scripts support regeneration of all reported values; Supplement S1 lists the
 inputs that each requires. Future work will repeat the
