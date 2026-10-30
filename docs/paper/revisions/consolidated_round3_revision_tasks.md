@@ -248,6 +248,8 @@ The selected level (80k, 96 cells, H/8) would have taken about 14–16 days for 
 
 
 **Done:** New `docs/paper/supplement/input_inventory.csv` maps every generator to its input classes, run files and reproduction level (1 / 2a / 2b / 3); `build_supplement_manifest.py` now fails on a generator without a valid inventory entry. The README replaces the blanket 10 MB claim with a reproduction-level table and examples (GP checkpoints, `astra.Zemit.001`, convergence records). `scripts/check_supplement_regeneration.py` regenerated three level-2a generators (resolution bounds, Sobol uncertainty, attribution) in a scratch tree with only the 215 minimal ledger files and matched the committed evidence (`r3_regeneration_check.json`). Appendix A, the Data availability statement and the README now agree: S1 is supplied for review and otherwise on request, the run directories are available from the author, and the snapshot is identified by the commit in the review package. No deposit or upload.
+
+**Route (a) cleanup (2026-10-30):** The route (b) design files (`r3_validation_design.json`, `r3_validation_sample.csv`) are removed from the evidence directory, together with their evidence-map rows and the inventory entry of `scripts/evaluate_revision_validation.py`. The supplement therefore contains nothing about route (b). The ledger helpers that the C3-02 and C3-04 generators share moved from the route (b) driver to `scripts/revision_ledgers.py`. Their outputs are unchanged, and the regeneration check still passes.
 ### C3-08. Audit the summary claims
 
 **Sources:** Reviewer 2 R3(c) (T3c, T3 last item); Reviewer 1 minor 1 (R3-06, first item).

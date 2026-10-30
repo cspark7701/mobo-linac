@@ -19,7 +19,6 @@ scripts/analyze_revision_sobol_uncertainty.py,ledgers,evaluations.csv,2a
 scripts/analyze_revision_space_filling.py,ledgers,evaluations.csv; config.json; run_complete.json,2a
 scripts/analyze_revision_tdr_campaigns.py,ledgers;run_records,evaluations.csv; run_complete.json; evaluations_stream.csv; references/moga_nominal/moga_reference.json,2b
 scripts/build_supplement_manifest.py,ledgers;run_records,evaluations.csv; config.json; run_complete.json; step_record_*.json,2b
-scripts/evaluate_revision_validation.py,ledgers;tracking,evaluations.csv; validation_sample.csv; ASTRA executable and static inputs,3
 scripts/prepare_revision_figures.py,ledgers;run_records,evaluations.csv; config.json; run_complete.json; references/moga_nominal/moga_reference.json,2b
 scripts/prepare_revision_tables.py,ledgers;run_records,evaluations.csv; run_complete.json; phase1_scalarized/cases_summary.csv,2b
 scripts/check_supplement_regeneration.py,ledgers;derived_evidence,evaluations.csv; config.json; run_complete.json; evidence files,2a

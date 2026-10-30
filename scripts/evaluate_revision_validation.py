@@ -33,17 +33,11 @@ from mobo_linac.config import load_config
 from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask
 from mobo_linac.execution.mock import MockEvaluator
 from mobo_linac.io.run_data import read_run_data
+from revision_ledgers import ARMS, N_INIT, SEEDS, feasible, load_ledgers  # noqa: F401
 
-ARMS = {"constrained_qlognehvi": ROOT / "results/paper_production/04_primary/benchmark/per_seed",
-        "unconstrained_qlognehvi": ROOT / "results/paper_production/04_primary/benchmark/per_seed",
-        "scalarized_bo": ROOT / "results/paper_production/04_primary/benchmark/per_seed",
-        "sobol": ROOT / "results/revision_round2/sobol"}
-SEEDS = range(42, 52)
-N_INIT = 16
 RANDOM_PER_GROUP = 2
 SAMPLE_SEED = 20261029
 OBJECTIVES = ("norm_emit_x_m_rad", "norm_emit_y_m_rad", "sigma_energy_eV")
-TRANSVERSE = ("sigma_x_m", "sigma_y_m", "sigma_xp_rad", "sigma_yp_rad")
 # Bounding shifts from the C2-12 check (evidence/r2_convergence_summary.csv).
 SIZE_SCALE = (0.78, 1.0)
 BUNCH_SCALE = (0.99, 1.01)
@@ -62,31 +56,11 @@ LEVELS = {
 LADDER = ("fine_step8", "fine_step16", "fine_p80k", "fine_p80k_grid96")
 
 
-def feasible(frame: pd.DataFrame, size: float = 1.0, bunch: float = 1.0, energy: float = 0.0) -> pd.Series:
-    """Production-profile classification after scaling the recorded diagnostics."""
-    ok = (frame[list(TRANSVERSE)] * size <= 1e-3).all(axis=1)
-    ok &= frame.sigma_z_m * bunch <= 1e-3
-    shifted = frame.mean_kinetic_energy_eV + energy
-    ok &= (shifted >= 195e6) & (shifted <= 205e6) & (frame.transmission_fraction >= 0.90)
-    return ok
-
-
 def nondominated(values: np.ndarray) -> np.ndarray:
     keep = np.ones(len(values), bool)
     for i, row in enumerate(values):
         keep[i] = not ((values <= row).all(axis=1) & (values < row).any(axis=1)).any()
     return keep
-
-
-def load_ledgers(arms: dict = ARMS) -> pd.DataFrame:
-    frames = []
-    for arm, base in arms.items():
-        for seed in SEEDS:
-            run = f"{arm}_seed_{seed}"
-            frame = pd.read_csv(base / run / "evaluations.csv")
-            frames.append(frame.assign(arm=arm, seed=seed, run=run,
-                                       index_in_run=frame.evaluation_id.str[-6:].astype(int)))
-    return pd.concat(frames, ignore_index=True)
 
 
 def select_sample(ledgers: pd.DataFrame, seed: int = SAMPLE_SEED) -> pd.DataFrame:

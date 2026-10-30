@@ -18,7 +18,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-from evaluate_revision_validation import N_INIT, SEEDS, feasible, load_ledgers
+from revision_ledgers import N_INIT, SEEDS, feasible, load_ledgers
 
 ROOT = Path(__file__).resolve().parents[1]
 EVIDENCE = ROOT / "docs/paper/revisions/evidence"

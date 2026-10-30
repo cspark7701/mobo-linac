@@ -83,7 +83,7 @@ The input classes are `ledgers` (the minimal set), `run_records` (other run-leve
 as `proposal_history.json`, `metrics_history.csv`, robustness summaries and
 `moga_reference.json`), `gp_checkpoints` (saved surrogate states, `*.pt`), `tracking_outputs`
 (ASTRA output files such as `astra.Zemit.001`), `retracking_records` (the result streams, plans
-and completion markers of the resolution and validation runs) and `derived_evidence`.
+and completion markers of re-tracking runs such as the resolution check) and `derived_evidence`.
 Examples of level 2b are the next-batch predictions (GP checkpoints), the RF-amplitude estimate
 (a retained `astra.Zemit.001`) and the resolution check (`convergence_results.jsonl`, its plan
 and completion record). Proposals cannot be replayed bitwise (level 3 does not cover them).
