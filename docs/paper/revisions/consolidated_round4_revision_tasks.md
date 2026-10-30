@@ -19,7 +19,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | C4-01 | Done | TASK_00312 | — |
 | C4-02 | Not started (optional) | — | — |
 | C4-03 | Done | TASK_00313 | — |
-| C4-04 | Not started | — | — |
+| C4-04 | Done | TASK_00314 | — |
 | C4-05 | Not started | — | — |
 | C4-06 | Not started | — | — |
 | C4-07 | Not started | — | — |
@@ -129,10 +129,12 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 2 comment 2 (T2); consistent with Reviewer 1's evidence-boundary check.
 
-- [ ] Replace "support regeneration of all reported values". Say that S1 identifies the inputs of every reported value, and that representative ledger-only analyses were regenerated from the minimal input set.
-- [ ] Do not imply that levels 2b or 3, or the proposals, were replayed.
+- [x] Replace "support regeneration of all reported values". Say that S1 identifies the inputs of every reported value, and that representative ledger-only analyses were regenerated from the minimal input set.
+- [x] Do not imply that levels 2b or 3, or the proposals, were replayed.
 
 **Done when:** the Conclusions, Appendix A and the supplement README make the same claim.
+
+**Done:** The Conclusions now say that Supplement S1 identifies the inputs of every reported value, that representative analyses needing only the evaluation ledgers were regenerated from that minimal set, that the other analyses need further archived records, and that the proposals cannot be replayed bitwise. This matches Appendix A and the supplement README ("runs representative ledger-only generators"); levels 2b and 3 are not claimed as replayed.
 
 ### C4-05. Condition the Pareto-set size in the Discussion
 
