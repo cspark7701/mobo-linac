@@ -16,7 +16,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 
 | ID | Status | Commit(s) | Remaining |
 |---|---|---|---|
-| C5-01 | Not started | — | — |
+| C5-01 | Done | TASK_00326 | — |
 | C5-02 | Not started | — | — |
 | C5-03 | Not started | — | — |
 | C5-04 | Not started | — | — |
@@ -78,13 +78,15 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 2 comment 1 (U1).
 
-- [ ] Sec. V I, last sentence of the TDR-candidate paragraph: replace "these marginal settings already do not provide jitter-tolerant TDR operation" with a per-candidate statement under the archived threshold of 0.8, or define the term:
+- [x] Sec. V I, last sentence of the TDR-candidate paragraph: replace "these marginal settings already do not provide jitter-tolerant TDR operation" with a per-candidate statement under the archived threshold of 0.8, or define the term:
   - candidate A is fragile (36/50, interval 0.58–0.84);
   - candidate B passes the threshold (44/50), but its interval (0.76–0.95) does not exclude values below it;
   - neither retains TDR acceptance in every trial.
-- [ ] Check the Discussion, Sec. VI B and the Conclusions for the same unqualified claim.
+- [x] Check the Discussion, Sec. VI B and the Conclusions for the same unqualified claim.
 
 **Done when:** every jitter statement about candidates A and B follows from the stated threshold and counts.
+
+**Done:** Sec. V I now states the outcome per candidate under the lattice-only model and the archived 0.8 threshold: candidate A is fragile; candidate B passes the threshold, but its interval does not exclude values below it; neither retains TDR acceptance in every trial. The undefined "jitter-tolerant TDR operation" is gone. No other passage (Discussion, Sec. VI B, Conclusions, abstract, contribution 3) makes a jitter claim about the candidates.
 
 ### C5-02. Kim et al. comparison
 

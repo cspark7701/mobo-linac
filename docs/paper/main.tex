@@ -1195,8 +1195,9 @@ comparable to the linearized amplitude-induced shift of
 the MOGA-derived nominal reference, not from a tracked amplitude response of candidates A and B.
 Because the scales are comparable, the omitted amplitude errors could reduce their TDR
 acceptance further and merit a candidate-specific study; no failure count or probability is
-inferred. Under the lattice-only model, these marginal settings already do not provide
-jitter-tolerant TDR operation.
+inferred. Under the lattice-only model and the archived threshold, candidate A is fragile;
+candidate B passes the threshold, but its interval does not exclude values below it. Neither
+retains TDR acceptance in every trial.
 
 \IfFileExists{robustness_table.tex}{\inputwide{robustness_table}}{\pendingtable{robustness_table}{Lattice-jitter
 robustness of the representatives.}{tab:robustness_summary}}
