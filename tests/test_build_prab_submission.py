@@ -53,6 +53,18 @@ def test_flatten_rejects_missing_inputs(tmp_path):
         submission.group("{{}", 0)
 
 
+def test_flatten_rejects_a_bibliography_without_a_cited_key(tmp_path):
+    root = paper(tmp_path)
+    (root / "main.tex").write_text(MAIN.replace(r"\inputwide{table_a}",
+                                                "\\cite{Old,New}\\citep[p.~2]{Plain}\n% \\cite{Commented}"))
+    (root / "main.bbl").write_text("\\begin{thebibliography}{2}\n"
+                                   "\\bibitem [{\\citenamefont {A}\\ [x](2024)}] {Old}%\nText.\n"
+                                   "\\bibitem {Plain} Text.\n\\end{thebibliography}\n")
+    with pytest.raises(ValueError, match=r"lacks cited keys \['New'\]"):
+        submission.flatten(root)
+    assert submission.bibitem_keys((root / "main.bbl").read_text()) == {"Old", "Plain"}
+
+
 def test_build_writes_the_folder_and_manifest(tmp_path):
     out = tmp_path / "out"
     out.mkdir()

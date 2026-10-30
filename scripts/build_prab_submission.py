@@ -72,6 +72,32 @@ def replace_command(text: str, name: str, count: int, render) -> str:
     return "".join(out) + text[pos:]
 
 
+def cited_keys(text: str) -> set[str]:
+    """The citation keys of every ``\\cite``-family command outside comments."""
+    text = re.sub(r"(?<!\\)%.*", "", text)
+    groups = re.findall(r"\\cite[A-Za-z]*\*?(?:\[[^\]]*\])*\{([^}]*)\}", text)
+    return {key.strip() for keys in groups for key in keys.split(",") if key.strip()}
+
+
+def bibitem_keys(bbl: str) -> set[str]:
+    """The keys of the ``\\bibitem`` entries in a ``.bbl`` file."""
+    keys = set()
+    for match in re.finditer(r"\\bibitem(?![A-Za-z])", bbl):
+        pos = match.end()
+        while bbl[pos].isspace():
+            pos += 1
+        if bbl[pos] == "[":  # optional label, which may hold braces and brackets
+            depth = 0
+            while not (bbl[pos] == "]" and depth == 0):
+                depth += {"{": 1, "}": -1}.get(bbl[pos], 0)
+                pos += 1
+            pos += 1
+            while bbl[pos].isspace():
+                pos += 1
+        keys.add(bbl[pos + 1:group(bbl, pos) - 1].strip())
+    return keys
+
+
 def wide_table(paper: Path, name: str) -> str:
     """A generated table as a page-wide float, as ``\\inputwide`` sets it."""
     body = (paper / f"{name}.tex").read_text().rstrip("\n")
@@ -95,6 +121,10 @@ def flatten(paper: Path) -> tuple[str, list[Path]]:
 
     text = replace_command(text, "datafigure", 2, figure)
     bbl = (paper / "main.bbl").read_text().rstrip("\n")
+    stale = sorted(cited_keys(text) - bibitem_keys(bbl))
+    if stale:
+        raise ValueError(f"main.bbl lacks cited keys {stale}; rebuild it with "
+                         "latexmk -cd -pdf docs/paper/main.tex")
     text = replace_command(text, "bibliography", 1, lambda a: f"% Inlined from main.bbl\n{bbl}")
     flat = head + text
     if re.search(r"^[^%\n]*\\(input|include|bibliography)\{", text, re.M):

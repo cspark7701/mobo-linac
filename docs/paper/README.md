@@ -94,6 +94,8 @@ The supplement is cited as APS Supplemental Material (`SupplementalMaterial` in
 `git archive` of the committed snapshot without `docs/paper/reviews/`) and
 `submission_manifest.json` with the commit and the SHA-256 of every file. `--compile`
 builds the flat copy to check that it is self-contained. The folder is not committed.
+The builder refuses a `main.bbl` that lacks a key cited in `main.tex`; rebuild the paper
+with `latexmk` after changing the citations or `references.bib`.
 
 The primary and survey Pareto panels are scatter-only and keep every measured feasible
 three-objective nondominated observation. No connecting lines, interpolation, or fitted
