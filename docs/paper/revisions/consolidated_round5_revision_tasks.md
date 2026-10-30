@@ -20,7 +20,7 @@ Both reviewed the manuscript at `c1e9d21`. Neither requires new simulations, GP 
 | C5-02 | Done | TASK_00327 | — |
 | C5-03 | Done | TASK_00328 | — |
 | C5-04 | Done | TASK_00329 | — |
-| C5-05 | Not started | — | — |
+| C5-05 | Done | TASK_00332 | — |
 | C5-06 | Done | TASK_00330 | — |
 | C5-07 | Done | TASK_00331 | — |
 | C5-08 | Not started (optional) | — | — |
@@ -120,8 +120,10 @@ Priority: **P1** is requested before acceptance by at least one reviewer; **P2**
 
 **Sources:** Reviewer 2 comment 5 (U5). Reviewer 1 accepts the retained names and metadata, so a note is enough.
 
-- [ ] Add one sentence to `docs/paper/supplement/README.md` (S1.13 or the reproduction notes). It should say that "bounds" in the names and notes of `r3_resolution_bounds_*` and in the docstring of `scripts/analyze_revision_resolution_bounds.py` is to be read as the common-shift scenarios of the manuscript (round4 interpretation correction).
-- [ ] Do not edit the archived evidence files, their metadata or the script.
+- [x] Add one sentence to `docs/paper/supplement/README.md` (S1.13 or the reproduction notes). It should say that "bounds" in the names and notes of `r3_resolution_bounds_*` and in the docstring of `scripts/analyze_revision_resolution_bounds.py` is to be read as the common-shift scenarios of the manuscript (round4 interpretation correction).
+- [x] Do not edit the archived evidence files, their metadata or the script.
+
+**Done:** The supplement README now has an interpretation note after the reproduction-level section: "bounds" and "bounding shifts" in the `r3_resolution_bounds_*` files, their metadata note and the docstring of `scripts/analyze_revision_resolution_bounds.py` are to be read as the post-hoc common-shift sensitivity scenarios of the manuscript, neither a per-evaluation refinement model nor an error bound. The archived files and the script are unchanged.
 
 ### C5-06. Name and state the two further checks exactly (Sec. V B)
 

@@ -94,6 +94,13 @@ generators there and compares their outputs with the committed evidence
 (`r3_regeneration_check.json`). The manifest check below verifies the map, labels, inventory
 and checksums; it does not regenerate evidence.
 
+**Interpretation note (round4).** The S1.13 files `r3_resolution_bounds_*`, their metadata
+note and the docstring of `scripts/analyze_revision_resolution_bounds.py` speak of "bounds" or
+"bounding shifts". They are kept unchanged as archived. Read these terms as the post-hoc
+common-shift sensitivity scenarios of the manuscript: each applies one transformation to every
+evaluation of every method and is neither a refinement model for every evaluation nor an error
+bound.
+
 ## Evidence map
 
 The complete file-level map, with the manuscript label and generator of each file, is
