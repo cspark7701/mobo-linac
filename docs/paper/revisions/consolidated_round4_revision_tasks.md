@@ -24,7 +24,7 @@ Both reviewed the manuscript at `887673c`. Neither requires new simulations, GP 
 | C4-06 | Done | TASK_00316 | — |
 | C4-07 | Done | TASK_00319 | — |
 | C4-08 | Done | TASK_00317 | — |
-| C4-09 | Not started | — | — |
+| C4-09 | Done | TASK_00320 | — |
 | C4-10 | Done | TASK_00318 | — |
 | C4-11 | Not started | — | — |
 
@@ -185,9 +185,11 @@ Priority: **P0** is required by at least one reviewer; **P1** is recommended; **
 
 **Sources:** Reviewer 2 comments 7 and 8 (T7, T8).
 
-- [ ] Appendix D: say that the offline refits apply the production fallback rule, which no saved production fit triggered (Appendix A).
-- [ ] *Optional:* move the reclassification under the NAPAC, JKPS and JINST limits (end of Sec. II B) and the detailed published values of Sec. VI A to an appendix.
-- [ ] Rebuild both layouts and record the page counts.
+- [x] Appendix D: say that the offline refits apply the production fallback rule, which no saved production fit triggered (Appendix A).
+- [ ] *Optional (not done):* move the reclassification under the NAPAC, JKPS and JINST limits (end of Sec. II B) and the detailed published values of Sec. VI A to an appendix.
+- [x] Rebuild both layouts and record the page counts.
+
+**Done:** Appendix D now says that the 88 offline refits whose optimizers both failed applied the production fallback rule, which no saved production fit triggered (Appendix A). The optional moves of the NAPAC/JKPS/JINST reclassification and of the detailed published values of Sec. VI A were not made: moving them to an appendix would not shorten the manuscript, both passages are short and support the comparisons next to them, and Reviewer 2 did not insist on cuts. The preprint builds to 57 pages and the reprint check copy to 31.
 
 ### C4-10. Correct the round3 response to Reviewer 1
 

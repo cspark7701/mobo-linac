@@ -1656,7 +1656,8 @@ but not all, of the undercoverage, which shows that the coverage is sensitive to
 regularization. Kernel misspecification and adaptive test points remain hypotheses for the
 remainder; this check does not test them.
 In \num{88} of \num{4680} refits, both optimizers failed and the hyperparameters were
-restored to their initial values, as in production. These are not equivalent fits, and the
+restored to their initial values. This applies the production fallback rule, which no saved
+production fit triggered (Appendix~\ref{app:implementation}). These are not equivalent fits, and the
 refit records do not identify them, so the reported refit coverage includes them.
 \FloatBarrier
 \inputwide{revisions/evidence/c08_settings}
