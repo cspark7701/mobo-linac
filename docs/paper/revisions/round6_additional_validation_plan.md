@@ -2,24 +2,24 @@
 
 ## Conditional scope
 
-This is the detailed research track supporting C6-06 through C6-08 of the [consolidated round 6 queue](consolidated_round6_revision_tasks.md). It expands the numerical and constraint-scaling requests of [Task 00340](../../exec-plans/completed/TASK_00340_manuscript_acceptance_assessment.md), labelled I6-01 and I6-02 in the [review synthesis](../reviews/round6_review_synthesis.md).
+This is the detailed research track supporting C6-06 through C6-08 of the [consolidated round 6 queue](consolidated_round6_revision_tasks.md). It implements the numerical and constraint-scaling requests R6-01 and R6-02 of [Reviewer 1](../reviews/reviewer1_round6_report.md), formalized from Task 00340. See the [individual Reviewer 1 task list](reviewer1_round6_revision_tasks.md) and [review synthesis](../reviews/round6_review_synthesis.md).
 
-**All A6 tasks are conditional and unstarted.** No new simulations are required by Reviewer 2's round 6 recommendation. C6-05 must record the author's disposition before this research track is adopted; creating a task list is not authorization to execute it. The two recommendations remain distinct. A negative or inconclusive finding is a valid completed analysis, but it does not automatically satisfy an acceptance condition.
+**All A6 tasks are conditional and unstarted.** No new simulations are required by Reviewer 2's round 6 recommendation. C6-05 must record the author's disposition before this research track is adopted; creating a task list is not authorization to execute it. The two recommendations remain distinct. R6-01/R6-02 remain requirements under Reviewer 1's major-revision position even if the author declines execution; non-adoption does not satisfy them. A negative or inconclusive finding is a valid completed analysis, but it does not automatically satisfy an acceptance condition.
 
-Internal requests: I6-01 = representative numerical validation; I6-02 = matched residual-scaling campaigns; I6-03 = exploratory status of front-quality evidence; I6-04 = optional constraint-aware scalarization. Priority labels below apply only if this track is adopted. They do not override the core editorial queue or reopen round 5.
+Reviewer 1 requests: R6-01 = representative numerical validation; R6-02 = matched residual-scaling campaigns; R6-03 = exploratory status of front-quality evidence; R6-04 = optional constraint-aware scalarization; R6-05 = response and validation. The old I6-01–I6-04 labels in the initial synthesis refer to these same requests, not additional reviews. Priority labels below apply only if this track is adopted. They do not override the core editorial queue or reopen round 5.
 
 ## Work queue
 
 | ID | Priority | Task | Source | Dependencies | New ASTRA evaluations? |
 |---|---|---|---|---|---|
-| A6-01 | P1 | Freeze protocols, samples, outcomes and resource budgets | I6-01, I6-02, I6-03 | None | No |
-| A6-02 | P1 | Implement and execute representative re-tracking | I6-01 | A6-01 | Yes |
-| A6-03 | P1 | Analyze setting-dependent changes and feasible-sampling effects | I6-01 | A6-02 | No; any expansion follows the frozen rule |
-| A6-04 | P1 | Implement and verify the normalized-residual arm | I6-02 | A6-01 | No; mock and analytic checks |
-| A6-05 | P1 | Execute matched raw and normalized campaigns | I6-02 | A6-04 | Yes |
-| A6-06 | P1 | Analyze the scaling comparison and qualify front-quality evidence | I6-02, I6-03 | A6-05 | No |
-| A6-07 | P3 | Optional constraint-aware scalarized comparator | I6-04 | Separate adoption; protocol before its runs | Yes, if adopted |
-| A6-08 | P2 | Integrate completed evidence into manuscript and supplement | I6-01 to I6-03 | Adopted A6-03/A6-06; A6-07 only if adopted | No |
+| A6-01 | P1 | Freeze protocols, samples, outcomes and resource budgets | R6-01, R6-02, R6-03 | None | No |
+| A6-02 | P1 | Implement and execute representative re-tracking | R6-01 | A6-01 | Yes |
+| A6-03 | P1 | Analyze setting-dependent changes and feasible-sampling effects | R6-01 | A6-02 | No; any expansion follows the frozen rule |
+| A6-04 | P1 | Implement and verify the normalized-residual arm | R6-02 | A6-01 | No; mock and analytic checks |
+| A6-05 | P1 | Execute matched raw and normalized campaigns | R6-02 | A6-04 | Yes |
+| A6-06 | P1 | Analyze the scaling comparison and qualify front-quality evidence | R6-02, R6-03 | A6-05 | No |
+| A6-07 | P3 | Optional constraint-aware scalarized comparator | R6-04 | Separate adoption; protocol before its runs | Yes, if adopted |
+| A6-08 | P2 | Integrate completed evidence into manuscript and supplement | R6-01 to R6-03 | Adopted A6-03/A6-06; A6-07 only if adopted | No |
 | A6-09 | P1 | Close responses, provenance and validation | All dispositions | A6-08; A6-07 disposition | No |
 
 ## Constraints on all tasks
@@ -125,7 +125,7 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 - [ ] Freeze weights, scales, constraint convention, initial designs, seeds, simulation budgets and statistical comparisons. Plan any additional multiplicity treatment before outcomes.
 - [ ] Compare it with the relevant contemporaneous arms under matched conditions. Distinguish constraint-information effects from objective-representation effects.
 
-**Done when:** adoption is documented and, if adopted, the declared comparison is executed and analyzed; otherwise the manuscript retains the explicit missing-comparator limitation. This item must not silently become a condition of closing I6-01 or I6-02.
+**Done when:** adoption is documented and, if adopted, the declared comparison is executed and analyzed; otherwise the manuscript retains the explicit missing-comparator limitation. This item must not silently become a condition of closing R6-01 or R6-02.
 
 ## A6-08. Integrate the evidence without broadening claims beyond it
 
@@ -138,9 +138,9 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Done when:** every changed scientific statement has a precise evidence source and scope, and the new evidence is reproducible from its declared inputs.
 
-## A6-09. Close the internal response and validation package
+## A6-09. Close the reviewer response and validation package
 
-- [ ] Write `docs/paper/reviews/round6_internal_response.md`, mapping I6-01 to I6-04 to tasks, evidence and dispositions. Do not create responses attributed to external reviewers who did not submit round 6 reports.
+- [ ] Write `docs/paper/reviews/reviewer1_round6_response.md`, mapping R6-01–R6-05 to tasks, evidence and dispositions. Keep the Reviewer 2 response separately attributed; Task 00340 and the formal Reviewer 1 report are the same assessment.
 - [ ] Produce `round6_revision_overview.md`, manuscript/code diffs against the frozen round 6 baseline and a changed-file/hash inventory. Preserve earlier round packages.
 - [ ] Run meaningful tests for new code and appropriate local CI checks, including the package's 100% line-coverage requirement where applicable. Follow current resource constraints; explicitly record unrun checks and leave incomplete validation visible.
 - [ ] Check documentation links, configuration/docs sync, supplement manifest and relevant regeneration paths. Existing regeneration claims must not be silently extended to analyses requiring new tracking or checkpoint records.

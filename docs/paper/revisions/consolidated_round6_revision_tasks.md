@@ -2,13 +2,13 @@
 
 ## Sources, scope and status
 
-- [Reviewer 2 report](../reviews/reviewer2_round6_report.md) and [tasks V1–V6](reviewer2_round6_revision_tasks.md): **accept**, with V1 requested before acceptance, V2–V3 editorial, V4–V5 optional and V6 closing checks. No new simulations are required by this reviewer.
-- [Task 00340](../../exec-plans/completed/TASK_00340_manuscript_acceptance_assessment.md): **major revision under a separate internal assessment**, requesting two new validation workstreams. Its constrained-scalarized suggestion is optional.
-- [Review synthesis](../reviews/round6_review_synthesis.md): source mapping, author constraints and the unresolved difference between these recommendations. No separate Reviewer 1 round 6 report is present.
+- [Reviewer 1 report](../reviews/reviewer1_round6_report.md) and [R6-01–R6-05](reviewer1_round6_revision_tasks.md): **major revision under this internal assessment**, with two substantive validation requests, an endpoint-scope check, an optional comparator and response/validation. This formalizes Task 00340 rather than adding another independent assessment.
+- [Reviewer 2 report](../reviews/reviewer2_round6_report.md) and [V1–V6](reviewer2_round6_revision_tasks.md): **accept**, with V1 requested before acceptance, V2–V3 editorial, V4–V5 optional and V6 closing checks. No new simulations are required by this reviewer.
+- [Review synthesis](../reviews/round6_review_synthesis.md): complete source mapping, author constraints and the unresolved difference between these recommendations. Historical round5 recommendations remain unchanged.
 
 **All tasks are planned and unstarted.** No manuscript edits, code changes, simulations or uploads were executed in creating this queue. Prior [round 5 closure](round5_revision_overview.md) and reviewer recommendations are unchanged. Creating or completing this queue is not journal acceptance.
 
-Priority: P1 addresses an explicit review requirement or a necessary disposition; P2 is editorial; P3 is optional. A P1 label on a conditional research item applies only if the author adopts that workstream in C6-05.
+Priority: P1 addresses an explicit review requirement or a necessary disposition; P2 is editorial; P3 is optional. R6-01 and R6-02 are P1 requirements under Reviewer 1's recommendation. Their execution is conditional on the author's adoption in C6-05; declining them records a response but does not satisfy those requests. Reviewer 2 does not require either experiment.
 
 ## Consolidated work queue
 
@@ -18,18 +18,42 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 | C6-02 | P2 | Remove the remaining appendix kernel hypothesis | R2 V2; author removal instruction | No | None |
 | C6-03 | P2 | Restore or explicitly confirm abstract scope wording | R2 V3 | No | None |
 | C6-04 | P3 | Re-wrap the undercoverage paragraph | R2 V4 | No | After C6-02 if adopted |
-| C6-05 | P1 | Record the disposition of the conflicting validation requests | R2 V5; internal I6-01–I6-04 | No | None |
-| C6-06 | Conditional P1 | Representative numerical validation | Internal I6-01; R2 V5 optional advice | Yes, only if adopted | C6-05; frozen protocol |
-| C6-07 | Conditional P1 | Matched raw/normalized acquisition campaigns | Internal I6-02 | Yes, only if adopted | C6-05; frozen protocol and tested implementation |
-| C6-08 | P3 | Optional constraint-aware scalarized comparator | Internal I6-04 | Yes, only if separately adopted | C6-05; separate protocol |
-| C6-09 | P1 | Responses, evidence integration and final validation | R2 V6; all dispositions | No additional runs | Core items and recorded decisions on optional/conditional work |
+| C6-05 | P1 | Record the disposition of the conflicting validation requests | R1 R6-01–R6-05; R2 V5 | No | None |
+| C6-06 | Conditional P1 | Representative numerical validation | R1 R6-01; R2 V5 optional advice | Yes, only if adopted | C6-05; frozen protocol |
+| C6-07 | Conditional P1 | Matched raw/normalized acquisition campaigns | R1 R6-02 | Yes, only if adopted | C6-05; frozen protocol and tested implementation |
+| C6-08 | P3 | Optional constraint-aware scalarized comparator | R1 R6-04 | Yes, only if separately adopted | C6-05; separate protocol |
+| C6-09 | P1 | Responses, evidence integration and final validation | R1 R6-03/R6-05; R2 V6 | No additional runs | Core items and recorded decisions on optional/conditional work |
+
+## Complete reviewer-item mapping
+
+| Reviewer item | Consolidated tasks | Treatment |
+|---|---|---|
+| R1 R6-01: numerical validation | C6-05, C6-06 | Required under R1's recommendation; execute only if adopted |
+| R1 R6-02: scaling campaigns | C6-05, C6-07 | Required under R1's recommendation; execute only if adopted |
+| R1 R6-03: exploratory quality status | C6-05, C6-09 | Preserve/check scope; no independent new experiment required |
+| R1 R6-04: constrained-scalarized comparator | C6-08 | Optional; no third mandatory experiment |
+| R1 R6-05: response and validation | C6-09 | Reviewer 1 response and traceable validation |
+| R2 V1: exact cost definition | C6-01 | Prose definition; no negated-cost commentary |
+| R2 V2: hypothesis consistency | C6-02 | Remove appendix phrase; do not restore deleted claim |
+| R2 V3: abstract scope | C6-03 | Local edit or reasoned confirmation |
+| R2 V4: source wrapping | C6-04 | Optional, whitespace only |
+| R2 V5: scope/additional validation advice | C6-05, C6-06 | Optional to R2; overlaps R1 numerical request but differs in requiredness |
+| R2 V6: response and validation | C6-09 | Reviewer 2 response and traceable validation |
+
+## Overlaps and disagreements
+
+- Both records acknowledge numerical sensitivity and the present nominal-model scope. They disagree about whether new numerical/scaling evidence is needed for acceptance. C6-05 records the author's response; consolidation cannot resolve that scientific judgment by relabelling tasks.
+- The same adopted representative re-tracking can address R1 R6-01 and R2 V5. Reviewer 2's modest medium-level advice need not satisfy R1's broader sampling/precision requirement; the achieved scope must be reported.
+- The constrained-scalarized comparator is optional, including under R1's major-revision position.
+- Reviewer 2 offers alternatives for the cost/hypothesis edits. C6-01 and C6-02 choose the alternatives consistent with the author's prior instructions, without restoring the removed implementation-sign explanation or categorical kernel claim.
+- C6-09 produces separately attributed responses to both reviewers. Satisfying R2's editorial condition is not evidence that R1 has accepted, and a negative/inconclusive experiment is not an automatic rejection or acceptance.
 
 ## Ground rules
 
 - Preserve the author's recent dispositions: no negated-cost explanation, no categorical kernel claim, and no broad humanization pass. Resolve each review comment with the smallest justified change.
 - Preserve archived production runs, feasibility labels, round 1–5 evidence, prior reviews and their responses. New evidence, if commissioned, uses new directories and an `r6_` prefix.
 - Keep the current PRAB format, qualitative number-free abstract convention, and distinctions between numerical validity, production feasibility, TDR acceptance and machine reliability. Funding/acknowledgments, data availability and `\finaltrue` remain author decisions.
-- Do not confuse optional advice from Reviewer 2 with required experiments. Do not state that its acceptance recommendation settles the separate internal review's higher evidence requirement.
+- Do not confuse optional advice from Reviewer 2 with required experiments. Do not state that its acceptance recommendation settles Reviewer 1's higher evidence requirement.
 - New analyses may support, weaken or leave a claim unresolved. Never define completion as obtaining a favourable result, or use repeated runs until a desired outcome appears.
 - No push or upload. Remote GitHub Actions queries require the specific approval described in AGENTS.md. Use local checks for this work.
 
@@ -83,10 +107,10 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 ## C6-05. Record the scientific-scope disposition
 
-**Sources:** Reviewer 2 comment 5/V5 and internal I6-01–I6-04.
+**Sources:** Reviewer 1 R6-01–R6-05 and Reviewer 2 comment 5/V5.
 
 - [ ] Record whether the author retains the current nominal-model submission route or adopts additional validation before submission. Cite the earlier scope-based closure and both current recommendations accurately.
-- [ ] If retaining the current route, respond to the additional requests with the existing numerical/smoothing limitations and a reasoned scope explanation. Mark C6-06 and C6-07 “not adopted for this revision”, rather than falsely completed. The separate internal major-revision recommendation remains on record unless explicitly reassessed.
+- [ ] If retaining the current route, respond to the additional requests with the existing numerical/smoothing limitations and a reasoned scope explanation. Mark C6-06 and C6-07 “not adopted for this revision”, rather than falsely completed. Reviewer 1's major-revision recommendation remains on record unless explicitly reassessed; the response is not a finding that R6-01/R6-02 validation was completed.
 - [ ] If adopting additional research, select each workstream explicitly, freeze its protocol and resource budget, and identify the stronger claim it is intended to test before collecting outcomes. Do not treat this task list as authorization to start ASTRA.
 - [ ] Decide C6-08 separately. It is optional under both source records and is not a third mandatory scientific request.
 - [ ] Keep historical front-quality indicators exploratory, regardless of the route. No historical endpoint or feasibility label may be rewritten.
@@ -102,7 +126,7 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 - [ ] Freeze a stratified sample across methods, matched groups, feasibility states, boundary channels and search stages before new outcomes. Retain inclusion probabilities and a precision/cost basis for sample size.
 - [ ] Re-track identical controls at declared levels in a fresh directory. Check nominal reproduction first and separate source changes from step/grid refinement.
 - [ ] Analyze diagnostic shifts, physical margins, feasibility flips and failed attempts by stratum. Use sampling-aware uncertainty for any population estimate; do not assume unsampled observations remain unchanged.
-- [ ] Separate a medium-level submission check suggested by Reviewer 2 from a demonstration of numerical convergence. A limited sample or unconverged refinement may leave the broader internal request unresolved.
+- [ ] Separate a medium-level submission check suggested by Reviewer 2 from a demonstration of numerical convergence. A limited sample or unconverged refinement may leave Reviewer 1's broader request unresolved.
 - [ ] Report supportive, adverse or inconclusive findings with their limitations.
 
 **Deliverables:** frozen manifest/protocol, new run records, `r6_resolution_*` evidence and an analysis report.
@@ -125,7 +149,7 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 ## C6-08. Optional constrained-scalarized comparator
 
-**Source:** internal I6-04, distinct from the two main internal validation requests. **Detail:** A6-07 in the [additional validation plan](round6_additional_validation_plan.md).
+**Source:** Reviewer 1 R6-04, distinct from R6-01 and R6-02. **Detail:** A6-07 in the [additional validation plan](round6_additional_validation_plan.md).
 
 - [ ] Record adoption/non-adoption separately from C6-06 and C6-07.
 - [ ] If adopted, define and test a genuine constraint-aware scalarized acquisition; freeze its weights, scaling, initial designs, budgets and comparisons before runs.
@@ -136,9 +160,9 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 ## C6-09. Responses and validation
 
-**Source:** Reviewer 2 V6, plus all internal dispositions. Use A6-08/A6-09 of the [additional plan](round6_additional_validation_plan.md) only if new evidence is produced.
+**Sources:** Reviewer 1 R6-03/R6-05 and Reviewer 2 V6, plus all dispositions. Use A6-08/A6-09 of the [additional plan](round6_additional_validation_plan.md) only if new evidence is produced.
 
-- [ ] Write `docs/paper/reviews/reviewer2_round6_response.md`, mapping comments 1–5 to exact changes or reasoned non-adoption. Write a separately attributed response/disposition for Task 00340; do not attribute it to Reviewer 1, for whom no round 6 report is present.
+- [ ] Write `docs/paper/reviews/reviewer2_round6_response.md`, mapping comments 1–5 to exact changes or reasoned non-adoption. Write `docs/paper/reviews/reviewer1_round6_response.md`, mapping R6-01–R6-05 to evidence or reasoned dispositions. Its report formalizes Task 00340; do not count those two records as independent reviews.
 - [ ] Add `round6_revision_overview.md`, manuscript/code diffs against the declared baseline and a changed-file/hash inventory. Preserve earlier review packages.
 - [ ] Update supplement evidence mappings, input inventory and checksums if new analyses are adopted. Do not extend regeneration claims beyond the inputs actually checked.
 - [ ] For editorial-only work, build the two-column PRAB manuscript and check references, overfull boxes, changed passages and number-free abstract. Run the relevant manuscript, paper-output and documentation-link checks.
