@@ -33,7 +33,6 @@ with the next phase extending to qEHVI/qNEHVI-based MOBO.
 # Agent Execution Guidelines & Operational Rules
 
 - **Git & GitHub Actions Policy**:
-  - Do NOT perform `git push`.
   - Checking remote GitHub Actions status, workflow runs, job results, and logs requires explicit user approval for the specific check or investigation. If that approval has not already been given, ask before making any remote query; use local workflow definitions and tests in the meantime. Once approved, inspect the relevant remote failure logs and distinguish remotely verified findings from local reproductions.
   - Modifying GitHub Actions workflows in the local repository only is permitted.
   - Follow the existing Git log's commit-message format: an imperative subject, a blank line, concise explanatory paragraphs, then a `Files:` section listing paths with status letters (`A`, `M`, `D`). Use this format when providing commit messages as well.
