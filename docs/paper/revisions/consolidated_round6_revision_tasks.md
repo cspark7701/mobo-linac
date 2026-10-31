@@ -91,14 +91,16 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Source:** Reviewer 2 comment 3, V3.
 
-- [ ] Restore “specified” in the opening description of the Bayesian optimization pipelines, or record the author's deliberate decision to omit it.
-- [ ] Prefer a closing statement about the scope of the present results, rather than wording that reads as a commitment to a future physically resolved optimization. Restore the earlier meaning, or explain deliberate retention in the response.
-- [ ] Preserve “persists in the tested diagnostic-shift scenarios”, the distinction between nominal-model and engineering claims, and the abstract's lack of numerical values.
-- [ ] Record the resulting word count; do not invent a requirement to return to exactly 262 words.
+- [x] Restore “specified” in the opening description of the Bayesian optimization pipelines, or record the author's deliberate decision to omit it.
+- [x] Prefer a closing statement about the scope of the present results, rather than wording that reads as a commitment to a future physically resolved optimization. Restore the earlier meaning, or explain deliberate retention in the response.
+- [x] Preserve “persists in the tested diagnostic-shift scenarios”, the distinction between nominal-model and engineering claims, and the abstract's lack of numerical values.
+- [x] Record the resulting word count; do not invent a requirement to return to exactly 262 words.
 
 **Deliverable:** a local abstract edit or explicit non-adoption response.
 
 **Done when:** the scope matches the stated executed-pipeline study, or the author's intended alternative is documented without broadening the claims.
+
+**Execution status:** Completed; manuscript edit checked against this task scope.
 
 ## C6-04. Optional source wrapping
 
