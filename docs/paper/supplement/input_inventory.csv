@@ -24,3 +24,4 @@ scripts/build_supplement_manifest.py,ledgers;run_records,evaluations.csv; config
 scripts/prepare_revision_figures.py,ledgers;run_records,evaluations.csv; config.json; run_complete.json; references/moga_nominal/moga_reference.json,2b
 scripts/prepare_revision_tables.py,ledgers;run_records,evaluations.csv; run_complete.json; phase1_scalarized/cases_summary.csv,2b
 scripts/check_supplement_regeneration.py,ledgers;derived_evidence,evaluations.csv; config.json; run_complete.json; evidence files,2a
+scripts/prepare_revision_round6.py,ledgers;run_records,primary evaluations.csv; publication configuration; ASTRA/generator executables; source distribution; input deck and field maps (identity hashes),2b

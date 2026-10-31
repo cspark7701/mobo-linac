@@ -123,3 +123,7 @@ S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_so
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_summary.csv,scripts/analyze_revision_sobol_uncertainty.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_metadata.json,scripts/analyze_revision_sobol_uncertainty.py
 S1.1,Reproduction inputs,app:implementation,docs/paper/revisions/evidence/r3_regeneration_check.json,scripts/check_supplement_regeneration.py
+S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_protocol.md,
+S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_sampling_manifest.csv,scripts/prepare_revision_round6.py
+S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_sampling_strata.csv,scripts/prepare_revision_round6.py
+S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_specification.json,scripts/prepare_revision_round6.py

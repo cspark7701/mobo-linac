@@ -138,3 +138,14 @@ if a manuscript label is undefined, if a generator has no valid entry in
 ```bash
 python scripts/check_supplement_regeneration.py      # regenerate level-2a evidence from the minimal ledgers
 ```
+
+## Prospective round6 work (not current manuscript results)
+
+S1.15 includes the frozen round6 protocol, sampling manifest/stratum counts and
+machine-readable specification. These record the author-adopted studies before
+new outcomes; their presence does not establish completed numerical validation or
+normalized-acquisition efficacy. The sampling generator also hashes configuration,
+executable, source and map files, so its complete output requires those input files
+in addition to historical ledgers (inventory level 2b). New result files and their
+reproduction inputs will be mapped only after the studies complete and are reviewed.
+The prior representative-regeneration claim is not extended by this registration.
