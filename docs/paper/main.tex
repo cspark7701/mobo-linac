@@ -1105,11 +1105,11 @@ observed value cannot validate discrimination of losses.
 
 Several mechanisms could explain the undercoverage, though this check does not isolate them.
 With the likelihood variance fixed at $\eta=10^{-6}$ of the training variance, the intervals
-contain almost no irreducible term and depend on the posterior variance of a stationary kernel.
-The test points are also selected adaptively: each batch targets expected improvement or feasibility,
-often at the edge of the sampled region. Because the constraint weights use the same predictions,
-overconfident Gaussian predictions make the feasibility weights too sharp towards both one and zero.
-This affects candidate selection; the reported
+contain almost no irreducible term and depend on the posterior variance of a stationary
+kernel. The test points are also selected adaptively: each batch targets expected
+improvement or feasibility, often at the edge of the sampled region. Because the constraint
+weights use the same predictions, overconfident Gaussian predictions make the feasibility
+weights too sharp towards both one and zero. This affects candidate selection; the reported
 diagnostics remain the tracked values.
 
 Refitting every archived training set offline with homoscedastic noise inferred by marginal

@@ -106,10 +106,12 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Source:** Reviewer 2 comment 4, V4.
 
-- [ ] Re-wrap the paragraph beginning “Several mechanisms could explain the undercoverage” to the surrounding source line length.
-- [ ] Check equality after whitespace normalization. Do not change its meaning, hypotheses or rendered scientific content.
+- [x] Re-wrap the paragraph beginning “Several mechanisms could explain the undercoverage” to the surrounding source line length.
+- [x] Check equality after whitespace normalization. Do not change its meaning, hypotheses or rendered scientific content.
 
 **Done when:** source formatting is consistent, or the optional item is recorded as not adopted.
+
+**Execution status:** Completed; manuscript edit checked against this task scope.
 
 ## C6-05. Record the scientific-scope disposition
 
