@@ -8,7 +8,6 @@
 % Set \finaltrue only after every \pending marker has been replaced.
 \documentclass[aps,prab,reprint,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
 
-\usepackage[utf8]{inputenc}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{graphicx}
@@ -53,7 +52,8 @@
 
 \begin{document}
 
-\title{Multi-objective Bayesian optimization of a 200~MeV injector-linac model derived from the Korea Light Source design}
+\title{Multi-objective Bayesian optimization of a 200~MeV injector-linac model derived from the
+Korea Light Source design}
 
 \author{Chong Shik Park}
 \email{kuphy@korea.ac.kr}
@@ -96,15 +96,18 @@ resolved injector optimization remains to be done.
 \label{sec:introduction}
 
 The Korea Light Source (KLS) is a fourth-generation storage-ring light-source project led by
-the Korea Basic Science Institute, with a storage-ring energy of \SI{4}{\giga\electronvolt} and a circumference of
+the Korea Basic Science Institute, with a storage-ring energy of \SI{4}{\giga\electronvolt} and a
+circumference of
 approximately \SI{800}{\metre}~\cite{KLSProjectOverview}. Earlier injector studies refer to the project as
 Korea-4GSR~\cite{Kim2024KLSMOGA,Kim2025KLSError}. The injector chain uses an electron linac to
 provide the beam for subsequent acceleration in the booster. The present work considers the
-\SI{200}{\mega\electronvolt} S-band injector-linac reference model developed for that project and studies feasible
+\SI{200}{\mega\electronvolt} S-band injector-linac reference model developed for that project and
+studies feasible
 trade-offs among its exit-beam emittances and energy spread.
 
 For storage-ring injection, beam emittance, energy spread and transport envelopes determine
-compatibility with the transfer line and booster acceptance. The injector must deliver a transmittable bunch whose phase-space properties meet these requirements. In the
+compatibility with the transfer line and booster acceptance. The injector must deliver a
+transmittable bunch whose phase-space properties meet these requirements. In the
 low-energy section, RF fields and space charge shape transverse emittance~\cite{Kim1989};
 solenoid focusing and suitably phased accelerating structures can compensate part of its
 growth~\cite{Carlsten1989,Serafini1997}. Magnetic strengths and RF phases therefore act jointly
@@ -130,7 +133,9 @@ through an acquisition function that balances exploitation and exploration. Acce
 applications include free-electron laser tuning at LCLS~\cite{McIntire2016,Duris2020}, safe
 optimization at SwissFEL~\cite{Kirschner2019}, physics-informed GP priors~\cite{Hanuka2021}, and
 multi-objective online tuning~\cite{Roussel2021}; comparisons with reinforcement-learning
-optimizers have also been reported~\cite{Kaiser2024}. These applications motivate using probabilistic models to reduce the number of expensive evaluations. Here we apply them to a simulation-based
+optimizers have also been reported~\cite{Kaiser2024}. These applications motivate using
+probabilistic models to reduce the number of expensive evaluations. Here we apply them to a
+simulation-based
 injector design problem with competing objectives and explicit beam-quality limits. The wider
 accelerator BO literature is reviewed in Ref.~\cite{Roussel2024}.
 
@@ -196,7 +201,8 @@ The study addresses five aspects of this comparison.
   violations, whereas against weighted-sum BO energy-band violations account for the larger
   share. Neither the effective step weight of the energy band nor the upper ACC3/ACC4 phase
   window explains it alone (Sec.~\ref{sec:attribution}).
-\item An assessment of how closely the searches approach the KLS technical-design acceptance region. The primary
+\item An assessment of how closely the searches approach the KLS technical-design acceptance region.
+The primary
   evaluations are reclassified against the TDR inequalities; two marginal candidates and a
   MOGA-derived reference are checked under jitter; and three campaigns constrained directly
   by the TDR inequalities are run. At this budget and resolution, TDR-feasible observations
@@ -213,7 +219,8 @@ The study addresses five aspects of this comparison.
   spread, bunch length, mean energy, transmission and production-profile classifications are
   stable. In post-hoc common-shift scenarios motivated by this check the feasible-sampling
   comparison is preserved; the front-quality comparisons are not tested at a converged resolution
-  (Secs.~\ref{sec:problem} and~\ref{sec:primary}). This check identifies a limitation of the nominal model; it does not establish convergence.
+  (Secs.~\ref{sec:problem} and~\ref{sec:primary}). This check identifies a limitation of the nominal
+model; it does not establish convergence.
 \end{enumerate}
 These results describe the recorded pipelines on a fixed lattice within the nominal numerical
 model. They do not establish a physically resolved ranking of the methods, a unit-invariant
@@ -228,17 +235,20 @@ setting.
 The reference model follows the earlier S-band injector studies~\cite{Kim2024KLSMOGA,Kim2025KLSError};
 the engineering comparison uses the October 2025 Korea-4GSR Technical Design Report
 (TDR)~\cite{KLSTDR2025}.
-Figure~\ref{fig:layout} shows the fixed lattice used here, which consists of an S-band RF photocathode gun, a gun solenoid, four 84-cell S-band
+Figure~\ref{fig:layout} shows the fixed lattice used here, which consists of an S-band RF
+photocathode gun, a gun solenoid, four 84-cell S-band
 traveling-wave accelerating structures (ACC1--ACC4) and two quadrupoles, and is tracked with
 ASTRA~\cite{Floettmann2017Astra} through the \texttt{lume-astra} interface~\cite{LumeAstra}.
-Beam properties are evaluated at the exit plane $z = \SI{16.2}{\metre}$. Field maps of the gun, the solenoid and the structures are used, with
-peak field amplitudes of \SI{100}{\mega\volt\per\metre} in the gun and \SI{22.26}{\mega\volt\per\metre} (ACC1, ACC2) and
-\SI{24.47}{\mega\volt\per\metre} (ACC3, ACC4) in the structures. ASTRA's automatic phasing is disabled, so RF phases
+Beam properties are evaluated at the exit plane $z = \SI{16.2}{\metre}$. Field maps of the gun, the
+solenoid and the structures are used, with
+peak field amplitudes of \SI{100}{\mega\volt\per\metre} in the gun and
+\SI{22.26}{\mega\volt\per\metre} (ACC1, ACC2) and
+\SI{24.47}{\mega\volt\per\metre} (ACC3, ACC4) in the structures. ASTRA's automatic phasing is
+disabled, so RF phases
 are absolute.
 
-The initial distribution is a fixed \SI{1.0}{\nano\coulomb} file with \num{10000} records,
-including the reference record; the evaluation journals count \num{9999} initial particles for
-transmission. Space charge is computed on a cylindrically symmetric grid of $32\times32$ cells
+The initial distribution is a fixed \SI{1.0}{\nano\coulomb} file with \num{10000} particles.
+Space charge is computed on a cylindrically symmetric grid of $32\times32$ cells
 up to $z = \SI{5.25}{\metre}$ and with a three-dimensional solver on a $32^3$ grid downstream,
 including the image charge of the cathode. A circular aperture of radius \SI{20}{\milli\metre}
 defines particle loss. Every algorithm uses the same source file, field maps and space-charge
@@ -335,7 +345,8 @@ $E_\mathrm{kin}$ & $-0.05$ to $0.01$ & $-0.04$ to $0.01$ & $\le 0.02$ & $<0.01$ 
 \begin{figure*}[htbp]
 \centering
 \datafigure{figures/injector_linac_layout.pdf}{\linewidth}
-\caption{Schematic layout of the simulated \SI{200}{\mega\electronvolt} injector linac. A photocathode RF gun and
+\caption{Schematic layout of the simulated \SI{200}{\mega\electronvolt} injector linac. A
+photocathode RF gun and
 solenoid feed four S-band accelerating structures and two quadrupoles. The six optimization
 variables are indicated; each downstream RF phase controls a pair of structures. Beam objectives
 and constraint diagnostics are evaluated at the exit plane. Component symbols are not to scale.}
@@ -368,7 +379,8 @@ on both structures in its pair, as required by the six-control operating model.
 
 \begin{table*}[htbp]
 \centering
-\caption{Design variables. Magnetic bounds are \SI{\pm50}{\percent} of nominal; RF bounds are absolute angular intervals. Coupled phases are written to both structures of a pair.}
+\caption{Design variables. Magnetic bounds are \SI{\pm50}{\percent} of nominal; RF bounds are
+absolute angular intervals. Coupled phases are written to both structures of a pair.}
 \label{tab:variables}
 \begin{tabular}{llrrrl}
 \toprule
@@ -394,10 +406,12 @@ converted from \si{\kilo\electronvolt} to \si{\electronvolt}; no longitudinal-co
 subtraction or slice selection is applied. It therefore includes energy chirp. Reducing this
 quantity can assist longitudinal matching, but compatibility with the booster also depends on
 transport optics and acceptance, which are not simulated here.
-We report these objectives in \umrad, \umrad\ and \si{\mega\electronvolt}. The surrogates work with the negated
+We report these objectives in \umrad, \umrad\ and \si{\mega\electronvolt}. The surrogates work with
+the negated
 values, because the acquisition functions are formulated for maximization. An observation is
 nondominated if no other observation is at least as good in every objective and strictly better
-in at least one. This definition retains settings that improve one emittance or the energy spread at the expense
+in at least one. This definition retains settings that improve one emittance or the energy spread at
+the expense
 of another quantity, without reducing those changes to a single score. Coordinate-wise minima
 describe the ends of the trade-off set and need not belong to the same accelerator setting.
 
@@ -420,7 +434,8 @@ optimization requirements are given separately in Table~\ref{tab:constraints}; t
 is Table 2.1.4.6 of the report~\cite{KLSTDR2025}. The production transverse limits are about
 three to four times looser, the transmission limit allows far larger losses, and the two-sided
 energy interval differs from the TDR's lower bound. The completed campaigns therefore compare
-algorithms on this computational profile, and TDR compatibility is assessed separately. The model has a fixed lattice and two quadrupole controls; it does not include the complete TDR
+algorithms on this computational profile, and TDR compatibility is assessed separately. The model
+has a fixed lattice and two quadrupole controls; it does not include the complete TDR
 linac and downstream matching system. A valid
 simulation that violates any limit is retained as an infeasible observation and cannot enter the
 feasible Pareto set, even if its objective values are attractive. Conversely, passing a subset
@@ -440,9 +455,11 @@ condition supplies no upper bound.}
 Diagnostic & Symbol & Production profile & TDR optimization \\
 \midrule
 RMS beam sizes & $\sigma_x$, $\sigma_y$ & $\le \SI{1.0}{\milli\metre}$ & $<\SI{0.30}{\milli\metre}$ \\
-RMS divergences & $\sigma_{x'}$, $\sigma_{y'}$ & $\le \SI{1.0}{\milli\radian}$ & $<\SI{0.2663}{\milli\radian}$ \\
+RMS divergences & $\sigma_{x'}$, $\sigma_{y'}$ & $\le \SI{1.0}{\milli\radian}$ &
+$<\SI{0.2663}{\milli\radian}$ \\
 RMS bunch length & $\sigma_z$ & $\le \SI{1.0}{\milli\metre}$ & $<\SI{1.0}{\milli\metre}$ \\
-Mean kinetic energy & $E_\mathrm{kin}$ & \SIrange{195}{205}{\mega\electronvolt} & $>\SI{200}{\mega\electronvolt}$ \\
+Mean kinetic energy & $E_\mathrm{kin}$ & \SIrange{195}{205}{\mega\electronvolt} &
+$>\SI{200}{\mega\electronvolt}$ \\
 Transmission & $T$ & $\ge 0.90$ & $>0.9999$ \\
 \bottomrule
 \end{tabular}
@@ -482,7 +499,8 @@ numerical refinement.}
 Quantity & Candidate A & Candidate B \\
 \midrule
 $\enx$, $\eny$ [\si{\micro\metre\radian}] & 3.3488, 3.2848 & 3.2557, 3.2723 \\
-$\sigma_E$ [\si{\mega\electronvolt}] (relative) & 0.4818 (\SI{0.24}{\percent}) & 0.8852 (\SI{0.44}{\percent}) \\
+$\sigma_E$ [\si{\mega\electronvolt}] (relative) & 0.4818 (\SI{0.24}{\percent}) & 0.8852
+(\SI{0.44}{\percent}) \\
 Margin $\sigma_x$, $\sigma_y$ [\si{\micro\metre}] & 2.47, 44.42 & 8.93, 81.31 \\
 Margin $\sigma_{x'}$, $\sigma_{y'}$ [\si{\micro\radian}] & 222.85, 24.59 & 224.36, 13.31 \\
 Margin $\sigma_z$ [\si{\micro\metre}] & 8.16 & 7.96 \\
@@ -510,7 +528,8 @@ describes observed coverage; it does not reproduce optimization under different 
 Numerical validity and physical feasibility are kept separate. An evaluation is \emph{valid} if
 ASTRA completes within its configured time limit, its output can be parsed, all objectives and
 diagnostics are finite, and the particle set reaches the exit plane to within \SI{0.1}{\metre}; a beam that
-is lost earlier is recorded as a premature loss. Invalid evaluations receive no artificial penalty values. They are excluded from surrogate
+is lost earlier is recorded as a premature loss. Invalid evaluations receive no artificial penalty
+values. They are excluded from surrogate
 training, recorded with their failure category, charged to the evaluation budget and counted as
 infeasible. Failed simulations are not
 retried, so every budget slot corresponds to exactly one simulation attempt.
@@ -522,9 +541,11 @@ retried, so every budget slot corresponds to exactly one simulation attempt.
 \subsection{Surrogate models}
 Each objective is modelled by an independent GP~\cite{Rasmussen2006} with a constant mean and a
 scaled Mat\'ern-5/2 kernel with automatic relevance determination over the six inputs, which are
-normalized to the unit cube; outputs are centered and, when their observed variance permits, scaled. The models are implemented in
+normalized to the unit cube; outputs are centered and, when their observed variance permits, scaled.
+The models are implemented in
 BoTorch~\cite{Balandat2020} and GPyTorch~\cite{Gardner2018}, and the kernel hyperparameters are
-fitted by maximizing the exact marginal likelihood. ASTRA is deterministic for a fixed input, so we fix the observation noise to
+fitted by maximizing the exact marginal likelihood. ASTRA is deterministic for a fixed input, so we
+fix the observation noise to
 \begin{equation}
 \begin{aligned}
   \sigma^2_{\mathrm{obs},m} &= \max\bigl(\eta\,\mathrm{Var}(y_m),\ \sigma^2_\mathrm{floor}\bigr),\\
@@ -538,7 +559,8 @@ to all methods and is not represented by this noise term. Because the effective
 likelihood variance is nonzero, the posterior mean need not interpolate every observation
 exactly. For constraint-aware optimization, each of the seven diagnostics is modelled by a
 further GP of the same form, giving ten independent GPs; the energy diagnostic supplies both
-energy inequalities. The resulting multi-output model treats all outputs independently. The effective likelihood floors, the handling of constant channels and the recorded
+energy inequalities. The resulting multi-output model treats all outputs independently. The
+effective likelihood floors, the handling of constant channels and the recorded
 fitting outcomes are given in Appendix~\ref{app:implementation}.
 
 
@@ -567,7 +589,8 @@ baseline feasibility determines the baseline front. For each sampled candidate,
 the weight is $\prod_{k=1}^{8}h(-c_k/\tau_c)$, where $h$ is BoTorch's
 fat-tailed sigmoid and $\tau_c=10^{-3}$. The unconstrained variant omits the diagnostic
 constraints. The remaining smoothing constants and the posterior sample counts are listed in
-Appendix~\ref{app:implementation}. We use the analytical Gaussian probability of feasibility only as a diagnostic, leaving the
+Appendix~\ref{app:implementation}. We use the analytical Gaussian probability of feasibility only as
+a diagnostic, leaving the
 sampled weights unchanged.
 
 The residuals are expressed in their recorded physical units: metres, radians, electron-volts
@@ -625,7 +648,8 @@ We evaluated constraint-aware qLogNEHVI, unconstrained qLogNEHVI and weighted-su
 independent runs each, using fixed seed numbers. Each run has a budget of 160 simulations:
 an initial design of 16 points from a scrambled Sobol sequence~\cite{Owen1998}, followed by 18 batches
 of $q = 8$. The three arms are specified optimization pipelines that share the physical
-model, the initial design of each paired run and the simulation budget. Their differences include the optimization target and acquisition formula, the number of fitted
+model, the initial design of each paired run and the simulation budget. Their differences include
+the optimization target and acquisition formula, the number of fitted
 models, the use of constraint information and the Monte Carlo sample counts. Equal simulation budgets
 therefore do not imply equal computation. The protocol (problem
 definition, budgets, seeds, reference point and endpoints) was fixed before the simulation comparison; pilot
@@ -642,13 +666,15 @@ computational cost. For each algorithm we report the median over runs with a \SI
 bootstrap confidence interval~\cite{Efron1993} (1,000 resamples with a fixed seed number).
 These intervals summarize individual methods; exploratory paired inference is described below.
 The limitation of the originally designated reporting endpoint is addressed in
-Sec.~\ref{sec:discussion}. Constraint-space figures show every numerically valid observation, including physically
+Sec.~\ref{sec:discussion}. Constraint-space figures show every numerically valid observation,
+including physically
 infeasible settings and points outside the Pareto subset. Their limits and
 display units are read from each recorded configuration, and the recorded joint feasibility is
 checked against those limits before plotting. Green shading marks the allowed interval or
 rectangle in the displayed diagnostic coordinates; filled markers satisfy all constraints and
 open markers violate at least one, potentially in another panel. Invalid simulations remain
-counted in the campaign summary but receive no invented diagnostic coordinates. Individual-run and pooled views use the same definitions. Pooled views describe combined
+counted in the campaign summary but receive no invented diagnostic coordinates. Individual-run and
+pooled views use the same definitions. Pooled views describe combined
 coverage across campaigns, without representing any single trajectory.
 
 To assess objective-space quality beyond feasible sampling and set cardinality, we performed
@@ -711,7 +737,8 @@ that control. Published MOGA results provide context, without a new matched benc
 \subsection{Robustness assessment of operating points}
 \label{sec:audit}
 We assess sensitivity to machine errors at six representative points from the feasible Pareto
-set of the predeclared primary constraint-aware MOBO run. The selection criteria are: the minimizer of each objective;
+set of the predeclared primary constraint-aware MOBO run. The selection criteria are: the minimizer
+of each objective;
 the ideal-distance point, closest to the ideal point after min--max normalization of the front
 (a distance criterion, not a curvature-based knee); the
 centroid-distance point, closest to the normalized front's centroid (named for its criterion,
@@ -755,22 +782,26 @@ To explore other injector operating modes, we ran single campaigns
 (16 initial points and 20 batches of 8, i.e.\ 176 simulations each) of the weighted-sum
 method for five weightings $(w_x, w_y, w_E)$: equal weight $(\frac13, \frac13, \frac13)$,
 emittance emphasis $(0.45, 0.45, 0.10)$, spread emphasis $(0.10, 0.10, 0.80)$, horizontal
-emphasis $(0.60, 0.20, 0.20)$ and vertical emphasis $(0.20, 0.60, 0.20)$. We also ran one campaign of each qLogNEHVI variant. The campaigns use fixed seed numbers; scalarization weight cases have independently
+emphasis $(0.60, 0.20, 0.20)$ and vertical emphasis $(0.20, 0.60, 0.20)$. We also ran one campaign
+of each qLogNEHVI variant. The campaigns use fixed seed numbers; scalarization weight cases have
+independently
 generated initial designs, whereas the two MOBO runs share an initial design.
 The five weighted-sum runs together use five times the budget of a qLogNEHVI run, so the
-survey is descriptive and is not used to compare algorithms. Its constraint-aware run was assessed under lattice jitter
+survey is descriptive and is not used to compare algorithms. Its constraint-aware run was assessed
+under lattice jitter
 with the same protocol.
 
 %==========================================================================================
 \section{Results}
 \label{sec:results}
 All results in this section compare the specified pipelines within the nominal numerical
-model of Sec.~\ref{sec:problem}, whose emittances are not converged; the evidence for each
+model of Sec.~\ref{sec:problem}; the evidence for each
 result is identified in supplement S1 (Appendix~\ref{app:implementation}).
 
 \subsection{Simulation validity and computational comparison}
 All 4,800 simulations in the primary comparison were numerically valid. Of these, 1,099
-satisfied all physical constraints. Weighted-sum BO completed campaigns faster than unconstrained MOBO, which in turn
+satisfied all physical constraints. Weighted-sum BO completed campaigns faster than unconstrained
+MOBO, which in turn
 was faster than constraint-aware MOBO under the same computational setup. GP fitting and
 acquisition optimization used double precision on an NVIDIA RTX A5000 GPU, while ASTRA tracking
 used CPU worker processes with at most eight concurrent simulations.
@@ -795,7 +826,8 @@ fitting, acquisition optimization, scheduling and export (Appendix~\ref{app:impl
 Figure~\ref{fig:primary_pareto} compares the empirical feasible Pareto sets after pooling the
 ten runs separately for each method and recomputing nondominance jointly in all three objectives.
 The resulting sets contain 49, 27 and 17 observations for constraint-aware MOBO, unconstrained
-MOBO and weighted-sum BO, respectively. The pooled sets describe combined search coverage at equal total budgets per method, without
+MOBO and weighted-sum BO, respectively. The pooled sets describe combined search coverage at equal
+total budgets per method, without
 representing any single run.
 Markers retain every three-objective nondominated observation in the pairwise projections,
 as used for accelerator MOBO comparisons~\cite{Roussel2021}. A point can appear dominated in a
@@ -809,8 +841,7 @@ an apparently better two-dimensional projection establishes superiority across a
 nondominated sets, using ten runs of 160 simulations per method. Markers are evaluated ASTRA
 settings. Smaller objective values are preferred. All feasible three-objective trade-offs are
 retained, including points that appear dominated in a two-dimensional projection. The star
-marks the re-evaluated MOGA-derived nominal setting (Sec.~\ref{sec:moga_reference}). Values
-are at the production tracking resolution (Sec.~\ref{sec:problem}).}
+marks the re-evaluated MOGA-derived nominal setting (Sec.~\ref{sec:moga_reference}).}
 \label{fig:primary_pareto}
 \end{figure}
 
@@ -845,7 +876,9 @@ At the terminal budget, median epsilon values were 0.334, 0.628 and 0.615 for co
 MOBO, unconstrained MOBO and scalarized BO, respectively; the corresponding median IGD+ values
 were 0.094, 0.282 and 0.230. Excluding the evaluated matched group when constructing the IGD+
 reference gave medians of 0.098, 0.285 and 0.230. Thus the median ordering persisted in this
-sensitivity analysis. The empirical reference depends on the sampled observations, and The full-reference calculation includes the evaluated fronts themselves, introducing self-inclusion bias. Neither calculation
+sensitivity analysis. The empirical reference depends on the sampled observations, and the
+full-reference calculation includes the evaluated fronts themselves, introducing self-inclusion
+bias. Neither calculation
 establishes distance to the true Pareto front. The indicators also depend on the chosen scales
 and reference construction.
 
@@ -922,7 +955,8 @@ classified each post-initialization evaluation (evaluations 17--160) of the prim
 one exclusive category of violated channel groups: energy band, transverse size or
 divergence, and bunch length. Transmission was never violated. Because the feasible fraction
 equals one minus the sum of the infeasible category shares, each paired feasible-fraction
-difference divides exactly among these categories. This descriptive analysis accounts for the observed gaps using archived evaluations; it cannot
+difference divides exactly among these categories. This descriptive analysis accounts for the
+observed gaps using archived evaluations; it cannot
 identify the causal contribution of individual acquisition terms.
 
 The upper ACC3/ACC4 quarter accounts for part of the difference. Constraint-aware MOBO placed a
@@ -995,7 +1029,8 @@ top segment is the feasible share.}
 The independently initialized weighting survey found additional feasible trade-offs, with
 106 feasible observations across its five scalarized campaigns and 19 and 69 in the single
 unconstrained and constraint-aware campaigns. Its unequal aggregate budgets preclude a
-matched efficiency comparison. Appendix~\ref{app:survey} reports the per-case histories, feasible extrema and objective-space
+matched efficiency comparison. Appendix~\ref{app:survey} reports the per-case histories, feasible
+extrema and objective-space
 views as a descriptive survey, separate from the primary test.
 
 \subsection{Constraint-space distributions}
@@ -1014,7 +1049,8 @@ method. Green shading satisfies the shown limits; the pale red background lies o
 Filled markers pass all constraints, while open markers fail at least one channel. Passing a
 shaded projection alone does not imply joint feasibility. Colors and marker shapes identify
 algorithms; full-range panels retain all measured coordinates and insets show the transverse
-acceptance region in the same units. An annotation reports the constant transmission, which has no variation to show in a scatter
+acceptance region in the same units. An annotation reports the constant transmission, which has no
+variation to show in a scatter
 panel. The star marks the re-evaluated MOGA-derived nominal
 setting.}
 \label{fig:primary_constraints}
@@ -1027,7 +1063,8 @@ setting.}
 A frozen-surrogate probe shows that the recorded constraint weights depend on the residual
 units. Expressing the diagnostics in millimetres, milliradians and mega-electron-volts instead
 of metres, radians and electron-volts, at the same raw temperature, changes the candidate
-ranks (Spearman correlations 0.79--0.88 with the original ranking). Threshold normalization removes this unit dependence in the probe. Since no normalized-residual
+ranks (Spearman correlations 0.79--0.88 with the original ranking). Threshold normalization removes
+this unit dependence in the probe. Since no normalized-residual
 campaign was run, we cannot infer how that change would affect feasible sampling or beam
 quality. Appendix~\ref{app:smoothing} gives the probe and its limits.
 
@@ -1064,16 +1101,14 @@ contain almost no irreducible term and depend on the posterior variance of a sta
 A single Mat\'ern-5/2 length scale per control cannot represent both the smooth interior
 response and the sharp changes near phase-dependent energy loss or beam-size growth. The test
 points are also selected adaptively: each batch targets expected improvement or feasibility,
-often at the edge of the sampled region. Overconfident Gaussian predictions make the feasibility
-weights too sharp towards both one and zero. This affects candidate selection; the reported
+often at the edge of the sampled region. Because the constraint weights use the same predictions,
+overconfident Gaussian predictions make the feasibility weights too sharp towards both one and zero.
+This affects candidate selection; the reported
 diagnostics remain the tracked values.
 
 Refitting every archived training set offline with homoscedastic noise inferred by marginal
-likelihood raises the constraint-aware objective coverage to \SIrange{83.4}{92.7}{\percent}
-and the diagnostic coverage to \SIrange{86.9}{93.9}{\percent}. Inferred noise thus removes
-part, but not all, of the undercoverage, which shows that the coverage is sensitive to the
-regularization; kernel misspecification and adaptive test points remain hypotheses for the
-remainder. The undercoverage is largest for infeasible observations, so the surrogates are
+likelihood removes part, but not all, of the undercoverage. The undercoverage is largest for
+infeasible observations, so the surrogates are
 least reliable away from the feasible set. Appendix~\ref{app:predictive} gives the stage- and
 region-resolved coverage and the details of the refit. The production campaigns are
 unchanged.
@@ -1087,8 +1122,7 @@ vertical emittance, whereas the energy-spread extreme trades larger, nearly equa
 for \SI{0.363}{\mega\electronvolt} spread. These roles describe different compromises
 within one selected front; they are not six independently optimized operational modes.
 Values quoted here and in Table~\ref{tab:selected_objectives} are at the production
-resolution; their digits identify archived evaluations and are not resolved physical values,
-since the emittances change by tens of percent under refinement (Table~\ref{tab:resolution}). The
+resolution and identify archived evaluations (Table~\ref{tab:resolution}). The
 nominal setting itself was re-evaluated separately and is compared with these fronts in
 Sec.~\ref{sec:moga_reference}.
 
@@ -1155,7 +1189,7 @@ linearizing about the energy gains of the re-evaluated MOGA-derived nominal trac
 It assumes that each gain scales linearly with its amplitude at fixed phase. A
 \SI{0.2}{\percent} RMS amplitude error, the RF-gradient error of the JKPS model, then shifts the
 mean energy by \SI{0.28}{\mega\electronvolt} RMS if the pairs vary independently and by
-\SI{0.40}{\mega\electronvolt} if all amplitudes vary together. This is about ten times the
+\SI{0.40}{\mega\electronvolt} if all amplitudes vary together. This is about 6 to 30 times the
 \SIrange{0.014}{0.046}{\mega\electronvolt} RMS energy variation produced by the simulated phase
 jitter, and about an eighth of the smallest lower-energy headroom of the representatives,
 \SI{3.11}{\mega\electronvolt}. The estimate is not a bound. It does not cover the bunch-length
@@ -1217,28 +1251,29 @@ supports no statement about MOGA sample efficiency.
 %==========================================================================================
 \section{Discussion}
 \label{sec:discussion}
-Constraint-aware acquisition produced a larger feasible fraction over ten runs, while completing campaigns more slowly than the unconstrained and
+Constraint-aware acquisition produced a larger feasible fraction over ten runs, while completing
+campaigns more slowly than the unconstrained and
 weighted-sum methods. The paired analysis supports its feasible-sampling advantage over both
-baselines without any estimated reference. The evidence for objective quality, including the larger feasible Pareto set, requires more
-qualification:
-the paired epsilon, IGD+ and hypervolume differences favour the constraint-aware pipeline even
+baselines without any estimated reference. The evidence for objective quality, including the larger
+feasible Pareto set, requires more
+qualification: the paired epsilon, IGD+ and hypervolume differences favour the constraint-aware pipeline even
 when the reference is rebuilt in each resample, but they are measured against a reference
 estimated from the same runs, and the exploratory signed-rank calculations against
 unconstrained MOBO do not pass the multiplicity correction. These objective-space results,
 the set size among them, also hold only for the fixed
 source file at the production resolution, whereas the feasible-sampling advantage persists
-in the common-shift scenarios motivated by the refinement check. The larger feasible set does not establish uniformly better trade-offs across the observed
-Pareto front.
+in the common-shift scenarios motivated by the refinement check. The larger feasible set does
+not establish uniformly better trade-offs across the observed Pareto front.
+
 The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
 infeasible upper ACC3/ACC4 phase region, although both contribute: it persists among
 energy-acceptable evaluations. Against unconstrained MOBO it lies mainly in the transverse size
 and divergence violations, and against weighted-sum BO mainly in the energy band. No primary
 feasible observation Pareto-dominates the MOGA-derived nominal setting at the centre of the
 search domain at the nominal resolution, although many improve on it in individual objectives;
-the reported fronts therefore describe trade-offs around that earlier operating point. All methods identified feasible nondominated settings,
-with the objective projections exposing the trade-offs between transverse emittance and energy spread.
-Several selected operating points remain feasible under the simulated lattice jitter. Their
-performance on the real machine remains untested.
+the reported fronts therefore describe trade-offs around that earlier operating point. All six
+selected operating points and the nominal setting remain feasible under the simulated lattice
+jitter. Their performance on the real machine remains untested.
 
 \subsection{Relation to previous KLS injector studies}
 \label{sec:previous_kls}
@@ -1249,7 +1284,8 @@ MOGA~\cite{Kim2024KLSMOGA}. Their abstract reports approximately
 specific tracked setting in their Sec.~4.3, which gives horizontal and vertical normalized
 emittances of \SI{3.9586}{\micro\metre\radian} and \SI{3.9424}{\micro\metre\radian},
 and \SI{0.165}{\percent} RMS energy spread at \SI{201.79}{\mega\electronvolt}
-(approximately \SI{0.3330}{\mega\electronvolt}). We use the tracked setting when comparing individual operating points. The present primary ideal-distance point has
+(approximately \SI{0.3330}{\mega\electronvolt}). We use the tracked setting when comparing
+individual operating points. The present primary ideal-distance point has
 $(\enx,\eny,\sigma_E)=(\SI{3.00}{\micro\metre\radian},\
 \SI{3.52}{\micro\metre\radian},\ \SI{0.403}{\mega\electronvolt})$.
 It exchanges lower transverse emittances for higher energy spread relative to that tracked
@@ -1274,16 +1310,21 @@ setting of Sec.~\ref{sec:moga_reference}, adapted in the earlier work to the pre
 amplitudes. It provides a reference point without a matched MOGA search.
 
 The subsequent JKPS study~\cite{Kim2025KLSError} reports nominal energy spreads of
-\SIrange{0.34145}{0.48248}{\mega\electronvolt} for its selected cases. Its tabulated emittances are geometric, whereas
+\SIrange{0.34145}{0.48248}{\mega\electronvolt} for its selected cases. Its tabulated emittances are
+geometric, whereas
 ours are normalized, so those emittance values are not directly compared. Its beam-size and
-bunch-length limits were \SI{0.2}{\milli\metre} and \SI{0.9}{\milli\metre}, respectively, compared with \SI{1.0}{\milli\metre} for both here;
-JKPS also imposed a \SI{0.5}{\mega\electronvolt} energy-spread limit, whereas here energy spread is an objective
+bunch-length limits were \SI{0.2}{\milli\metre} and \SI{0.9}{\milli\metre}, respectively, compared
+with \SI{1.0}{\milli\metre} for both here;
+JKPS also imposed a \SI{0.5}{\mega\electronvolt} energy-spread limit, whereas here energy spread is
+an objective
 without an upper feasibility cutoff. Feasibility therefore has different meanings across the studies.
 
 The JKPS operating-error model used RF-gradient and phase standard deviations of \SI{0.2}{\percent} and
 \SI{0.2}{\degree}, with \SI{0.1}{\percent} magnet-strength errors. It also studied \SI{100}{\micro\metre}
-position errors and \SI{0.4}{\milli\radian} rotations, using 1,000 samples per stage with a Gaussian distribution
-truncated at two standard deviations. Our tests use \SI{0.1}{\degree} RF-phase and \SI{0.1}{\percent} magnet-strength
+position errors and \SI{0.4}{\milli\radian} rotations, using 1,000 samples per stage with a Gaussian
+distribution
+truncated at two standard deviations. Our tests use \SI{0.1}{\degree} RF-phase and
+\SI{0.1}{\percent} magnet-strength
 errors with 50 samples per representative. They omit tracked RF-gradient errors, whose effect on the
 mean energy alone is estimated by linearization in Sec.~\ref{sec:robustness_results}, and
 alignment errors. Thus the
@@ -1297,7 +1338,8 @@ The archived evidence shows that TDR-feasible observations are rare and close to
 limits. Only two of the 4,800 primary evaluations meet the TDR inequalities, both with
 micrometre-scale size and bunch-length margins (Table~\ref{tab:tdr_candidates}). The
 MOGA-derived nominal setting misses them only in vertical divergence, by
-\SI{2.7}{\micro\radian}, and about a quarter of its jittered neighbours pass. These narrow diagnostic margins occur away from most boundaries of the control domain. In
+\SI{2.7}{\micro\radian}, and about a quarter of its jittered neighbours pass. These narrow
+diagnostic margins occur away from most boundaries of the control domain. In
 normalized controls, candidate~A lies between 0.48 and 0.86 in every coordinate; candidate~B is
 interior except for a gun phase of 0.96. Two points do not locate a feasible region in six dimensions. The
 six controls can therefore produce TDR-feasible settings, but the production-profile campaigns
@@ -1335,7 +1377,8 @@ needed nor how much they would add.
 \subsection{Limitations}
 The feasible fronts are empirical sets from finite searches in the recorded domain. They
 characterize a broader production acceptance profile than the TDR optimization requirements,
-and do not establish global Pareto optimality or full injection acceptance. The comparison covers the constraint-aware, unconstrained and equal-weight scalarized
+and do not establish global Pareto optimality or full injection acceptance. The comparison covers
+the constraint-aware, unconstrained and equal-weight scalarized
 implementations that we ran. No matched constrained-scalarized arm was evaluated, and the unequal-budget
 weighting survey cannot replace that control. The Sobol arm is a space-filling reference for
 the recorded domain, not a tuned global optimizer. Ten paired runs
@@ -1388,10 +1431,10 @@ comparison with accelerator measurements is made in this simulation study.
 \section{Conclusions}
 \label{sec:conclusions}
 We compared three Bayesian optimization pipelines on a six-control, three-objective
-injector-linac model derived from the KLS design. The paired study used ten runs with matched
-budgets, seven diagnostic channels, eight inequalities and failure-inclusive accounting.
-Every run used the same fixed source file and nominal tracking resolution, at which the
-emittances are not converged. All simulations were valid, and every pipeline found feasible
+injector-linac model derived from the KLS design, with seven diagnostic channels and eight
+inequalities. The paired study used ten runs with matched budgets and failure-inclusive
+accounting. Every run used the same fixed source file and nominal tracking resolution. All
+simulations were valid, and every pipeline found feasible
 nondominated settings with trade-offs between transverse emittance and energy spread.
 
 Constraint-aware acquisition samples feasible settings more often under the stated computational
@@ -1483,7 +1526,8 @@ $10^{-6}$. Thus not every channel has unit-variance transformed observations, an
 requested physical variance need not equal the effective likelihood variance. Across the saved
 primary models, 1,714 constraint-aware channel fits completed with L-BFGS and 86 used Adam
 recovery; the corresponding counts were 535 and five for unconstrained MOBO, and 180 and zero
-for scalarized BO. No saved fit used a restored-prior fallback. These counts concern GP fitting; simulation failures and candidate-proposal fallbacks are
+for scalarized BO. No saved fit used a restored-prior fallback. These counts concern GP fitting;
+simulation failures and candidate-proposal fallbacks are
 counted separately.
 
 \paragraph{Acquisition smoothing and sampling.} Besides the constraint temperature $\tau_c$,
@@ -1560,11 +1604,16 @@ Table~\ref{tab:campaign_summary} and Figs.~\ref{fig:survey_feasible} and~\ref{fi
 operating-point survey of Sec.~\ref{sec:survey}, and Table~\ref{tab:phase1_cases} the five
 weightings. The weighted-sum aggregate, unconstrained and constrained surveys yielded
 106/880, 19/176 and 69/176 feasible observations, respectively. In physical units the best
-feasible horizontal emittances were \SI{2.71}{\micro\metre\radian}, \SI{3.11}{\micro\metre\radian} and \SI{2.65}{\micro\metre\radian}, and the best feasible
-vertical emittances were \SI{3.13}{\micro\metre\radian}, \SI{3.17}{\micro\metre\radian} and \SI{3.03}{\micro\metre\radian}. Their minimum feasible energy spreads
-were \SI{0.339}{\mega\electronvolt}, \SI{0.391}{\mega\electronvolt} and \SI{0.347}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
-operating point. Table~\ref{tab:phase1_cases} uses the same feasible-only convention for each weighting. The differing
-budgets and independently initialized cases prevent interpreting this descriptive survey as an algorithm ranking.
+feasible horizontal emittances were \SI{2.71}{\micro\metre\radian}, \SI{3.11}{\micro\metre\radian}
+and \SI{2.65}{\micro\metre\radian}, and the best feasible
+vertical emittances were \SI{3.13}{\micro\metre\radian}, \SI{3.17}{\micro\metre\radian} and
+\SI{3.03}{\micro\metre\radian}. Their minimum feasible energy spreads
+were \SI{0.339}{\mega\electronvolt}, \SI{0.391}{\mega\electronvolt} and
+\SI{0.347}{\mega\electronvolt}. These coordinate-wise extrema need not occur at the same
+operating point. Table~\ref{tab:phase1_cases} uses the same feasible-only convention for each
+weighting. The differing
+budgets and independently initialized cases prevent interpreting this descriptive survey as an
+algorithm ranking.
 
 \IfFileExists{results_table.tex}{\inputwide{results_table}}{\pendingtable{results_table}{Operating-point
 survey summary.}{tab:campaign_summary}}
@@ -1637,7 +1686,8 @@ except for energy. For energy, the RMSE falls from \SI{0.89}{\mega\electronvolt}
 \SI{0.14}{\mega\electronvolt}. The fitted noise is \numrange{e-4}{e-3} of the training
 variance. For energy and bunch length, it lies at the lower bound of the fitting
 constraint, so the energy improvement reflects regularization of a nearly
-interpolating fit, not detected simulation noise. The improvement with inferred noise shows that coverage is sensitive to regularization, though
+interpolating fit, not detected simulation noise. The improvement with inferred noise shows that
+coverage is sensitive to regularization, though
 undercoverage remains. Kernel misspecification and adaptive test points could account for the
 remainder; this check does not test those hypotheses.
 In \num{88} of \num{4680} refits, both optimizers failed and the hyperparameters were
