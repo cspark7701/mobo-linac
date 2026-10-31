@@ -76,14 +76,16 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Source:** Reviewer 2 comment 2, V2, reconciled with the author's instruction to remove the categorical kernel sentence.
 
-- [ ] Remove “Kernel misspecification” from the appendix sentence that currently pairs it with adaptive test points as possible explanations for remaining undercoverage.
-- [ ] Keep the adaptive-test-point hypothesis conditional, and retain the statement that this check does not test it. Make singular/plural references grammatically consistent.
-- [ ] Do not reintroduce the deleted kernel claim in the main text, even as a softened assertion, under this task.
-- [ ] Preserve the noise-refit experiment, coverage values and its stated limitations.
+- [x] Remove “Kernel misspecification” from the appendix sentence that currently pairs it with adaptive test points as possible explanations for remaining undercoverage.
+- [x] Keep the adaptive-test-point hypothesis conditional, and retain the statement that this check does not test it. Make singular/plural references grammatically consistent.
+- [x] Do not reintroduce the deleted kernel claim in the main text, even as a softened assertion, under this task.
+- [x] Preserve the noise-refit experiment, coverage values and its stated limitations.
 
 **Deliverable:** a minimal appendix correction.
 
 **Done when:** the main text and appendix use a consistent set of hypotheses, while respecting the author's removal instruction.
+
+**Execution status:** Completed; manuscript edit checked against this task scope.
 
 ## C6-03. Restore the abstract's scope signals or document deliberate retention
 
