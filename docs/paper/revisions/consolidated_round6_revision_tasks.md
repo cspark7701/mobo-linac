@@ -6,7 +6,7 @@
 - [Reviewer 2 report](../reviews/reviewer2_round6_report.md) and [V1–V6](reviewer2_round6_revision_tasks.md): **accept**, with V1 requested before acceptance, V2–V3 editorial, V4–V5 optional and V6 closing checks. No new simulations are required by this reviewer.
 - [Review synthesis](../reviews/round6_review_synthesis.md): complete source mapping, author constraints and the unresolved difference between these recommendations. Historical round5 recommendations remain unchanged.
 
-**Execution in progress.** C6-01–C6-04 statuses are recorded below. The author has adopted C6-06 and C6-07 and declined C6-08; protocols and implementation remain pending. See round6_revision_overview.md. Prior [round 5 closure](round5_revision_overview.md) and reviewer recommendations are unchanged. Creating or completing this queue is not journal acceptance.
+**Execution in progress.** C6-01–C6-04 statuses are recorded below. The author has adopted C6-06 and C6-07 and declined C6-08; the protocol is frozen and implementation is tested, with nominal reproduction running and broader validation pending. See round6_revision_overview.md. Prior [round 5 closure](round5_revision_overview.md) and reviewer recommendations are unchanged. Creating or completing this queue is not journal acceptance.
 
 Priority: P1 addresses an explicit review requirement or a necessary disposition; P2 is editorial; P3 is optional. R6-01 and R6-02 are P1 requirements under Reviewer 1's recommendation. Their execution is conditional on the author's adoption in C6-05; declining them records a response but does not satisfy those requests. Reviewer 2 does not require either experiment.
 
@@ -159,7 +159,7 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 ## C6-08. Optional constrained-scalarized comparator
 
-**Decision:** Not adopted, explicitly omitted by the author on 31 October 2026. No comparator implementation or runs will be performed; the missing-comparator limitation remains.
+**Decision completed (C6-08 / A6-07):** Not adopted, explicitly omitted by the author on 31 October 2026. No comparator implementation or runs will be performed; the missing-comparator limitation remains.
 
 **Source:** Reviewer 1 R6-04, distinct from R6-01 and R6-02. **Detail:** A6-07 in the [additional validation plan](round6_additional_validation_plan.md).
 

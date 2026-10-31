@@ -6,7 +6,7 @@ Reviewed manuscript baseline: `9fd076a`; execution baseline: `79cecb9`.
 
 On 31 October 2026 the author explicitly adopted representative numerical validation (C6-06/A6-01–03) and contemporaneous raw/normalized acquisition campaigns (C6-07/A6-04–06), and omitted the optional constraint-aware scalarized comparator (C6-08/A6-07). This supersedes the earlier nominal-model-only execution scope. Historical results and exploratory front-quality status remain unchanged. Neither reviewer recommendation is represented as consensus or journal acceptance.
 
-The resource ceiling is **two CPU evaluation workers total**, across both workstreams. Execute the workstreams serially to enforce that ceiling; use CUDA for GP/acquisition work when available, retain double precision, and limit numerical-library CPU threads. Protocols, exact sample sizes, analysis choices and budgets must be frozen before new outcomes. No new ASTRA runs have started at this disposition step.
+The resource ceiling is **two CPU evaluation workers total**, across both workstreams. Execute the workstreams serially to enforce that ceiling; use CUDA for GP/acquisition work when available, retain double precision, and limit numerical-library CPU threads. Protocols, exact sample sizes, analysis choices and budgets must be frozen before new outcomes. That statement described the disposition step; the nominal reproduction stage is now running under the frozen protocol.
 
 The author explicitly authorized a git push when the revision tasks are finished. This overrides the older no-push statements in the planning documents; it does not authorize remote GitHub Actions queries or public artifact deposition.
 
@@ -21,4 +21,17 @@ Focused manuscript/link checks: **4 passed**. The two-column manuscript builds s
 
 ## Remaining work
 
-Freeze A6-01, implement/test and execute both adopted research branches, analyze all outcomes, integrate supported findings, and complete separately attributed reviewer responses and C6-09 validation. Numerical validation does not establish scaling efficacy, and scaling campaigns do not establish tracking convergence. Optional constrained scalarization is not adopted; retain that limitation.
+A6-01 is frozen (387 sampled settings, 1,935 numerical attempts, 3,200 scaling attempts). The numerical runner and normalized acquisition are implemented, with nominal reproduction running. The sequential campaign/analysis chain is prepared; broader validation is still running before it is launched. Finish both research branches, analyze all outcomes, integrate supported findings, and complete separately attributed reviewer responses and C6-09 validation. Numerical validation does not establish scaling efficacy, and scaling campaigns do not establish tracking convergence. Optional constrained scalarization is not adopted; retain that limitation.
+
+## Optional comparator disposition (C6-08 / A6-07)
+
+Completed as an explicit non-adoption decision, not as an executed comparison. The author requested both main validation studies and omitted the optional constrained-scalarized arm. Its absence remains a manuscript limitation; the new raw/normalized comparison cannot establish a unique benefit of vector-valued acquisition over constraint-aware scalarization.
+
+## Research preparation checks
+
+- Normalized acquisition/configuration: 159 focused checks passed, including real q=8 acquisition gradients on CPU and CUDA, signs/unit consistency and mode-preserving checkpoint restoration.
+- Sampling and existing checkpoint/recovery tests: 117 passed.
+- Expanded new-study runner/analysis tests: 12 passed; synthetic adverse outcomes and invalid receipts are included.
+- Lint and documentation sync passed. Complete non-integration regression/coverage validation remains in progress.
+- Initial completed nominal observations reproduce their archived values. The full 387-setting gate is not yet complete; no claim about refined outcomes is made.
+- Measured level costs in the frozen protocol imply approximately three weeks (two-to-four-week planning range) at two workers, superseding the preliminary chat estimate.
