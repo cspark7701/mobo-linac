@@ -8,7 +8,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
 import prepare_revision_round6 as prepare
-import run_revision_round6_resolution as resolution
+import evaluate_revision_round6_resolution as resolution
 
 
 def population():
@@ -109,7 +109,7 @@ def test_nominal_gate_rejects_invalid_or_changed_observation():
 
 
 def test_scaling_plan_has_matched_budget_and_alternating_order():
-    import run_revision_round6_scaling as scaling
+    import evaluate_revision_round6_scaling as scaling
     spec=json.loads(resolution.SPEC.read_text())
     allocation=list(scaling.order(spec))
     assert len(allocation)==20

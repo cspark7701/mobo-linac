@@ -5,7 +5,7 @@ import argparse
 import json
 import subprocess
 from prepare_revision_round6 import ROOT, sha
-from run_revision_round6_scaling import code_identity
+from evaluate_revision_round6_scaling import code_identity
 from mobo_linac.io.artifacts import validate_run_completion
 
 

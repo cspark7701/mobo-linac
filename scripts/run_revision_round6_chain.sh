@@ -11,7 +11,7 @@ exec 9>results/revision_round6/chain.lock
 flock -n 9 || { echo 'Another round6 chain already owns the lock.' >&2; exit 1; }
 trap 'printf "Round6 chain failed at line %s; outputs retained.\n" "$LINENO" >&2' ERR
 # A complete, stable-source validation run precedes the remaining physical stages.
-"$PYTHON_BIN" -c 'import sys,json;sys.path.insert(0,"scripts");from run_revision_round6_scaling import code_identity;print(json.dumps(code_identity(),sort_keys=True))' > results/revision_round6/validation_start_code.json
+"$PYTHON_BIN" -c 'import sys,json;sys.path.insert(0,"scripts");from evaluate_revision_round6_scaling import code_identity;print(json.dumps(code_identity(),sort_keys=True))' > results/revision_round6/validation_start_code.json
 "$PYTHON_BIN" -m pytest -m "not integration" --tb=short --cov=mobo_linac \
   --cov-report=term-missing --cov-fail-under=100 > results/revision_round6/logs/final_validation.log 2>&1
 "$PYTHON_BIN" -m ruff check src scripts tests
@@ -21,7 +21,7 @@ trap 'printf "Round6 chain failed at line %s; outputs retained.\n" "$LINENO" >&2
 import json, sys
 from pathlib import Path
 sys.path.insert(0, 'scripts')
-from run_revision_round6_scaling import code_identity
+from evaluate_revision_round6_scaling import code_identity
 from prepare_revision_round6 import sha
 base=Path('results/revision_round6')
 assert json.loads((base/'validation_start_code.json').read_text())==code_identity(), 'Code changed during validation'
@@ -30,13 +30,13 @@ assert json.loads((base/'validation_start_code.json').read_text())==code_identit
     'test_log_sha256':sha(base/'logs/final_validation.log')},indent=2)+'\n')
 PYCODE
 "$PYTHON_BIN" scripts/record_revision_round6_stage.py validation
-"$PYTHON_BIN" scripts/run_revision_round6_resolution.py --resume --wait-for-workers \
+"$PYTHON_BIN" scripts/evaluate_revision_round6_resolution.py --resume --wait-for-workers \
   > results/revision_round6/logs/resolution_refinement.log 2>&1
 "$PYTHON_BIN" scripts/analyze_revision_round6.py resolution --resume \
   --output-dir results/revision_round6/analysis_resolution \
   > results/revision_round6/logs/resolution_analysis.log 2>&1
 "$PYTHON_BIN" scripts/record_revision_round6_stage.py numerical
-"$PYTHON_BIN" scripts/run_revision_round6_scaling.py --resume --wait-for-workers \
+"$PYTHON_BIN" scripts/evaluate_revision_round6_scaling.py --resume --wait-for-workers \
   > results/revision_round6/logs/scaling.log 2>&1
 "$PYTHON_BIN" scripts/analyze_revision_round6.py scaling --resume \
   --output-dir results/revision_round6/analysis_scaling \

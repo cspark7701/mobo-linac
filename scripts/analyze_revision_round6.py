@@ -7,8 +7,8 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 from prepare_revision_round6 import ROOT, EVIDENCE, sha
-from run_revision_round6_resolution import read_records, QUANTITIES, MANIFEST, SPEC
-from run_revision_round6_scaling import campaign_config, check_completed, check_pair
+from evaluate_revision_round6_resolution import read_records, QUANTITIES, MANIFEST, SPEC
+from evaluate_revision_round6_scaling import campaign_config, check_completed, check_pair
 
 
 def paired_summary(values, first, second, spec):
