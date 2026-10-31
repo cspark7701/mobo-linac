@@ -246,3 +246,13 @@ def test_stage_validation_rejects_stale_receipt(tmp_path,monkeypatch):
     monkeypatch.setattr(stage,'ROOT',tmp_path)
     with pytest.raises(ValueError,match='invalid or stale'):
         stage.stage_evidence('validation')
+
+
+def test_unavailable_failed_measurements_are_null_not_fabricated(tmp_path):
+    import numpy as np
+    path=tmp_path/'failed.jsonl'
+    resolution.append_record(path,{'task_id':'failed','simulation_valid':False,
+        'diagnostics':{'sigma_x_m':float('nan')},'values':[np.float64(float('inf'))]})
+    result=resolution.read_records(path)['failed']
+    assert result['diagnostics']['sigma_x_m'] is None
+    assert result['values']==[None] and result['simulation_valid'] is False

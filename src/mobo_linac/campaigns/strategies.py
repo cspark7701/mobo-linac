@@ -144,11 +144,13 @@ class MultiObjectiveProposal:
         sampler = (SobolQMCNormalSampler(sample_shape=torch.Size([execution.acqf_mc_samples or 128]),
                                         seed=streams.get("posterior"))
                    if execution.acqf_mc_samples is not None or streams else None)
-        acq_func = build_acquisition_function(
-            model=gp_model, train_X=training.train_X, train_Y=training.train_Y, ref_point=reference,
-            train_feas_mask=training.feasible, acq_type=self.acq_type, constraints=constraints, objective=objective,
-            sampler=sampler, constraint_temperature=execution.constraint_temperature,
-        )
+        # Baseline pruning may also draw posterior samples during construction.
+        with proposal_random_stream(streams.get("posterior"), self.device):
+            acq_func = build_acquisition_function(
+                model=gp_model, train_X=training.train_X, train_Y=training.train_Y, ref_point=reference,
+                train_feas_mask=training.feasible, acq_type=self.acq_type, constraints=constraints, objective=objective,
+                sampler=sampler, constraint_temperature=execution.constraint_temperature,
+            )
         fallback_engine = (torch.quasirandom.SobolEngine(self.bounds.shape[1], scramble=True,
                                                        seed=streams["proposal"]) if streams else sobol_engine)
         with proposal_random_stream(streams.get("proposal"), self.device):

@@ -63,7 +63,21 @@ def read_records(path):
     return records
 
 
+def json_measurements(value):
+    """Represent unavailable/nonfinite measurements as null without inventing values."""
+    if isinstance(value, dict):
+        return {key: json_measurements(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [json_measurements(item) for item in value]
+    if isinstance(value, np.generic):
+        value = value.item()
+    if isinstance(value, float) and not np.isfinite(value):
+        return None
+    return value
+
+
 def append_record(path, value):
+    value = json_measurements(value)
     payload = json.dumps(value, sort_keys=True, allow_nan=False)
     envelope = {'record': value, 'sha256': hashlib.sha256(payload.encode()).hexdigest()}
     with path.open('a') as handle:
@@ -162,6 +176,9 @@ def execute(out, spec, frame, resume=False, mock=False, stage='all'):
         def complete(outcome):
             value=record(outcome)
             value['physically_feasible']=outcome.evaluated_result.physically_feasible
+            category=outcome.evaluated_result.failure_category
+            value['failure_category']=getattr(category,'value',category)
+            value['failure_reason']=outcome.evaluated_result.failure_reason
             append_record(journal,value)
         plan.evaluate_plan_parallel(tasks,evaluator=MockEvaluator(config=config) if mock else None,
                                     on_task_complete=complete,run_id='round6_resolution')
