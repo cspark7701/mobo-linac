@@ -237,6 +237,12 @@ def test_stage_commit_preserves_unrelated_staged_files(tmp_path,monkeypatch):
     assert git('show','--pretty=','--name-only','HEAD')=='docs/exec-plans/completed/TASK_00002_r6_validation_completed.md'
     before=git('rev-parse','HEAD');stage.main(['validation'])
     assert git('rev-parse','HEAD')==before
+    receipt.write_text('{"revalidated":true}')
+    stage.main(['validation'])
+    assert git('rev-parse','HEAD')!=before
+    assert (folder/'TASK_00002_r6_validation_completed.md').exists()
+    assert (folder/'TASK_00003_r6_validation_completed.md').exists()
+    assert git('diff','--cached','--name-only')=='unrelated.txt'
 
 
 def test_stage_validation_rejects_stale_receipt(tmp_path,monkeypatch):

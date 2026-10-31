@@ -51,11 +51,12 @@ def main(argv=None):
     digest=sha(receipt)
     folder=ROOT/'docs/exec-plans/completed'
     previous=list(folder.glob(f'TASK_*_r6_{args.stage}_completed.md'))
-    if previous:
-        if len(previous)!=1 or digest not in previous[0].read_text():
-            raise ValueError('Conflicting existing stage completion summary.')
-        subprocess.run(['git','ls-files','--error-unmatch',str(previous[0].relative_to(ROOT))],cwd=ROOT,check=True,stdout=subprocess.DEVNULL)
+    matches=[path for path in previous if digest in path.read_text()]
+    if matches:
+        subprocess.run(['git','ls-files','--error-unmatch',str(matches[0].relative_to(ROOT))],cwd=ROOT,check=True,stdout=subprocess.DEVNULL)
         return
+    # A fresh verified receipt (for example a repeat validation after a fix) gets
+    # a new chronological summary; previous completion evidence stays untouched.
     if subprocess.check_output(['git','branch','--show-current'],cwd=ROOT,text=True).strip()!='main':
         raise ValueError('Expected main branch; do not commit into an unrelated checkout.')
     n=max(int(p.name.split('_')[1]) for p in folder.glob('TASK_[0-9][0-9][0-9][0-9][0-9]_*.md'))+1
