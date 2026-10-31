@@ -6,7 +6,7 @@
 - [Reviewer 2 report](../reviews/reviewer2_round6_report.md) and [V1–V6](reviewer2_round6_revision_tasks.md): **accept**, with V1 requested before acceptance, V2–V3 editorial, V4–V5 optional and V6 closing checks. No new simulations are required by this reviewer.
 - [Review synthesis](../reviews/round6_review_synthesis.md): complete source mapping, author constraints and the unresolved difference between these recommendations. Historical round5 recommendations remain unchanged.
 
-**All tasks are planned and unstarted.** No manuscript edits, code changes, simulations or uploads were executed in creating this queue. Prior [round 5 closure](round5_revision_overview.md) and reviewer recommendations are unchanged. Creating or completing this queue is not journal acceptance.
+**Execution in progress.** C6-01–C6-04 statuses are recorded below. Research adoption under C6-05 remains pending; no new simulations have been authorized by the queue itself. Prior [round 5 closure](round5_revision_overview.md) and reviewer recommendations are unchanged. Creating or completing this queue is not journal acceptance.
 
 Priority: P1 addresses an explicit review requirement or a necessary disposition; P2 is editorial; P3 is optional. R6-01 and R6-02 are P1 requirements under Reviewer 1's recommendation. Their execution is conditional on the author's adoption in C6-05; declining them records a response but does not satisfy those requests. Reviewer 2 does not require either experiment.
 
@@ -61,14 +61,16 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Source:** Reviewer 2 comment 1, V1. This is the only correction that Reviewer 2 explicitly requests before acceptance.
 
-- [ ] Define the scalarized cost as the weighted sum of the physical objective values divided by their stated reporting scales, and say that it is minimized. Keep the existing scales and equal weights.
-- [ ] Use an exact one-line prose definition. Do not restore a negated-cost explanation or the removed displayed/inline scalar-cost formula unless the author later changes that instruction.
-- [ ] Check that “weighted cost” in the channel-attribution section and “scalarized cost” in predictive checks refer to the same definition.
-- [ ] Preserve every measured value, objective definition and acquisition choice.
+- [x] Define the scalarized cost as the weighted sum of the physical objective values divided by their stated reporting scales, and say that it is minimized. Keep the existing scales and equal weights.
+- [x] Use an exact one-line prose definition. Do not restore a negated-cost explanation or the removed displayed/inline scalar-cost formula unless the author later changes that instruction.
+- [x] Check that “weighted cost” in the channel-attribution section and “scalarized cost” in predictive checks refer to the same definition.
+- [x] Preserve every measured value, objective definition and acquisition choice.
 
 **Deliverable:** a local methods edit and consistent downstream terminology.
 
 **Done when:** the physical baseline target can be reconstructed unambiguously from the text, without adding implementation-sign commentary or changing the executed method.
+
+**Execution status:** Completed; manuscript edit checked against this task scope.
 
 ## C6-02. Remove the remaining appendix kernel hypothesis
 

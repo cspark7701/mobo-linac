@@ -608,8 +608,9 @@ constraint weighting; no residual scaling is changed when analysing the recorded
 comparisons below use this raw-residual implementation, whose constraint weighting is
 unit-dependent.
 
-The weighted-sum baseline uses a single GP for the weighted combination of objectives,
-normalized by the reporting scales (\SI{1}{\micro\metre\radian},
+The weighted-sum baseline minimizes the scalarized cost, the sum of the physical objective
+values each divided by its reporting scale and multiplied by its weight, using a single GP.
+The reporting scales are (\SI{1}{\micro\metre\radian},
 \SI{1}{\micro\metre\radian}, \SI{1}{\mega\electronvolt}), with equal weights $w_m = 1/3$.
 It selects batches with logarithmic noisy expected improvement
 (qLogNEI)~\cite{Ament2023}. The scales keep the
