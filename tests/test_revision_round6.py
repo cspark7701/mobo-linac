@@ -196,3 +196,53 @@ def test_numerical_analysis_uses_complete_identities_and_design_weights(tmp_path
     (tmp_path/'complete.json').write_text(json.dumps(marker))
     with pytest.raises(ValueError,match='Invalid numerical'):
         analysis.numerical(tmp_path,spec)
+
+
+def test_analysis_resume_requires_identical_inputs_and_outputs(tmp_path):
+    import analyze_revision_round6 as analysis
+    source=tmp_path/'source';source.mkdir()
+    (source/'complete.json').write_text('{}')
+    out=tmp_path/'analysis';out.mkdir()
+    data=out/'r6_scaling_runs.csv';data.write_text('arm,value\nraw,0.1\n')
+    receipt={'spec_sha256':prepare.sha(analysis.SPEC),
+        'completion_sha256':prepare.sha(source/'complete.json'),
+        'outputs_sha256':{data.name:prepare.sha(data)}}
+    (out/'r6_scaling_analysis.json').write_text(json.dumps(receipt))
+    args=['scaling','--input-dir',str(source),'--output-dir',str(out),'--resume']
+    analysis.main(args)
+    data.write_text('changed')
+    with pytest.raises(ValueError,match='output checksum'):
+        analysis.main(args)
+    (source/'complete.json').write_text('{"changed":true}')
+    with pytest.raises(ValueError,match='input identity'):
+        analysis.main(args)
+
+
+def test_stage_commit_preserves_unrelated_staged_files(tmp_path,monkeypatch):
+    import subprocess
+    import record_revision_round6_stage as stage
+    subprocess.run(['git','init','-b','main',str(tmp_path)],check=True,capture_output=True)
+    def git(*args):
+        return subprocess.check_output(['git',*args],cwd=tmp_path,text=True).strip()
+    git('config','user.email','test@example.invalid');git('config','user.name','Test')
+    folder=tmp_path/'docs/exec-plans/completed';folder.mkdir(parents=True)
+    (folder/'TASK_00001_fixture.md').write_text('fixture\n')
+    git('add','.');git('commit','-m','Initial fixture')
+    (tmp_path/'unrelated.txt').write_text('unrelated\n');git('add','unrelated.txt')
+    receipt=tmp_path/'receipt.json';receipt.write_text('{}')
+    monkeypatch.setattr(stage,'ROOT',tmp_path)
+    monkeypatch.setattr(stage,'stage_evidence',lambda name:(receipt,'Verified synthetic fixture stage.'))
+    stage.main(['validation'])
+    assert git('diff','--cached','--name-only')=='unrelated.txt'
+    assert git('show','--pretty=','--name-only','HEAD')=='docs/exec-plans/completed/TASK_00002_r6_validation_completed.md'
+    before=git('rev-parse','HEAD');stage.main(['validation'])
+    assert git('rev-parse','HEAD')==before
+
+
+def test_stage_validation_rejects_stale_receipt(tmp_path,monkeypatch):
+    import record_revision_round6_stage as stage
+    base=tmp_path/'results/revision_round6';base.mkdir(parents=True)
+    (base/'validation_complete.json').write_text(json.dumps({'status':'failed','coverage_required':100}))
+    monkeypatch.setattr(stage,'ROOT',tmp_path)
+    with pytest.raises(ValueError,match='invalid or stale'):
+        stage.stage_evidence('validation')

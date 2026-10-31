@@ -186,9 +186,19 @@ def main(argv=None):
     parser.add_argument('study',choices=['resolution','scaling'])
     parser.add_argument('--input-dir',type=Path)
     parser.add_argument('--output-dir',type=Path,default=EVIDENCE)
+    parser.add_argument('--resume',action='store_true')
     args=parser.parse_args(argv);spec=json.loads(SPEC.read_text())
     source=args.input_dir or ROOT/'results/revision_round6'/args.study
-    names=(['resolution_values','resolution_classification','resolution_fractions','resolution_paired','resolution_tolerances']
+    receipt_path=args.output_dir/f'r6_{args.study}_analysis.json'
+    if args.resume and receipt_path.exists():
+        receipt=json.loads(receipt_path.read_text())
+        if receipt['spec_sha256']!=sha(SPEC) or receipt['completion_sha256']!=sha(source/'complete.json'):
+            raise ValueError('Existing analysis input identity changed.')
+        outputs=receipt.get('outputs_sha256',{})
+        if not outputs or any(sha(args.output_dir/name)!=digest for name,digest in outputs.items()):
+            raise ValueError('Existing analysis output checksum mismatch.')
+        return
+    names=(['resolution_values' ,'resolution_classification','resolution_fractions','resolution_paired','resolution_tolerances']
            if args.study=='resolution' else ['scaling_runs','scaling_paired','scaling_channels'])
     if any((args.output_dir/('r6_'+name+'.csv')).exists() for name in names):
         raise ValueError('Derived evidence already exists; use an isolated output directory.')
@@ -199,6 +209,7 @@ def main(argv=None):
     uncertainty_plot(tables[args.study+'_paired'], args.output_dir/f'r6_{args.study}_uncertainty.pdf')
     metadata={'spec_sha256':sha(SPEC),'completion_sha256':sha(source/'complete.json'),
               'study':args.study,'tables':{name:len(table) for name,table in tables.items()},
+              'outputs_sha256':{p.name:sha(p) for p in args.output_dir.glob(f'r6_{args.study}_*') if p.suffix in {'.csv','.pdf'}},
               'uncertainty':'Paired bootstrap conditional on sampled observations; numerical-study design uncertainty reported separately. '
                             'No claim of simultaneous coverage, numerical convergence or machine reliability.'}
     (args.output_dir/f'r6_{args.study}_analysis.json').write_text(json.dumps(metadata,indent=2)+'\n')
