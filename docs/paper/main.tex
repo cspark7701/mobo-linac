@@ -608,10 +608,11 @@ constraint weighting; no residual scaling is changed when analysing the recorded
 comparisons below use this raw-residual implementation, whose constraint weighting is
 unit-dependent.
 
-The weighted-sum baseline fits a single GP to the scalar cost $g(\mathbf{x}) = \sum_m w_m
-f_m(\mathbf{x})/s_m$, where $s_m$ are the reporting scales (\SI{1}{\micro\metre\radian},
-\SI{1}{\micro\metre\radian}, \SI{1}{\mega\electronvolt}) and $w_m = 1/3$, and selects batches
-with the logarithmic noisy expected improvement (qLogNEI)~\cite{Ament2023}. The scales keep the
+The weighted-sum baseline uses a single GP for the weighted combination of objectives,
+normalized by the reporting scales (\SI{1}{\micro\metre\radian},
+\SI{1}{\micro\metre\radian}, \SI{1}{\mega\electronvolt}), with equal weights $w_m = 1/3$.
+It selects batches with logarithmic noisy expected improvement
+(qLogNEI)~\cite{Ament2023}. The scales keep the
 weighted combination from being determined simply by the different physical units of emittance
 and energy spread. Equal weights define the balanced baseline used in the primary comparison,
 while the survey changes those weights to explore other operating preferences. This method
@@ -920,8 +921,9 @@ evaluation of every method: beam sizes and divergences scaled by 0.78, 0.89 or 1
 changed by \SI{\pm1}{\percent}, and mean energy shifted by \SI{\pm0.05}{\mega\electronvolt} (27
 scenarios). The grid does not enclose every measured change. It omits the increases of sizes and
 divergences, up to \SI{1.2}{\percent} in the step-only column of Table~\ref{tab:resolution} and
-larger for some single-factor and regenerated-source levels at individual settings. The median
-feasible fraction ranges from 0.369 to 0.466 for constraint-aware MOBO, compared with
+larger for some single-factor and regenerated-source levels at individual settings.
+
+The median feasible fraction ranges from 0.369 to 0.466 for constraint-aware MOBO, compared with
 0.147--0.213 and 0.113--0.181 for the unconstrained and scalarized pipelines. After
 initialization, the mean paired differences of the constraint-aware pipeline stay between 0.239
 and 0.294 against unconstrained MOBO and between 0.279 and 0.335 against scalarized BO; every
@@ -929,21 +931,26 @@ interval excludes zero, and every difference, including those of each pipeline o
 arm, is positive in all ten matched groups in every scenario. The constraint-aware fraction is
 the most sensitive to the bunch-length limit: a \SI{1}{\percent} longer bunch lowers its mean
 from 0.405 to 0.364, compared with 0.157 to 0.145 and 0.125 to 0.113 for the baselines, because
-that pipeline samples close to the limit. Three further post-hoc sensitivity checks leave every
-paired difference positive in all ten groups. Scaling sizes and divergences up by 1.012, the
-largest step-only increase, gives post-initialization differences of 0.279 and 0.311
-(0.246--0.295 and 0.280--0.329 with the bunch-length and energy shifts). Scaling them up by
-1.17, which covers the largest increase at any single level (one size with one regenerated
-source), gives 0.276 and 0.300 (0.242--0.292 and 0.267--0.317). A differential case that pairs,
-in each matched group, the lowest constraint-aware fraction over the 27 scenarios with the
-highest fraction of each baseline gives mean differences of 0.166 and 0.211; the smallest group
-differences are 0.062 and 0.132, and all ten are positive. These checks reclassify archived
-diagnostics without re-tracking the primary campaigns. They provide neither a refinement model
-for every evaluation nor a worst-case error bound, and cannot establish stability under setting-
-or channel-dependent changes or converged tracking. The objective-quality indicators are more
-strongly conditional on the numerical model. The emittance changes are large and differ between
-settings, and the random-source spread is comparable to many paired epsilon and IGD+
-differences, so those comparisons hold for the fixed source file at the production resolution.
+that pipeline samples close to the limit.
+
+Three further post-hoc sensitivity checks leave every paired difference positive in all ten
+groups. Scaling sizes and divergences up by 1.012, the largest step-only increase, gives
+post-initialization differences of 0.279 and 0.311 (0.246--0.295 and 0.280--0.329 with the
+bunch-length and energy shifts). Scaling them up by 1.17, which covers the largest increase at
+any single level (one size with one regenerated source), gives 0.276 and 0.300 (0.242--0.292 and
+0.267--0.317). A differential case that pairs, in each matched group, the lowest
+constraint-aware fraction over the 27 scenarios with the highest fraction of each baseline gives
+mean differences of 0.166 and 0.211; the smallest group differences are 0.062 and 0.132, and all
+ten are positive.
+
+These checks reclassify archived diagnostics without re-tracking the primary campaigns. They
+provide neither a refinement model for every evaluation nor a worst-case error bound, and cannot
+establish stability under setting- or channel-dependent changes or converged tracking.
+
+The objective-quality indicators are more strongly conditional on the numerical model. The
+emittance changes are large and differ between settings, and the random-source spread is
+comparable to many paired epsilon and IGD+ differences, so those comparisons hold for the fixed
+source file at the production resolution.
 
 \subsection{Sources of the feasible-sampling difference}
 \label{sec:attribution}
@@ -1098,9 +1105,7 @@ observed value cannot validate discrimination of losses.
 Several mechanisms could explain the undercoverage, though this check does not isolate them.
 With the likelihood variance fixed at $\eta=10^{-6}$ of the training variance, the intervals
 contain almost no irreducible term and depend on the posterior variance of a stationary kernel.
-A single Mat\'ern-5/2 length scale per control cannot represent both the smooth interior
-response and the sharp changes near phase-dependent energy loss or beam-size growth. The test
-points are also selected adaptively: each batch targets expected improvement or feasibility,
+The test points are also selected adaptively: each batch targets expected improvement or feasibility,
 often at the edge of the sampled region. Because the constraint weights use the same predictions,
 overconfident Gaussian predictions make the feasibility weights too sharp towards both one and zero.
 This affects candidate selection; the reported
@@ -1178,9 +1183,10 @@ reliability guarantee.
 A value of $D$ below one means that the perturbations improved the average objective ratio. For
 the spread extreme and the centroid-distance point, 14 and 8 of the 50 perturbed settings, all
 feasible, Pareto-dominate their nominal setting; the ideal-distance point and the vertical
-extreme have 2 and 1 such trials, and the other two settings none. The selected settings are
-therefore not locally converged along the jitter directions. Small control changes can still
-improve all three objectives, as expected after a finite search of 160 evaluations.
+extreme have 2 and 1 such trials, and the other two settings none. For the four settings with
+dominating trials, small changes along the sampled jitter directions can improve all three
+objectives after the finite search of 160 evaluations. The absence of dominating trials for the
+remaining two settings does not establish their local convergence.
 
 The jitter model omits RF-amplitude errors. We estimate their effect on mean energy by
 linearizing about the energy gains of the re-evaluated MOGA-derived nominal tracking
