@@ -45,3 +45,11 @@ At the readiness snapshot, 10 of 387 nominal reproductions were complete and mat
 The chain writes a separate local completion-summary commit after each successfully verified validation, numerical-analysis and scaling-analysis stage. It verifies receipts/output hashes, preserves unrelated staged work, and does not push. The remaining scientific interpretation, manuscript/supplement integration, reviewer responses, upload-folder checks and final authorized push require completed evidence. None is marked complete in advance.
 
 Latest focused preparation checks: nine normalized-mode tests and sixteen runner/analysis/commit-safety tests pass. Frozen sample/specification regeneration is byte-identical. The supplement map now identifies prospective protocol records without treating them as completed manuscript results. The first full regression run is still in progress at this record; the queued stable-source gate is authoritative for continuation readiness.
+
+## Validation-gate correction and continuation retry
+
+The initial broad regression run completed with 1,128 passes, one script-entry-point failure, and 99.60% measured coverage. Source refinements were made during that first run, so its coverage is not the final stable-source gate. The failure concerned the `run_*.py` CLI-wrapper naming contract. Standalone research drivers now use `evaluate_revision_round6_resolution.py` and `evaluate_revision_round6_scaling.py`; the architecture test itself is unchanged. All 26 focused entry-point, numerical and normalized-acquisition checks pass after the rename, and lint passes.
+
+The redundant validation subprocess was stopped before further physical stages; the healthy nominal runner and its two ASTRA workers were not stopped. The aborted validation log was preserved. The continuation was restarted at commit `c7edd12` with launch PID `1795323`, recorded in `results/revision_round6/chain_launch_retry_1.json`. It is performing the final full regression/100% coverage gate on stable code. The original nominal process still reports its launch-time script name; its already-running workers are unaffected by the research-entry-point rename.
+
+Latest observed nominal count at this handoff: 12/387. No refinement or scaling campaign has started. Final validation results and physical-study completion remain pending; no push has occurred.
