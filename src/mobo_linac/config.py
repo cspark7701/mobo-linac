@@ -192,6 +192,11 @@ class ExecutionConfig:
     reporting_reference_offset: float = 0.10
     acquisition_reference_offset: float = 0.05
     acquisition_reference_basis: str = "all_valid"
+    constraint_residual_mode: str = "raw"
+    constraint_temperature: float = 1.0e-3
+    # None preserves the historic default sampler/global RNG behavior.
+    acqf_mc_samples: Optional[int] = None
+    acquisition_stream_group: Optional[int] = None
     # Simulation statuses that start a fresh attempt (bounded by ``retries``).
     retry_statuses: List[str] = field(default_factory=lambda: list(DEFAULT_RETRY_STATUSES))
 
@@ -435,6 +440,10 @@ FIELD_RULES = {
         "retries": {"minimum": 0},
         "reporting_reference_offset": {"minimum": 0}, "acquisition_reference_offset": {"minimum": 0},
         "acquisition_reference_basis": {"enum": ["all_valid", "feasible"]},
+        "constraint_residual_mode": {"enum": ["raw", "normalized"]},
+        "constraint_temperature": {"exclusiveMinimum": 0},
+        "acqf_mc_samples": {"minimum": 1},
+        "acquisition_stream_group": {"minimum": 0},
 
         "retry_statuses": {"uniqueItems": True, "items": {"type": "string", "enum": [
             status.value for status in SimulationStatus if status is not SimulationStatus.SUCCESS]}},

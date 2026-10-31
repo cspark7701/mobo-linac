@@ -65,6 +65,7 @@ def build_acquisition_function(
     sampler: Optional[Any] = None,
     constraints: Optional[List[Any]] = None,
     objective: Optional[Any] = None,
+    constraint_temperature: Optional[float] = None,
 ) -> Any:
     """
     Constructs a multi-objective acquisition function (qLogNEHVI, qLogEHVI, qEHVI, or qNEHVI).
@@ -79,6 +80,7 @@ def build_acquisition_function(
         sampler: Optional Monte Carlo sampler.
         constraints: Optional list of BoTorch tensor constraint functions c_i(Y) <= 0.
         objective: Optional MCMultiOutputObjective for slicing model outputs.
+        constraint_temperature: Optional positive residual smoothing scale; None retains BoTorch defaults.
 
     Returns:
         Instantiated acquisition function.
@@ -100,6 +102,8 @@ def build_acquisition_function(
     kw_args = {}
     if constraints is not None:
         kw_args["constraints"] = constraints
+        if constraint_temperature is not None:
+            kw_args["eta"] = constraint_temperature
     if objective is not None:
         kw_args["objective"] = objective
 

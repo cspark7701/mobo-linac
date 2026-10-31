@@ -4,16 +4,18 @@ A strategy turns the identity-ordered training observations of a campaign into t
 batch of candidates (physical units) plus the proposal metadata recorded with it.
 """
 
+from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple
 
 import torch
 from botorch.acquisition.logei import qLogNoisyExpectedImprovement
 from botorch.models import ModelListGP
+from botorch.sampling.normal import SobolQMCNormalSampler
 
 from mobo_linac.acquisition.mobo import FallbackPolicy, SliceObjective, build_acquisition_function, generate_next_candidates
 from mobo_linac.config import ExecutionConfig, MoboConfig
-from mobo_linac.constraints import get_botorch_constraint_functions
+from mobo_linac.constraints import get_botorch_constraint_functions, constraint_residual_metadata
 from mobo_linac.metrics.hypervolume import compute_reference_point
 from mobo_linac.models.gp import SurrogateSettings, build_output_gp, fit_gp_models
 from mobo_linac.models.pipeline import SurrogatePipeline
@@ -85,6 +87,21 @@ class ScalarizedProposal:
                          device, sobol_engine)
 
 
+@contextmanager
+def proposal_random_stream(seed, device):
+    """Isolate optional experiment streams; default campaigns retain their RNG behavior."""
+    if seed is None:
+        yield
+        return
+    devices = [device.index if device.index is not None else torch.cuda.current_device()] if device.type == "cuda" else []
+    with torch.random.fork_rng(devices=devices):
+        torch.random.default_generator.manual_seed(seed)
+        if devices:
+            with torch.cuda.device(devices[0]):
+                torch.cuda.manual_seed(seed)
+        yield
+
+
 @dataclass
 class MultiObjectiveProposal:
     """Independent objective GPs (and constraint GPs when constrained) with an EHVI-family acquisition."""
@@ -111,22 +128,34 @@ class MultiObjectiveProposal:
                 SliceObjective(num_objectives=count))
 
     def propose(self, training, iteration, batch_size, sobol_engine) -> Proposal:
-        pipeline, gp_model, constraints, objective = self._surrogate(training)
-        self.persist_model(pipeline, iteration, training, pipeline=True)
         execution = self.config.execution
+        group = execution.acquisition_stream_group
+        streams = ({"fit": 300000 + 1000 * group + iteration,
+                    "posterior": 100000 + 1000 * group + iteration,
+                    "proposal": 200000 + 1000 * group + iteration} if group is not None else {})
+        with proposal_random_stream(streams.get("fit"), self.device):
+            pipeline, gp_model, constraints, objective = self._surrogate(training)
+        self.persist_model(pipeline, iteration, training, pipeline=True)
         basis_Y = training.train_Y
         if execution.acquisition_reference_basis == "feasible" and bool(training.feasible.any()):
             basis_Y = training.train_Y[training.feasible]
         reference = compute_reference_point(basis_Y, offset_ratio=execution.acquisition_reference_offset,
                                             config=self.config)
+        sampler = (SobolQMCNormalSampler(sample_shape=torch.Size([execution.acqf_mc_samples or 128]),
+                                        seed=streams.get("posterior"))
+                   if execution.acqf_mc_samples is not None or streams else None)
         acq_func = build_acquisition_function(
             model=gp_model, train_X=training.train_X, train_Y=training.train_Y, ref_point=reference,
             train_feas_mask=training.feasible, acq_type=self.acq_type, constraints=constraints, objective=objective,
+            sampler=sampler, constraint_temperature=execution.constraint_temperature,
         )
-        candidates, metadata = _optimize(acq_func, self.bounds, batch_size,
-                                         AcquisitionSettings.from_execution(execution), self.device, sobol_engine)
+        with proposal_random_stream(streams.get("proposal"), self.device):
+            candidates, metadata = _optimize(acq_func, self.bounds, batch_size,
+                                             AcquisitionSettings.from_execution(execution), self.device, sobol_engine)
         if metadata is not None:
-            metadata = dict(metadata, acquisition_reference={
+            metadata = dict(metadata, random_streams=streams,
+                            constraint_residuals=constraint_residual_metadata(self.config) if self.constrained else None,
+                            posterior_samples=execution.acqf_mc_samples, acquisition_reference={
                 "point_model": reference.detach().cpu().tolist(),
                 "offset": execution.acquisition_reference_offset,
                 "basis": execution.acquisition_reference_basis})

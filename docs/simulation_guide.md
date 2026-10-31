@@ -301,3 +301,31 @@ Reports are archived under `verification_runs/verification_<uuid>/` before publi
 | **Run Pareto Verification** | `mobo-linac run-verification --config configs/publication_200MeV.yaml` | `verification_table.tex` |
 | **Reproduce Paper Artifacts** | `./scripts/reproduce_paper.sh` | Figures, `main.pdf` |
 | **Run Unit Test Suite** | `pytest -m "not integration"` | 76 passed unit tests |
+
+### Round6 residual-scaling validation
+
+The prospective round6 studies use the frozen protocol and specification in
+`docs/paper/revisions/evidence/r6_protocol.md` and `r6_specification.json`. Their
+runners share `results/revision_round6/worker.lock` and allow at most two ASTRA
+workers. Numerical validation and optimization must run serially under this limit.
+
+`execution.constraint_residual_mode` defaults to `raw`; `normalized` divides each
+constraint residual by its positive physical threshold scale (half-band for a
+two-sided diagnostic, allowed loss for transmission). `constraint_temperature`
+defaults to 0.001. Physical diagnostics, observed feasibility and GP targets do not
+change. A common dimensionless temperature changes physical smoothing widths;
+this is not merely a unit conversion. Configurations and proposal metadata retain
+the convention, scale order and physical widths, and checkpoint resume rejects
+changes to those scientific settings.
+
+Optional `acqf_mc_samples` and `acquisition_stream_group` make the study's posterior
+sample count and per-iteration fitting/posterior/proposal streams explicit. Their
+`None` defaults retain historical sampler and random-stream behavior. New stream
+identities do not promise replay of archived production proposals.
+
+The numerical runner refuses conflicting plans or changed input hashes, verifies
+nominal reproduction before refinement, and preserves interrupted evidence. An
+unfinished pending attempt requires explicit investigation rather than an automatic
+rerun. The scaling runner uses the existing durable campaign checkpoints for
+explicit `--resume` and validates completed artifact checksums before skipping a
+campaign. Historical run directories are never the output target for these studies.

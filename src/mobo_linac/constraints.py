@@ -68,6 +68,31 @@ class ConstraintEvaluator:
         return violations
 
 
+def constraint_residual_metadata(config: MoboConfig) -> dict:
+    """Record the residual convention and physical smoothing scales in constraint order."""
+    config.execution.validate()
+    mode = config.execution.constraint_residual_mode
+    scales = []
+    for index, side, threshold, _ in constraint_sides(config.constraints):
+        channel = DIAGNOSTIC_CHANNELS[index]
+        lower, upper = channel.bounds(config.constraints)
+        if mode == "raw":
+            scale = 1.0
+        elif lower is not None and upper is not None:
+            scale = (upper - lower) / 2
+        elif channel.physical_maximum is not None and side == "lower":
+            scale = channel.physical_maximum - threshold
+        else:
+            scale = abs(threshold)
+        if scale <= 0:
+            raise ValueError("Normalized residuals require strictly positive physical scales.")
+        scales.append(scale)
+    temperature = config.execution.constraint_temperature
+    return {"mode": mode, "scales": scales, "temperature": temperature,
+            "physical_smoothing_scales": [scale * temperature for scale in scales],
+            "constraint_names": [name for _, _, _, name in constraint_sides(config.constraints)]}
+
+
 def get_botorch_constraint_functions(
     config: Union[ConstraintsConfig, MoboConfig],
     num_objectives: Optional[int] = None,
@@ -99,13 +124,15 @@ def get_botorch_constraint_functions(
     if type(offset) is not int or offset < 1:
         raise ValueError("num_objectives must be a positive integer.")
 
+    scales = constraint_residual_metadata(config)["scales"] if isinstance(config, MoboConfig) else [
+        1.0 for _ in constraint_sides(c_config)]
     functions = []
-    for index, side, threshold, _ in constraint_sides(c_config):
-        def constraint(Y, index=index, side=side, threshold=threshold):
+    for (index, side, threshold, _), scale in zip(constraint_sides(c_config), scales):
+        def constraint(Y, index=index, side=side, threshold=threshold, scale=scale):
             if Y.shape[-1] != offset + len(DIAGNOSTIC_CHANNELS):
                 raise ValueError("Acquisition outcomes do not match objective/diagnostic layout.")
             value = Y[..., offset + index]
-            residual = threshold - value if side == "lower" else value - threshold
+            residual = (threshold - value if side == "lower" else value - threshold) / scale
             return torch.where(torch.isfinite(value), residual, torch.full_like(value, float("inf")))
         functions.append(constraint)
     return functions
