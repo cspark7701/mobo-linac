@@ -182,13 +182,14 @@ def main(argv=None):
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,default=ROOT/'results/revision_round6/resolution')
     parser.add_argument('--resume',action='store_true')
+    parser.add_argument('--wait-for-workers',action='store_true')
     parser.add_argument('--mock-evaluator',action='store_true')
     parser.add_argument('--stage',choices=['nominal','all'],default='all')
     args=parser.parse_args(argv)
     spec=json.loads(SPEC.read_text());frame=validate_inputs(spec)
     lockdir=ROOT/'results/revision_round6';lockdir.mkdir(parents=True,exist_ok=True)
     with (lockdir/'worker.lock').open('a') as lock:
-        fcntl.flock(lock,fcntl.LOCK_EX|fcntl.LOCK_NB)
+        fcntl.flock(lock,fcntl.LOCK_EX|(0 if args.wait_for_workers else fcntl.LOCK_NB))
         execute(args.output_dir,spec,frame,args.resume,args.mock_evaluator,args.stage)
 
 if __name__=='__main__':

@@ -106,3 +106,93 @@ def test_nominal_gate_rejects_invalid_or_changed_observation():
         resolution.check_nominal(frame,{key:{'simulation_valid':False}},spec)
     with pytest.raises(ValueError,match='Nominal reproduction mismatch'):
         resolution.check_nominal(frame,{key:{'simulation_valid':True,'objectives':{},'diagnostics':{}}},spec)
+
+
+def test_scaling_plan_has_matched_budget_and_alternating_order():
+    import run_revision_round6_scaling as scaling
+    spec=json.loads(resolution.SPEC.read_text())
+    allocation=list(scaling.order(spec))
+    assert len(allocation)==20
+    assert allocation[:4]==[('raw',42),('normalized',42),('normalized',43),('raw',43)]
+    raw=scaling.campaign_config(spec,'raw',42)
+    normalized=scaling.campaign_config(spec,'normalized',42)
+    assert raw.constraints==normalized.constraints
+    assert raw.execution.max_workers==normalized.execution.max_workers==2
+    assert raw.execution.acquisition_stream_group==normalized.execution.acquisition_stream_group==42
+    assert raw.execution.acqf_mc_samples==normalized.execution.acqf_mc_samples==128
+    assert raw.execution.acqf_maxiter==200
+    with pytest.raises(ValueError,match='frozen allocation'):
+        scaling.campaign_config(spec,'normalized',123)
+
+
+def test_weighted_numerical_estimator_accounts_for_strata_and_failures():
+    import analyze_revision_round6 as analysis
+    f=pd.DataFrame({'stratum':['a','a','b'],'population':[8,8,2],'selected':[2,2,1],
+                    'feasible':[True,False,True],'simulation_valid':[True,False,True]})
+    with pytest.raises(ValueError,match='singleton'):
+        analysis.weighted_fractions(f)
+    f.loc[2,'population']=1
+    result=analysis.weighted_fractions(f)
+    assert result['fraction']==pytest.approx(5/9)
+    assert result['unknown_fraction']==pytest.approx(4/9)
+    assert result['physical_upper_if_invalid_pass']==pytest.approx(1.)
+    assert result['design_variance']==pytest.approx((8/9)**2*.75*.5/2)
+    with pytest.raises(ValueError,match='Incomplete'):
+        analysis.weighted_fractions(f.iloc[[0,2]])
+
+
+def test_paired_summary_preserves_direction_and_group_unit():
+    import analyze_revision_round6 as analysis
+    wide=pd.DataFrame({'normalized':[.2,.3,.1],'raw':[.4,.4,.3]})
+    result=analysis.paired_summary(wide,'normalized','raw',{'analysis_seed':1,'bootstrap_resamples':1000})
+    assert result['mean_difference']==pytest.approx(-1/6)
+    assert result['positive_groups']==0 and result['ci_upper_conditional']<0
+
+
+def test_uncertainty_plot_keeps_endpoint_units_separate(tmp_path):
+    import analyze_revision_round6 as analysis
+    table=pd.DataFrame([
+        {'endpoint':'feasible_fraction','mean_difference':-.1,'ci_lower_conditional':-.2,'ci_upper_conditional':0.},
+        {'endpoint':'elapsed_wall_time_s','mean_difference':100,'ci_lower_conditional':50,'ci_upper_conditional':200}])
+    path=tmp_path/'uncertainty.pdf';analysis.uncertainty_plot(table,path)
+    assert path.read_bytes().startswith(b'%PDF')
+    table=table.iloc[:1].drop(columns='endpoint').assign(level='fixed_fine',second='scalarized_bo',design_se_conservative=.02)
+    analysis.uncertainty_plot(table,path)
+    assert path.stat().st_size>1000
+
+
+def test_numerical_analysis_uses_complete_identities_and_design_weights(tmp_path,monkeypatch):
+    import analyze_revision_round6 as analysis
+    spec=copy.deepcopy(json.loads(resolution.SPEC.read_text()))
+    levels=list(spec['levels']);rows=[]
+    for arm in ['constrained_qlognehvi','unconstrained_qlognehvi','scalarized_bo']:
+        for seed in [42,43]:
+            for i in [1,2]:
+                rows.append({'setting_id':f'{arm}_{seed}_{i}','run':f'{arm}_seed_{seed}',
+                    'evaluation_id':f'eval_{i:06d}','arm':arm,'seed':seed,'stratum':f'{arm}_{seed}',
+                    'population':160,'selected':2,'inclusion_probability':2/160,'physically_feasible':True})
+    manifest=pd.DataFrame(rows);manifest_path=tmp_path/'manifest.csv';manifest.to_csv(manifest_path,index=False)
+    monkeypatch.setattr(analysis,'MANIFEST',manifest_path)
+    records=tmp_path/'results.jsonl'
+    for row in rows:
+        for level in levels:
+            values=dict(zip(analysis.QUANTITIES,[3e-6,4e-6,400000,.0005,.0005,.0005,.0005,.0005,200e6,1.]))
+            if level=='fixed_fine':
+                values['norm_emit_x_m_rad']*=.9
+            resolution.append_record(records,{'task_id':row['setting_id']+'__'+level,'role':row['setting_id'],
+                'level':level,'simulation_valid':True,'physically_feasible':row['arm']=='constrained_qlognehvi',
+                'runtime_s':1.,'objectives':values,'diagnostics':{}})
+    spec['tracking_attempts']=len(rows)*len(levels)
+    (tmp_path/'complete.json').write_text(json.dumps({'tasks':spec['tracking_attempts'],'mock':False,
+        'spec_sha256':prepare.sha(analysis.SPEC),'results_sha256':prepare.sha(records)}))
+    tables=analysis.numerical(tmp_path,spec)
+    assert len(tables['resolution_fractions'])==3*2*5
+    assert (tables['resolution_paired'].mean_difference==1).all()
+    assert tables['resolution_classification'].margin_sigma_x_m.eq(.0005).all()
+    tolerances=tables['resolution_tolerances']
+    assert not tolerances[(tolerances.quantity=='norm_emit_x_m_rad') &
+                          (tolerances.comparison=='fixed_fine - fixed_medium')].within_tolerance.any()
+    marker=json.loads((tmp_path/'complete.json').read_text());marker['mock']=True
+    (tmp_path/'complete.json').write_text(json.dumps(marker))
+    with pytest.raises(ValueError,match='Invalid numerical'):
+        analysis.numerical(tmp_path,spec)
