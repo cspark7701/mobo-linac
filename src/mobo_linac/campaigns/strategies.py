@@ -149,9 +149,11 @@ class MultiObjectiveProposal:
             train_feas_mask=training.feasible, acq_type=self.acq_type, constraints=constraints, objective=objective,
             sampler=sampler, constraint_temperature=execution.constraint_temperature,
         )
+        fallback_engine = (torch.quasirandom.SobolEngine(self.bounds.shape[1], scramble=True,
+                                                       seed=streams["proposal"]) if streams else sobol_engine)
         with proposal_random_stream(streams.get("proposal"), self.device):
             candidates, metadata = _optimize(acq_func, self.bounds, batch_size,
-                                             AcquisitionSettings.from_execution(execution), self.device, sobol_engine)
+                                             AcquisitionSettings.from_execution(execution), self.device, fallback_engine)
         if metadata is not None:
             metadata = dict(metadata, random_streams=streams,
                             constraint_residuals=constraint_residual_metadata(self.config) if self.constrained else None,

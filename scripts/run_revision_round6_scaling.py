@@ -20,6 +20,12 @@ from prepare_revision_round6 import ROOT, EVIDENCE, CONTROLS, sha
 SPEC=EVIDENCE/'r6_specification.json'
 
 
+def code_identity():
+    paths = sorted((ROOT/'src/mobo_linac').rglob('*.py')) + [Path(__file__).resolve()]
+    return {str(path.relative_to(ROOT)): sha(path) for path in paths}
+
+
+
 def campaign_config(spec, arm, seed):
     if arm not in spec['scaling']['arms'] or seed not in spec['scaling']['seeds']:
         raise ValueError('Campaign is outside the frozen allocation.')
@@ -57,7 +63,7 @@ def check_pair(out,seed,spec):
 
 
 def run(out,spec,resume=False):
-    identity={'spec_sha256':sha(SPEC),'workers_total':2,'device':spec['device']}
+    identity={'spec_sha256':sha(SPEC),'workers_total':2,'device':spec['device'], 'code_sha256':code_identity()}
     manifest=out/'plan.json'
     if out.exists() and any(out.iterdir()):
         if not resume or not manifest.exists():
@@ -75,6 +81,8 @@ def run(out,spec,resume=False):
     if not torch.cuda.is_available():
         raise RuntimeError('Frozen CUDA policy unavailable; do not silently substitute CPU.')
     for arm,seed in order(spec):
+        if code_identity()!=identity['code_sha256']:
+            raise RuntimeError('Scientific code changed during the matched study; preserve outputs and pause.')
         config=campaign_config(spec,arm,seed)
         directory=out/f'{arm}_seed_{seed}'
         if (directory/'run_complete.json').exists():

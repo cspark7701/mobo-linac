@@ -493,13 +493,16 @@ class CampaignLoop:
         training = get_training_observations(self.results, exclude_invalid=True,
                                              require_diagnostics=self.runner.constrained, config=self.config)
         if training.train_X.shape[0] < 2:
-            start = self.sobol.num_generated
-            samples = self.sobol.draw(batch_size).to(dtype=torch.double)
+            group = self.config.execution.acquisition_stream_group
+            engine = (torch.quasirandom.SobolEngine(self.bounds.shape[1], scramble=True,
+                      seed=200000 + 1000 * group + iteration) if group is not None else self.sobol)
+            start = engine.num_generated
+            samples = engine.draw(batch_size).to(dtype=torch.double)
             lower, upper = self.bounds[0], self.bounds[1]
             return (lower + (upper - lower) * samples).tolist(), {
                 "method": "low_data_sobol", "device": "cpu", "attempts": [],
                 "fallback_reason": "fewer than two observed training rows",
-                "sobol": {"seed": self.runner.seed, "start": start, "end": self.sobol.num_generated}}
+                "sobol": {"seed": engine.seed, "start": start, "end": engine.num_generated}}
         return self.strategy.propose(training, iteration, batch_size, self.sobol)
 
     def evaluate(self, candidates: List[List[float]], batch_idx: int, metadata=None) -> List[EvaluationResult]:

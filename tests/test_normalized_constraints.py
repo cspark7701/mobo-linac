@@ -110,6 +110,8 @@ def test_normalized_campaign_checkpoint_restores_convention(tmp_path,monkeypatch
     config.execution=replace(config.execution,acquisition_stream_group=42,acqf_mc_samples=16)
     def propose(**kwargs):
         assert kwargs['batch_size']==8
+        assert kwargs['sobol_engine'].seed==242001
+        assert kwargs['sobol_engine'].num_generated==0
         return ProposalResult(kwargs['bounds'].mean(0).repeat(8,1),None,{'tier':'test_fallback'})
     monkeypatch.setattr(strategies,'generate_next_candidates',propose)
     out=tmp_path/'run'
@@ -128,3 +130,19 @@ def test_normalized_campaign_checkpoint_restores_convention(tmp_path,monkeypatch
     with pytest.raises(ValueError,match='constraint_residual_mode'):
         MoboCampaignRunner(config=changed,output_dir=out,resume=True,device='cpu',
             evaluator=MockEvaluator(config=changed),export_plots=False).run()
+
+
+def test_low_data_proposals_do_not_consume_initial_sobol_stream(tmp_path):
+    from mobo_linac.campaigns.runner import MoboCampaignRunner
+    from mobo_linac.execution.mock import MockEvaluator
+    from mobo_linac.io.checkpoint import load_run_checkpoint
+    config=normalized()
+    config.execution=replace(config.execution,acquisition_stream_group=42,acqf_mc_samples=16)
+    out=tmp_path/'low_data'
+    MoboCampaignRunner(config=config,output_dir=out,num_initial_samples=1,num_batches=1,batch_size=8,
+        constrained=True,seed=42,num_workers=2,device='cpu',evaluator=MockEvaluator(config=config),
+        export_plots=False,export_env_info=False).run()
+    history=json.loads((out/'proposal_history.json').read_text())
+    assert '242001' in json.dumps(history) and 'low_data_sobol' in json.dumps(history)
+    state=load_run_checkpoint(out/'checkpoints/checkpoint.pt')
+    assert state.progress.sobol_state['num_generated']==1
