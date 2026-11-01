@@ -1,5 +1,7 @@
 # Round6 revision overview — execution in progress
 
+> **Execution status — 2026-11-02: PAUSED by user request.** The chain and its ASTRA workers are stopped. The checkpoint preserves 387 nominal and 44 fine-resolution results; two interrupted attempts require recovery inspection before any authorized restart. Scaling campaigns and final integration remain pending. See [the pause and restart record](round6_pause_status.md). This administrative update supersedes earlier running/queued status below; reviewer assessments and frozen scientific evidence remain unchanged.
+
 Reviewed manuscript baseline: `9fd076a`; execution baseline: `79cecb9`.
 
 ## Author disposition (C6-05)

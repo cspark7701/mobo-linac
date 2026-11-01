@@ -1,5 +1,7 @@
 # Additional validation plan for round 6
 
+> **Execution status — 2026-11-02: PAUSED by user request.** The chain and its ASTRA workers are stopped. The checkpoint preserves 387 nominal and 44 fine-resolution results; two interrupted attempts require recovery inspection before any authorized restart. Scaling campaigns and final integration remain pending. See [the pause and restart record](round6_pause_status.md). This administrative update supersedes earlier running/queued status below; reviewer assessments and frozen scientific evidence remain unchanged.
+
 ## Conditional scope
 
 This is the detailed research track supporting C6-06 through C6-08 of the [consolidated round 6 queue](consolidated_round6_revision_tasks.md). It implements the numerical and constraint-scaling requests R6-01 and R6-02 of [Reviewer 1](../reviews/reviewer1_round6_report.md), formalized from Task 00340. See the [individual Reviewer 1 task list](reviewer1_round6_revision_tasks.md) and [review synthesis](../reviews/round6_review_synthesis.md).

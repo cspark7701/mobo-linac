@@ -262,3 +262,19 @@ def test_unavailable_failed_measurements_are_null_not_fabricated(tmp_path):
     result=resolution.read_records(path)['failed']
     assert result['diagnostics']['sigma_x_m'] is None
     assert result['values']==[None] and result['simulation_valid'] is False
+
+
+@pytest.mark.parametrize("module_name", ["evaluate_revision_round6_resolution", "evaluate_revision_round6_scaling"])
+def test_user_pause_blocks_runner_before_input_or_output_access(tmp_path, monkeypatch, module_name):
+    import importlib
+    module = importlib.import_module(module_name)
+    monkeypatch.setattr(module, "ROOT", tmp_path)
+    marker = tmp_path / "results/revision_round6/PAUSED.json"
+    marker.parent.mkdir(parents=True)
+    marker.write_text('{"status":"paused_by_user"}')
+    monkeypatch.setattr(module, "SPEC", tmp_path / "nonexistent_specification.json")
+    output = tmp_path / "must_not_be_created"
+    with pytest.raises(SystemExit, match="paused by the user"):
+        module.main(["--output-dir", str(output), "--resume"])
+    assert not output.exists()
+    assert not (marker.parent / "worker.lock").exists()

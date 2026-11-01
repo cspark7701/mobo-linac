@@ -2,6 +2,10 @@
 # Adopted round6 studies; one shared two-worker allocation, immutable new outputs.
 set -Eeuo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
+if [[ -f results/revision_round6/PAUSED.json ]]; then
+  echo "Round6 is paused by the user; explicit restart authorization and recovery inspection are required." >&2
+  exit 1
+fi
 export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
 export PYTHONUNBUFFERED=1
 PYTHON_BIN=/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/bin/python

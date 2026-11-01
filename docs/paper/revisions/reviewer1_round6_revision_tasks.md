@@ -1,5 +1,7 @@
 # Reviewer 1 revision tasks — round6
 
+> **Execution status — 2026-11-02: PAUSED by user request.** The chain and its ASTRA workers are stopped. The checkpoint preserves 387 nominal and 44 fine-resolution results; two interrupted attempts require recovery inspection before any authorized restart. Scaling campaigns and final integration remain pending. See [the pause and restart record](round6_pause_status.md). This administrative update supersedes earlier running/queued status below; reviewer assessments and frozen scientific evidence remain unchanged.
+
 **Source:** [Reviewer 1 round6 report](../reviews/reviewer1_round6_report.md), formalizing [Task 00340](../../exec-plans/completed/TASK_00340_manuscript_acceptance_assessment.md).
 
 **Recommendation:** Major revision under this internal assessment. R6-01 and R6-02 are the two substantive requests before this assessor recommends acceptance. Reviewer 2's different recommendation is preserved in the [consolidated queue](consolidated_round6_revision_tasks.md).

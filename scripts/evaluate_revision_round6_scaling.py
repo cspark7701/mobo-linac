@@ -115,7 +115,10 @@ def main(argv=None):
     parser.add_argument('--output-dir',type=Path,default=ROOT/'results/revision_round6/scaling')
     parser.add_argument('--resume',action='store_true')
     parser.add_argument('--wait-for-workers',action='store_true')
-    args=parser.parse_args(argv);spec=json.loads(SPEC.read_text())
+    args=parser.parse_args(argv)
+    if (ROOT/'results/revision_round6/PAUSED.json').exists():
+        raise SystemExit('Round6 is paused by the user; explicit restart authorization and recovery inspection are required.')
+    spec=json.loads(SPEC.read_text())
     for name,digest in spec['input_sha256'].items():
         if sha(ROOT/name)!=digest:
             raise ValueError(f'Frozen input mismatch: {name}')

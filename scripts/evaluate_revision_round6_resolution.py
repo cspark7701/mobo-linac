@@ -203,6 +203,8 @@ def main(argv=None):
     parser.add_argument('--mock-evaluator',action='store_true')
     parser.add_argument('--stage',choices=['nominal','all'],default='all')
     args=parser.parse_args(argv)
+    if (ROOT/'results/revision_round6/PAUSED.json').exists():
+        raise SystemExit('Round6 is paused by the user; explicit restart authorization and recovery inspection are required.')
     spec=json.loads(SPEC.read_text());frame=validate_inputs(spec)
     lockdir=ROOT/'results/revision_round6';lockdir.mkdir(parents=True,exist_ok=True)
     with (lockdir/'worker.lock').open('a') as lock:
