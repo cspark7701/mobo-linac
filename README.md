@@ -18,7 +18,7 @@ Research on initial scalarized Bayesian Optimization was presented at **ICABU 20
 ## Quick Links & Documentation
 
 - 📖 **[Unified Simulation Procedure & Publication Workflow Guide](docs/simulation_guide.md)**: Master guide for ASTRA simulation procedure, MOBO architecture, benchmark protocol, robustness analysis, Pareto verification, and paper reproduction.
-- 📄 **[Journal Paper Draft (LaTeX)](docs/paper/main.tex)**: Journal manuscript draft, figures, and compiled PDF in `docs/paper/`.
+- 📄 **[Journal Paper Draft (LaTeX)](docs/paper/main.tex)**: One-column PRAB manuscript; the [two-column view](docs/paper/main_twocolumn.tex) shares the same text. Figures and locally compiled PDFs are in `docs/paper/`.
 - 📋 **[Completed Milestone Execution Plans](docs/exec-plans/completed/TASK_00021_final_audit.md)**: Refactoring and publication task logs (Tasks 01--20).
 
 ---

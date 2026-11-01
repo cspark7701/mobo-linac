@@ -1,12 +1,16 @@
-% Physical Review Accelerators and Beams manuscript (REVTeX 4.2), two-column submission layout.
-% Replace reprint with preprint for the one-column copy; scripts/build_prab_submission.py
-% writes the flat upload folder and the Supplemental Material archive.
+% Physical Review Accelerators and Beams manuscript (REVTeX 4.2), one-column review layout.
+% Edit this file for both layouts; main_twocolumn.tex selects the two-column view.
+% scripts/build_prab_submission.py writes the flat upload folder and Supplemental Material.
 %
 % Results are produced by scripts/production/01_preflight.sh ... 07_paper_outputs.sh.
 % Campaign values are generated from the completed October 2026 production runs.
 % The remaining funding/acknowledgment marker is explicitly deferred to the author.
 % Set \finaltrue only after every \pending marker has been replaced.
+\ifdefined\PRABTwoColumn
 \documentclass[aps,prab,reprint,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
+\else
+\documentclass[aps,prab,preprint,superscriptaddress,amsmath,amssymb,floatfix]{revtex4-2}
+\fi
 
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}

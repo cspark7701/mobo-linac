@@ -3,7 +3,7 @@
 The figures, tables, and primary endpoint summary in this directory use the completed
 `results/paper_production/04_primary` through `07_paper_outputs` stages. Raw simulations,
 model checkpoints, and full journals remain in the local results tree and are not part
-of the paper update. `main.pdf` and LaTeX build products are regenerated locally.
+of the paper update. `main.pdf`, `main_twocolumn.pdf` and LaTeX build products are regenerated locally.
 
 ## Evidence and interpretation
 
@@ -72,19 +72,30 @@ completion of funding and acknowledgments before submission.
 ## Manuscript and figure presentation
 
 The manuscript targets Physical Review Accelerators and Beams (author decision,
-2026-10-29). It uses REVTeX 4.2 (`revtex4-2`, options `aps,prab,preprint`) with the
-`apsrev4-2` bibliography style, has no table of contents and no keywords, and follows APS
-cross-reference style (Sec., Fig., Table, Appendix). The submission copy is set in the
-two-column PRAB layout (`reprint`); replacing `reprint` with `preprint` gives the one-column
-copy. In the one-column copy the abstract is single-spaced so that it stays on the title page,
+2026-10-29). Both layouts use REVTeX 4.2 (`revtex4-2`, journal options `aps,prab`) with the
+`apsrev4-2` bibliography style, no table of contents and no keywords, and APS
+cross-reference style (Sec., Fig., Table, Appendix).
+[main.tex](main.tex) is the canonical manuscript and builds the one-column `preprint` view.
+[main_twocolumn.tex](main_twocolumn.tex) selects the two-column `reprint` view and loads
+`main.tex`, so scientific content is edited in one place. In the one-column copy the abstract is single-spaced so that it stays on the title page,
 and the Introduction starts on a new page. Figures and generated tables are written as
 page-wide floats, which also span both columns in the two-column layout; generated tables
 are included through `\inputwide`, so the table generators are unchanged, and figure
 heights are capped at 0.7 of the text height. The historical publisher files
 `jinstpub.sty` and `JHEP.bst` remain available but are not loaded. Line numbers are shown
-until `\finaltrue` is set. Build with
-`latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex` from the
-repository root; repeated passes resolve the references.
+until `\finaltrue` is set. Build either layout from the repository root:
+
+```bash
+# One column: docs/paper/main.pdf
+latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main.tex
+
+# Two columns: docs/paper/main_twocolumn.pdf
+latexmk -cd -pdf -interaction=nonstopmode -halt-on-error docs/paper/main_twocolumn.tex
+```
+
+Repeated passes resolve the references. REVTeX's `reprint` layout approximates the journal's
+published appearance; final production formatting is handled by APS. See the
+[REVTeX guidance](https://journals.aps.org/revtex/revtex-faq).
 
 The supplement is cited as APS Supplemental Material (`SupplementalMaterial` in
 `references.bib`, "[URL will be inserted by publisher]"). After the build above,
@@ -94,7 +105,8 @@ The supplement is cited as APS Supplemental Material (`SupplementalMaterial` in
 `git archive` of the committed snapshot without `docs/paper/reviews/`) and
 `submission_manifest.json` with the commit and the SHA-256 of every file. `--compile`
 builds the flat copy to check that it is self-contained. The folder is not committed.
-The builder refuses a `main.bbl` that lacks a key cited in `main.tex`; rebuild the paper
+The builder reads the canonical one-column `main.tex` and `main.bbl`; the two-column
+wrapper is not needed by the flattened upload manuscript. The builder refuses a `main.bbl` that lacks a key cited in `main.tex`; rebuild the paper
 with `latexmk` after changing the citations or `references.bib`.
 
 The primary and survey Pareto panels are scatter-only and keep every measured feasible
