@@ -1,3 +1,5 @@
+"""Round 6 unit checks use synthetic evidence, never local production archives."""
+
 import copy
 import json
 import sys
@@ -20,6 +22,30 @@ def population():
             sigma_z_m=.0005,mean_kinetic_energy_eV=200e6,transmission_fraction=1.,
             **dict(zip(prepare.CONTROLS,[.2,1.,-2.,36.,-40.,310.]))))
     return pd.DataFrame(rows)
+
+
+@pytest.fixture
+def frozen_inputs(tmp_path, monkeypatch):
+    """Create a self-contained archive beneath the test's temporary root."""
+    frame = population()
+    frame['setting_id'] = frame.run + '__' + frame.evaluation_id
+    quantities = dict(zip(resolution.QUANTITIES,
+                          [3e-6, 4e-6, 400000, .0005, .0005, .0005, .0005, .0005, 200e6, 1.]))
+    ledger = frame.assign(**quantities)
+    source = tmp_path / 'results/paper_production/04_primary/benchmark/per_seed' / frame.run.iloc[0] / 'evaluations.csv'
+    source.parent.mkdir(parents=True)
+    ledger.to_csv(source, index=False)
+    manifest = tmp_path / 'manifest.csv'
+    frame.to_csv(manifest, index=False)
+    spec = {
+        'sample_manifest_sha256': prepare.sha(manifest),
+        'input_sha256': {str(source.relative_to(tmp_path)): prepare.sha(source)},
+        'sample_size': len(frame),
+        'nominal_reproduction_rtol': 1e-9,
+        'nominal_reproduction_atol': 1e-12,
+    }
+    monkeypatch.setattr(resolution, 'ROOT', tmp_path)
+    return spec, manifest, frame, quantities, source
 
 
 def test_sample_is_reproducible_with_known_inclusion_probability():
@@ -85,10 +111,15 @@ def test_mock_run_resume_and_identity_protection(tmp_path):
         resolution.execute(out,spec,f,mock=True,resume=True)
 
 
-def test_frozen_inputs_and_controls(tmp_path):
-    spec=json.loads(resolution.SPEC.read_text())
-    assert len(resolution.validate_inputs(spec))==387
-    frame=pd.read_csv(resolution.MANIFEST)
+def test_frozen_inputs_and_controls(tmp_path, frozen_inputs):
+    spec, manifest, frame, _, source = frozen_inputs
+    assert len(resolution.validate_inputs(spec, manifest)) == len(frame)
+    original = source.read_bytes()
+    source.write_bytes(original + b'\n')
+    with pytest.raises(ValueError, match='Frozen input checksum'):
+        resolution.validate_inputs(spec, manifest)
+    source.write_bytes(original)
+    frame = frame.copy()
     frame.loc[0,prepare.CONTROLS[0]]+=.1
     changed=tmp_path/'changed.csv';frame.to_csv(changed,index=False)
     with pytest.raises(ValueError,match='manifest checksum'):
@@ -98,14 +129,19 @@ def test_frozen_inputs_and_controls(tmp_path):
         resolution.validate_inputs(spec,changed)
 
 
-def test_nominal_gate_rejects_invalid_or_changed_observation():
-    spec=json.loads(resolution.SPEC.read_text())
-    frame=pd.read_csv(resolution.MANIFEST).head(1);row=frame.iloc[0]
+def test_nominal_gate_rejects_invalid_or_changed_observation(frozen_inputs):
+    spec, _, frame, quantities, _ = frozen_inputs
+    frame=frame.head(1);row=frame.iloc[0]
     key=row.setting_id+'__production'
+    result = {'simulation_valid': True, 'objectives': quantities.copy(), 'diagnostics': {}}
+    resolution.check_nominal(frame, {key: result}, spec)
     with pytest.raises(ValueError,match='Invalid nominal'):
         resolution.check_nominal(frame,{key:{'simulation_valid':False}},spec)
     with pytest.raises(ValueError,match='Nominal reproduction mismatch'):
         resolution.check_nominal(frame,{key:{'simulation_valid':True,'objectives':{},'diagnostics':{}}},spec)
+    result['objectives'][resolution.QUANTITIES[0]] *= 2
+    with pytest.raises(ValueError, match='Nominal reproduction mismatch'):
+        resolution.check_nominal(frame, {key: result}, spec)
 
 
 def test_scaling_plan_has_matched_budget_and_alternating_order():
