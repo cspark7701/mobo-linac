@@ -1,5 +1,6 @@
 """Surrogate validation, prediction failures and failed tuning must remain explicit."""
 
+from contextlib import contextmanager, nullcontext
 from types import SimpleNamespace
 
 import pytest
@@ -167,6 +168,56 @@ def test_nonfinite_tuning_score_is_not_a_winner(data, monkeypatch):
     )
     with pytest.raises(RuntimeError, match="Nonfinite LOO"):
         tuning.tune_gp_hyperparameters(x, y, b, candidate_covars=["rbf"], candidate_noise_modes=["inferred"])
+
+
+@pytest.mark.parametrize('device_name, expected_device', [('cuda:1', 1), ('cuda', 2)])
+@pytest.mark.parametrize('fail', [False, True])
+def test_proposal_cuda_stream_restores_rng_without_gpu(monkeypatch, device_name, expected_device, fail):
+    from mobo_linac.campaigns.strategies import proposal_random_stream
+
+    # Keep the real fork_rng context; emulate only CUDA state using CPU generators.
+    generators = {index: torch.Generator().manual_seed(70 + index) for index in range(3)}
+    active = [0]
+    entered = []
+
+    @contextmanager
+    def cuda_device(index):
+        entered.append(index)
+        previous = active[0]
+        active[0] = index
+        try:
+            yield
+        finally:
+            active[0] = previous
+
+    def seed_cuda(seed):
+        assert active[0] == expected_device
+        generators[active[0]].manual_seed(seed)
+
+    monkeypatch.setattr(torch.cuda, 'current_device', lambda: 2)
+    monkeypatch.setattr(torch.cuda, 'device', cuda_device)
+    monkeypatch.setattr(torch.cuda, 'get_rng_state', lambda index: generators[index].get_state())
+    monkeypatch.setattr(torch.cuda, 'set_rng_state', lambda state, index: generators[index].set_state(state))
+    monkeypatch.setattr(torch.cuda, 'manual_seed', seed_cuda)
+    cpu_before = torch.get_rng_state().clone()
+    cuda_before = {index: generator.get_state().clone() for index, generator in generators.items()}
+    draws = []
+    for _ in range(2):
+        with pytest.raises(RuntimeError, match='proposal failed') if fail else nullcontext():
+            with proposal_random_stream(101, torch.device(device_name)):
+                assert active[0] == 0
+                draws.append((torch.rand(4), torch.rand(4, generator=generators[expected_device])))
+                if fail:
+                    raise RuntimeError('proposal failed')
+        assert active[0] == 0
+        assert torch.equal(torch.get_rng_state(), cpu_before)
+        assert all(torch.equal(generator.get_state(), cuda_before[index])
+                   for index, generator in generators.items())
+    assert entered == [expected_device, expected_device]
+    expected = torch.rand(4, generator=torch.Generator().manual_seed(101))
+    for cpu_draw, cuda_draw in draws:
+        torch.testing.assert_close(cpu_draw, expected)
+        torch.testing.assert_close(cuda_draw, expected)
 
 
 def test_strategy_feasible_reference_and_cuda_cleanup(sample_config, monkeypatch):
