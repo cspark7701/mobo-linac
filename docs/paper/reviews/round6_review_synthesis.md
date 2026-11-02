@@ -6,12 +6,14 @@ Date: 2026-10-31. Current documentation baseline: `fecab6c30d70a0fea21cbbfbf8481
 
 ## Sources and recommendations
 
+**Reconciliation addendum — 2026-11-02:** The baseline date and source hash above describe the original synthesis. The merged manuscript now includes C6-01–04, with both PRAB layouts sharing one source. The local [Reviewer 3 assessment](reviewer3_round6_report.md) recommends acceptance with minor editorial revisions; its [tasks](../revisions/reviewer3_round6_revision_tasks.md) are mapped in the [consolidated queue](../revisions/consolidated_round6_revision_tasks.md#reviewer-3-reconciliation--2026-11-02). Its primary-budget error is identified in the report's dated reconciliation note. This adds a separately attributed opinion without resolving the reviewers' disagreement. The author-adopted studies remain paused; historical unstarted/running statements below are superseded by the pause record.
+
 | Source | Recommendation | Required work under that source |
 |---|---|---|
 | [Reviewer 1 round6 report](reviewer1_round6_report.md), with [R6-01–R6-05](../revisions/reviewer1_round6_revision_tasks.md) | Major revision under this internal assessment | Representative numerical validation and matched residual-scaling outcomes before endorsement; scope and response checks. The scalarized comparator is optional. |
 | [Reviewer 2 round6 report](reviewer2_round6_report.md), with [V1–V6](../revisions/reviewer2_round6_revision_tasks.md) | Accept, consistent with round5 | Exact scalarized-cost definition, editorial dispositions and closing checks. No new simulations or further review round requested. |
 
-Reviewer 1's named report formalizes [Task 00340](../../exec-plans/completed/TASK_00340_manuscript_acceptance_assessment.md) at the author's request. Those are the same assessment, not independent reviews. The initial consolidated queue referred to it as an internal assessment because the separately named Reviewer 1 files did not yet exist. All records are internal pre-submission assessments, not a journal decision.
+Reviewer 1's named report formalizes [Task 00340](../../exec-plans/completed/TASK_00341_manuscript_acceptance_assessment.md) at the author's request. Those are the same assessment, not independent reviews. The initial consolidated queue referred to it as an internal assessment because the separately named Reviewer 1 files did not yet exist. All records are internal pre-submission assessments, not a journal decision.
 
 The [closed round5 work](../revisions/round5_revision_overview.md) and its historical recommendations remain unchanged. Reviewer 1's round6 report explicitly acknowledges that its stricter validation criterion differs from the archived round5 acceptance of the nominal-model scope; it does not claim a newly discovered regression caused by humanization.
 

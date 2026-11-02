@@ -6,7 +6,7 @@
 
 **Date:** 2026-10-31. **Source snapshot:** `fecab6c30d70a0fea21cbbfbf84813c1898470a0`, `docs/paper/main.tex`, SHA-256 `8d6814ab67e41aa2384af6e0bf95dabe9a90dc73ecf2bf7a8a9ee106e6244eb9`.
 
-**Review status:** Internal scientific pre-submission assessment labelled Reviewer 1 at the author's request. This report formalizes [Task 00340](../../exec-plans/completed/TASK_00340_manuscript_acceptance_assessment.md); it is not another independent review, a new set of experiments, or a journal decision.
+**Review status:** Internal scientific pre-submission assessment labelled Reviewer 1 at the author's request. This report formalizes [Task 00340](../../exec-plans/completed/TASK_00341_manuscript_acceptance_assessment.md); it is not another independent review, a new set of experiments, or a journal decision.
 
 **Other records considered:** [Reviewer 2 round6](reviewer2_round6_report.md), [Reviewer 1 round5](reviewer1_round5_report.md), and the [round5 closure](../revisions/round5_revision_overview.md).
 

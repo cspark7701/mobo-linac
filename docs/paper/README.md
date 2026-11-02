@@ -5,6 +5,21 @@ The figures, tables, and primary endpoint summary in this directory use the comp
 model checkpoints, and full journals remain in the local results tree and are not part
 of the paper update. `main.pdf`, `main_twocolumn.pdf` and LaTeX build products are regenerated locally.
 
+## Current revision status
+
+The 2 November 2026 reconciliation preserves the other machine's Round 6 editorial
+corrections (C6-01–04) and the shared one-column and two-column PRAB sources. The
+scalarized-cost definition, qualified abstract scope and conditional explanation of
+predictive undercoverage are present in both layouts.
+
+The additional Round 6 studies remain **paused by the author**. The preserved journal
+contains 387 nominal and 44 combined-fine results; these partial results have not been
+integrated into the manuscript and do not establish numerical convergence. Scaling
+campaigns and final reviewer responses remain pending. Read the
+[revision overview](revisions/round6_revision_overview.md), the merged
+[reviewer task mapping](revisions/consolidated_round6_revision_tasks.md#reviewer-3-reconciliation--2026-11-02), and the authoritative
+[pause and restart record](revisions/round6_pause_status.md) before further research work.
+
 ## Evidence and interpretation
 
 - Primary simulation comparison: 30 campaigns, ten paired seeds per algorithm, 160 evaluations

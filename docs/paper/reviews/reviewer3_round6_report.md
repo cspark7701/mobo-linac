@@ -1,5 +1,7 @@
 # Reviewer 3 report — round6
 
+> **Reconciliation note — 2026-11-02:** This internal assessment reviews the historical source identified below, not the current merged manuscript. Its summary incorrectly assigns 176 evaluations to the ten-paired-seed primary comparison: the primary budget is 160 evaluations per campaign (30 campaigns, 4,800 evaluations); 176 applies to each survey campaign. See the [evidence summary](../README.md#evidence-and-interpretation). The recommendation is preserved as an internal opinion, not a journal decision. The author adopted the additional studies, which are now [paused](../revisions/round6_pause_status.md); this report does not override that disposition.
+
 **Manuscript:** *Multi-objective Bayesian optimization of a 200 MeV injector-linac model derived from the Korea Light Source design*  
 **Author:** C. S. Park (*Korea University*)  
 **Target journal:** *Physical Review Accelerators and Beams* (PRAB)  

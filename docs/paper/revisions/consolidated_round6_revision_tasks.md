@@ -4,6 +4,8 @@
 
 ## Sources, scope and status
 
+The 2 November reconciliation also includes [Reviewer 3's historical report](../reviews/reviewer3_round6_report.md) and [task list](reviewer3_round6_revision_tasks.md). See the [mapping below](#reviewer-3-reconciliation--2026-11-02); its recommendation does not override the author's adopted studies or pause.
+
 - [Reviewer 1 report](../reviews/reviewer1_round6_report.md) and [R6-01–R6-05](reviewer1_round6_revision_tasks.md): **major revision under this internal assessment**, with two substantive validation requests, an endpoint-scope check, an optional comparator and response/validation. This formalizes Task 00340 rather than adding another independent assessment.
 - [Reviewer 2 report](../reviews/reviewer2_round6_report.md) and [V1–V6](reviewer2_round6_revision_tasks.md): **accept**, with V1 requested before acceptance, V2–V3 editorial, V4–V5 optional and V6 closing checks. No new simulations are required by this reviewer.
 - [Review synthesis](../reviews/round6_review_synthesis.md): complete source mapping, author constraints and the unresolved difference between these recommendations. Historical round5 recommendations remain unchanged.
@@ -192,3 +194,28 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 2. Record C6-05 before any new scientific runs. Its disposition can be prepared alongside the editorial work.
 3. Execute C6-06/C6-07 only if adopted; C6-08 is separately optional. Follow the A6 dependencies in the additional plan rather than treating this as a request for parallel agent work.
 4. Close C6-09 with the actual results and route-specific validation.
+
+## Reviewer 3 reconciliation — 2026-11-02
+
+This mapping preserves the local review alongside the pulled C6 queue. The historical
+recommendation is acceptance with minor editorial revisions, not external acceptance.
+The report's 176-evaluation primary-budget statement is corrected by its dated note.
+
+| Reviewer 3 item | Current disposition |
+| --- | --- |
+| R3-1: exact minimized scalarized target | Covered by completed C6-01, including downstream terminology checks. |
+| R3-2: RF convention and velocity bunching | Pending C6-10 below; no unverified physics explanation inserted. |
+| R3-3: appendix hypothesis | Covered by completed C6-02. |
+| R3-4: abstract scope | Covered by completed C6-03; equivalent scope wording retained. |
+| R3-5: source wrapping | Covered by completed C6-04. |
+| R3-6: optional re-tracking | Overlaps adopted C6-06/A6-01–03. Retain the frozen protocol and pause; no extra sample commissioned. |
+| R3-7: response and validation | Part of C6-09, with a separately attributed Reviewer 3 response still pending. Local merge checks do not complete final integration. |
+
+### C6-10. Verify the RF phase clarification requested by Reviewer 3
+
+- [ ] Verify the phase reference from the actual ASTRA input and field convention before describing crest or zero crossing.
+- [ ] Check whether retained longitudinal diagnostics support the proposed velocity-bunching interpretation. An off-crest phase alone does not establish it.
+- [ ] Add only supported clarification and record the disposition in the Reviewer 3 response; explain any unsupported interpretation rather than asserting it.
+
+This is a pending review item, not authorization to restart simulations or alter the
+frozen study protocol. C6-06, C6-07 and final C6-09 integration remain paused/pending.
