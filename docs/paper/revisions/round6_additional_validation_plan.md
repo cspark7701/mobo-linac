@@ -1,5 +1,7 @@
 # Additional validation plan for round 6
 
+> **Restart status — 2026-11-04:** the author authorized the restart. Worker ceiling raised to 22 by [amendment 01](evidence/r6_protocol_amendment_01.md); the two interrupted attempts were retained and re-tracked in isolation (`evidence/r6_recovery_01.json`); the pause marker is archived. The journal holds 433 of 1,935 numerical results (387 production, 46 combined-fine). Remaining refinement and scaling have not started. This note supersedes the pause note below.
+
 > **Execution status — 2026-11-02: PAUSED by user request.** The chain and its ASTRA workers are stopped. The checkpoint preserves 387 nominal and 44 fine-resolution results; two interrupted attempts require recovery inspection before any authorized restart. Scaling campaigns and final integration remain pending. See [the pause and restart record](round6_pause_status.md). This administrative update supersedes earlier running/queued status below; reviewer assessments and frozen scientific evidence remain unchanged.
 
 ## Conditional scope

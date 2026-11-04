@@ -1,6 +1,8 @@
 # Round 6 pause and restart record
 
-Status: **paused by the user**, 2026-11-02 07:15:48 KST (2026-11-01 22:15:48 UTC).
+**Update 2026-11-04: recovered, not yet relaunched.** The author authorized the restart. `scripts/recover_revision_round6.py` verified the snapshot and all 431 journal checksums and confirmed that 1,502 pending identities never started. It re-tracked the two interrupted identities with two workers in `results/revision_round6/resolution/recovery_01/`, kept the original attempts in place, and appended the two records, each naming its interrupted attempt. The pending list and pause marker are archived in that directory. The receipt is `evidence/r6_recovery_01.json`. The record below describes the state at the pause.
+
+Status at the pause: **paused by the user**, 2026-11-02 07:15:48 KST (2026-11-01 22:15:48 UTC).
 The revision chain, its two CPU workers and their ASTRA children have stopped.
 No scaling campaign was launched. No restart, new scheduling or push is part of this pause operation.
 

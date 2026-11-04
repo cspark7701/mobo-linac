@@ -27,3 +27,4 @@ scripts/check_supplement_regeneration.py,ledgers;derived_evidence,evaluations.cs
 scripts/prepare_revision_round6.py,ledgers;run_records,primary evaluations.csv; publication configuration; ASTRA/generator executables; source distribution; input deck and field maps (identity hashes),2b
 scripts/check_revision_round6_workers.py,ledgers;tracking,primary evaluations.csv; round6 journal; ASTRA executable; retained round6 template,3
 scripts/analyze_revision_round6_rf_phase.py,tracking_outputs,retained round6 production-resolution astra.in and astra.Zemit.001; astra.in,3
+scripts/recover_revision_round6.py,run_records;tracking,round6 pause checkpoint; round6 journal and attempt records; ASTRA executable; retained round6 template,3

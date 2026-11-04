@@ -131,3 +131,4 @@ S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revis
 S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_execution_amendment_01.json,
 S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_worker_check.json,scripts/check_revision_round6_workers.py
 S1.15,RF phase reference and bunch length in the tracked model,sec:problem,docs/paper/revisions/evidence/r6_rf_phase_fit.json,scripts/analyze_revision_round6_rf_phase.py
+S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_recovery_01.json,scripts/recover_revision_round6.py
