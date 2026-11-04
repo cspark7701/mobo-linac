@@ -127,3 +127,6 @@ S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revis
 S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_sampling_manifest.csv,scripts/prepare_revision_round6.py
 S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_sampling_strata.csv,scripts/prepare_revision_round6.py
 S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_specification.json,scripts/prepare_revision_round6.py
+S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_protocol_amendment_01.md,
+S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_execution_amendment_01.json,
+S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_worker_check.json,scripts/check_revision_round6_workers.py

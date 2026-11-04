@@ -22,6 +22,14 @@ def sha(path):
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 
+def execution_workers():
+    """The worker ceiling of the frozen specification as changed by its dated amendment."""
+    amendment = json.loads((EVIDENCE/'r6_execution_amendment_01.json').read_text())
+    if amendment['spec_sha256'] != sha(EVIDENCE/'r6_specification.json'):
+        raise ValueError('Execution amendment does not refer to the frozen specification.')
+    return amendment['workers_total']
+
+
 def stratify(frame):
     frame = frame.copy()
     margins = pd.DataFrame({k: (1e-3-frame[k])/1e-3 for k in

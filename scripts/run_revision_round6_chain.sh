@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Adopted round6 studies; one shared two-worker allocation, immutable new outputs.
+# Adopted round6 studies; one shared worker allocation (execution amendment 01), immutable new outputs.
 set -Eeuo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")/.."
 if [[ -f results/revision_round6/PAUSED.json ]]; then

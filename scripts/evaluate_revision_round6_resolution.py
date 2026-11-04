@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Execute the frozen round6 numerical study with immutable evidence and two workers."""
+"""Execute the frozen round6 numerical study with immutable evidence and the amended worker ceiling."""
 from __future__ import annotations
 import argparse
 from dataclasses import replace
@@ -17,7 +17,7 @@ from mobo_linac.config import load_config
 from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask
 from mobo_linac.execution.mock import MockEvaluator
 from evaluate_revision_convergence import make_sources, build_template, record
-from prepare_revision_round6 import CONTROLS, ROOT, EVIDENCE, sha
+from prepare_revision_round6 import CONTROLS, ROOT, EVIDENCE, execution_workers, sha
 from analyze_revision_convergence import QUANTITIES
 
 SPEC = EVIDENCE / 'r6_specification.json'
@@ -115,7 +115,24 @@ def check_nominal(frame, records, spec):
                     raise ValueError(f'Nominal reproduction mismatch: {row.setting_id}, {key}')
 
 
+def study_config(out, workers):
+    config = load_config(ROOT/'configs/publication_200MeV.yaml')
+    return replace(config,simulation=replace(config.simulation,template_dir=str((out/'template').resolve()),
+                       static_files=[*config.simulation.static_files,'qr20k.ini','qr40k.ini']),
+                   execution=replace(config.execution,max_workers=workers,retries=0))
+
+
+def result_value(outcome):
+    value=record(outcome)
+    value['physically_feasible']=outcome.evaluated_result.physically_feasible
+    category=outcome.evaluated_result.failure_category
+    value['failure_category']=getattr(category,'value',category)
+    value['failure_reason']=outcome.evaluated_result.failure_reason
+    return value
+
+
 def execute(out, spec, frame, resume=False, mock=False, stage='all'):
+    workers = execution_workers()
     identity = {'spec_sha256':sha(SPEC),'manifest_sha256':sha(MANIFEST),'mock':mock}
     plan_path = out/'plan.json'
     if out.exists() and any(out.iterdir()):
@@ -137,7 +154,7 @@ def execute(out, spec, frame, resume=False, mock=False, stage='all'):
             make_sources(template,Path(config.simulation.executable).with_name('generator'),sources)
         build_template(config,template,sources)
         identity.update({'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
-                         'created_unix':time.time(),'workers':2,
+                         'created_unix':time.time(),'workers':workers,
                          'template_sha256':{p.name:sha(p) for p in template.iterdir() if p.is_file()},
                          'environment':subprocess.check_output(['uname','-a'],text=True).strip()})
         plan_path.write_text(json.dumps(identity,indent=2,sort_keys=True)+'\n')
@@ -145,10 +162,7 @@ def execute(out, spec, frame, resume=False, mock=False, stage='all'):
     for name,digest in existing['template_sha256'].items():
         if sha(out/'template'/name)!=digest:
             raise ValueError('Retained template checksum mismatch.')
-    config = load_config(ROOT/'configs/publication_200MeV.yaml')
-    config = replace(config,simulation=replace(config.simulation,template_dir=str((out/'template').resolve()),
-                       static_files=[*config.simulation.static_files,'qr20k.ini','qr40k.ini']),
-                     execution=replace(config.execution,max_workers=2,retries=0))
+    config = study_config(out, workers)
     journal=out/'results.jsonl'; records=read_records(journal)
     expected={t.task_id for t in make_tasks(frame,spec,list(spec['levels']))}
     if not set(records)<=expected:
@@ -171,15 +185,10 @@ def execute(out, spec, frame, resume=False, mock=False, stage='all'):
         if shutil.disk_usage(out).free < spec['minimum_free_disk_GiB']*1024**3:
             raise RuntimeError('Insufficient disk space; preserve evidence and pause.')
         pending.write_text(json.dumps([t.task_id for t in tasks])+'\n')
-        plan=ResolutionPlan(config,base_output_dir=out/'runs',num_workers=2,
+        plan=ResolutionPlan(config,base_output_dir=out/'runs',num_workers=workers,
                             timeout=spec['tracking_timeout_s'],template_dir=out/'template')
         def complete(outcome):
-            value=record(outcome)
-            value['physically_feasible']=outcome.evaluated_result.physically_feasible
-            category=outcome.evaluated_result.failure_category
-            value['failure_category']=getattr(category,'value',category)
-            value['failure_reason']=outcome.evaluated_result.failure_reason
-            append_record(journal,value)
+            append_record(journal,result_value(outcome))
         plan.evaluate_plan_parallel(tasks,evaluator=MockEvaluator(config=config) if mock else None,
                                     on_task_complete=complete,run_id='round6_resolution')
         records=read_records(journal)

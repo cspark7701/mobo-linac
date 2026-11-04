@@ -1,0 +1,11 @@
+{
+  "amendment": 1,
+  "date": "2026-11-04",
+  "authorized_by": "author",
+  "spec_sha256": "8ae9a943726231ff70194ef20e6cfbf3be724978e0fdf19416b303c5cf406ecd",
+  "superseded": {"workers_total": 2},
+  "workers_total": 22,
+  "threads_per_process": 1,
+  "recovery_workers": 2,
+  "unchanged": ["sample", "levels", "seeds", "budgets", "tolerances", "timeouts", "retries", "analysis", "serial studies", "one campaign at a time", "shared worker lock", "device"]
+}

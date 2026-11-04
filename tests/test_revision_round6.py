@@ -153,7 +153,7 @@ def test_scaling_plan_has_matched_budget_and_alternating_order():
     raw=scaling.campaign_config(spec,'raw',42)
     normalized=scaling.campaign_config(spec,'normalized',42)
     assert raw.constraints==normalized.constraints
-    assert raw.execution.max_workers==normalized.execution.max_workers==2
+    assert raw.execution.max_workers==normalized.execution.max_workers==22
     assert raw.execution.acquisition_stream_group==normalized.execution.acquisition_stream_group==42
     assert raw.execution.acqf_mc_samples==normalized.execution.acqf_mc_samples==128
     assert raw.execution.acqf_maxiter==200

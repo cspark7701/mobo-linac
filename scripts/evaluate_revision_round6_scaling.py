@@ -15,7 +15,7 @@ from mobo_linac.config import load_config
 from mobo_linac.campaigns.runner import MoboCampaignRunner
 from mobo_linac.constraints import constraint_residual_metadata
 from mobo_linac.io.artifacts import validate_run_completion
-from prepare_revision_round6 import ROOT, EVIDENCE, CONTROLS, sha
+from prepare_revision_round6 import ROOT, EVIDENCE, CONTROLS, execution_workers, sha
 
 SPEC=EVIDENCE/'r6_specification.json'
 
@@ -31,7 +31,7 @@ def campaign_config(spec, arm, seed):
         raise ValueError('Campaign is outside the frozen allocation.')
     config=load_config(ROOT/'configs/publication_200MeV.yaml')
     return replace(config,execution=replace(config.execution,
-        max_workers=2,retries=0,constraint_residual_mode=arm,
+        max_workers=execution_workers(),retries=0,constraint_residual_mode=arm,
         constraint_temperature=spec['scaling'][arm+'_temperature'],
         acqf_mc_samples=spec['scaling']['posterior_samples'],acquisition_stream_group=seed,
         acqf_num_restarts=spec['scaling']['num_restarts'],acqf_raw_samples=spec['scaling']['raw_samples'],
@@ -63,7 +63,7 @@ def check_pair(out,seed,spec):
 
 
 def run(out,spec,resume=False):
-    identity={'spec_sha256':sha(SPEC),'workers_total':2,'device':spec['device'], 'code_sha256':code_identity()}
+    identity={'spec_sha256':sha(SPEC),'workers_total':execution_workers(),'device':spec['device'], 'code_sha256':code_identity()}
     manifest=out/'plan.json'
     if out.exists() and any(out.iterdir()):
         if not resume or not manifest.exists():
@@ -96,7 +96,7 @@ def run(out,spec,resume=False):
         runner=MoboCampaignRunner(config=config,output_dir=directory,
             num_initial_samples=spec['scaling']['initial'],num_batches=spec['scaling']['batches'],
             batch_size=spec['scaling']['batch_size'],total_eval_budget=spec['scaling']['budget_each'],
-            num_workers=2,seed=seed,constrained=True,optimization_mode='constrained_mobo',
+            num_workers=execution_workers(),seed=seed,constrained=True,optimization_mode='constrained_mobo',
             acq_type='qLogNEHVI',device=spec['device'],resume=bool(partial),
             reporting_ref_point=[-1.5e-6,-1.5e-6,-1.5e6],export_plots=False)
         runner.run()

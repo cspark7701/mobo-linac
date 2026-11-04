@@ -25,3 +25,4 @@ scripts/prepare_revision_figures.py,ledgers;run_records,evaluations.csv; config.
 scripts/prepare_revision_tables.py,ledgers;run_records,evaluations.csv; run_complete.json; phase1_scalarized/cases_summary.csv,2b
 scripts/check_supplement_regeneration.py,ledgers;derived_evidence,evaluations.csv; config.json; run_complete.json; evidence files,2a
 scripts/prepare_revision_round6.py,ledgers;run_records,primary evaluations.csv; publication configuration; ASTRA/generator executables; source distribution; input deck and field maps (identity hashes),2b
+scripts/check_revision_round6_workers.py,ledgers;tracking,primary evaluations.csv; round6 journal; ASTRA executable; retained round6 template,3
