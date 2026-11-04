@@ -1,0 +1,66 @@
+{
+  "entry_length_mm": {
+    "max": 1.1557261538461538,
+    "median": 0.9522952307692307,
+    "min": 0.839892
+  },
+  "injection_energy_MeV": {
+    "max": 4.129835384615385,
+    "median": 4.094167692307693,
+    "min": 4.049035384615385
+  },
+  "length_ratio_to_entry": {
+    "ACC1_end": {
+      "max": 1.02336306956702,
+      "median": 0.9945404376991939,
+      "min": 0.966096946585711
+    },
+    "ACC2_end": {
+      "max": 1.0226453593075486,
+      "median": 0.992482327061487,
+      "min": 0.9637996259393197
+    },
+    "ACC3_end": {
+      "max": 1.0220229841548074,
+      "median": 0.9922687568075519,
+      "min": 0.9632699152235941
+    },
+    "ACC4_end": {
+      "max": 1.0217947799321356,
+      "median": 0.9921978268552426,
+      "min": 0.9631001567174811
+    }
+  },
+  "note": "Fit of tracked gain in this model; not an RF calibration.",
+  "settings": 387,
+  "structures": {
+    "ACC1": {
+      "amplitude_MeV": 47.16857295689938,
+      "crest_deg": -26.778800219380155,
+      "nominal_minus_crest_deg": -12.730230070619854,
+      "nominal_phase_deg": -39.50903029,
+      "residual_rms_MeV": 0.23640256165370763
+    },
+    "ACC2": {
+      "amplitude_MeV": 47.25468606712972,
+      "crest_deg": -39.30785124485555,
+      "nominal_minus_crest_deg": -0.20117904514444263,
+      "nominal_phase_deg": -39.50903029,
+      "residual_rms_MeV": 0.051068107028386815
+    },
+    "ACC3": {
+      "amplitude_MeV": 51.97179991373222,
+      "crest_deg": -50.58233756577086,
+      "nominal_minus_crest_deg": 0.6357567657707932,
+      "nominal_phase_deg": 310.0534192,
+      "residual_rms_MeV": 0.27989388391501646
+    },
+    "ACC4": {
+      "amplitude_MeV": 51.97339423877147,
+      "crest_deg": -61.69015302654931,
+      "nominal_minus_crest_deg": 11.743572226549304,
+      "nominal_phase_deg": 310.0534192,
+      "residual_rms_MeV": 0.3286581047547244
+    }
+  }
+}

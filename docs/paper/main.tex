@@ -367,7 +367,14 @@ template used here, but it is not the tracked solution published in
 Ref.~\cite{Kim2024KLSMOGA}, which used a different gun field, cavity gradients, phase ranges
 and constraints. Magnetic settings may vary by \SI{\pm50}{\percent} around this
 nominal setting. The RF inputs are absolute wave phases at the start of tracking because automatic phasing is
-switched off~\cite{Floettmann2017Astra}. They are not calibrated off-crest angles. The recorded
+switched off~\cite{Floettmann2017Astra}. They are not calibrated off-crest angles, and zero phase
+denotes neither a crest nor a zero crossing. Fitting the tracked energy gain of each structure across 387
+re-tracked production-resolution settings places the model's gain maxima near \SI{-27}{\degree} (ACC1),
+\SI{-39}{\degree} (ACC2), \SI{309}{\degree} (ACC3) and \SI{298}{\degree} (ACC4). The nominal phases therefore lie
+about \SI{13}{\degree} below the ACC1 maximum, at the ACC2 and ACC3 maxima and about \SI{12}{\degree} above the
+ACC4 maximum. The beam enters ACC1 near \SI{4.1}{\mega\electronvolt}, and across these settings its RMS bunch
+length changes by \SI{-3.6}{\percent} to \SI{+2.3}{\percent} (median \SI{-0.8}{\percent}) between the ACC1 entrance
+and the ACC2 exit, so they show no substantial velocity bunching. The recorded
 gun-phase interval is \SIrange{32.0625}{39.1875}{\degree}; the common ACC1/ACC2 phase spans
 \SIrange{-43.4599}{-35.5581}{\degree}, and the common ACC3/ACC4 phase spans
 \SIrange{279.0481}{341.0588}{\degree}. The respective nominal phases are

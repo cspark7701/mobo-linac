@@ -144,7 +144,8 @@ python scripts/check_supplement_regeneration.py      # regenerate level-2a evide
 S1.15 includes the frozen round6 protocol, sampling manifest/stratum counts and
 machine-readable specification, with the dated worker-ceiling amendment
 (`r6_protocol_amendment_01.md`, `r6_execution_amendment_01.json`) and its reproduction check
-(`r6_worker_check.json`). These record the author-adopted studies before
+(`r6_worker_check.json`). `r6_rf_phase_fit.json` is the exception that the manuscript already
+uses (Sec. II B): a fit of the stored tracking outputs, with no new simulation. The others record the author-adopted studies before
 new outcomes; their presence does not establish completed numerical validation or
 normalized-acquisition efficacy. The sampling generator also hashes configuration,
 executable, source and map files, so its complete output requires those input files

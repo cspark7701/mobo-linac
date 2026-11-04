@@ -204,7 +204,7 @@ The report's 176-evaluation primary-budget statement is corrected by its dated n
 | Reviewer 3 item | Current disposition |
 | --- | --- |
 | R3-1: exact minimized scalarized target | Covered by completed C6-01, including downstream terminology checks. |
-| R3-2: RF convention and velocity bunching | Pending C6-10 below; no unverified physics explanation inserted. |
+| R3-2: RF convention and velocity bunching | Completed in C6-10 below; convention clarified, velocity-bunching statement not adopted. |
 | R3-3: appendix hypothesis | Covered by completed C6-02. |
 | R3-4: abstract scope | Covered by completed C6-03; equivalent scope wording retained. |
 | R3-5: source wrapping | Covered by completed C6-04. |
@@ -213,9 +213,11 @@ The report's 176-evaluation primary-budget statement is corrected by its dated n
 
 ### C6-10. Verify the RF phase clarification requested by Reviewer 3
 
-- [ ] Verify the phase reference from the actual ASTRA input and field convention before describing crest or zero crossing.
-- [ ] Check whether retained longitudinal diagnostics support the proposed velocity-bunching interpretation. An off-crest phase alone does not establish it.
-- [ ] Add only supported clarification and record the disposition in the Reviewer 3 response; explain any unsupported interpretation rather than asserting it.
+- [x] Verify the phase reference from the actual ASTRA input and field convention before describing crest or zero crossing.
+- [x] Check whether retained longitudinal diagnostics support the proposed velocity-bunching interpretation. An off-crest phase alone does not establish it.
+- [x] Add only supported clarification and record the disposition in the Reviewer 3 response; explain any unsupported interpretation rather than asserting it.
 
-This is a pending review item, not authorization to restart simulations or alter the
+**Done (Task 00373):** the phase convention and fitted gain maxima are in Sec. II B; the velocity-bunching statement is not adopted, because the stored runs show no substantial compression. See the [Reviewer 3 response](../reviews/reviewer3_round6_response.md).
+
+This review item did not restart simulations or alter the
 frozen study protocol. C6-06, C6-07 and final C6-09 integration remain paused/pending.
