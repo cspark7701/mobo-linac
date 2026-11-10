@@ -1,0 +1,4 @@
+endpoint,first,second,groups,mean_difference,ci_lower_conditional,ci_upper_conditional,minimum_difference,positive_groups
+feasible_fraction,normalized,raw,10,-0.118125,-0.13625000000000004,-0.09873437500000021,-0.16875,0
+post_init_feasible_fraction,normalized,raw,10,-0.13124999999999998,-0.15138888888888888,-0.10970486111111134,-0.1875,0
+elapsed_wall_time_s,normalized,raw,10,-1558.528210890107,-2721.9667879574013,-500.0144565984956,-4786.078145031817,2

@@ -123,12 +123,26 @@ S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_so
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_summary.csv,scripts/analyze_revision_sobol_uncertainty.py
 S1.6,Space-filling reference,sec:attribution,docs/paper/revisions/evidence/r3_sobol_uncertainty_metadata.json,scripts/analyze_revision_sobol_uncertainty.py
 S1.1,Reproduction inputs,app:implementation,docs/paper/revisions/evidence/r3_regeneration_check.json,scripts/check_supplement_regeneration.py
-S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_protocol.md,
-S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_sampling_manifest.csv,scripts/prepare_revision_round6.py
-S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_sampling_strata.csv,scripts/prepare_revision_round6.py
-S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_specification.json,scripts/prepare_revision_round6.py
-S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_protocol_amendment_01.md,
-S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_execution_amendment_01.json,
-S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_worker_check.json,scripts/check_revision_round6_workers.py
+S1.15,Frozen round6 validation protocol and execution records,,docs/paper/revisions/evidence/r6_protocol.md,
+S1.15,Frozen round6 validation protocol and execution records,,docs/paper/revisions/evidence/r6_sampling_manifest.csv,scripts/prepare_revision_round6.py
+S1.15,Frozen round6 validation protocol and execution records,,docs/paper/revisions/evidence/r6_sampling_strata.csv,scripts/prepare_revision_round6.py
+S1.15,Frozen round6 validation protocol and execution records,,docs/paper/revisions/evidence/r6_specification.json,scripts/prepare_revision_round6.py
+S1.15,Frozen round6 validation protocol and execution records,,docs/paper/revisions/evidence/r6_protocol_amendment_01.md,
+S1.15,Frozen round6 validation protocol and execution records,,docs/paper/revisions/evidence/r6_execution_amendment_01.json,
+S1.15,Frozen round6 validation protocol and execution records,,docs/paper/revisions/evidence/r6_worker_check.json,scripts/check_revision_round6_workers.py
 S1.15,RF phase reference and bunch length in the tracked model,sec:problem,docs/paper/revisions/evidence/r6_rf_phase_fit.json,scripts/analyze_revision_round6_rf_phase.py
-S1.15,Prospective round6 validation protocol (results pending),,docs/paper/revisions/evidence/r6_recovery_01.json,scripts/recover_revision_round6.py
+S1.15,Frozen round6 validation protocol and execution records,,docs/paper/revisions/evidence/r6_recovery_01.json,scripts/recover_revision_round6.py
+S1.16,Re-tracked stratified sample of primary evaluations,sec:retracking,docs/paper/revisions/evidence/r6_resolution_classification.csv,scripts/analyze_revision_round6.py
+S1.16,Re-tracked stratified sample of primary evaluations,sec:retracking,docs/paper/revisions/evidence/r6_resolution_fractions.csv,scripts/analyze_revision_round6.py
+S1.16,Re-tracked stratified sample of primary evaluations,sec:retracking,docs/paper/revisions/evidence/r6_resolution_paired.csv,scripts/analyze_revision_round6.py
+S1.16,Re-tracked stratified sample of primary evaluations,sec:retracking,docs/paper/revisions/evidence/r6_resolution_tolerances.csv,scripts/analyze_revision_round6.py
+S1.16,Re-tracked stratified sample of primary evaluations,sec:retracking,docs/paper/revisions/evidence/r6_resolution_summary.json,scripts/summarize_revision_round6.py
+S1.16,Re-tracked stratified sample of primary evaluations,sec:retracking,docs/paper/revisions/evidence/r6_resolution_table.tex,scripts/summarize_revision_round6.py
+S1.16,Re-tracked stratified sample of primary evaluations,sec:retracking,docs/paper/revisions/evidence/r6_numerical_table.tex,scripts/summarize_revision_round6.py
+S1.16,Matched raw- and normalized-residual campaigns,sec:scaling,docs/paper/revisions/evidence/r6_scaling_runs.csv,scripts/analyze_revision_round6.py
+S1.16,Matched raw- and normalized-residual campaigns,sec:scaling,docs/paper/revisions/evidence/r6_scaling_paired.csv,scripts/analyze_revision_round6.py
+S1.16,Matched raw- and normalized-residual campaigns,sec:scaling,docs/paper/revisions/evidence/r6_scaling_channels.csv,scripts/analyze_revision_round6.py
+S1.16,Matched raw- and normalized-residual campaigns,sec:scaling,docs/paper/revisions/evidence/r6_scaling_proposals.csv,scripts/summarize_revision_round6.py
+S1.16,Matched raw- and normalized-residual campaigns,sec:scaling,docs/paper/revisions/evidence/r6_scaling_summary.json,scripts/summarize_revision_round6.py
+S1.16,Matched raw- and normalized-residual campaigns,sec:scaling,docs/paper/revisions/evidence/r6_scaling_table.tex,scripts/summarize_revision_round6.py
+S1.16,Round6 evidence collection receipt,sec:prospective,docs/paper/revisions/evidence/r6_collection.json,scripts/summarize_revision_round6.py

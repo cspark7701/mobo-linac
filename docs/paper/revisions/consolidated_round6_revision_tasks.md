@@ -1,5 +1,7 @@
 # Consolidated revision tasks: round 6
 
+> **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) remain. This note supersedes the restart and pause notes below.
+
 > **Restart status — 2026-11-04:** the author authorized the restart. Worker ceiling raised to 22 by [amendment 01](evidence/r6_protocol_amendment_01.md); the two interrupted attempts were retained and re-tracked in isolation (`evidence/r6_recovery_01.json`); the pause marker is archived. The journal holds 433 of 1,935 numerical results (387 production, 46 combined-fine). Remaining refinement and scaling have not started. This note supersedes the pause note below.
 
 > **Execution status — 2026-11-02: PAUSED by user request.** The chain and its ASTRA workers are stopped. The checkpoint preserves 387 nominal and 44 fine-resolution results; two interrupted attempts require recovery inspection before any authorized restart. Scaling campaigns and final integration remain pending. See [the pause and restart record](round6_pause_status.md). This administrative update supersedes earlier running/queued status below; reviewer assessments and frozen scientific evidence remain unchanged.
@@ -149,6 +151,8 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Done when:** adopted work is fully accounted for and supports only the scope justified by its sampling and numerical precision; or non-adoption is recorded under C6-05. Completed tracking alone does not settle convergence or reviewer agreement.
 
+**Execution status (2026-11-10):** completed and integrated (Sec. "Re-tracked sample of primary evaluations", Tables `tab:retracking` and `tab:retracking_values`; S1.16). All 1,935 attempts valid; 4/387 classifications changed, all toward feasibility; weighted constraint-aware fraction 0.405 → 0.460 (design SE 0.027); paired advantages 0.303/0.335 at the fine levels, positive in all groups. Objective convergence is **unresolved**: emittances differ by a median 5.5 %/7.4 % between fine and medium, and only 3–7 % of settings meet the 1 % tolerance. Reviewer 1's broader convergence request is therefore only partly answered.
+
 ## C6-07. Conditional matched residual-scaling comparison
 
 **Adoption condition:** explicit selection in C6-05. **Detail:** common protocol A6-01 and A6-04 through A6-06 in the [additional validation plan](round6_additional_validation_plan.md).
@@ -162,6 +166,8 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 **Deliverables:** implementation/test records, new per-group campaigns and `r6_scaling_*` effects/metadata.
 
 **Done when:** the frozen comparison is executed and analyzed honestly, or non-adoption is recorded. A negative or inconclusive result is a completed analysis, not automatic acceptance or evidence of efficacy.
+
+**Execution status (2026-11-10):** completed and integrated (Sec. "Constraint-residual scaling", Table `tab:scaling`; S1.16). Normalized minus raw: −0.118 all-attempt (95 % interval −0.136 to −0.099) and −0.131 post-initialization; negative in all ten groups. All 3,200 attempts valid; three retry-tier batches, no Sobol fallback. The result concerns the tested convention (normalization plus a common temperature that changes the physical widths), not normalization alone.
 
 ## C6-08. Optional constrained-scalarized comparator
 

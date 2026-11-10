@@ -1,5 +1,7 @@
 # Additional validation plan for round 6
 
+> **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) remain. This note supersedes the restart and pause notes below.
+
 > **Restart status — 2026-11-04:** the author authorized the restart. Worker ceiling raised to 22 by [amendment 01](evidence/r6_protocol_amendment_01.md); the two interrupted attempts were retained and re-tracked in isolation (`evidence/r6_recovery_01.json`); the pause marker is archived. The journal holds 433 of 1,935 numerical results (387 production, 46 combined-fine). Remaining refinement and scaling have not started. This note supersedes the pause note below.
 
 > **Execution status — 2026-11-02: PAUSED by user request.** The chain and its ASTRA workers are stopped. The checkpoint preserves 387 nominal and 44 fine-resolution results; two interrupted attempts require recovery inspection before any authorized restart. Scaling campaigns and final integration remain pending. See [the pause and restart record](round6_pause_status.md). This administrative update supersedes earlier running/queued status below; reviewer assessments and frozen scientific evidence remain unchanged.
@@ -59,6 +61,8 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 ## A6-02. Implement and execute representative re-tracking
 
+**Status (2026-11-10):** completed; 1,935/1,935 attempts valid, nominal gate passed, completion record `results/revision_round6/resolution/complete.json`.
+
 **Starting points:** `scripts/evaluate_revision_convergence.py`, `scripts/analyze_revision_convergence.py`, and the `r2_convergence_*` evidence. The old driver hard-codes ten reported settings and output paths; do not run it unchanged and call its sample representative.
 
 - [ ] Add a separate driver or a backward-compatible manifest input and output-directory option. Keep old defaults and archived results reproducible.
@@ -73,6 +77,8 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 **Done when:** all scheduled attempts are accounted for, nominal reproduction is checked, no archived output is changed, and every refined observation can be joined to its original identity. Unfinished or failed tracking is reported, not discarded.
 
 ## A6-03. Analyze numerical sensitivity across methods and boundaries
+
+**Status (2026-11-10):** completed by `scripts/analyze_revision_round6.py`; integrated evidence in S1.16. Objective convergence unresolved at the finest level.
 
 - [ ] Compute per-setting changes in all objectives and diagnostics between levels, signed physical margins, feasibility flips and failures. Separate discretization and source effects.
 - [ ] Report results by method, matched group, original classification, boundary channel and search stage. Include unresolved or failed observations.
@@ -100,6 +106,8 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 ## A6-05. Run the matched raw/normalized comparison
 
+**Status (2026-11-10):** completed; 20/20 campaigns, 3,200 valid attempts, completion record `results/revision_round6/scaling/complete.json`.
+
 - [ ] Run the declared readiness checks and a separately labelled infrastructure pilot. If the protocol changes after a pilot, version the new protocol and keep pilot outcomes outside the confirmatory set.
 - [ ] Start both arms from exactly the same initial controls in each group. Match simulation budget, source, numerical resolution, model family, fit settings, posterior sample count, optimizer budgets and hardware policy; vary only the declared residual/temperature convention.
 - [ ] Do not substitute old raw campaigns for contemporaneous controls without establishing all relevant execution equivalences; historical observations remain contextual. To compare new outcomes with unconstrained/scalarized arms as a new matched experiment, specify and validate those controls in advance as well.
@@ -111,6 +119,8 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 **Done when:** every prespecified arm/group is accounted for under the frozen budget. Partial runs, restarts and unsuccessful proposals remain visible.
 
 ## A6-06. Analyze the scaling experiment
+
+**Status (2026-11-10):** completed; normalized minus raw −0.118 (all attempts), negative in all ten groups. Front-quality was not added as an endpoint.
 
 - [ ] Compute raw-versus-normalized paired differences in all-evaluation and post-initialization feasible fractions using the frozen denominators. Include uncertainty across matched groups and failed evaluations.
 - [ ] Describe differences by violated channel group and search stage, plus computational cost. Do not infer a causal physical mechanism from violation counts alone.
@@ -132,6 +142,8 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 **Done when:** adoption is documented and, if adopted, the declared comparison is executed and analyzed; otherwise the manuscript retains the explicit missing-comparator limitation. This item must not silently become a condition of closing R6-01 or R6-02.
 
 ## A6-08. Integrate the evidence without broadening claims beyond it
+
+**Status (2026-11-10):** completed in Task 00378 (manuscript Secs. on prospective studies, re-tracking and residual scaling; abstract, introduction, discussion, limitations and conclusions updated; S1.16 mapped).
 
 - [ ] Add a concise methods description and result for each completed validation workstream, with tables/figures linked to new evidence. Explain any unresolved or adverse findings.
 - [ ] Keep measured refined settings, weighted population estimates, common-shift scenarios and new optimization trajectories distinct.

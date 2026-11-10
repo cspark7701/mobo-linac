@@ -1,0 +1,781 @@
+{
+  "attempts": 1935,
+  "boundary": {
+    "interior": 147,
+    "near": 240
+  },
+  "changes": {
+    "mean_kinetic_energy_eV": {
+      "combined_fine vs combined_medium": {
+        "max": 0.06,
+        "median": 0.0,
+        "median_magnitude": 0.01,
+        "min": -0.049999999999999996,
+        "unit": "MeV"
+      },
+      "combined_fine vs production": {
+        "max": 0.12,
+        "median": 0.0,
+        "median_magnitude": 0.03,
+        "min": -0.13999999999999999,
+        "unit": "MeV"
+      },
+      "fixed_fine vs combined_fine": {
+        "max": 0.03,
+        "median": 0.0,
+        "median_magnitude": 0.0,
+        "min": -0.03,
+        "unit": "MeV"
+      },
+      "fixed_fine vs fixed_medium": {
+        "max": 0.049999999999999996,
+        "median": 0.0,
+        "median_magnitude": 0.01,
+        "min": -0.04,
+        "unit": "MeV"
+      },
+      "fixed_fine vs production": {
+        "max": 0.13,
+        "median": 0.0,
+        "median_magnitude": 0.03,
+        "min": -0.13,
+        "unit": "MeV"
+      }
+    },
+    "norm_emit_x_m_rad": {
+      "combined_fine vs combined_medium": {
+        "fraction_lower": 0.9896640826873385,
+        "max": 1.2550010528532374,
+        "median": -6.527847152847148,
+        "median_magnitude": 6.527847152847148,
+        "min": -58.744687310261085,
+        "unit": "percent"
+      },
+      "combined_fine vs production": {
+        "fraction_lower": 1.0,
+        "max": -5.274503508691454,
+        "median": -22.862878883600768,
+        "median_magnitude": 22.862878883600768,
+        "min": -71.53691965978655,
+        "unit": "percent"
+      },
+      "fixed_fine vs combined_fine": {
+        "fraction_lower": 0.1834625322997416,
+        "max": 18.985744583747216,
+        "median": 2.027718816331623,
+        "median_magnitude": 2.319598498587153,
+        "min": -23.650650521705526,
+        "unit": "percent"
+      },
+      "fixed_fine vs fixed_medium": {
+        "fraction_lower": 0.979328165374677,
+        "max": 2.763485477178438,
+        "median": -5.531193357890433,
+        "median_magnitude": 5.531193357890433,
+        "min": -57.99061991513258,
+        "unit": "percent"
+      },
+      "fixed_fine vs production": {
+        "fraction_lower": 1.0,
+        "max": -3.3389900472411846,
+        "median": -20.86517314645693,
+        "median_magnitude": 20.86517314645693,
+        "min": -75.2753212080761,
+        "unit": "percent"
+      }
+    },
+    "norm_emit_y_m_rad": {
+      "combined_fine vs combined_medium": {
+        "fraction_lower": 0.9638242894056848,
+        "max": 3.2861586995574696,
+        "median": -6.640818718723224,
+        "median_magnitude": 6.640818718723224,
+        "min": -55.43621491260784,
+        "unit": "percent"
+      },
+      "combined_fine vs production": {
+        "fraction_lower": 0.9948320413436692,
+        "max": 5.223607038031525,
+        "median": -30.64737328220773,
+        "median_magnitude": 30.64737328220773,
+        "min": -72.15701219512194,
+        "unit": "percent"
+      },
+      "fixed_fine vs combined_fine": {
+        "fraction_lower": 0.31266149870801035,
+        "max": 30.119059552050974,
+        "median": 2.307958278107516,
+        "median_magnitude": 3.096884174637754,
+        "min": -17.349013354594383,
+        "unit": "percent"
+      },
+      "fixed_fine vs fixed_medium": {
+        "fraction_lower": 0.9922480620155039,
+        "max": 1.1866319106719045,
+        "median": -7.409579012614545,
+        "median_magnitude": 7.409579012614545,
+        "min": -55.46322354909864,
+        "unit": "percent"
+      },
+      "fixed_fine vs production": {
+        "fraction_lower": 0.9974160206718347,
+        "max": 4.151392961876832,
+        "median": -29.105019085775574,
+        "median_magnitude": 29.105019085775574,
+        "min": -73.64519817073169,
+        "unit": "percent"
+      }
+    },
+    "sigma_energy_eV": {
+      "combined_fine vs combined_medium": {
+        "fraction_lower": 0.7829457364341085,
+        "max": 0.6538120567375887,
+        "median": -0.43420469649977844,
+        "median_magnitude": 0.4608069022991323,
+        "min": -1.7841489197132987,
+        "unit": "percent"
+      },
+      "combined_fine vs production": {
+        "fraction_lower": 0.7209302325581395,
+        "max": 2.0044097013429547,
+        "median": -0.9307904522010315,
+        "median_magnitude": 1.1460016155088852,
+        "min": -4.6794683996058275,
+        "unit": "percent"
+      },
+      "fixed_fine vs combined_fine": {
+        "fraction_lower": 0.9095607235142119,
+        "max": 1.3110144832772093,
+        "median": -0.028313715972980626,
+        "median_magnitude": 0.0318142050425515,
+        "min": -1.5948891053668925,
+        "unit": "percent"
+      },
+      "fixed_fine vs fixed_medium": {
+        "fraction_lower": 0.7700258397932817,
+        "max": 0.7379474009297488,
+        "median": -0.44217851447349343,
+        "median_magnitude": 0.4705997696021961,
+        "min": -1.839497021113033,
+        "unit": "percent"
+      },
+      "fixed_fine vs production": {
+        "fraction_lower": 0.7390180878552972,
+        "max": 1.769050958391772,
+        "median": -1.152812915677734,
+        "median_magnitude": 1.2591087699663022,
+        "min": -4.778011558846246,
+        "unit": "percent"
+      }
+    },
+    "sigma_x_m": {
+      "combined_fine vs combined_medium": {
+        "fraction_lower": 0.5633074935400517,
+        "max": 1.732811626607036,
+        "median": -0.15009814109226252,
+        "median_magnitude": 0.582683920783597,
+        "min": -30.085632730732637,
+        "unit": "percent"
+      },
+      "combined_fine vs production": {
+        "fraction_lower": 0.6459948320413437,
+        "max": 3.1375643482508475,
+        "median": -1.0699001426533516,
+        "median_magnitude": 1.670428893901092,
+        "min": -50.47040114907151,
+        "unit": "percent"
+      },
+      "fixed_fine vs combined_fine": {
+        "fraction_lower": 0.17571059431524547,
+        "max": 2.213175425610656,
+        "median": 0.30292015024839536,
+        "median_magnitude": 0.3947644711835915,
+        "min": -6.247725190456472,
+        "unit": "percent"
+      },
+      "fixed_fine vs fixed_medium": {
+        "fraction_lower": 0.5658914728682171,
+        "max": 2.0401461352161134,
+        "median": -0.15777628251236414,
+        "median_magnitude": 0.5208333333333426,
+        "min": -27.299145299145295,
+        "unit": "percent"
+      },
+      "fixed_fine vs production": {
+        "fraction_lower": 0.6304909560723514,
+        "max": 3.3930785706233704,
+        "median": -0.8627877469639283,
+        "median_magnitude": 1.7263647322197326,
+        "min": -52.00266748743203,
+        "unit": "percent"
+      }
+    },
+    "sigma_xp_rad": {
+      "combined_fine vs combined_medium": {
+        "fraction_lower": 0.599483204134367,
+        "max": 1.1186978759857666,
+        "median": -0.2521686503933892,
+        "median_magnitude": 0.6079334302795308,
+        "min": -25.167320994578418,
+        "unit": "percent"
+      },
+      "combined_fine vs production": {
+        "fraction_lower": 0.6847545219638242,
+        "max": 2.78297425118235,
+        "median": -1.4971667163733977,
+        "median_magnitude": 1.7710201174129725,
+        "min": -55.678415716762096,
+        "unit": "percent"
+      },
+      "fixed_fine vs combined_fine": {
+        "fraction_lower": 0.17829457364341086,
+        "max": 6.077658975801906,
+        "median": 0.3082237279128459,
+        "median_magnitude": 0.39796744311538923,
+        "min": -5.605786618444841,
+        "unit": "percent"
+      },
+      "fixed_fine vs fixed_medium": {
+        "fraction_lower": 0.6098191214470284,
+        "max": 1.2764471574155412,
+        "median": -0.21859484159015624,
+        "median_magnitude": 0.5332659089080671,
+        "min": -32.41984447124382,
+        "unit": "percent"
+      },
+      "fixed_fine vs production": {
+        "fraction_lower": 0.6537467700258398,
+        "max": 3.009984235417764,
+        "median": -1.2719652966693615,
+        "median_magnitude": 1.8128654970760145,
+        "min": -57.317329411146716,
+        "unit": "percent"
+      }
+    },
+    "sigma_y_m": {
+      "combined_fine vs combined_medium": {
+        "fraction_lower": 0.6098191214470284,
+        "max": 2.1749951605320708,
+        "median": -0.31018681706028245,
+        "median_magnitude": 0.6877128635053696,
+        "min": -29.704171934285714,
+        "unit": "percent"
+      },
+      "combined_fine vs production": {
+        "fraction_lower": 0.7390180878552972,
+        "max": 3.3948531323108906,
+        "median": -2.7783822996010166,
+        "median_magnitude": 2.9079027976312024,
+        "min": -50.20983798553104,
+        "unit": "percent"
+      },
+      "fixed_fine vs combined_fine": {
+        "fraction_lower": 0.19638242894056848,
+        "max": 5.575326215895604,
+        "median": 0.5219548731392255,
+        "median_magnitude": 0.7176816844011739,
+        "min": -4.114811884002639,
+        "unit": "percent"
+      },
+      "fixed_fine vs fixed_medium": {
+        "fraction_lower": 0.599483204134367,
+        "max": 1.9244647582311112,
+        "median": -0.3412231537511794,
+        "median_magnitude": 0.7002917882451011,
+        "min": -31.65881737305838,
+        "unit": "percent"
+      },
+      "fixed_fine vs production": {
+        "fraction_lower": 0.7028423772609819,
+        "max": 4.5767890510712315,
+        "median": -1.8162115301257085,
+        "median_magnitude": 2.4066538879734467,
+        "min": -49.01424946318026,
+        "unit": "percent"
+      }
+    },
+    "sigma_yp_rad": {
+      "combined_fine vs combined_medium": {
+        "fraction_lower": 0.6847545219638242,
+        "max": 3.081242575861185,
+        "median": -0.4817471362808985,
+        "median_magnitude": 0.725126668420387,
+        "min": -32.342087076710435,
+        "unit": "percent"
+      },
+      "combined_fine vs production": {
+        "fraction_lower": 0.7622739018087855,
+        "max": 5.026392764684131,
+        "median": -2.9583174965159134,
+        "median_magnitude": 3.0696256140945186,
+        "min": -55.36118868222771,
+        "unit": "percent"
+      },
+      "fixed_fine vs combined_fine": {
+        "fraction_lower": 0.2041343669250646,
+        "max": 12.866263648140148,
+        "median": 0.5811623246493038,
+        "median_magnitude": 0.7164080942370237,
+        "min": -3.296241612349523,
+        "unit": "percent"
+      },
+      "fixed_fine vs fixed_medium": {
+        "fraction_lower": 0.6330749354005168,
+        "max": 2.0275750202757488,
+        "median": -0.3979170760219122,
+        "median_magnitude": 0.7912547818599976,
+        "min": -29.698893368761127,
+        "unit": "percent"
+      },
+      "fixed_fine vs production": {
+        "fraction_lower": 0.7286821705426356,
+        "max": 5.503816023938399,
+        "median": -2.210843373493974,
+        "median_magnitude": 2.501847355642335,
+        "min": -56.67579956794351,
+        "unit": "percent"
+      }
+    },
+    "sigma_z_m": {
+      "combined_fine vs combined_medium": {
+        "fraction_lower": 0.9767441860465116,
+        "max": 0.33550613496932813,
+        "median": -0.3487198311370242,
+        "median_magnitude": 0.3487198311370242,
+        "min": -0.9595087315294594,
+        "unit": "percent"
+      },
+      "combined_fine vs production": {
+        "fraction_lower": 0.9095607235142119,
+        "max": 1.0230672714988835,
+        "median": -0.8543668240785963,
+        "median_magnitude": 0.8545650930808815,
+        "min": -1.384137233171103,
+        "unit": "percent"
+      },
+      "fixed_fine vs combined_fine": {
+        "fraction_lower": 0.937984496124031,
+        "max": 0.3001091306020536,
+        "median": -0.029285435376808413,
+        "median_magnitude": 0.029982010793519198,
+        "min": -1.3150316759454745,
+        "unit": "percent"
+      },
+      "fixed_fine vs fixed_medium": {
+        "fraction_lower": 0.9715762273901809,
+        "max": 0.27809742999617615,
+        "median": -0.37200375237492617,
+        "median_magnitude": 0.37200375237492617,
+        "min": -0.954095409540948,
+        "unit": "percent"
+      },
+      "fixed_fine vs production": {
+        "fraction_lower": 0.9767441860465116,
+        "max": 0.9265514911688076,
+        "median": -0.9231872367124782,
+        "median_magnitude": 0.9237539932534599,
+        "min": -1.718856765863196,
+        "unit": "percent"
+      }
+    },
+    "transmission_fraction": {
+      "combined_fine vs combined_medium": {
+        "max": 0.0,
+        "median": 0.0,
+        "median_magnitude": 0.0,
+        "min": 0.0,
+        "unit": "absolute"
+      },
+      "combined_fine vs production": {
+        "max": 0.0,
+        "median": 0.0,
+        "median_magnitude": 0.0,
+        "min": 0.0,
+        "unit": "absolute"
+      },
+      "fixed_fine vs combined_fine": {
+        "max": 0.0,
+        "median": 0.0,
+        "median_magnitude": 0.0,
+        "min": 0.0,
+        "unit": "absolute"
+      },
+      "fixed_fine vs fixed_medium": {
+        "max": 0.0,
+        "median": 0.0,
+        "median_magnitude": 0.0,
+        "min": 0.0,
+        "unit": "absolute"
+      },
+      "fixed_fine vs production": {
+        "max": 0.0,
+        "median": 0.0,
+        "median_magnitude": 0.0,
+        "min": 0.0,
+        "unit": "absolute"
+      }
+    }
+  },
+  "flips": {
+    "combined_fine vs combined_medium": {
+      "arms": {
+        "constrained_qlognehvi": 1
+      },
+      "changed": 1,
+      "feasible_to_infeasible": 0,
+      "infeasible_to_feasible": 1,
+      "largest_absolute_margin": 0.0064999999999999,
+      "nearest_channels": {
+        "sigma_z_m": 1
+      }
+    },
+    "combined_fine vs production": {
+      "arms": {
+        "constrained_qlognehvi": 4
+      },
+      "changed": 4,
+      "feasible_to_infeasible": 0,
+      "infeasible_to_feasible": 4,
+      "largest_absolute_margin": 0.0064999999999999,
+      "nearest_channels": {
+        "sigma_z_m": 4
+      }
+    },
+    "combined_medium vs production": {
+      "arms": {
+        "constrained_qlognehvi": 3
+      },
+      "changed": 3,
+      "feasible_to_infeasible": 0,
+      "infeasible_to_feasible": 3,
+      "largest_absolute_margin": 0.0044999999999999,
+      "nearest_channels": {
+        "sigma_z_m": 3
+      }
+    },
+    "fixed_fine vs fixed_medium": {
+      "arms": {
+        "constrained_qlognehvi": 1
+      },
+      "changed": 1,
+      "feasible_to_infeasible": 0,
+      "infeasible_to_feasible": 1,
+      "largest_absolute_margin": 0.0064999999999999,
+      "nearest_channels": {
+        "sigma_z_m": 1
+      }
+    },
+    "fixed_fine vs production": {
+      "arms": {
+        "constrained_qlognehvi": 4
+      },
+      "changed": 4,
+      "feasible_to_infeasible": 0,
+      "infeasible_to_feasible": 4,
+      "largest_absolute_margin": 0.0064999999999999,
+      "nearest_channels": {
+        "sigma_z_m": 4
+      }
+    },
+    "fixed_medium vs production": {
+      "arms": {
+        "constrained_qlognehvi": 3
+      },
+      "changed": 3,
+      "feasible_to_infeasible": 0,
+      "infeasible_to_feasible": 3,
+      "largest_absolute_margin": 0.0044999999999999,
+      "nearest_channels": {
+        "sigma_z_m": 3
+      }
+    }
+  },
+  "inputs_sha256": {
+    "r6_resolution_classification.csv": "484dd0d17889a247c1891bf53e919a84aab7b2825b85fa83717252d95dd33b2d",
+    "r6_resolution_fractions.csv": "07d12a3ebe485e6d9b89c1eae4264b4923f82c2995eab065b9c91f5e5ccbbc96",
+    "r6_resolution_paired.csv": "eb5c9a5acb1dd0cf08a9dee8b32d777cdfefbac801d381fc1a5f308ec0af28d3",
+    "r6_resolution_tolerances.csv": "c8ef55df7c3c1401ec4dcb2e698233c80471511aea557033ba04ed174d742917"
+  },
+  "paired": [
+    {
+      "ci_lower_conditional": 0.254375,
+      "ci_upper_conditional": 0.3521875,
+      "design_se_conservative": 0.0271317675889353,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "combined_fine",
+      "mean_difference": 0.303125,
+      "minimum_difference": 0.1875,
+      "positive_groups": 10,
+      "second": "unconstrained_qlognehvi"
+    },
+    {
+      "ci_lower_conditional": 0.2896875,
+      "ci_upper_conditional": 0.3828124999999999,
+      "design_se_conservative": 0.0271317675889353,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "combined_fine",
+      "mean_difference": 0.335,
+      "minimum_difference": 0.225,
+      "positive_groups": 10,
+      "second": "scalarized_bo"
+    },
+    {
+      "ci_lower_conditional": 0.2465624999999999,
+      "ci_upper_conditional": 0.3293828124999999,
+      "design_se_conservative": 0.0230128191178308,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "combined_medium",
+      "mean_difference": 0.2884375,
+      "minimum_difference": 0.1875,
+      "positive_groups": 10,
+      "second": "unconstrained_qlognehvi"
+    },
+    {
+      "ci_lower_conditional": 0.2831249999999999,
+      "ci_upper_conditional": 0.35625,
+      "design_se_conservative": 0.0230128191178308,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "combined_medium",
+      "mean_difference": 0.3203125,
+      "minimum_difference": 0.225,
+      "positive_groups": 10,
+      "second": "scalarized_bo"
+    },
+    {
+      "ci_lower_conditional": 0.254375,
+      "ci_upper_conditional": 0.3521875,
+      "design_se_conservative": 0.0271317675889353,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "fixed_fine",
+      "mean_difference": 0.303125,
+      "minimum_difference": 0.1875,
+      "positive_groups": 10,
+      "second": "unconstrained_qlognehvi"
+    },
+    {
+      "ci_lower_conditional": 0.2896875,
+      "ci_upper_conditional": 0.3828124999999999,
+      "design_se_conservative": 0.0271317675889353,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "fixed_fine",
+      "mean_difference": 0.335,
+      "minimum_difference": 0.225,
+      "positive_groups": 10,
+      "second": "scalarized_bo"
+    },
+    {
+      "ci_lower_conditional": 0.2465624999999999,
+      "ci_upper_conditional": 0.3293828124999999,
+      "design_se_conservative": 0.0230128191178308,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "fixed_medium",
+      "mean_difference": 0.2884375,
+      "minimum_difference": 0.1875,
+      "positive_groups": 10,
+      "second": "unconstrained_qlognehvi"
+    },
+    {
+      "ci_lower_conditional": 0.2831249999999999,
+      "ci_upper_conditional": 0.35625,
+      "design_se_conservative": 0.0230128191178308,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "fixed_medium",
+      "mean_difference": 0.3203125,
+      "minimum_difference": 0.225,
+      "positive_groups": 10,
+      "second": "scalarized_bo"
+    },
+    {
+      "ci_lower_conditional": 0.20625,
+      "ci_upper_conditional": 0.2925,
+      "design_se_conservative": 0.0,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "production",
+      "mean_difference": 0.248125,
+      "minimum_difference": 0.1437499999999999,
+      "positive_groups": 10,
+      "second": "unconstrained_qlognehvi"
+    },
+    {
+      "ci_lower_conditional": 0.25,
+      "ci_upper_conditional": 0.313125,
+      "design_se_conservative": 0.0,
+      "first": "constrained_qlognehvi",
+      "groups": 10,
+      "level": "production",
+      "mean_difference": 0.28,
+      "minimum_difference": 0.225,
+      "positive_groups": 10,
+      "second": "scalarized_bo"
+    }
+  ],
+  "runtime_mean_s": {
+    "combined_fine": 3468.4373119818256,
+    "combined_medium": 1523.149911374258,
+    "fixed_fine": 2324.4221698407637,
+    "fixed_medium": 1307.03944454307,
+    "production": 239.1936387413498
+  },
+  "scope": "Sampled historical primary settings re-tracked at frozen levels; weighted fractions use the frozen inclusion probabilities. Tolerances are declared adequacy thresholds, not error bounds.",
+  "settings": 387,
+  "settings_by_arm": {
+    "constrained_qlognehvi": 132,
+    "scalarized_bo": 126,
+    "unconstrained_qlognehvi": 129
+  },
+  "valid_by_level": {
+    "combined_fine": 387,
+    "combined_medium": 387,
+    "fixed_fine": 387,
+    "fixed_medium": 387,
+    "production": 387
+  },
+  "weighted_feasible_fraction": {
+    "combined_fine": {
+      "constrained_qlognehvi": {
+        "design_se": 0.02713176758893528,
+        "groups": 10,
+        "max": 0.565625,
+        "mean": 0.45999999999999996,
+        "min": 0.35625
+      },
+      "scalarized_bo": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.16875,
+        "mean": 0.12499999999999996,
+        "min": 0.0875
+      },
+      "unconstrained_qlognehvi": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.2125,
+        "mean": 0.156875,
+        "min": 0.1125
+      }
+    },
+    "combined_medium": {
+      "constrained_qlognehvi": {
+        "design_se": 0.023012819117830804,
+        "groups": 10,
+        "max": 0.5437500000000001,
+        "mean": 0.4453125,
+        "min": 0.35625
+      },
+      "scalarized_bo": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.16875,
+        "mean": 0.12499999999999996,
+        "min": 0.0875
+      },
+      "unconstrained_qlognehvi": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.2125,
+        "mean": 0.156875,
+        "min": 0.1125
+      }
+    },
+    "fixed_fine": {
+      "constrained_qlognehvi": {
+        "design_se": 0.02713176758893528,
+        "groups": 10,
+        "max": 0.565625,
+        "mean": 0.45999999999999996,
+        "min": 0.35625
+      },
+      "scalarized_bo": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.16875,
+        "mean": 0.12499999999999996,
+        "min": 0.0875
+      },
+      "unconstrained_qlognehvi": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.2125,
+        "mean": 0.156875,
+        "min": 0.1125
+      }
+    },
+    "fixed_medium": {
+      "constrained_qlognehvi": {
+        "design_se": 0.023012819117830804,
+        "groups": 10,
+        "max": 0.5437500000000001,
+        "mean": 0.4453125,
+        "min": 0.35625
+      },
+      "scalarized_bo": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.16875,
+        "mean": 0.12499999999999996,
+        "min": 0.0875
+      },
+      "unconstrained_qlognehvi": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.2125,
+        "mean": 0.156875,
+        "min": 0.1125
+      }
+    },
+    "production": {
+      "constrained_qlognehvi": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.4875,
+        "mean": 0.40499999999999997,
+        "min": 0.3375
+      },
+      "scalarized_bo": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.16875,
+        "mean": 0.12499999999999996,
+        "min": 0.0875
+      },
+      "unconstrained_qlognehvi": {
+        "design_se": 0.0,
+        "groups": 10,
+        "max": 0.2125,
+        "mean": 0.156875,
+        "min": 0.1125
+      }
+    }
+  },
+  "within_tolerance": {
+    "combined_fine - combined_medium|mean_kinetic_energy_eV": 0.6072351421188631,
+    "combined_fine - combined_medium|norm_emit_x_m_rad": 0.03359173126614987,
+    "combined_fine - combined_medium|norm_emit_y_m_rad": 0.07235142118863049,
+    "combined_fine - combined_medium|sigma_energy_eV": 0.8475452196382429,
+    "combined_fine - combined_medium|sigma_x_m": 0.661498708010336,
+    "combined_fine - combined_medium|sigma_xp_rad": 0.9612403100775194,
+    "combined_fine - combined_medium|sigma_y_m": 0.7596899224806202,
+    "combined_fine - combined_medium|sigma_yp_rad": 0.9043927648578811,
+    "combined_fine - combined_medium|sigma_z_m": 0.9974160206718347,
+    "combined_fine - combined_medium|transmission_fraction": 1.0,
+    "fixed_fine - fixed_medium|mean_kinetic_energy_eV": 0.6356589147286822,
+    "fixed_fine - fixed_medium|norm_emit_x_m_rad": 0.06976744186046512,
+    "fixed_fine - fixed_medium|norm_emit_y_m_rad": 0.03617571059431524,
+    "fixed_fine - fixed_medium|sigma_energy_eV": 0.8217054263565892,
+    "fixed_fine - fixed_medium|sigma_x_m": 0.6950904392764858,
+    "fixed_fine - fixed_medium|sigma_xp_rad": 0.9612403100775194,
+    "fixed_fine - fixed_medium|sigma_y_m": 0.7467700258397932,
+    "fixed_fine - fixed_medium|sigma_yp_rad": 0.8811369509043928,
+    "fixed_fine - fixed_medium|sigma_z_m": 0.9922480620155039,
+    "fixed_fine - fixed_medium|transmission_fraction": 1.0
+  }
+}

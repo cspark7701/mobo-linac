@@ -1,0 +1,136 @@
+{
+  "arms": {
+    "normalized": {
+      "elapsed_h": {
+        "max": 3.85173508254449,
+        "mean": 3.100510712096092,
+        "median": 3.0356656539639353,
+        "min": 2.941702638894009
+      },
+      "feasible_fraction": {
+        "max": 0.325,
+        "mean": 0.271875,
+        "min": 0.2375
+      },
+      "post_init_feasible_fraction": {
+        "max": 0.3541666666666667,
+        "mean": 0.29861111111111116,
+        "min": 0.2569444444444444
+      }
+    },
+    "raw": {
+      "elapsed_h": {
+        "max": 4.595775848834697,
+        "mean": 3.533435215121122,
+        "median": 3.1977640648362122,
+        "min": 2.9536130989852567
+      },
+      "feasible_fraction": {
+        "max": 0.41875,
+        "mean": 0.39,
+        "min": 0.325
+      },
+      "post_init_feasible_fraction": {
+        "max": 0.4583333333333333,
+        "mean": 0.4298611111111111,
+        "min": 0.3611111111111111
+      }
+    }
+  },
+  "attempts": 3200,
+  "campaigns": 20,
+  "group_differences": {
+    "42": -0.14375,
+    "43": -0.1375,
+    "44": -0.0625,
+    "45": -0.11875000000000002,
+    "46": -0.16875,
+    "47": -0.10625000000000001,
+    "48": -0.06874999999999998,
+    "49": -0.11249999999999999,
+    "50": -0.125,
+    "51": -0.1375
+  },
+  "inputs_sha256": {
+    "r6_scaling_channels.csv": "ca8602bcd71c90be4038e0e1428ca52c9701ae7b3c7a33a1bc68836fc84d456a",
+    "r6_scaling_paired.csv": "2a710bf72469dc7ca7d48577bf768dc8d49f4fce057e8acce172f717b5f4da96",
+    "r6_scaling_proposals.csv": "1d716e4dfdf04f5c3c2de3712eed93db7cd3a36a0c259ccdaae08ff322790393",
+    "r6_scaling_runs.csv": "e12fd491958d61a4c1414cc1708598328e2cfd3eadf18aa0e38cacdfe04de23d"
+  },
+  "invalid_attempts": 0,
+  "paired": [
+    {
+      "ci_lower_conditional": -0.13625,
+      "ci_upper_conditional": -0.0987343750000002,
+      "endpoint": "feasible_fraction",
+      "first": "normalized",
+      "groups": 10,
+      "mean_difference": -0.118125,
+      "minimum_difference": -0.16875,
+      "positive_groups": 0,
+      "second": "raw"
+    },
+    {
+      "ci_lower_conditional": -0.1513888888888888,
+      "ci_upper_conditional": -0.1097048611111113,
+      "endpoint": "post_init_feasible_fraction",
+      "first": "normalized",
+      "groups": 10,
+      "mean_difference": -0.1312499999999999,
+      "minimum_difference": -0.1875,
+      "positive_groups": 0,
+      "second": "raw"
+    },
+    {
+      "ci_lower_conditional": -2721.9667879574013,
+      "ci_upper_conditional": -500.0144565984956,
+      "endpoint": "elapsed_wall_time_s",
+      "first": "normalized",
+      "groups": 10,
+      "mean_difference": -1558.528210890107,
+      "minimum_difference": -4786.078145031817,
+      "positive_groups": 2,
+      "second": "raw"
+    }
+  ],
+  "post_init_category_shares": {
+    "normalized": {
+      "energy_only": 0.022222222222222223,
+      "feasible": 0.2986111111111111,
+      "multiple_groups": 0.4951388888888889,
+      "other_only": 0.0020833333333333333,
+      "transverse_only": 0.18194444444444444
+    },
+    "raw": {
+      "energy_only": 0.016666666666666666,
+      "feasible": 0.42986111111111114,
+      "multiple_groups": 0.38333333333333336,
+      "other_only": 0.027083333333333334,
+      "transverse_only": 0.14305555555555555
+    }
+  },
+  "post_init_share_difference_normalized_minus_raw": {
+    "energy_only": 0.005555555555555557,
+    "feasible": -0.13125000000000003,
+    "multiple_groups": 0.11180555555555555,
+    "other_only": -0.025,
+    "transverse_only": 0.03888888888888889
+  },
+  "proposal_tiers": {
+    "normalized": {
+      "batches": 190,
+      "initial_sobol": 10,
+      "other": 0,
+      "primary": 179,
+      "retry": 1
+    },
+    "raw": {
+      "batches": 190,
+      "initial_sobol": 10,
+      "other": 0,
+      "primary": 178,
+      "retry": 2
+    }
+  },
+  "scope": "Tests the frozen threshold-normalized residuals with common dimensionless temperature 0.001 against raw residuals at temperature 0.001; physical smoothing widths differ, so no pure normalization effect is identified. Elapsed times are descriptive on a shared host."
+}

@@ -22,7 +22,7 @@ def test_map_items_are_documented():
         items = {row["item"] for row in csv.DictReader(handle)}
     readme = (ROOT / "docs/paper/supplement/README.md").read_text()
     assert all(f"| {item} |" in readme for item in items)
-    assert items == {f"S1.{n}" for n in range(1, 16)}
+    assert items == {f"S1.{n}" for n in range(1, 17)}
 
 
 def test_manifest_records_clean_production_commits():

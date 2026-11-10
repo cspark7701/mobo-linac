@@ -79,10 +79,13 @@ fraction of feasible settings, including among settings that meet the energy ban
 unconstrained optimization, the difference arises mainly in the transverse limits; against
 weighted-sum optimization, it arises mainly in the energy band. All pipelines sample feasible
 settings more often than a budget-matched space-filling search. The weighted-sum implementation
-has the lowest computational overhead. A refinement check shows that the absolute emittances
+has the lowest computational overhead. Refinement checks show that the absolute emittances
 are not converged at the nominal resolution. The feasible-sampling advantage persists in the
-tested diagnostic-shift scenarios, whereas objective-quality comparisons depend on the indicator,
-the comparator and the fixed numerical model. All methods find feasible nondominated settings
+tested diagnostic-shift scenarios and when a stratified sample of the primary evaluations is
+re-tracked at refined resolutions, whereas objective-quality comparisons depend on the indicator,
+the comparator and the fixed numerical model. In matched campaigns, threshold-normalized
+constraint residuals at a common smoothing temperature sampled feasible settings less often than
+the physical-unit residuals of the compared pipeline. All methods find feasible nondominated settings
 with trade-offs between transverse beam quality and energy spread. Only a few sampled settings
 meet the stricter Korea Light Source technical-design requirements, with small diagnostic
 margins. Campaigns constrained by these requirements approach but do not meet them at the nominal
@@ -190,7 +193,7 @@ tolerance of representative settings under the stated perturbation model. The ea
 studies provide a physical context for these results, with differences in feasibility limits and
 error coverage made explicit in Sec.~\ref{sec:previous_kls}.
 
-The study addresses five aspects of this comparison.
+The study addresses six aspects of this comparison.
 \begin{enumerate}
 \item A constraint-aware comparison of multi-objective BO with two baselines, unconstrained
   MOBO and weighted-sum BO, on a space-charge-tracked injector with eight explicit
@@ -221,10 +224,19 @@ The primary
   refined particle, grid and step resolutions show that the emittances are not converged at
   the nominal resolution and change by tens of percent, whereas at those settings the energy
   spread, bunch length, mean energy, transmission and production-profile classifications are
-  stable. In post-hoc common-shift scenarios motivated by this check the feasible-sampling
-  comparison is preserved; the front-quality comparisons are not tested at a converged resolution
-  (Secs.~\ref{sec:problem} and~\ref{sec:primary}). This check identifies a limitation of the nominal
-model; it does not establish convergence.
+  stable. A prospective re-tracking of 387 primary evaluations, sampled across methods, groups,
+  feasibility states, search stages and distances to the limits, changes four
+  production-profile classifications, all from infeasible to feasible, and preserves the
+  feasible-sampling comparison; the emittances still differ between the two finest levels. In
+  post-hoc common-shift scenarios the feasible-sampling comparison is also preserved; the
+  front-quality comparisons are not tested at a converged resolution
+  (Secs.~\ref{sec:problem}, \ref{sec:primary} and~\ref{sec:retracking}). These checks identify a
+  limitation of the nominal model; they do not establish convergence.
+\item A matched test of one alternative constraint-residual convention. In ten paired
+  constraint-aware campaigns, threshold-normalized residuals at a common dimensionless
+  temperature sampled feasible settings less often than contemporaneous raw-residual campaigns
+  in every group (Sec.~\ref{sec:scaling}). The convention also changes the physical smoothing
+  widths, so the test does not isolate unit normalization.
 \end{enumerate}
 These results describe the recorded pipelines on a fixed lattice within the nominal numerical
 model. They do not establish a physically resolved ranking of the methods, a unit-invariant
@@ -305,7 +317,8 @@ production profile at every level, whereas TDR classifications within a few perc
 limits change (Sec.~\ref{sec:tdr_reach}). These ten settings are feasible and come mostly from
 constraint-aware searches. They contain no rejected or baseline observation, so their stable
 classifications cannot establish stability across the primary evaluations.
-Section~\ref{sec:primary} examines this question using post-hoc common-shift scenarios. All
+Section~\ref{sec:primary} examines this question using post-hoc common-shift scenarios, and
+Sec.~\ref{sec:retracking} by re-tracking a stratified sample of the primary evaluations. All
 objective values, feasibility classifications and margins refer to the nominal resolution. The
 absolute emittances exceed the refined values, and the method comparisons hold within this fixed
 numerical model. The fixed GP observation variance provides regularization and does not measure
@@ -617,7 +630,8 @@ energy weight is effectively a step whose gradient vanishes except within about 
 milli-electron-volt of either bound. This unit dependence limits the interpretation of
 constraint weighting; no residual scaling is changed when analysing the recorded campaigns. The
 comparisons below use this raw-residual implementation, whose constraint weighting is
-unit-dependent.
+unit-dependent. Section~\ref{sec:scaling} compares it with a threshold-normalized convention in
+new matched campaigns.
 
 The weighted-sum baseline minimizes the scalarized cost, the sum of the physical objective
 values each divided by its reporting scale and multiplied by its weight, using a single GP.
@@ -804,6 +818,42 @@ survey is descriptive and is not used to compare algorithms. Its constraint-awar
 under lattice jitter
 with the same protocol.
 
+\subsection{Prospective validation studies}
+\label{sec:prospective}
+Two further studies were specified, with their samples, levels, tolerances, endpoints and
+analyses, before any of their outcomes were tracked (Supplement S1.16). The first re-tracks
+historical primary evaluations. The 4,800 primary evaluations were stratified by method, matched
+group, production-profile feasibility, search stage (evaluations 1--80 or 81--160) and distance
+to the nearest diagnostic limit (threshold-normalized margin at most or above 0.1). Simple random
+sampling without replacement selected two evaluations from each nonempty stratum, or all of a
+smaller one, giving 387 settings: 132 constraint-aware, 129 unconstrained and 126 scalarized.
+Each was tracked at the production resolution and at four refined levels. The fixed-source
+medium and fine levels keep the production source file and use 48- or 64-cell grids with half
+or a quarter of both integration steps; the combined medium and fine levels additionally use
+\num{20000} or \num{40000} particles from the reconstructed source. Production-level reruns had
+to reproduce the archived values before refinement. Per-run feasible fractions are weighted by
+the inclusion probabilities and have stratified design variances. Paired differences use
+ten-group bootstrap intervals conditional on the sampled observations, reported with the design
+standard errors. The declared tolerances between the medium and fine levels are \SI{1}{\percent}
+of each size, divergence and bunch-length limit, \SI{0.01}{\mega\electronvolt} in mean energy,
+$10^{-4}$ in transmission and a \SI{1}{\percent} relative change in each objective; they are
+adequacy thresholds, not error bounds.
+
+The second study runs ten matched pairs of new constraint-aware campaigns (groups 42--51) of
+160 evaluations each, with the production configuration, source and resolution, identical
+initial Sobol designs, model fitting and acquisition budgets, and per-iteration random streams
+shared within each pair. One arm uses the raw residuals of Sec.~\ref{sec:acquisition}; the other
+divides each residual by its threshold scale ($10^{-3}$ for sizes, divergences and bunch length,
+\SI{5}{\mega\electronvolt} for each energy side and 0.1 for transmission), at the same
+dimensionless temperature $10^{-3}$. Its physical smoothing widths are therefore
+\SI{1}{\micro\metre}, \SI{1}{\micro\radian}, \SI{5}{\kilo\electronvolt} and $10^{-4}$ in
+transmission, against \SI{1}{\milli\metre}, \SI{1}{\milli\radian}, \SI{0.001}{\electronvolt} and
+$10^{-3}$ for the raw arm, so the comparison changes the relative widths as well as the units.
+The campaigns ran one at a time, alternating which arm of a pair ran first. The predeclared
+endpoint is the paired normalized-minus-raw feasible fraction over all 160 evaluations; the
+fraction after initialization is a supporting endpoint. Both use ten-group percentile bootstrap
+intervals. Neither study used pilot tuning or outcome-dependent stopping or expansion.
+
 %==========================================================================================
 \section{Results}
 \label{sec:results}
@@ -964,6 +1014,69 @@ emittance changes are large and differ between settings, and the random-source s
 comparable to many paired epsilon and IGD+ differences, so those comparisons hold for the fixed
 source file at the production resolution.
 
+\subsection{Re-tracked sample of primary evaluations}
+\label{sec:retracking}
+All 1,935 tracking attempts of the stratified sample (Sec.~\ref{sec:prospective}) were valid,
+and the production-level reruns reproduced the archived values. Refinement changed four of the
+387 production-profile classifications, three at the medium levels and a fourth at the fine
+levels, all from infeasible to feasible (Table~\ref{tab:retracking}). All four are
+constraint-aware evaluations whose largest violation was a bunch length at most
+\SI{6.5}{\micro\metre} above the limit; refinement shortens the bunch by a median
+\SI{0.9}{\percent}. No unconstrained or scalarized classification changed, and no feasible
+evaluation became infeasible. The weighted constraint-aware feasible fraction therefore rises
+from 0.405 to 0.460 (design standard error 0.027) at the fine levels, while the baseline
+fractions are unchanged. The paired differences over all 160 evaluations, 0.303 against
+unconstrained MOBO and 0.335 against scalarized BO at both fine levels, are positive in all ten
+groups, compared with 0.248 and 0.280 at the production resolution.
+
+\begin{table*}[htbp]
+\centering
+\caption{Weighted feasible fractions of the re-tracked stratified sample over all 160
+evaluations of each run, mean over ten groups. The design standard error of the constraint-aware
+fraction is in parentheses; the baseline fractions have zero design variance because none of
+their sampled classifications changed. $\Delta$ is the paired constraint-aware difference with a
+\SI{95}{\percent} ten-group bootstrap interval conditional on the sampled observations; its
+design standard error is 0.023 at the medium and 0.027 at the fine levels. Flips count changed
+production-profile classifications among the 387 settings relative to the production level.}
+\label{tab:retracking}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\input{revisions/evidence/r6_resolution_table}
+\end{table*}
+
+The objective values change much more than the classifications (Table~\ref{tab:retracking_values}).
+At the fixed-source fine level the horizontal and vertical emittances are lower than at production
+by a median \SI{21}{\percent} and \SI{29}{\percent}, horizontally at every sampled setting and
+vertically at all but one, with changes ranging from $+4$ to \SI{-75}{\percent} across settings.
+The fine and medium levels still differ by a median \SI{5.5}{\percent} and \SI{7.4}{\percent},
+and only 3--\SI{7}{\percent} of settings meet the declared \SI{1}{\percent} objective tolerance.
+The emittances are therefore not converged at the finest tested level either, and their numerical
+convergence remains unresolved. The energy spread changes by a median \SI{1.2}{\percent} and meets
+its tolerance at 82--\SI{85}{\percent} of settings. Bunch length, divergences and transmission
+mostly meet their tolerances, beam sizes at 66--\SI{76}{\percent} and mean energy at
+61--\SI{64}{\percent} of settings; individual sizes and divergences change by up to about
+\SI{50}{\percent} without a change of classification. The fixed-source and combined levels give
+identical classifications, while their fine-level emittances differ by a median \SI{2.3}{\percent}
+horizontally and \SI{3.1}{\percent} vertically.
+
+\begin{table*}[htbp]
+\centering
+\caption{Changes of the exit-plane quantities of the 387 re-tracked settings. ``Fine vs
+production'' is the signed change at the fixed-source fine level relative to production, median
+and range over settings; ``$|$Fine vs medium$|$'' is the median magnitude of the fixed-source
+fine-to-medium change. Entries are percentages, except for mean energy (\si{\mega\electronvolt})
+and transmission (absolute). The last two columns give the fraction of settings whose fine-to-medium
+change meets the declared tolerance for the fixed-source and combined levels.}
+\label{tab:retracking_values}
+\small
+\input{revisions/evidence/r6_numerical_table}
+\end{table*}
+
+These are measured classifications of sampled historical evaluations, weighted to the full runs,
+not refined optimization trajectories. They extend the common-shift scenarios above with
+setting-dependent changes for every method and both feasibility states, but they do not test the
+front-quality indicators at a converged resolution.
+
 \subsection{Sources of the feasible-sampling difference}
 \label{sec:attribution}
 Two properties of the recorded setup could produce a feasible-sampling advantage without
@@ -1078,14 +1191,50 @@ setting.}
 
 
 \FloatBarrier
-\subsection{Offline sensitivity of constraint smoothing}
+\subsection{Constraint-residual scaling}
+\label{sec:scaling}
 A frozen-surrogate probe shows that the recorded constraint weights depend on the residual
 units. Expressing the diagnostics in millimetres, milliradians and mega-electron-volts instead
 of metres, radians and electron-volts, at the same raw temperature, changes the candidate
 ranks (Spearman correlations 0.79--0.88 with the original ranking). Threshold normalization removes
-this unit dependence in the probe. Since no normalized-residual
-campaign was run, we cannot infer how that change would affect feasible sampling or beam
-quality. Appendix~\ref{app:smoothing} gives the probe and its limits.
+this unit dependence in the probe (Appendix~\ref{app:smoothing}).
+
+The matched campaigns of Sec.~\ref{sec:prospective} test the normalized convention in
+optimization (Table~\ref{tab:scaling}). All 3,200 evaluations were valid. Three of the 360
+acquisition batches, two raw and one normalized, used the recorded retry tier after a
+non-finite gradient, and none used the Sobol fallback. The normalized arm sampled feasible
+settings less often: its mean feasible fraction was 0.272, against 0.390 for the raw arm. The
+paired difference of $-0.118$ (\SI{95}{\percent} interval $-0.136$ to $-0.099$) is negative in
+all ten groups, between $-0.169$ and $-0.063$; after initialization it is $-0.131$ ($-0.151$ to
+$-0.110$). The normalized arm had more evaluations violating several channel groups at once or
+only the transverse limits, and fewer violating only the bunch-length limit. Its campaigns were
+on average \SI{0.43}{\hour} shorter, in eight of ten groups; elapsed times are descriptive on a
+shared host.
+
+\begin{table*}[htbp]
+\centering
+\caption{Matched raw- and normalized-residual campaigns, ten groups of 160 evaluations per arm.
+Feasible fractions over all evaluations and after the 16 initial ones are means over groups; the
+category columns give the shares of post-initialization evaluations that violate only the
+transverse limits, only the energy band, more than one group, or only the bunch-length limit
+(transmission was never violated). The difference row gives normalized minus raw, with
+\SI{95}{\percent} paired bootstrap intervals for the feasible fractions, and the mean paired
+difference in campaign time.}
+\label{tab:scaling}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
+\input{revisions/evidence/r6_scaling_table}
+\end{table*}
+
+This result concerns the tested convention: threshold normalization together with a common
+dimensionless temperature of $10^{-3}$. Relative to the raw arm, that convention narrows the
+transverse and bunch-length smoothing widths a thousandfold and widens the energy width from
+\SI{0.001}{\electronvolt} to \SI{5}{\kilo\electronvolt}. It therefore does not separate the effect
+of normalization from that of the widths, and the violation counts do not identify a mechanism.
+Removing the unit dependence in this way did not improve feasible sampling, and the raw-residual
+pipeline of the primary comparison remains unit-dependent. The mean feasible fraction of the new
+raw arm, 0.390, is close to that of the historical constraint-aware campaigns, 0.405, which remain
+context rather than matched controls.
 
 \subsection{Predictive checks on unseen batches}
 \label{sec:predictive_checks}
@@ -1280,13 +1429,17 @@ estimated from the same runs, and the exploratory signed-rank calculations again
 unconstrained MOBO do not pass the multiplicity correction. These objective-space results,
 the set size among them, also hold only for the fixed
 source file at the production resolution, whereas the feasible-sampling advantage persists
-in the common-shift scenarios motivated by the refinement check. The larger feasible set does
+in the common-shift scenarios motivated by the refinement check and in the re-tracked
+stratified sample. The larger feasible set does
 not establish uniformly better trade-offs across the observed Pareto front.
 
 The feasible-sampling advantage is not confined to the sharply weighted energy band or to the
 infeasible upper ACC3/ACC4 phase region, although both contribute: it persists among
 energy-acceptable evaluations. Against unconstrained MOBO it lies mainly in the transverse size
-and divergence violations, and against weighted-sum BO mainly in the energy band. No primary
+and divergence violations, and against weighted-sum BO mainly in the energy band. It was
+obtained with raw residuals; the threshold-normalized convention tested in matched campaigns
+lowered the feasible fraction in every group, and no convention that improves on the recorded
+one has been identified. No primary
 feasible observation Pareto-dominates the MOGA-derived nominal setting at the centre of the
 search domain at the nominal resolution, although many improve on it in individual objectives;
 the reported fronts therefore describe trade-offs around that earlier operating point. All six
@@ -1401,8 +1554,10 @@ implementations that we ran. No matched constrained-scalarized arm was evaluated
 weighting survey cannot replace that control. The Sobol arm is a space-filling reference for
 the recorded domain, not a tuned global optimizer. Ten paired runs
 characterize initialization variability for this problem; they do not establish universal
-algorithm superiority. The original constraint smoothing is unit-dependent, and the offline
-normalization probes supply no physical-performance evidence for a corrected method.
+algorithm superiority. The original constraint smoothing is unit-dependent. The one
+normalized convention tested in matched campaigns reduced feasible sampling, but it also
+changed the physical smoothing widths; no width-preserving control was run, so the effect of
+normalization alone is unknown.
 
 The tracking model uses one fixed source file and the particle, grid and step resolution of the
 previous injector study. The refinement check of Sec.~\ref{sec:problem} shows that the
@@ -1411,7 +1566,10 @@ change under refinement, so all results are nominal-resolution results. Reclassi
 archived evaluations in common-shift scenarios preserves the feasible-sampling comparison, but
 the shifts come from ten settings, which are feasible and mostly from constraint-aware searches;
 the scenarios apply the same change to every evaluation and do not model setting- or
-channel-dependent refinement. We have not tested whether the front-quality comparison persists
+channel-dependent refinement. The stratified re-tracking supplies setting-dependent changes for
+387 sampled evaluations and also preserves the comparison, but its two finest levels still
+differ in the emittances by several percent, so its weighted feasible fractions refer to the
+finest tested levels rather than to converged tracking. We have not tested whether the front-quality comparison persists
 at a converged resolution. Small margins in particular are not interpreted as numerically
 resolved: the two TDR-passing observations clear the horizontal-size limit by about 2.5 and
 \SI{8.9}{\micro\metre} and the bunch-length limit by about 8.2 and \SI{8.0}{\micro\metre}.
@@ -1483,10 +1641,15 @@ guarantee.
 
 All reported values refer to the nominal resolution. Refinement of ten reported settings shows
 that their emittances are not converged, while their energy spread, bunch length, mean energy,
-transmission and production-profile classifications are stable. Absolute emittances should
-therefore not be read as numerically converged physical predictions. In the corresponding
-common-shift scenarios, the constraint-aware feasible-sampling advantage persists in every
-matched group.
+transmission and production-profile classifications are stable. Re-tracking a stratified sample
+of 387 primary evaluations at refined levels changes four classifications, all toward
+feasibility in the constraint-aware pipeline, and its feasible-sampling advantage remains
+positive in every matched group; the emittances still change by several percent between the two
+finest levels. Absolute emittances should therefore not be read as numerically converged
+physical predictions. In the corresponding common-shift scenarios, the advantage also persists
+in every matched group. A threshold-normalized constraint-residual convention, tested in ten
+matched campaign pairs, sampled feasible settings less often than the raw residuals in every
+group.
 
 Supplement S1 identifies the inputs for every reported value. Representative analyses that need
 only the evaluation ledgers were regenerated from that minimal set; other analyses need further
@@ -1735,13 +1898,14 @@ relative to the stated production acceptance profile; they are not tuned enginee
 uncertainties. At dimensionless temperature 0.01, equivalent unit representations agreed in log
 acquisition value within $1.5\times10^{-13}$. Temperatures 0.001 and 0.1 were also examined as
 sensitivity settings. The highest-ranked probe candidate remained unchanged in all cases, while
-lower ranks varied. No normalized-residual campaign was executed, so these calculations
-establish unit dependence and sensitivity, not improved feasible sampling or beam quality for a
-corrected method. The probe also differs from production in using single candidates rather than
+lower ranks varied. These calculations establish unit dependence and sensitivity, not the
+feasible sampling or beam quality of a corrected method; the matched campaigns of
+Sec.~\ref{sec:scaling}, at dimensionless temperature 0.001, measure feasible sampling for one
+such convention. The probe also differs from production in using single candidates rather than
 eight-point batches, no baseline pruning and one run, so an unchanged top-ranked probe does not
 show that the production optimizer is invariant to residual units. The diagnostic establishes
-unit dependence in the constraint weights used by the three-pipeline comparison. It supplies no
-comparison of optimization outcomes after rescaling.
+unit dependence in the constraint weights used by the three-pipeline comparison. The probe
+itself supplies no comparison of optimization outcomes after rescaling.
 
 \bibliography{references}
 

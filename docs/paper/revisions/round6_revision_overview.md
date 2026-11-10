@@ -1,4 +1,6 @@
-# Round6 revision overview — execution in progress
+# Round6 revision overview — studies complete, responses pending
+
+> **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) remain. This note supersedes the restart and pause notes below.
 
 > **Restart status — 2026-11-04:** the author authorized the restart. Worker ceiling raised to 22 by [amendment 01](evidence/r6_protocol_amendment_01.md); the two interrupted attempts were retained and re-tracked in isolation (`evidence/r6_recovery_01.json`); the pause marker is archived. The journal holds 433 of 1,935 numerical results (387 production, 46 combined-fine). Remaining refinement and scaling have not started. This note supersedes the pause note below.
 
@@ -57,3 +59,15 @@ The initial broad regression run completed with 1,128 passes, one script-entry-p
 The redundant validation subprocess was stopped before further physical stages; the healthy nominal runner and its two ASTRA workers were not stopped. The aborted validation log was preserved. The continuation was restarted at commit `c7edd12` with launch PID `1795323`, recorded in `results/revision_round6/chain_launch_retry_1.json`. It is performing the final full regression/100% coverage gate on stable code. The original nominal process still reports its launch-time script name; its already-running workers are unaffected by the research-entry-point rename.
 
 Latest observed nominal count at this handoff: 12/387. No refinement or scaling campaign has started. Final validation results and physical-study completion remain pending; no push has occurred.
+
+## Results and manuscript integration — 2026-11-10
+
+Execution after the restart: full test gate (1,157 passed, 100 % coverage; commit `2ba4806`), 1,502 refinement attempts at 22 workers over 40.3 h (`be8084f`), and 20 scaling campaigns over about 66 h at one campaign at a time (`596e676`). Task 00378 integrated the evidence:
+
+| Study | Result | Direction |
+|---|---|---|
+| Re-tracking, feasibility | 4/387 classifications changed, all infeasible → feasible (constraint-aware, bunch length within 6.5 µm of the limit); constrained advantage 0.248/0.280 → 0.303/0.335, all ten groups | Supports the feasible-sampling comparison |
+| Re-tracking, objectives | Emittance fine vs production median −21 %/−29 %; fine vs medium median 5.5 %/7.4 %; 1 % tolerance met by 3–7 % of settings | Adverse: not converged at the finest tested level |
+| Residual scaling | Normalized − raw −0.118 [−0.136, −0.099] all attempts; −0.131 post-initialization; 0/10 groups positive | Adverse to the tested convention |
+
+Manuscript: new subsections "Prospective validation studies", "Re-tracked sample of primary evaluations" and "Constraint-residual scaling" with three generated tables; abstract (still number-free), contribution list, discussion, limitations, conclusions and the smoothing appendix updated accordingly. Remaining: separately attributed reviewer responses, final validation and packaging (C6-09/A6-09).

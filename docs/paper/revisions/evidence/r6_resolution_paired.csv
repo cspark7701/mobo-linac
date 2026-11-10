@@ -1,0 +1,11 @@
+level,first,second,groups,mean_difference,ci_lower_conditional,ci_upper_conditional,minimum_difference,positive_groups,design_se_conservative
+combined_fine,constrained_qlognehvi,unconstrained_qlognehvi,10,0.303125,0.254375,0.3521875,0.1875,10,0.0271317675889353
+combined_fine,constrained_qlognehvi,scalarized_bo,10,0.335,0.2896875,0.38281249999999994,0.22500000000000003,10,0.0271317675889353
+combined_medium,constrained_qlognehvi,unconstrained_qlognehvi,10,0.2884375,0.24656249999999996,0.32938281249999996,0.1875,10,0.02301281911783083
+combined_medium,constrained_qlognehvi,scalarized_bo,10,0.3203125,0.28312499999999996,0.35625,0.22500000000000003,10,0.02301281911783083
+fixed_fine,constrained_qlognehvi,unconstrained_qlognehvi,10,0.303125,0.254375,0.3521875,0.1875,10,0.0271317675889353
+fixed_fine,constrained_qlognehvi,scalarized_bo,10,0.335,0.2896875,0.38281249999999994,0.22500000000000003,10,0.0271317675889353
+fixed_medium,constrained_qlognehvi,unconstrained_qlognehvi,10,0.2884375,0.24656249999999996,0.32938281249999996,0.1875,10,0.02301281911783083
+fixed_medium,constrained_qlognehvi,scalarized_bo,10,0.3203125,0.28312499999999996,0.35625,0.22500000000000003,10,0.02301281911783083
+production,constrained_qlognehvi,unconstrained_qlognehvi,10,0.248125,0.20625,0.29250000000000004,0.14374999999999996,10,0.0
+production,constrained_qlognehvi,scalarized_bo,10,0.28,0.25000000000000006,0.313125,0.22500000000000003,10,0.0

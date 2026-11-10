@@ -7,7 +7,7 @@ derived from the Korea Light Source design", as stated in its Data availability 
 correspondence in `docs/paper/reviews/`, and records the snapshot's commit hash in
 `submission_manifest.json`. It identifies, for each result reported in the article, the
 file that holds it, the script that computes that file, and the run-level inputs.
-Item numbers S1.1–S1.15 are the identifiers the manuscript cites. Internal task numbers are
+Item numbers S1.1–S1.16 are the identifiers the manuscript cites. Internal task numbers are
 not needed to use it.
 
 Nothing in this map has been uploaded or deposited publicly.
@@ -122,7 +122,8 @@ The complete file-level map, with the manuscript label and generator of each fil
 | S1.12 | Campaign wall-clock costs and paired ratios | Results (cost) |
 | S1.13 | Numerical-resolution disposition, the refinement check of ten reported settings (150 runs; generator `scripts/evaluate_revision_convergence.py`) and the post-hoc diagnostic-shift scenarios of the feasible fractions | Section 2 (nominal resolution); Primary comparison; TDR reach |
 | S1.14 | Exploratory operating-point survey | Appendix C |
-| S1.15 | Revision bookkeeping: comparison matrix, prior-work notes, figure provenance, validation | none |
+| S1.15 | Revision bookkeeping: comparison matrix, prior-work notes, figure provenance, validation; frozen round6 protocol and execution records | none (RF phase fit: Section 2) |
+| S1.16 | Round6 prospective studies: re-tracked stratified sample of 387 primary evaluations at five levels, and ten matched raw-/normalized-residual campaign pairs | Prospective validation studies; Re-tracked sample; Constraint-residual scaling |
 
 ## Checking the map
 
@@ -139,16 +140,24 @@ if a manuscript label is undefined, if a generator has no valid entry in
 python scripts/check_supplement_regeneration.py      # regenerate level-2a evidence from the minimal ledgers
 ```
 
-## Prospective round6 work (not current manuscript results)
+## Round6 prospective studies
 
-S1.15 includes the frozen round6 protocol, sampling manifest/stratum counts and
-machine-readable specification, with the dated worker-ceiling amendment
-(`r6_protocol_amendment_01.md`, `r6_execution_amendment_01.json`) and its reproduction check
-(`r6_worker_check.json`) and the post-pause recovery receipt (`r6_recovery_01.json`). `r6_rf_phase_fit.json` is the exception that the manuscript already
-uses (Sec. II B): a fit of the stored tracking outputs, with no new simulation. The others record the author-adopted studies before
-new outcomes; their presence does not establish completed numerical validation or
-normalized-acquisition efficacy. The sampling generator also hashes configuration,
-executable, source and map files, so its complete output requires those input files
-in addition to historical ledgers (inventory level 2b). New result files and their
-reproduction inputs will be mapped only after the studies complete and are reviewed.
-The prior representative-regeneration claim is not extended by this registration.
+S1.15 holds the frozen round6 protocol, sampling manifest/stratum counts and
+machine-readable specification, written before any new outcome, with the dated
+worker-ceiling amendment (`r6_protocol_amendment_01.md`, `r6_execution_amendment_01.json`),
+its reproduction check (`r6_worker_check.json`) and the post-pause recovery receipt
+(`r6_recovery_01.json`). `r6_rf_phase_fit.json` is a fit of stored tracking outputs used in
+Sec. II B, with no new simulation. The sampling generator also hashes configuration,
+executable, source and map files, so its complete output requires those input files in
+addition to historical ledgers (inventory level 2b).
+
+S1.16 holds the results of the two adopted studies. `scripts/analyze_revision_round6.py`
+wrote the frozen-protocol analysis tables from the round6 tracking journal and campaign run
+records; `scripts/summarize_revision_round6.py --collect` copied them here after checking
+each against its analysis receipt (`r6_collection.json`) and tabulated the recorded proposal
+tiers (`r6_scaling_proposals.csv`). Run without `--collect`, it rewrites the summaries and the
+three manuscript tables from these evidence files alone. The per-attempt tracking outputs and
+campaign run directories are not distributed (level 2b). The results are reported whatever
+their direction: the re-tracking leaves the objective values unconverged between the two
+finest levels, and the tested normalized-residual convention lowered feasible sampling. The
+prior representative-regeneration claim is not extended to these studies.
