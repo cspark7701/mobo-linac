@@ -1029,20 +1029,7 @@ fractions are unchanged. The paired differences over all 160 evaluations, 0.303 
 unconstrained MOBO and 0.335 against scalarized BO at both fine levels, are positive in all ten
 groups, compared with 0.248 and 0.280 at the production resolution.
 
-\begin{table*}[htbp]
-\centering
-\caption{Weighted feasible fractions of the re-tracked stratified sample over all 160
-evaluations of each run, mean over ten groups. The design standard error of the constraint-aware
-fraction is in parentheses; the baseline fractions have zero design variance because none of
-their sampled classifications changed. $\Delta$ is the paired constraint-aware difference with a
-\SI{95}{\percent} ten-group bootstrap interval conditional on the sampled observations; its
-design standard error is 0.023 at the medium and 0.027 at the fine levels. Flips count changed
-production-profile classifications among the 387 settings relative to the production level.}
-\label{tab:retracking}
-\footnotesize
-\setlength{\tabcolsep}{4pt}
-\input{revisions/evidence/r6_resolution_table}
-\end{table*}
+\inputwide{revisions/evidence/r6_resolution_table}
 
 The objective values change much more than the classifications (Table~\ref{tab:retracking_values}).
 At the fixed-source fine level the horizontal and vertical emittances are lower than at production
@@ -1059,18 +1046,7 @@ mostly meet their tolerances, beam sizes at 66--\SI{76}{\percent} and mean energ
 identical classifications, while their fine-level emittances differ by a median \SI{2.3}{\percent}
 horizontally and \SI{3.1}{\percent} vertically.
 
-\begin{table*}[htbp]
-\centering
-\caption{Changes of the exit-plane quantities of the 387 re-tracked settings. ``Fine vs
-production'' is the signed change at the fixed-source fine level relative to production, median
-and range over settings; ``$|$Fine vs medium$|$'' is the median magnitude of the fixed-source
-fine-to-medium change. Entries are percentages, except for mean energy (\si{\mega\electronvolt})
-and transmission (absolute). The last two columns give the fraction of settings whose fine-to-medium
-change meets the declared tolerance for the fixed-source and combined levels.}
-\label{tab:retracking_values}
-\small
-\input{revisions/evidence/r6_numerical_table}
-\end{table*}
+\inputwide{revisions/evidence/r6_numerical_table}
 
 These are measured classifications of sampled historical evaluations, weighted to the full runs,
 not refined optimization trajectories. They extend the common-shift scenarios above with
@@ -1211,20 +1187,7 @@ only the transverse limits, and fewer violating only the bunch-length limit. Its
 on average \SI{0.43}{\hour} shorter, in eight of ten groups; elapsed times are descriptive on a
 shared host.
 
-\begin{table*}[htbp]
-\centering
-\caption{Matched raw- and normalized-residual campaigns, ten groups of 160 evaluations per arm.
-Feasible fractions over all evaluations and after the 16 initial ones are means over groups; the
-category columns give the shares of post-initialization evaluations that violate only the
-transverse limits, only the energy band, more than one group, or only the bunch-length limit
-(transmission was never violated). The difference row gives normalized minus raw, with
-\SI{95}{\percent} paired bootstrap intervals for the feasible fractions, and the mean paired
-difference in campaign time.}
-\label{tab:scaling}
-\footnotesize
-\setlength{\tabcolsep}{4pt}
-\input{revisions/evidence/r6_scaling_table}
-\end{table*}
+\inputwide{revisions/evidence/r6_scaling_table}
 
 This result concerns the tested convention: threshold normalization together with a common
 dimensionless temperature of $10^{-3}$. Relative to the raw arm, that convention narrows the

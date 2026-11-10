@@ -1,3 +1,15 @@
+\begin{table}[htbp]
+\centering
+\caption{Weighted feasible fractions of the re-tracked stratified sample over all 160
+evaluations of each run, mean over ten groups. The design standard error of the constraint-aware
+fraction is in parentheses; the baseline fractions have zero design variance because none of
+their sampled classifications changed. $\Delta$ is the paired constraint-aware difference with a
+\SI{95}{\percent} ten-group bootstrap interval conditional on the sampled observations; its
+design standard error is 0.023 at the medium and 0.027 at the fine levels. Flips count changed
+production-profile classifications among the 387 settings relative to the production level.}
+\label{tab:retracking}
+\footnotesize
+\setlength{\tabcolsep}{4pt}
 \begin{tabular}{lrrrrrr}
 \toprule
 Level & Constr. & Unconstr. & Scalar. & $\Delta$ vs unconstr. & $\Delta$ vs scalar. & Flips \\
@@ -9,3 +21,4 @@ Combined medium & 0.445 (0.023) & 0.157 & 0.125 & 0.288 [0.247, 0.329] & 0.320 [
 Combined fine & 0.460 (0.027) & 0.157 & 0.125 & 0.303 [0.254, 0.352] & 0.335 [0.290, 0.383] & 4 \\
 \bottomrule
 \end{tabular}
+\end{table}

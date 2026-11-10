@@ -1,0 +1,2679 @@
+diff --git a/scripts/analyze_revision_round6.py b/scripts/analyze_revision_round6.py
+new file mode 100644
+index 0000000..402976d
+--- /dev/null
++++ b/scripts/analyze_revision_round6.py
+@@ -0,0 +1,218 @@
++#!/usr/bin/env python3
++"""Analyze completed round6 studies without modifying their simulation evidence."""
++from __future__ import annotations
++import argparse
++import json
++from pathlib import Path
++import numpy as np
++import pandas as pd
++from prepare_revision_round6 import ROOT, EVIDENCE, sha
++from evaluate_revision_round6_resolution import read_records, QUANTITIES, MANIFEST, SPEC
++from evaluate_revision_round6_scaling import campaign_config, check_completed, check_pair
++
++
++def paired_summary(values, first, second, spec):
++    """Paired groups only; the intervals do not include within-group selection uncertainty."""
++    differences=values[first]-values[second]
++    rng=np.random.default_rng(spec['analysis_seed'])
++    samples=rng.choice(differences.to_numpy(),size=(spec['bootstrap_resamples'],len(differences)),replace=True).mean(1)
++    low,high=np.quantile(samples,[.025,.975])
++    return {'first':first,'second':second,'groups':len(differences),'mean_difference':differences.mean(),
++            'ci_lower_conditional':low,'ci_upper_conditional':high,
++            'minimum_difference':differences.min(),'positive_groups':int((differences>0).sum())}
++
++
++def weighted_fractions(frame):
++    """Stratified SRS estimates and finite-population design variance, one historical run."""
++    n_total=frame.drop_duplicates('stratum').population.sum()
++    estimate=variance=unknown=0.
++    for _,g in frame.groupby('stratum'):
++        population=int(g.population.iloc[0]);selected=int(g.selected.iloc[0])
++        if len(g)!=selected:
++            raise ValueError('Incomplete sampled stratum.')
++        weight=population/n_total
++        estimate+=weight*g.feasible.mean()
++        unknown+=weight*(~g.simulation_valid).mean()
++        if selected<population:
++            if selected<2:
++                raise ValueError('Sampled singleton variance is not estimable.')
++            variance+=weight**2*(1-selected/population)*g.feasible.astype(float).var(ddof=1)/selected
++    return {'fraction':estimate,'design_variance':variance,'physical_upper_if_invalid_pass':estimate+unknown,
++            'unknown_fraction':unknown,'population':int(n_total),'sample':len(frame)}
++
++
++def numerical(directory,spec):
++    marker=json.loads((directory/'complete.json').read_text())
++    if marker.get('mock') or marker['spec_sha256']!=sha(SPEC) or marker['results_sha256']!=sha(directory/'results.jsonl'):
++        raise ValueError('Invalid numerical completion receipt.')
++    records=read_records(directory/'results.jsonl');manifest=pd.read_csv(MANIFEST)
++    if marker['tasks']!=spec['tracking_attempts'] or len(records)!=spec['tracking_attempts']:
++        raise ValueError('Incomplete numerical allocation.')
++    rows=[]
++    for value in records.values():
++        quantities={**(value.get('objectives') or {}),**(value.get('diagnostics') or {})}
++        rows.append({'setting_id':value['role'],'level':value['level'],'simulation_valid':value['simulation_valid'],
++            'feasible':bool(value['simulation_valid'] and value['physically_feasible']),
++            'runtime_s':value['runtime_s'],**{key:quantities.get(key,np.nan) for key in QUANTITIES}})
++    frame=pd.DataFrame(rows)
++    if frame.duplicated(['setting_id','level']).any():
++        raise ValueError('Duplicated numerical identity.')
++    expected={(s,l) for s in manifest.setting_id for l in spec['levels']}
++    if set(zip(frame.setting_id,frame.level))!=expected:
++        raise ValueError('Unexpected numerical task allocation.')
++    frame=frame.merge(manifest,on='setting_id',validate='many_to_one')
++    for key in ['sigma_x_m','sigma_y_m','sigma_xp_rad','sigma_yp_rad','sigma_z_m']:
++        frame['margin_'+key]=.001-frame[key]
++    frame['margin_energy_lower_eV']=frame.mean_kinetic_energy_eV-195e6
++    frame['margin_energy_upper_eV']=205e6-frame.mean_kinetic_energy_eV
++    frame['margin_transmission']=frame.transmission_fraction-.9
++    rows=[]
++    for (arm,seed,level),group in frame.groupby(['arm','seed','level']):
++        rows.append({'arm':arm,'seed':seed,'level':level,**weighted_fractions(group)})
++    fractions=pd.DataFrame(rows)
++    pairs=[]
++    for level,group in fractions.groupby('level'):
++        wide=group.pivot(index='seed',columns='arm',values='fraction')
++        var=group.pivot(index='seed',columns='arm',values='design_variance')
++        for other in ['unconstrained_qlognehvi','scalarized_bo']:
++            first='constrained_qlognehvi'
++            summary=paired_summary(wide,first,other,spec)
++            # Sum of SEs bounds the covariance contribution without assuming method independence.
++            summary['design_se_conservative']=np.sqrt(((np.sqrt(var[first])+np.sqrt(var[other]))**2).sum())/len(wide)
++            pairs.append({'level':level,**summary})
++    values=[]
++    base=frame[frame.level=='production'].set_index('setting_id')
++    for row in frame.itertuples():
++        for key in QUANTITIES:
++            before=float(base.loc[row.setting_id,key]);after=float(getattr(row,key))
++            values.append({'setting_id':row.setting_id,'arm':row.arm,'seed':row.seed,'level':row.level,
++                'quantity':key,'production':before,'value':after,'delta':after-before,
++                'delta_relative':(after-before)/abs(before) if before else np.nan})
++    frame['nominal_feasibility_changed']=frame.feasible!=frame.physically_feasible
++    checks=[]
++    for low,high in [('fixed_medium','fixed_fine'),('combined_medium','combined_fine')]:
++        left=frame[frame.level==low].set_index('setting_id');right=frame[frame.level==high].set_index('setting_id')
++        for setting in left.index:
++            for key in QUANTITIES:
++                before=float(left.loc[setting,key]);after=float(right.loc[setting,key])
++                if key in QUANTITIES[:3]:
++                    tolerance=abs(before)*spec['refinement_tolerance']['objectives_relative']
++                elif key=='mean_kinetic_energy_eV':
++                    tolerance=spec['refinement_tolerance']['energy_absolute_eV']
++                elif key=='transmission_fraction':
++                    tolerance=spec['refinement_tolerance']['transmission_absolute']
++                else:
++                    tolerance=.001*spec['refinement_tolerance']['diagnostics_threshold_fraction']
++                valid=bool(left.loc[setting,'simulation_valid'] and right.loc[setting,'simulation_valid'])
++                checks.append({'setting_id':setting,'comparison':high+' - '+low,'quantity':key,
++                    'delta':after-before,'tolerance':tolerance,'comparison_valid':valid,
++                    'within_tolerance':bool(valid and np.isfinite(after-before) and abs(after-before)<=tolerance)})
++    return {'resolution_values':pd.DataFrame(values),'resolution_classification':frame,
++            'resolution_fractions':fractions,'resolution_paired':pd.DataFrame(pairs),
++            'resolution_tolerances':pd.DataFrame(checks)}
++
++
++def scaling(directory,spec):
++    receipt=json.loads((directory/'complete.json').read_text())
++    if receipt['spec_sha256']!=sha(SPEC):
++        raise ValueError('Scaling specification mismatch.')
++    for name,digest in receipt['campaigns'].items():
++        if sha(directory/name)!=digest:
++            raise ValueError('Scaling completion checksum mismatch.')
++    rows=[];stages=[]
++    for seed in spec['scaling']['seeds']:
++        check_pair(directory,seed,spec)
++        for arm in spec['scaling']['arms']:
++            run=directory/f'{arm}_seed_{seed}'
++            check_completed(run,campaign_config(spec,arm,seed),spec)
++            f=pd.read_csv(run/'evaluations.csv')
++            if len(f)!=160 or f.evaluation_id.duplicated().any():
++                raise ValueError('Scaling evaluation allocation mismatch.')
++            valid=f.simulation_valid.astype(bool);feasible=f.physically_feasible.astype(bool)&valid
++            elapsed=json.loads((run/'run_complete.json').read_text())['elapsed_wall_time_s']
++            rows.append({'arm':arm,'seed':seed,'feasible_fraction':feasible.mean(),
++                'post_init_feasible_fraction':feasible.iloc[16:].mean(),
++                'invalid_attempts':int((~valid).sum()),'elapsed_wall_time_s':elapsed})
++            for label,part in [('initial',f.iloc[:16]),('early_post',f.iloc[16:80]),('late',f.iloc[80:])]:
++                v=part.simulation_valid.astype(bool)
++                transverse=(part[['sigma_x_m','sigma_y_m','sigma_xp_rad','sigma_yp_rad']]>.001).any(axis=1)
++                energy=(part.mean_kinetic_energy_eV<195e6)|(part.mean_kinetic_energy_eV>205e6)
++                other=(part.sigma_z_m>.001)|(part.transmission_fraction<.9)
++                stages.append({'arm':arm,'seed':seed,'stage':label,'attempts':len(part),
++                    'invalid':int((~v).sum()),'transverse_only':int((v&transverse&~energy&~other).sum()),
++                    'energy_only':int((v&energy&~transverse&~other).sum()),
++                    'multiple_groups':int((v&((transverse.astype(int)+energy.astype(int)+other.astype(int))>1)).sum()),
++                    'other_only':int((v&other&~energy&~transverse).sum()),
++                    'feasible':int((v&part.physically_feasible.astype(bool)).sum())})
++    runs=pd.DataFrame(rows);pairs=[]
++    for endpoint in ['feasible_fraction','post_init_feasible_fraction','elapsed_wall_time_s']:
++        wide=runs.pivot(index='seed',columns='arm',values=endpoint)
++        pairs.append({'endpoint':endpoint,**paired_summary(wide,'normalized','raw',spec)})
++    return {'scaling_runs':runs,'scaling_paired':pd.DataFrame(pairs),'scaling_channels':pd.DataFrame(stages)}
++
++
++def uncertainty_plot(table, destination):
++    """Display group-bootstrap intervals; numerical selection SE is a separate marker."""
++    import matplotlib
++    matplotlib.use("Agg")
++    import matplotlib.pyplot as plt
++    frame = table.copy()
++    if "endpoint" in frame:
++        frame = frame[frame.endpoint != "elapsed_wall_time_s"]
++        labels = frame.endpoint.str.replace("_", " ").tolist()
++    else:
++        labels = (frame.level + ": " + frame.second.str.replace("_", " ")).tolist()
++    fig, ax = plt.subplots(figsize=(8, max(3, .4 * len(frame))))
++    for position, row in enumerate(frame.itertuples()):
++        ax.plot([row.ci_lower_conditional, row.ci_upper_conditional], [position, position], color="C0")
++        ax.plot(row.mean_difference, position, "o", color="C0")
++        if hasattr(row, "design_se_conservative"):
++            ax.plot([row.mean_difference - row.design_se_conservative,
++                     row.mean_difference + row.design_se_conservative],
++                    [position + .15, position + .15], color="C1", linewidth=2)
++    ax.set_yticks(range(len(labels)), labels)
++    ax.axvline(0, color="grey", linestyle="--")
++    ax.grid(alpha=.25)
++    ax.set_xlabel("Paired feasible-fraction difference (first minus second)")
++    ax.set_title("Conditional 95% group-bootstrap intervals" +
++                 ("; orange: separate design SE" if "design_se_conservative" in frame else ""))
++    fig.tight_layout()
++    fig.savefig(destination)
++    plt.close(fig)
++
++
++def main(argv=None):
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('study',choices=['resolution','scaling'])
++    parser.add_argument('--input-dir',type=Path)
++    parser.add_argument('--output-dir',type=Path,default=EVIDENCE)
++    parser.add_argument('--resume',action='store_true')
++    args=parser.parse_args(argv);spec=json.loads(SPEC.read_text())
++    source=args.input_dir or ROOT/'results/revision_round6'/args.study
++    receipt_path=args.output_dir/f'r6_{args.study}_analysis.json'
++    if args.resume and receipt_path.exists():
++        receipt=json.loads(receipt_path.read_text())
++        if receipt['spec_sha256']!=sha(SPEC) or receipt['completion_sha256']!=sha(source/'complete.json'):
++            raise ValueError('Existing analysis input identity changed.')
++        outputs=receipt.get('outputs_sha256',{})
++        if not outputs or any(sha(args.output_dir/name)!=digest for name,digest in outputs.items()):
++            raise ValueError('Existing analysis output checksum mismatch.')
++        return
++    names=(['resolution_values' ,'resolution_classification','resolution_fractions','resolution_paired','resolution_tolerances']
++           if args.study=='resolution' else ['scaling_runs','scaling_paired','scaling_channels'])
++    if any((args.output_dir/('r6_'+name+'.csv')).exists() for name in names):
++        raise ValueError('Derived evidence already exists; use an isolated output directory.')
++    tables=(numerical if args.study=='resolution' else scaling)(source,spec)
++    args.output_dir.mkdir(parents=True,exist_ok=True)
++    for name,table in tables.items():
++        table.to_csv(args.output_dir/('r6_'+name+'.csv'),index=False)
++    uncertainty_plot(tables[args.study+'_paired'], args.output_dir/f'r6_{args.study}_uncertainty.pdf')
++    metadata={'spec_sha256':sha(SPEC),'completion_sha256':sha(source/'complete.json'),
++              'study':args.study,'tables':{name:len(table) for name,table in tables.items()},
++              'outputs_sha256':{p.name:sha(p) for p in args.output_dir.glob(f'r6_{args.study}_*') if p.suffix in {'.csv','.pdf'}},
++              'uncertainty':'Paired bootstrap conditional on sampled observations; numerical-study design uncertainty reported separately. '
++                            'No claim of simultaneous coverage, numerical convergence or machine reliability.'}
++    (args.output_dir/f'r6_{args.study}_analysis.json').write_text(json.dumps(metadata,indent=2)+'\n')
++
++if __name__=='__main__':
++    main()
+diff --git a/scripts/analyze_revision_round6_rf_phase.py b/scripts/analyze_revision_round6_rf_phase.py
+new file mode 100644
+index 0000000..e22aaeb
+--- /dev/null
++++ b/scripts/analyze_revision_round6_rf_phase.py
+@@ -0,0 +1,91 @@
++#!/usr/bin/env python3
++"""C6-10: the RF phase reference and the bunch-length change in the tracked linac.
++
++Reads the retained production-resolution tracking outputs of the round6 sample. For each
++travelling-wave structure it fits the tracked energy gain to A cos(phi - crest), where phi is
++the absolute input phase, and it reports the RMS bunch length through the structures. No
++simulation is run. The fit describes this model's gain maximum; it is not an RF calibration.
++"""
++from __future__ import annotations
++import argparse
++import json
++from pathlib import Path
++import re
++import numpy as np
++import pandas as pd
++from prepare_revision_round6 import EVIDENCE, ROOT
++
++WORK = ROOT/'results/revision_round6/resolution/runs/round6_resolution/work'
++STRUCTURES = {'ACC1': 'phi(2)', 'ACC2': 'phi(3)', 'ACC3': 'phi(4)', 'ACC4': 'phi(5)'}
++EXIT_M = 16.2
++
++
++def deck_value(deck, name):
++    return float(re.search(re.escape(name)+r'\s*=\s*([-+\d.eE]+)', deck, re.I).group(1))
++
++
++def setting_row(attempt):
++    """Phases, and energy and bunch length at the structure edges, for one tracked setting."""
++    deck = (attempt/'astra.in').read_text()
++    # Zemit columns: z (m), t (ns), kinetic energy (MeV), RMS bunch length (mm), ...
++    z = np.loadtxt(attempt/'astra.Zemit.001')
++    starts = [deck_value(deck, f'C_pos({k})') for k in range(2, 6)]
++    edges = [*starts, EXIT_M]
++    energy = np.interp(edges, z[:, 0], z[:, 2])
++    length = np.interp(edges, z[:, 0], z[:, 3])
++    row = {'injection_energy_MeV': energy[0], 'exit_energy_MeV': energy[-1]}
++    for k, (name, phase) in enumerate(STRUCTURES.items()):
++        row[f'{name}_phase_deg'] = deck_value(deck, phase)
++        row[f'{name}_gain_MeV'] = energy[k+1]-energy[k]
++        row[f'{name}_end_length_mm'] = length[k+1]
++    row['entry_length_mm'] = length[0]
++    return row
++
++
++def fit_crest(phase_deg, gain):
++    """Least-squares A cos(phi - crest); there is no offset because a structure gains nothing at A = 0."""
++    x = np.radians(phase_deg)
++    design = np.c_[np.cos(x), np.sin(x)]
++    coefficient = np.linalg.lstsq(design, gain, rcond=None)[0]
++    residual = gain-design@coefficient
++    return {'amplitude_MeV': float(np.hypot(*coefficient)),
++            'crest_deg': float(np.degrees(np.arctan2(coefficient[1], coefficient[0]))),
++            'residual_rms_MeV': float(np.sqrt(np.mean(residual**2)))}
++
++
++def spread(series):
++    return {'min': float(series.min()), 'median': float(series.median()), 'max': float(series.max())}
++
++
++def analyze(frame, nominal):
++    result = {'settings': len(frame), 'structures': {},
++              'injection_energy_MeV': spread(frame.injection_energy_MeV),
++              'entry_length_mm': spread(frame.entry_length_mm)}
++    for name in STRUCTURES:
++        fit = fit_crest(frame[f'{name}_phase_deg'].to_numpy(), frame[f'{name}_gain_MeV'].to_numpy())
++        offset = (nominal[name]-fit['crest_deg']+180) % 360-180
++        result['structures'][name] = {**fit, 'nominal_phase_deg': nominal[name],
++                                      'nominal_minus_crest_deg': float(offset)}
++    entry = frame.entry_length_mm
++    result['length_ratio_to_entry'] = {f'{name}_end': spread(frame[f'{name}_end_length_mm']/entry)
++                                       for name in STRUCTURES}
++    return result
++
++
++def main(argv=None):
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--work-dir', type=Path, default=WORK)
++    parser.add_argument('--output', type=Path, default=EVIDENCE/'r6_rf_phase_fit.json')
++    args = parser.parse_args(argv)
++    attempts = [sorted(d.glob('attempt_*'))[-1] for d in sorted(args.work_dir.glob('eval_*__production'))]
++    frame = pd.DataFrame([setting_row(a) for a in attempts])
++    deck = (ROOT/'astra.in').read_text()
++    nominal = {name: deck_value(deck, phase) for name, phase in STRUCTURES.items()}
++    result = {'note': 'Fit of tracked gain in this model; not an RF calibration.', **analyze(frame, nominal)}
++    args.output.write_text(json.dumps(result, indent=2, sort_keys=True)+'\n')
++    print(json.dumps(result, indent=2, sort_keys=True))
++    return 0
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+diff --git a/scripts/check_revision_round6_workers.py b/scripts/check_revision_round6_workers.py
+new file mode 100644
+index 0000000..8787fbf
+--- /dev/null
++++ b/scripts/check_revision_round6_workers.py
+@@ -0,0 +1,87 @@
++#!/usr/bin/env python3
++"""Check that the round6 worker ceiling leaves completed tracking results unchanged.
++
++Execution amendment 01 raises the ceiling from two to 22 workers. This infrastructure check
++re-tracks an evenly spaced subset of already completed production-level settings with all
++workers busy, in its own directory, and compares them with the historical ledgers and the
++two-worker journal. Its attempts are outside the study budget and yield no new refined outcome.
++"""
++from __future__ import annotations
++import argparse
++import fcntl
++import json
++from pathlib import Path
++import numpy as np
++from mobo_linac.execution.mock import MockEvaluator
++from evaluate_revision_round6_resolution import (MANIFEST, QUANTITIES, SPEC, ResolutionPlan, append_record,
++                                                 check_nominal, make_tasks, read_records, result_value,
++                                                 study_config, validate_inputs)
++from prepare_revision_round6 import EVIDENCE, ROOT, execution_workers, sha
++
++BASE = ROOT/'results/revision_round6'
++
++
++def subset(frame, count):
++    frame = frame.sort_values('setting_id').reset_index(drop=True)
++    return frame.iloc[np.linspace(0, len(frame)-1, count, dtype=int)]
++
++
++def compare(new, old, spec):
++    """Largest relative difference from the two-worker journal; mismatches raise."""
++    largest = 0.0
++    for key, value in new.items():
++        before = {**old[key]['objectives'], **old[key]['diagnostics']}
++        after = {**value['objectives'], **value['diagnostics']}
++        for name in QUANTITIES:
++            if not np.isclose(after[name], before[name], rtol=spec['nominal_reproduction_rtol'],
++                              atol=spec['nominal_reproduction_atol']):
++                raise ValueError(f'Worker-count mismatch: {key}, {name}')
++            largest = max(largest, abs(after[name]-before[name])/max(abs(before[name]), 1e-300))
++    return largest
++
++
++def receipt(new, old, workers, largest):
++    ratios = [new[key]['runtime_s']/old[key]['runtime_s'] for key in new]
++    return {'check': 'round6 worker-count reproduction (infrastructure; outside the study budget)',
++            'workers': workers, 'settings': sorted(new), 'reproduced': True,
++            'largest_relative_difference': largest,
++            'mean_runtime_s': float(np.mean([new[key]['runtime_s'] for key in new])),
++            'same_settings_two_worker_mean_runtime_s': float(np.mean([old[key]['runtime_s'] for key in new])),
++            'median_runtime_ratio': float(np.median(ratios)), 'spec_sha256': sha(SPEC), 'manifest_sha256': sha(MANIFEST)}
++
++
++def execute(out, study, spec, frame, workers, mock=False):
++    if out.exists():
++        raise ValueError('Output exists; a worker check is not resumed.')
++    out.mkdir(parents=True)
++    config = study_config(study, workers)
++    plan = ResolutionPlan(config, base_output_dir=out/'runs', num_workers=workers,
++                          timeout=spec['tracking_timeout_s'], template_dir=study/'template')
++    journal = out/'results.jsonl'
++    tasks = make_tasks(subset(frame, workers), spec, ['production'])
++    plan.evaluate_plan_parallel(tasks, evaluator=MockEvaluator(config=config) if mock else None,
++                                on_task_complete=lambda outcome: append_record(journal, result_value(outcome)),
++                                run_id='round6_worker_check')
++    return read_records(journal)
++
++
++def main(argv=None):
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output-dir', type=Path, default=BASE/'worker_check')
++    args = parser.parse_args(argv)
++    spec = json.loads(SPEC.read_text())
++    frame = validate_inputs(spec)
++    workers = execution_workers()
++    study = BASE/'resolution'
++    with (BASE/'worker.lock').open('a') as lock:
++        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
++        new = execute(args.output_dir, study, spec, frame, workers)
++    check_nominal(subset(frame, workers), new, spec)
++    old = read_records(study/'results.jsonl')
++    value = receipt(new, old, workers, compare(new, old, spec))
++    (EVIDENCE/'r6_worker_check.json').write_text(json.dumps(value, indent=2, sort_keys=True)+'\n')
++    print(json.dumps(value, indent=2, sort_keys=True))
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/scripts/evaluate_revision_round6_resolution.py b/scripts/evaluate_revision_round6_resolution.py
+new file mode 100644
+index 0000000..bf04bd6
+--- /dev/null
++++ b/scripts/evaluate_revision_round6_resolution.py
+@@ -0,0 +1,224 @@
++#!/usr/bin/env python3
++"""Execute the frozen round6 numerical study with immutable evidence and the amended worker ceiling."""
++from __future__ import annotations
++import argparse
++from dataclasses import replace
++import fcntl
++import hashlib
++import json
++import os
++from pathlib import Path
++import shutil
++import subprocess
++import time
++import numpy as np
++import pandas as pd
++from mobo_linac.config import load_config
++from mobo_linac.execution.candidate_evaluator import CandidateEvaluatorBase, EvaluationTask
++from mobo_linac.execution.mock import MockEvaluator
++from evaluate_revision_convergence import make_sources, build_template, record
++from prepare_revision_round6 import CONTROLS, ROOT, EVIDENCE, execution_workers, sha
++from analyze_revision_convergence import QUANTITIES
++
++SPEC = EVIDENCE / 'r6_specification.json'
++MANIFEST = EVIDENCE / 'r6_sampling_manifest.csv'
++
++
++def validate_inputs(spec, manifest=MANIFEST):
++    if sha(manifest) != spec['sample_manifest_sha256']:
++        raise ValueError('Frozen sample manifest checksum mismatch.')
++    for name, digest in spec['input_sha256'].items():
++        if sha(ROOT/name) != digest:
++            raise ValueError(f'Frozen input checksum mismatch: {name}')
++    frame = pd.read_csv(manifest)
++    if frame.setting_id.duplicated().any() or len(frame) != spec['sample_size']:
++        raise ValueError('Duplicate or incomplete selected identities.')
++    for run, rows in frame.groupby('run'):
++        ledger = pd.read_csv(ROOT/'results/paper_production/04_primary/benchmark/per_seed'/run/'evaluations.csv')
++        if ledger.evaluation_id.duplicated().any():
++            raise ValueError('Duplicate historical evaluation identity.')
++        ledger = ledger.set_index('evaluation_id')
++        for row in rows.itertuples():
++            expected = ledger.loc[row.evaluation_id, CONTROLS].to_numpy(dtype=float)
++            actual = np.array([getattr(row,k) for k in CONTROLS])
++            if not np.allclose(expected, actual, rtol=0, atol=1e-12):
++                raise ValueError(f'Historical control mismatch: {row.setting_id}')
++    return frame
++
++
++def read_records(path):
++    records = {}
++    if not path.exists():
++        return records
++    for line in path.read_text().splitlines():
++        envelope = json.loads(line)
++        value = envelope['record']
++        payload = json.dumps(value, sort_keys=True, allow_nan=False)
++        if hashlib.sha256(payload.encode()).hexdigest() != envelope['sha256']:
++            raise ValueError('Result journal checksum mismatch.')
++        key = value['task_id']
++        if key in records:
++            raise ValueError('Duplicate result identity; do not silently choose one.')
++        records[key] = value
++    return records
++
++
++def json_measurements(value):
++    """Represent unavailable/nonfinite measurements as null without inventing values."""
++    if isinstance(value, dict):
++        return {key: json_measurements(item) for key, item in value.items()}
++    if isinstance(value, (list, tuple)):
++        return [json_measurements(item) for item in value]
++    if isinstance(value, np.generic):
++        value = value.item()
++    if isinstance(value, float) and not np.isfinite(value):
++        return None
++    return value
++
++
++def append_record(path, value):
++    value = json_measurements(value)
++    payload = json.dumps(value, sort_keys=True, allow_nan=False)
++    envelope = {'record': value, 'sha256': hashlib.sha256(payload.encode()).hexdigest()}
++    with path.open('a') as handle:
++        handle.write(json.dumps(envelope, sort_keys=True)+'\n')
++        handle.flush()
++        os.fsync(handle.fileno())
++
++
++class ResolutionPlan(CandidateEvaluatorBase):
++    def generate_evaluation_plan(self, candidates):
++        return candidates
++
++
++def make_tasks(frame, spec, levels):
++    return [EvaluationTask(
++        task_id=f'{row.setting_id}__{level}', role=row.setting_id,
++        parameters=[getattr(row,k) for k in CONTROLS],
++        namelist_overrides=spec['levels'][level] or None,
++        metadata={'role':row.setting_id, 'level':level, 'run':row.run,
++                  'evaluation_id':row.evaluation_id, 'purpose':'round6_resolution'})
++        for level in levels for row in frame.itertuples()]
++
++
++def check_nominal(frame, records, spec):
++    for run, group in frame.groupby('run'):
++        ledger = pd.read_csv(ROOT/'results/paper_production/04_primary/benchmark/per_seed'/run/'evaluations.csv').set_index('evaluation_id')
++        for row in group.itertuples():
++            result = records[f'{row.setting_id}__production']
++            if not result['simulation_valid']:
++                raise ValueError(f'Invalid nominal reproduction: {row.setting_id}')
++            values = {**(result.get('objectives') or {}), **(result.get('diagnostics') or {})}
++            for key in QUANTITIES:
++                if key not in values or not np.isclose(float(values[key]),float(ledger.loc[row.evaluation_id,key]),
++                    rtol=spec['nominal_reproduction_rtol'],atol=spec['nominal_reproduction_atol']):
++                    raise ValueError(f'Nominal reproduction mismatch: {row.setting_id}, {key}')
++
++
++def study_config(out, workers):
++    config = load_config(ROOT/'configs/publication_200MeV.yaml')
++    return replace(config,simulation=replace(config.simulation,template_dir=str((out/'template').resolve()),
++                       static_files=[*config.simulation.static_files,'qr20k.ini','qr40k.ini']),
++                   execution=replace(config.execution,max_workers=workers,retries=0))
++
++
++def result_value(outcome):
++    value=record(outcome)
++    value['physically_feasible']=outcome.evaluated_result.physically_feasible
++    category=outcome.evaluated_result.failure_category
++    value['failure_category']=getattr(category,'value',category)
++    value['failure_reason']=outcome.evaluated_result.failure_reason
++    return value
++
++
++def execute(out, spec, frame, resume=False, mock=False, stage='all'):
++    workers = execution_workers()
++    identity = {'spec_sha256':sha(SPEC),'manifest_sha256':sha(MANIFEST),'mock':mock}
++    plan_path = out/'plan.json'
++    if out.exists() and any(out.iterdir()):
++        if not resume or not plan_path.exists():
++            raise ValueError('Output exists; require an intact plan and explicit --resume.')
++        existing = json.loads(plan_path.read_text())
++        if any(existing.get(k)!=v for k,v in identity.items()):
++            raise ValueError('Resume plan identity mismatch.')
++    else:
++        out.mkdir(parents=True,exist_ok=True)
++        config = load_config(ROOT/'configs/publication_200MeV.yaml')
++        template = out/'template';template.mkdir()
++        sources = {'qr20k.ini':(20000,True),'qr40k.ini':(40000,True)}
++        if mock:
++            # Mock rehearsals never invoke the physical source generator.
++            for name in sources:
++                shutil.copy2(ROOT/'pal_photo2.ini',template/name)
++        else:
++            make_sources(template,Path(config.simulation.executable).with_name('generator'),sources)
++        build_template(config,template,sources)
++        identity.update({'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
++                         'created_unix':time.time(),'workers':workers,
++                         'template_sha256':{p.name:sha(p) for p in template.iterdir() if p.is_file()},
++                         'environment':subprocess.check_output(['uname','-a'],text=True).strip()})
++        plan_path.write_text(json.dumps(identity,indent=2,sort_keys=True)+'\n')
++    existing = json.loads(plan_path.read_text())
++    for name,digest in existing['template_sha256'].items():
++        if sha(out/'template'/name)!=digest:
++            raise ValueError('Retained template checksum mismatch.')
++    config = study_config(out, workers)
++    journal=out/'results.jsonl'; records=read_records(journal)
++    expected={t.task_id for t in make_tasks(frame,spec,list(spec['levels']))}
++    if not set(records)<=expected:
++        raise ValueError('Unexpected task in result journal.')
++    pending=out/'pending.json'
++    if pending.exists():
++        unfinished=set(json.loads(pending.read_text()))-set(records)
++        if unfinished:
++            raise ValueError('Interrupted attempts require explicit evidence recovery; refusing automatic rerun: '+str(sorted(unfinished)[:3]))
++        pending.unlink()
++    for phase,levels in [('nominal',['production']),('refinement',[k for k in spec['levels'] if k!='production'])]:
++        if phase=='refinement':
++            if not mock:
++                check_nominal(frame,records,spec)
++            if stage=='nominal':
++                break
++        tasks=[t for t in make_tasks(frame,spec,levels) if t.task_id not in records]
++        if not tasks:
++            continue
++        if shutil.disk_usage(out).free < spec['minimum_free_disk_GiB']*1024**3:
++            raise RuntimeError('Insufficient disk space; preserve evidence and pause.')
++        pending.write_text(json.dumps([t.task_id for t in tasks])+'\n')
++        plan=ResolutionPlan(config,base_output_dir=out/'runs',num_workers=workers,
++                            timeout=spec['tracking_timeout_s'],template_dir=out/'template')
++        def complete(outcome):
++            append_record(journal,result_value(outcome))
++        plan.evaluate_plan_parallel(tasks,evaluator=MockEvaluator(config=config) if mock else None,
++                                    on_task_complete=complete,run_id='round6_resolution')
++        records=read_records(journal)
++        if any(t.task_id not in records for t in tasks):
++            raise ValueError('Incomplete phase; retain pending evidence.')
++        pending.unlink()
++    if not mock:
++        check_nominal(frame,records,spec)
++    if set(records)==expected:
++        (out/'complete.json').write_text(json.dumps({'tasks':len(records),'results_sha256':sha(journal),
++            'spec_sha256':sha(SPEC),'mock':mock},indent=2)+'\n')
++    else:
++        (out/'nominal_complete.json').write_text(json.dumps({'tasks':len(records),'results_sha256':sha(journal)},indent=2)+'\n')
++
++
++def main(argv=None):
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output-dir',type=Path,default=ROOT/'results/revision_round6/resolution')
++    parser.add_argument('--resume',action='store_true')
++    parser.add_argument('--wait-for-workers',action='store_true')
++    parser.add_argument('--mock-evaluator',action='store_true')
++    parser.add_argument('--stage',choices=['nominal','all'],default='all')
++    args=parser.parse_args(argv)
++    if (ROOT/'results/revision_round6/PAUSED.json').exists():
++        raise SystemExit('Round6 is paused by the user; explicit restart authorization and recovery inspection are required.')
++    spec=json.loads(SPEC.read_text());frame=validate_inputs(spec)
++    lockdir=ROOT/'results/revision_round6';lockdir.mkdir(parents=True,exist_ok=True)
++    with (lockdir/'worker.lock').open('a') as lock:
++        fcntl.flock(lock,fcntl.LOCK_EX|(0 if args.wait_for_workers else fcntl.LOCK_NB))
++        execute(args.output_dir,spec,frame,args.resume,args.mock_evaluator,args.stage)
++
++if __name__=='__main__':
++    main()
+diff --git a/scripts/evaluate_revision_round6_scaling.py b/scripts/evaluate_revision_round6_scaling.py
+new file mode 100644
+index 0000000..c9ff724
+--- /dev/null
++++ b/scripts/evaluate_revision_round6_scaling.py
+@@ -0,0 +1,131 @@
++#!/usr/bin/env python3
++"""Run contemporaneous raw/normalized campaigns from the frozen round6 specification."""
++from __future__ import annotations
++import argparse
++from dataclasses import replace
++import fcntl
++import json
++from pathlib import Path
++import shutil
++import subprocess
++import time
++import pandas as pd
++import torch
++from mobo_linac.config import load_config
++from mobo_linac.campaigns.runner import MoboCampaignRunner
++from mobo_linac.constraints import constraint_residual_metadata
++from mobo_linac.io.artifacts import validate_run_completion
++from prepare_revision_round6 import ROOT, EVIDENCE, CONTROLS, execution_workers, sha
++
++SPEC=EVIDENCE/'r6_specification.json'
++
++
++def code_identity():
++    paths = sorted((ROOT/'src/mobo_linac').rglob('*.py')) + [Path(__file__).resolve()]
++    return {str(path.relative_to(ROOT)): sha(path) for path in paths}
++
++
++
++def campaign_config(spec, arm, seed):
++    if arm not in spec['scaling']['arms'] or seed not in spec['scaling']['seeds']:
++        raise ValueError('Campaign is outside the frozen allocation.')
++    config=load_config(ROOT/'configs/publication_200MeV.yaml')
++    return replace(config,execution=replace(config.execution,
++        max_workers=execution_workers(),retries=0,constraint_residual_mode=arm,
++        constraint_temperature=spec['scaling'][arm+'_temperature'],
++        acqf_mc_samples=spec['scaling']['posterior_samples'],acquisition_stream_group=seed,
++        acqf_num_restarts=spec['scaling']['num_restarts'],acqf_raw_samples=spec['scaling']['raw_samples'],
++        acqf_maxiter=spec['scaling']['maxiter']))
++
++
++def order(spec):
++    for seed in spec['scaling']['seeds']:
++        for arm in (['raw','normalized'] if seed%2==0 else ['normalized','raw']):
++            yield arm,seed
++
++
++def check_completed(directory, config, spec):
++    if not validate_run_completion(directory):
++        raise ValueError(f'Invalid campaign completion: {directory}')
++    saved=json.loads((directory/'config.json').read_text())
++    for key in ['constraint_residual_mode','constraint_temperature','acqf_mc_samples','acquisition_stream_group']:
++        if saved['execution'].get(key)!=getattr(config.execution,key):
++            raise ValueError(f'Completed campaign convention mismatch: {key}')
++    marker=json.loads((directory/'run_complete.json').read_text())
++    if marker['evaluation_count']!=spec['scaling']['budget_each']:
++        raise ValueError('Completed campaign budget mismatch.')
++
++
++def check_pair(out,seed,spec):
++    frames=[pd.read_csv(out/f'{arm}_seed_{seed}'/'evaluations.csv') for arm in ['raw','normalized']]
++    a,b=[f.iloc[:spec['scaling']['initial']][CONTROLS].reset_index(drop=True) for f in frames]
++    pd.testing.assert_frame_equal(a,b,check_exact=True)
++
++
++def run(out,spec,resume=False):
++    identity={'spec_sha256':sha(SPEC),'workers_total':execution_workers(),'device':spec['device'], 'code_sha256':code_identity()}
++    manifest=out/'plan.json'
++    if out.exists() and any(out.iterdir()):
++        if not resume or not manifest.exists():
++            raise ValueError('Output exists; require intact plan and explicit --resume.')
++        old=json.loads(manifest.read_text())
++        if any(old.get(k)!=v for k,v in identity.items()):
++            raise ValueError('Scaling plan mismatch.')
++    else:
++        out.mkdir(parents=True,exist_ok=True)
++        identity.update({'commit':subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(),
++            'created_unix':time.time(),'campaign_order':list(order(spec)),
++            'conventions':{arm:constraint_residual_metadata(campaign_config(spec,arm,42)) for arm in ['raw','normalized']}})
++        manifest.write_text(json.dumps(identity,indent=2,sort_keys=True)+'\n')
++    torch.set_num_threads(1)
++    if not torch.cuda.is_available():
++        raise RuntimeError('Frozen CUDA policy unavailable; do not silently substitute CPU.')
++    for arm,seed in order(spec):
++        if code_identity()!=identity['code_sha256']:
++            raise RuntimeError('Scientific code changed during the matched study; preserve outputs and pause.')
++        config=campaign_config(spec,arm,seed)
++        directory=out/f'{arm}_seed_{seed}'
++        if (directory/'run_complete.json').exists():
++            check_completed(directory,config,spec)
++            continue
++        if shutil.disk_usage(out).free<spec['minimum_free_disk_GiB']*1024**3:
++            raise RuntimeError('Insufficient disk space; preserve evidence and pause.')
++        partial=directory.exists() and any(directory.iterdir())
++        if partial and not resume:
++            raise ValueError('Partial campaign requires explicit checkpoint resume.')
++        runner=MoboCampaignRunner(config=config,output_dir=directory,
++            num_initial_samples=spec['scaling']['initial'],num_batches=spec['scaling']['batches'],
++            batch_size=spec['scaling']['batch_size'],total_eval_budget=spec['scaling']['budget_each'],
++            num_workers=execution_workers(),seed=seed,constrained=True,optimization_mode='constrained_mobo',
++            acq_type='qLogNEHVI',device=spec['device'],resume=bool(partial),
++            reporting_ref_point=[-1.5e-6,-1.5e-6,-1.5e6],export_plots=False)
++        runner.run()
++        check_completed(directory,config,spec)
++        if all((out/f'{a}_seed_{seed}'/'run_complete.json').exists() for a in ['raw','normalized']):
++            check_pair(out,seed,spec)
++    for seed in spec['scaling']['seeds']:
++        check_pair(out,seed,spec)
++    receipts={str((out/f'{arm}_seed_{seed}'/'run_complete.json').relative_to(out)):
++              sha(out/f'{arm}_seed_{seed}'/'run_complete.json') for arm,seed in order(spec)}
++    (out/'complete.json').write_text(json.dumps({'spec_sha256':sha(SPEC),'campaigns':receipts},indent=2)+'\n')
++
++
++def main(argv=None):
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output-dir',type=Path,default=ROOT/'results/revision_round6/scaling')
++    parser.add_argument('--resume',action='store_true')
++    parser.add_argument('--wait-for-workers',action='store_true')
++    args=parser.parse_args(argv)
++    if (ROOT/'results/revision_round6/PAUSED.json').exists():
++        raise SystemExit('Round6 is paused by the user; explicit restart authorization and recovery inspection are required.')
++    spec=json.loads(SPEC.read_text())
++    for name,digest in spec['input_sha256'].items():
++        if sha(ROOT/name)!=digest:
++            raise ValueError(f'Frozen input mismatch: {name}')
++    base=ROOT/'results/revision_round6';base.mkdir(parents=True,exist_ok=True)
++    with (base/'worker.lock').open('a') as lock:
++        fcntl.flock(lock,fcntl.LOCK_EX|(0 if args.wait_for_workers else fcntl.LOCK_NB))
++        run(args.output_dir,spec,args.resume)
++
++if __name__=='__main__':
++    main()
+diff --git a/scripts/prepare_revision_round6.py b/scripts/prepare_revision_round6.py
+new file mode 100644
+index 0000000..3dba0c7
+--- /dev/null
++++ b/scripts/prepare_revision_round6.py
+@@ -0,0 +1,129 @@
++#!/usr/bin/env python3
++"""Freeze round6 stratified historical sample and prospective campaign specification."""
++from __future__ import annotations
++import argparse
++import hashlib
++import itertools
++import json
++from pathlib import Path
++import numpy as np
++import pandas as pd
++from revision_ledgers import ARMS, load_ledgers
++
++ROOT = Path(__file__).resolve().parents[1]
++EVIDENCE = ROOT / 'docs/paper/revisions/evidence'
++CONTROLS = ['solenoid_field_T', 'quad_1_gradient_T_m', 'quad_2_gradient_T_m',
++            'gun_phase_deg', 'acc1_acc2_phase_deg', 'acc3_acc4_phase_deg']
++STRATA = ['arm', 'seed', 'physically_feasible', 'stage', 'boundary']
++SELECTION_SEED = 20261031
++
++
++def sha(path):
++    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
++
++
++def execution_workers():
++    """The worker ceiling of the frozen specification as changed by its dated amendment."""
++    amendment = json.loads((EVIDENCE/'r6_execution_amendment_01.json').read_text())
++    if amendment['spec_sha256'] != sha(EVIDENCE/'r6_specification.json'):
++        raise ValueError('Execution amendment does not refer to the frozen specification.')
++    return amendment['workers_total']
++
++
++def stratify(frame):
++    frame = frame.copy()
++    margins = pd.DataFrame({k: (1e-3-frame[k])/1e-3 for k in
++                           ['sigma_x_m', 'sigma_y_m', 'sigma_xp_rad', 'sigma_yp_rad', 'sigma_z_m']})
++    margins['energy_lower'] = (frame.mean_kinetic_energy_eV-195e6)/5e6
++    margins['energy_upper'] = (205e6-frame.mean_kinetic_energy_eV)/5e6
++    margins['transmission'] = (frame.transmission_fraction-.9)/.1
++    frame['boundary'] = np.where(margins.abs().min(axis=1) <= .1, 'near', 'interior')
++    frame['nearest_channel'] = margins.abs().idxmin(axis=1)
++    frame['min_signed_margin'] = margins.min(axis=1)
++    frame['stage'] = np.where(frame.index_in_run <= 80, 'early', 'late')
++    return frame
++
++
++def select(frame):
++    """Independent SRS without replacement within each declared stratum, at most two."""
++    frame = stratify(frame)
++    rng = np.random.default_rng(SELECTION_SEED)
++    rows, strata = [], []
++    for keys in itertools.product(sorted(frame.arm.unique()), range(42, 52),
++                                  [False, True], ['early', 'late'], ['interior', 'near']):
++        mask = np.ones(len(frame), dtype=bool)
++        for key, value in zip(STRATA, keys):
++            mask &= frame[key].to_numpy() == value
++        group = frame.loc[mask].sort_values('evaluation_id')
++        count, size = min(2, len(group)), len(group)
++        identity = '|'.join(map(str, keys))
++        strata.append(dict(zip(STRATA, keys), stratum=identity, population=size, selected=count))
++        if count:
++            chosen = group.iloc[rng.choice(size, count, replace=False)].copy()
++            chosen['stratum'] = identity
++            chosen['population'] = size
++            chosen['selected'] = count
++            chosen['inclusion_probability'] = count/size
++            rows.append(chosen)
++    return pd.concat(rows, ignore_index=True), pd.DataFrame(strata)
++
++
++def main(argv=None):
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--output-dir', type=Path, default=EVIDENCE)
++    args = parser.parse_args(argv)
++    out = args.output_dir
++    names = ['r6_sampling_manifest.csv', 'r6_sampling_strata.csv', 'r6_specification.json']
++    if any((out/n).exists() for n in names):
++        raise ValueError('Frozen protocol outputs already exist; never overwrite them.')
++    frame = load_ledgers({k: v for k, v in ARMS.items() if k != 'sobol'})
++    if len(frame) != 4800 or frame.duplicated(['run', 'evaluation_id']).any():
++        raise ValueError('Unexpected primary population.')
++    chosen, strata = select(frame)
++    chosen['setting_id'] = chosen.run + '__' + chosen.evaluation_id
++    columns = ['setting_id', 'run', 'evaluation_id', 'arm', 'seed', 'index_in_run',
++               'physically_feasible', 'stage', 'boundary', 'nearest_channel', 'min_signed_margin',
++               'stratum', 'population', 'selected', 'inclusion_probability', *CONTROLS]
++    out.mkdir(parents=True, exist_ok=True)
++    chosen[columns].to_csv(out/names[0], index=False)
++    strata.to_csv(out/names[1], index=False)
++    inputs = ['configs/publication_200MeV.yaml', 'bin/astra', 'bin/generator',
++              'astra.in', 'pal_photo2.ini', 'gun.dat', 'PAL_SOL_A.dat', 'TWS_Sband.dat']
++    for arm in sorted(frame.arm.unique()):
++        for seed in range(42, 52):
++            inputs.append(f'results/paper_production/04_primary/benchmark/per_seed/{arm}_seed_{seed}/evaluations.csv')
++    grid = lambda n: {f'charge:{k}': n for k in ['nrad','nlong_in','nxf','nyf','nzf']}
++    step = lambda n: {'newrun:h_max': .01/n, 'newrun:h_min': .001/n}
++    medium, fine = {**grid(48), **step(2)}, {**grid(64), **step(4)}
++    levels = {'production': {}, 'fixed_medium': medium, 'fixed_fine': fine,
++              'combined_medium': {**medium, 'newrun:distribution': 'qr20k.ini'},
++              'combined_fine': {**fine, 'newrun:distribution': 'qr40k.ini'}}
++    specification = {
++        'version': 1, 'selection_seed': SELECTION_SEED,
++        'population': len(frame), 'sample_size': len(chosen), 'levels': levels,
++        'tracking_attempts': len(chosen)*len(levels), 'workers_total': 2,
++        'device': 'cuda:0', 'threads_per_process': 1, 'tracking_timeout_s': 86400,
++        'sample_manifest_sha256': sha(out/names[0]), 'strata_sha256': sha(out/names[1]),
++        'input_sha256': {p: sha(ROOT/p) for p in inputs},
++        'nominal_reproduction_rtol': 1e-9, 'nominal_reproduction_atol': 1e-12,
++        'refinement_tolerance': {'objectives_relative': .01, 'diagnostics_threshold_fraction': .01,
++                                 'energy_absolute_eV': 10000, 'transmission_absolute': .0001},
++        'scaling': {'seeds': list(range(42,52)), 'arms': ['raw','normalized'],
++                    'budget_each': 160, 'initial':16, 'batch_size':8, 'batches':18,
++                    'attempts_total':3200, 'posterior_samples':128,
++                    'raw_temperature':.001, 'normalized_temperature':.001,
++                    'residual_scales': [1e-3,1e-3,1e-3,1e-3,1e-3,5e6,5e6,.1],
++                    'stream_policy': 'initial Sobol seed=group; posterior=100000+1000*group+iteration; '
++                                     'proposal=200000+1000*group+iteration; fit=300000+1000*group+iteration',
++                    'acquisition': 'qLogNEHVI', 'num_restarts':10,'raw_samples':1024,'maxiter':200,
++                    'pilot': 'mock only; no additional physical pilot or tuning'},
++        'analysis_seed':20261101,'bootstrap_resamples':10000,
++        'no_adaptive_expansion':True, 'optional_scalarized_comparator':False,
++        'minimum_free_disk_GiB':100,
++    }
++    (out/names[2]).write_text(json.dumps(specification, indent=2, sort_keys=True)+'\n')
++    print(json.dumps({'sample_size':len(chosen),'tracking_attempts':len(chosen)*len(levels),
++                      'scaling_attempts':3200},indent=2))
++
++if __name__ == '__main__':
++    main()
+diff --git a/scripts/record_revision_round6_stage.py b/scripts/record_revision_round6_stage.py
+new file mode 100644
+index 0000000..8a6b5d0
+--- /dev/null
++++ b/scripts/record_revision_round6_stage.py
+@@ -0,0 +1,73 @@
++#!/usr/bin/env python3
++"""Commit a factual completion summary for a successfully verified round6 stage only."""
++from __future__ import annotations
++import argparse
++import json
++import subprocess
++from prepare_revision_round6 import ROOT, sha
++from evaluate_revision_round6_scaling import code_identity
++from mobo_linac.io.artifacts import validate_run_completion
++
++
++def stage_evidence(stage):
++    base=ROOT/'results/revision_round6'
++    if stage=='validation':
++        receipt=base/'validation_complete.json'
++        data=json.loads(receipt.read_text())
++        if data.get('status')!='passed' or data.get('coverage_required')!=100 or data['code_sha256']!=code_identity():
++            raise ValueError('Code validation receipt is invalid or stale.')
++        if sha(base/'logs/final_validation.log')!=data['test_log_sha256']:
++            raise ValueError('Validation log checksum mismatch.')
++        return receipt, 'The complete non-integration test suite passed with the 100% package-line-coverage gate. Lint, documentation sync and supplement manifest checks passed. Physical studies remain separate and unfinished.'
++    study='resolution' if stage=='numerical' else 'scaling'
++    receipt=base/f'analysis_{study}'/f'r6_{study}_analysis.json'
++    data=json.loads(receipt.read_text())
++    complete=base/study/'complete.json'
++    completion=json.loads(complete.read_text())
++    if completion.get('mock') or completion.get('spec_sha256')!=sha(ROOT/'docs/paper/revisions/evidence/r6_specification.json'):
++        raise ValueError('Invalid physical study completion.')
++    if study=='resolution':
++        if completion['results_sha256']!=sha(base/study/'results.jsonl'):
++            raise ValueError('Numerical result journal changed.')
++    else:
++        for name,digest in completion['campaigns'].items():
++            if sha(base/study/name)!=digest or not validate_run_completion((base/study/name).parent):
++                raise ValueError('Scaling artifact checksums changed.')
++    if data['completion_sha256']!=sha(complete):
++        raise ValueError('Analysis completion input changed.')
++    if not data.get('outputs_sha256'):
++        raise ValueError('Missing analyzed-output checksums.')
++    for name,digest in data['outputs_sha256'].items():
++        if sha(receipt.parent/name)!=digest:
++            raise ValueError('Analyzed output checksum mismatch.')
++    return receipt, f'The {study} execution and frozen-protocol offline analysis completed. Derived outputs remain under results/revision_round6/analysis_{study} for scientific review and manuscript integration. Completion does not establish convergence, normalized-method superiority, or reviewer acceptance.'
++
++
++def main(argv=None):
++    parser=argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('stage',choices=['validation','numerical','scaling'])
++    args=parser.parse_args(argv)
++    receipt,description=stage_evidence(args.stage)
++    digest=sha(receipt)
++    folder=ROOT/'docs/exec-plans/completed'
++    previous=list(folder.glob(f'TASK_*_r6_{args.stage}_completed.md'))
++    matches=[path for path in previous if digest in path.read_text()]
++    if matches:
++        subprocess.run(['git','ls-files','--error-unmatch',str(matches[0].relative_to(ROOT))],cwd=ROOT,check=True,stdout=subprocess.DEVNULL)
++        return
++    # A fresh verified receipt (for example a repeat validation after a fix) gets
++    # a new chronological summary; previous completion evidence stays untouched.
++    if subprocess.check_output(['git','branch','--show-current'],cwd=ROOT,text=True).strip()!='main':
++        raise ValueError('Expected main branch; do not commit into an unrelated checkout.')
++    n=max(int(p.name.split('_')[1]) for p in folder.glob('TASK_[0-9][0-9][0-9][0-9][0-9]_*.md'))+1
++    path=folder/f'TASK_{n:05d}_r6_{args.stage}_completed.md'
++    title=f'Record completed round6 {args.stage} stage'
++    with path.open('x') as handle:
++        handle.write(f'# Task Completion Summary: Task {n:05d}\n\n## Summary\n{title}.\n\n## Key Changes\n{description}\n\n## Validation Results\nVerified the completion receipt and recorded output hashes.\nReceipt: `{receipt.relative_to(ROOT)}`.\nReceipt SHA-256: `{digest}`.\n\n## Status\nThis stage is complete; remaining scientific integration and final publication checks are not implied. No push performed.\n')
++    relative=str(path.relative_to(ROOT))
++    subprocess.run(['git','add','--',relative],cwd=ROOT,check=True)
++    message=title+'\n\n'+description+'\n\nFiles:\nA '+relative+'\n'
++    subprocess.run(['git','commit','--only','-F','-','--',relative],input=message,text=True,cwd=ROOT,check=True)
++
++if __name__=='__main__':
++    main()
+diff --git a/scripts/recover_revision_round6.py b/scripts/recover_revision_round6.py
+new file mode 100644
+index 0000000..f8f4cee
+--- /dev/null
++++ b/scripts/recover_revision_round6.py
+@@ -0,0 +1,140 @@
++#!/usr/bin/env python3
++"""Audited recovery of the round6 numerical study after the user's pause.
++
++Verifies the pause checkpoint against the live evidence and every journal checksum, inspects
++the interrupted attempts and confirms that every other pending identity never started. The
++interrupted attempts stay in place. ASTRA cannot continue them, so each identity is tracked
++again in the isolated ``recovery_01`` directory and its record, naming the interrupted attempt,
++is appended to the study journal. The pending list and the pause marker are then archived there.
++"""
++from __future__ import annotations
++import argparse
++import fcntl
++import hashlib
++import json
++import shutil
++import numpy as np
++from mobo_linac.execution.mock import MockEvaluator
++from evaluate_revision_round6_resolution import (SPEC, ResolutionPlan, append_record, make_tasks, read_records,
++                                                 result_value, study_config, validate_inputs)
++from prepare_revision_round6 import EVIDENCE, ROOT, sha
++
++BASE = ROOT/'results/revision_round6'
++CHECKPOINT = BASE/'pause_checkpoints/20261101T221548Z'
++FILES = ('plan.json', 'pending.json', 'results.jsonl', 'nominal_complete.json')
++RECOVERY_WORKERS = 2
++EXIT_M = 16.2
++
++
++def verify_snapshot(study, checkpoint):
++    """The checkpoint copy and the live evidence still match the pause manifest."""
++    manifest = json.loads((checkpoint/'pause_manifest.json').read_text())
++    for name, digest in manifest['files_sha256'].items():
++        if sha(checkpoint/name) != digest or sha(study/name) != digest:
++            raise ValueError(f'Pause snapshot checksum mismatch: {name}')
++    records = read_records(study/'results.jsonl')
++    if len(records) != manifest['completed_count']:
++        raise ValueError('Journal count differs from the pause manifest.')
++    marker = json.loads((study/'nominal_complete.json').read_text())
++    lines = (study/'results.jsonl').read_bytes().splitlines(keepends=True)[:marker['tasks']]
++    if hashlib.sha256(b''.join(lines)).hexdigest() != marker['results_sha256']:
++        raise ValueError('Nominal marker does not match the start of the journal.')
++    return manifest, records
++
++
++def inspect_attempt(run, identity):
++    """Evidence that one started attempt was interrupted and that its inputs are intact."""
++    attempts = sorted((run/'work'/f'eval_{identity}').glob('attempt_*'))
++    if len(attempts) != 1:
++        raise ValueError(f'Expected one interrupted attempt: {identity}')
++    attempt = attempts[0]
++    provenance = run/'provenance'/f'eval_{identity}'/attempt.name
++    started = json.loads((provenance/'attempt_started.json').read_text())
++    if started['attempt_id'] != attempt.name or (provenance/'manifest.json').exists():
++        raise ValueError(f'Attempt record is not an unfinished start: {identity}')
++    if sha(attempt/'astra.in') != sha(provenance/'inputs/astra.in'):
++        raise ValueError(f'Interrupted input deck differs from its provenance: {identity}')
++    if list(attempt.glob('astra.[0-9]*.001')):
++        raise ValueError(f'Interrupted attempt has an exit distribution: {identity}')
++    last_z = float(np.atleast_2d(np.loadtxt(attempt/'astra.Xemit.001'))[-1, 0])
++    if last_z >= EXIT_M:
++        raise ValueError(f'Interrupted attempt reached the exit plane: {identity}')
++    return {'attempt_id': attempt.name, 'start_time': started['start_time'], 'last_z_m': last_z,
++            'astra_in_sha256': sha(attempt/'astra.in')}
++
++
++def inspect_pending(study, manifest, records):
++    pending = set(json.loads((study/'pending.json').read_text()))-set(records)
++    run = study/'runs/round6_resolution'
++    started = {identity for identity in pending if (run/'work'/f'eval_{identity}').exists()}
++    if started != set(manifest['interrupted_attempts']):
++        raise ValueError('Started pending identities differ from the pause manifest.')
++    return {identity: inspect_attempt(run, identity) for identity in sorted(started)}, len(pending)-len(started)
++
++
++def recover(study, checkpoint, marker, spec, frame, mock=False):
++    out = study/'recovery_01'
++    if out.exists():
++        raise ValueError('Recovery directory exists; inspect it rather than repeating the recovery.')
++    manifest, records = verify_snapshot(study, checkpoint)
++    interrupted, never_started = inspect_pending(study, manifest, records)
++    plan = json.loads((study/'plan.json').read_text())
++    for name, digest in plan['template_sha256'].items():
++        if sha(study/'template'/name) != digest:
++            raise ValueError('Retained template checksum mismatch.')
++    out.mkdir()
++    (out/'inspection.json').write_text(json.dumps(interrupted, indent=2, sort_keys=True)+'\n')
++    shutil.copy2(study/'pending.json', out/'pending_at_pause.json')
++    config = study_config(study, RECOVERY_WORKERS)
++    tasks = [t for t in make_tasks(frame, spec, list(spec['levels'])) if t.task_id in interrupted]
++    journal = out/'results.jsonl'
++    executor = ResolutionPlan(config, base_output_dir=out/'runs', num_workers=RECOVERY_WORKERS,
++                              timeout=spec['tracking_timeout_s'], template_dir=study/'template')
++    executor.evaluate_plan_parallel(tasks, evaluator=MockEvaluator(config=config) if mock else None,
++                                    on_task_complete=lambda o: append_record(journal, result_value(o)),
++                                    run_id='round6_resolution_recovery')
++    retried = read_records(journal)
++    if set(retried) != set(interrupted):
++        raise ValueError('Recovery did not account for every interrupted identity; study journal unchanged.')
++    before = sha(study/'results.jsonl')
++    for identity in sorted(retried):
++        append_record(study/'results.jsonl', {**retried[identity], 'recovery_of_attempt': interrupted[identity]['attempt_id']})
++    (study/'pending.json').unlink()
++    shutil.move(str(marker), out/'PAUSED_archived.json')
++    receipt = {'recovery': 1, 'authorized_by': 'author', 'date': '2026-11-04', 'workers': RECOVERY_WORKERS,
++               'interrupted_attempts': interrupted, 'interrupted_attempts_retained': True,
++               'pending_never_started': never_started, 'attempts_added': len(interrupted),
++               'retried': {k: {'simulation_valid': v['simulation_valid'], 'runtime_s': v['runtime_s']} for k, v in retried.items()},
++               'journal_sha256_before': before, 'journal_sha256_after': sha(study/'results.jsonl'),
++               'journal_records_after': len(read_records(study/'results.jsonl')), 'mock': mock,
++               'pending_at_pause_sha256': sha(out/'pending_at_pause.json'), 'spec_sha256': plan['spec_sha256']}
++    (out/'receipt.json').write_text(json.dumps(receipt, indent=2, sort_keys=True)+'\n')
++    return receipt
++
++
++def main(argv=None):
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--authorized', action='store_true', help='The author authorized the restart.')
++    parser.add_argument('--inspect-only', action='store_true', help='Verify and inspect without tracking.')
++    args = parser.parse_args(argv)
++    study = BASE/'resolution'
++    spec = json.loads(SPEC.read_text())
++    frame = validate_inputs(spec)
++    with (BASE/'worker.lock').open('a') as lock:
++        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
++        if args.inspect_only:
++            manifest, records = verify_snapshot(study, CHECKPOINT)
++            interrupted, never_started = inspect_pending(study, manifest, records)
++            print(json.dumps({'records': len(records), 'interrupted': interrupted,
++                              'pending_never_started': never_started}, indent=2, sort_keys=True))
++            return 0
++        if not args.authorized:
++            raise SystemExit('Recovery re-tracks and archives the pause marker; pass --authorized.')
++        receipt = recover(study, CHECKPOINT, BASE/'PAUSED.json', spec, frame)
++    (EVIDENCE/'r6_recovery_01.json').write_text(json.dumps(receipt, indent=2, sort_keys=True)+'\n')
++    print(json.dumps(receipt, indent=2, sort_keys=True))
++    return 0
++
++
++if __name__ == '__main__':
++    raise SystemExit(main())
+diff --git a/scripts/run_revision_round6_chain.sh b/scripts/run_revision_round6_chain.sh
+new file mode 100755
+index 0000000..2dd7e98
+--- /dev/null
++++ b/scripts/run_revision_round6_chain.sh
+@@ -0,0 +1,49 @@
++#!/usr/bin/env bash
++# Adopted round6 studies; one shared worker allocation (execution amendment 01), immutable new outputs.
++set -Eeuo pipefail
++cd "$(dirname "${BASH_SOURCE[0]}")/.."
++if [[ -f results/revision_round6/PAUSED.json ]]; then
++  echo "Round6 is paused by the user; explicit restart authorization and recovery inspection are required." >&2
++  exit 1
++fi
++export OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 MKL_NUM_THREADS=1 NUMEXPR_NUM_THREADS=1
++export PYTHONUNBUFFERED=1
++PYTHON_BIN=/home/cspark/Work/simulation_codes-working/miniforge3/envs/linac-opt/bin/python
++mkdir -p results/revision_round6/logs
++# Prevent two copies of this chain. Each runner additionally owns worker.lock.
++exec 9>results/revision_round6/chain.lock
++flock -n 9 || { echo 'Another round6 chain already owns the lock.' >&2; exit 1; }
++trap 'printf "Round6 chain failed at line %s; outputs retained.\n" "$LINENO" >&2' ERR
++# A complete, stable-source validation run precedes the remaining physical stages.
++"$PYTHON_BIN" -c 'import sys,json;sys.path.insert(0,"scripts");from evaluate_revision_round6_scaling import code_identity;print(json.dumps(code_identity(),sort_keys=True))' > results/revision_round6/validation_start_code.json
++"$PYTHON_BIN" -m pytest -m "not integration" --tb=short --cov=mobo_linac \
++  --cov-report=term-missing --cov-fail-under=100 > results/revision_round6/logs/final_validation.log 2>&1
++"$PYTHON_BIN" -m ruff check src scripts tests
++"$PYTHON_BIN" scripts/verify_docs_sync.py
++"$PYTHON_BIN" scripts/build_supplement_manifest.py
++"$PYTHON_BIN" - <<'PYCODE'
++import json, sys
++from pathlib import Path
++sys.path.insert(0, 'scripts')
++from evaluate_revision_round6_scaling import code_identity
++from prepare_revision_round6 import sha
++base=Path('results/revision_round6')
++assert json.loads((base/'validation_start_code.json').read_text())==code_identity(), 'Code changed during validation'
++(base/'validation_complete.json').write_text(json.dumps({
++    'status':'passed','coverage_required':100,'code_sha256':code_identity(),
++    'test_log_sha256':sha(base/'logs/final_validation.log')},indent=2)+'\n')
++PYCODE
++"$PYTHON_BIN" scripts/record_revision_round6_stage.py validation
++"$PYTHON_BIN" scripts/evaluate_revision_round6_resolution.py --resume --wait-for-workers \
++  > results/revision_round6/logs/resolution_refinement.log 2>&1
++"$PYTHON_BIN" scripts/analyze_revision_round6.py resolution --resume \
++  --output-dir results/revision_round6/analysis_resolution \
++  > results/revision_round6/logs/resolution_analysis.log 2>&1
++"$PYTHON_BIN" scripts/record_revision_round6_stage.py numerical
++"$PYTHON_BIN" scripts/evaluate_revision_round6_scaling.py --resume --wait-for-workers \
++  > results/revision_round6/logs/scaling.log 2>&1
++"$PYTHON_BIN" scripts/analyze_revision_round6.py scaling --resume \
++  --output-dir results/revision_round6/analysis_scaling \
++  > results/revision_round6/logs/scaling_analysis.log 2>&1
++"$PYTHON_BIN" scripts/record_revision_round6_stage.py scaling
++printf 'Physical studies and offline analyses complete; manuscript integration, reviewer responses and final validation remain.\n'
+diff --git a/scripts/summarize_revision_round6.py b/scripts/summarize_revision_round6.py
+new file mode 100644
+index 0000000..4b50d5c
+--- /dev/null
++++ b/scripts/summarize_revision_round6.py
+@@ -0,0 +1,289 @@
++#!/usr/bin/env python3
++"""Collect the completed round6 analyses as manuscript evidence and summarize them.
++
++``--collect`` copies the checksummed frozen-protocol analysis tables from
++``results/revision_round6/analysis_*`` into the evidence directory, after verifying each
++against its analysis receipt, and tabulates the recorded proposal tiers of the scaling
++campaigns. Without it, only the evidence files are read: the summary JSON files and the two
++LaTeX tables that the manuscript inputs are rewritten from them. No analysis choice is made
++here; every number is a descriptive restatement of the frozen-protocol outputs.
++"""
++from __future__ import annotations
++import argparse
++import json
++import shutil
++from pathlib import Path
++import pandas as pd
++from prepare_revision_round6 import ROOT, EVIDENCE, sha
++
++RESULTS = ROOT/'results/revision_round6'
++COPIED = {'resolution': ['r6_resolution_fractions.csv', 'r6_resolution_paired.csv',
++                         'r6_resolution_classification.csv', 'r6_resolution_tolerances.csv'],
++          'scaling': ['r6_scaling_runs.csv', 'r6_scaling_paired.csv', 'r6_scaling_channels.csv']}
++LEVELS = ['production', 'fixed_medium', 'fixed_fine', 'combined_medium', 'combined_fine']
++LEVEL_NAMES = {'production': 'Production', 'fixed_medium': 'Fixed-source medium',
++               'fixed_fine': 'Fixed-source fine', 'combined_medium': 'Combined medium',
++               'combined_fine': 'Combined fine'}
++ARMS = ['constrained_qlognehvi', 'unconstrained_qlognehvi', 'scalarized_bo']
++QUANTITIES = [('norm_emit_x_m_rad', r'$\enx$'), ('norm_emit_y_m_rad', r'$\eny$'),
++              ('sigma_energy_eV', r'$\sigma_E$'), ('sigma_x_m', r'$\sigma_x$'),
++              ('sigma_y_m', r'$\sigma_y$'), ('sigma_xp_rad', r"$\sigma_{x'}$"),
++              ('sigma_yp_rad', r"$\sigma_{y'}$"), ('sigma_z_m', r'$\sigma_z$'),
++              ('mean_kinetic_energy_eV', r'$E_\mathrm{kin}$'),
++              ('transmission_fraction', 'Transmission')]
++CATEGORIES = ['transverse_only', 'energy_only', 'multiple_groups', 'other_only', 'feasible']
++
++
++def verified_outputs(study, results=RESULTS):
++    """The analysis directory of a completed study, after checking its receipt."""
++    folder = results/f'analysis_{study}'
++    receipt = json.loads((folder/f'r6_{study}_analysis.json').read_text())
++    if receipt['spec_sha256'] != sha(EVIDENCE/'r6_specification.json'):
++        raise ValueError(f'{study} analysis does not belong to the frozen specification.')
++    if receipt['completion_sha256'] != sha(results/study/'complete.json'):
++        raise ValueError(f'{study} analysis does not match its completion record.')
++    for name, digest in receipt['outputs_sha256'].items():
++        if sha(folder/name) != digest:
++            raise ValueError(f'Analysis output changed: {name}')
++    return folder, receipt
++
++
++def proposal_tiers(scaling_dir):
++    rows = []
++    for path in sorted(scaling_dir.glob('*_seed_*/proposal_history.json')):
++        arm, seed = path.parent.name.split('_seed_')
++        methods = [b['metadata']['method'] for b in json.loads(path.read_text())]
++        rows.append({'arm': arm, 'seed': int(seed), 'batches': len(methods),
++                     'initial_sobol': methods.count('initial_sobol'), 'primary': methods.count('primary'),
++                     'retry': methods.count('retry'),
++                     'other': len(methods)-sum(methods.count(m) for m in ['initial_sobol', 'primary', 'retry'])})
++    return pd.DataFrame(rows)
++
++
++def collect(results=RESULTS, out=EVIDENCE):
++    sources = {}
++    for study, names in COPIED.items():
++        folder, receipt = verified_outputs(study, results)
++        for name in names:
++            if name not in receipt['outputs_sha256']:
++                raise ValueError(f'{name} is not a checksummed analysis output.')
++            shutil.copyfile(folder/name, out/name)
++            sources[name] = {'source': str((folder/name).relative_to(ROOT)) if folder.is_relative_to(ROOT) else name,
++                             'sha256': receipt['outputs_sha256'][name]}
++        sources[f'r6_{study}_analysis.json'] = {'completion_sha256': receipt['completion_sha256']}
++    proposal_tiers(results/'scaling').to_csv(out/'r6_scaling_proposals.csv', index=False)
++    (out/'r6_collection.json').write_text(json.dumps(sources, indent=2, sort_keys=True)+'\n')
++
++
++def flips(classification):
++    table = classification.pivot(index='setting_id', columns='level', values='feasible').astype(bool)
++    meta = classification[classification.level == 'production'].set_index('setting_id')
++    result = {}
++    for first, second in [('production', level) for level in LEVELS[1:]] + [
++            ('fixed_medium', 'fixed_fine'), ('combined_medium', 'combined_fine')]:
++        changed = table.index[table[first] != table[second]]
++        result[f'{second} vs {first}'] = {
++            'changed': len(changed),
++            'infeasible_to_feasible': int((~table[first] & table[second]).sum()),
++            'feasible_to_infeasible': int((table[first] & ~table[second]).sum()),
++            'arms': meta.loc[changed, 'arm'].value_counts().to_dict(),
++            'nearest_channels': meta.loc[changed, 'nearest_channel'].value_counts().to_dict(),
++            'largest_absolute_margin': float(meta.loc[changed, 'min_signed_margin'].abs().max()) if len(changed) else None}
++    return result
++
++
++def changes(classification, quantity, level, reference):
++    table = classification.pivot(index='setting_id', columns='level', values=quantity)
++    if quantity in ('mean_kinetic_energy_eV', 'transmission_fraction'):
++        delta = table[level]-table[reference]
++        scale = 1e-6 if quantity == 'mean_kinetic_energy_eV' else 1.0
++        return {'unit': 'MeV' if scale == 1e-6 else 'absolute', 'median': float(delta.median()*scale),
++                'min': float(delta.min()*scale), 'max': float(delta.max()*scale),
++                'median_magnitude': float(delta.abs().median()*scale)}
++    delta = 100*(table[level]-table[reference])/table[reference]
++    return {'unit': 'percent', 'median': float(delta.median()), 'min': float(delta.min()),
++            'max': float(delta.max()), 'median_magnitude': float(delta.abs().median()),
++            'fraction_lower': float((delta < 0).mean())}
++
++
++def summarize_resolution(evidence=EVIDENCE):
++    fractions = pd.read_csv(evidence/'r6_resolution_fractions.csv')
++    paired = pd.read_csv(evidence/'r6_resolution_paired.csv')
++    classification = pd.read_csv(evidence/'r6_resolution_classification.csv')
++    tolerances = pd.read_csv(evidence/'r6_resolution_tolerances.csv')
++    production = classification[classification.level == 'production']
++    weighted = {}
++    for (level, arm), group in fractions.groupby(['level', 'arm']):
++        weighted.setdefault(level, {})[arm] = {
++            'mean': float(group.fraction.mean()), 'min': float(group.fraction.min()),
++            'max': float(group.fraction.max()),
++            'design_se': float(group.design_variance.sum()**.5/len(group)), 'groups': len(group)}
++    within = tolerances[tolerances.comparison_valid].groupby(['comparison', 'quantity']).within_tolerance.mean()
++    return {
++        'settings': len(production), 'settings_by_arm': production.arm.value_counts().to_dict(),
++        'boundary': production.boundary.value_counts().to_dict(),
++        'attempts': len(classification), 'valid_by_level': classification.groupby('level').simulation_valid.sum().astype(int).to_dict(),
++        'runtime_mean_s': classification.groupby('level').runtime_s.mean().to_dict(),
++        'weighted_feasible_fraction': weighted,
++        'paired': paired.to_dict(orient='records'),
++        'flips': flips(classification),
++        'changes': {name: {f'{level} vs {reference}': changes(classification, name, level, reference)
++                           for level, reference in [('fixed_fine', 'production'), ('combined_fine', 'production'),
++                                                    ('fixed_fine', 'fixed_medium'), ('combined_fine', 'combined_medium'),
++                                                    ('fixed_fine', 'combined_fine')]}
++                    for name, _ in QUANTITIES},
++        'within_tolerance': {f'{comparison}|{quantity}': float(value) for (comparison, quantity), value in within.items()},
++        'scope': 'Sampled historical primary settings re-tracked at frozen levels; weighted fractions use the '
++                 'frozen inclusion probabilities. Tolerances are declared adequacy thresholds, not error bounds.'}
++
++
++def summarize_scaling(evidence=EVIDENCE):
++    runs = pd.read_csv(evidence/'r6_scaling_runs.csv')
++    paired = pd.read_csv(evidence/'r6_scaling_paired.csv')
++    channels = pd.read_csv(evidence/'r6_scaling_channels.csv')
++    tiers = pd.read_csv(evidence/'r6_scaling_proposals.csv')
++    wide = runs.pivot(index='seed', columns='arm', values='feasible_fraction')
++    post = channels[channels.stage != 'initial'].groupby('arm')[['attempts', *CATEGORIES]].sum()
++    shares = post[CATEGORIES].div(post.attempts, axis=0)
++    return {
++        'campaigns': len(runs), 'attempts': int(channels.attempts.sum()),
++        'invalid_attempts': int(runs.invalid_attempts.sum()),
++        'arms': {arm: {'feasible_fraction': {k: float(getattr(g.feasible_fraction, k)()) for k in ['mean', 'min', 'max']},
++                       'post_init_feasible_fraction': {k: float(getattr(g.post_init_feasible_fraction, k)()) for k in ['mean', 'min', 'max']},
++                       'elapsed_h': {k: float(getattr(g.elapsed_wall_time_s, k)()/3600) for k in ['mean', 'median', 'min', 'max']}}
++                 for arm, g in runs.groupby('arm')},
++        'group_differences': (wide.normalized-wide.raw).to_dict(),
++        'paired': paired.to_dict(orient='records'),
++        'post_init_category_shares': shares.to_dict(orient='index'),
++        'post_init_share_difference_normalized_minus_raw': (shares.loc['normalized']-shares.loc['raw']).to_dict(),
++        'proposal_tiers': tiers.groupby('arm')[['batches', 'initial_sobol', 'primary', 'retry', 'other']].sum().to_dict(orient='index'),
++        'scope': 'Tests the frozen threshold-normalized residuals with common dimensionless temperature 0.001 '
++                 'against raw residuals at temperature 0.001; physical smoothing widths differ, so no pure '
++                 'normalization effect is identified. Elapsed times are descriptive on a shared host.'}
++
++
++def signed(value, digits, plus=False):
++    """A number for LaTeX text mode, with a typographic minus sign."""
++    text = f'{value:+.{digits}f}' if plus else f'{value:.{digits}f}'
++    return f'${text}$' if text[0] in '+-' else text
++
++
++def interval(row):
++    return (f"{signed(row['mean_difference'], 3)} [{signed(row['ci_lower_conditional'], 3)}, "
++            f"{signed(row['ci_upper_conditional'], 3)}]")
++
++
++def float_table(body, caption, label, size='small', column_separation=None):
++    """A complete table float, set page-wide by the manuscript's ``\\inputwide``."""
++    head = [r'\begin{table}[htbp]', r'\centering', rf'\caption{{{caption}}}', rf'\label{{{label}}}', rf'\{size}']
++    if column_separation:
++        head.append(rf'\setlength{{\tabcolsep}}{{{column_separation}}}')
++    return '\n'.join(head)+'\n'+body+r'\end{table}'+'\n'
++
++
++def resolution_table(summary):
++    paired = pd.DataFrame(summary['paired'])
++    lines = [r'\begin{tabular}{lrrrrrr}', r'\toprule',
++             r'Level & Constr. & Unconstr. & Scalar. & $\Delta$ vs unconstr. & $\Delta$ vs scalar. & Flips \\', r'\midrule']
++    for level in LEVELS:
++        frac = summary['weighted_feasible_fraction'][level]
++        rows = paired[paired.level == level].set_index('second')
++        flip = '--' if level == 'production' else str(summary['flips'][f'{level} vs production']['changed'])
++        constrained = frac['constrained_qlognehvi']
++        lines.append(f"{LEVEL_NAMES[level]} & {constrained['mean']:.3f} ({constrained['design_se']:.3f}) & "
++                     f"{frac['unconstrained_qlognehvi']['mean']:.3f} & {frac['scalarized_bo']['mean']:.3f} & "
++                     f"{interval(rows.loc['unconstrained_qlognehvi'])} & {interval(rows.loc['scalarized_bo'])} & {flip} \\\\")
++    lines += [r'\bottomrule', r'\end{tabular}']
++    se = paired.groupby('level').design_se_conservative.max()
++    caption = ('Weighted feasible fractions of the re-tracked stratified sample over all 160\n'
++               'evaluations of each run, mean over ten groups. The design standard error of the constraint-aware\n'
++               'fraction is in parentheses; the baseline fractions have zero design variance because none of\n'
++               'their sampled classifications changed. $\\Delta$ is the paired constraint-aware difference with a\n'
++               '\\SI{95}{\\percent} ten-group bootstrap interval conditional on the sampled observations; its\n'
++               f"design standard error is {se['fixed_medium']:.3f} at the medium and {se['fixed_fine']:.3f} at the fine levels. Flips count changed\n"
++               f"production-profile classifications among the {summary['settings']} settings relative to the production level.")
++    return float_table('\n'.join(lines)+'\n', caption, 'tab:retracking', 'footnotesize', '4pt')
++
++
++def change_cell(entry):
++    if entry['min'] == entry['max'] == 0:
++        return '0 (all settings)'
++    digits = 2 if entry['unit'] == 'MeV' else (4 if entry['unit'] == 'absolute' else 1)
++    return f"{signed(entry['median'], digits)} [{signed(entry['min'], digits)}, {signed(entry['max'], digits)}]"
++
++
++def numerical_table(summary):
++    lines = [r'\begin{tabular}{lrrrr}', r'\toprule',
++             r'Quantity & Fine vs production & $|$Fine vs medium$|$ & \multicolumn{2}{c}{Within tolerance} \\',
++             r' & median [range] & median & fixed & combined \\', r'\midrule']
++    for name, label in QUANTITIES:
++        entry = summary['changes'][name]
++        tolerance = [summary['within_tolerance'][f'{kind}_fine - {kind}_medium|{name}'] for kind in ['fixed', 'combined']]
++        digits = 2 if entry['fixed_fine vs fixed_medium']['unit'] == 'MeV' else (4 if entry['fixed_fine vs fixed_medium']['unit'] == 'absolute' else 1)
++        magnitude = entry['fixed_fine vs fixed_medium']['median_magnitude']
++        lines.append(f"{label} & {change_cell(entry['fixed_fine vs production'])} & "
++                     f"{'0' if magnitude == 0 else f'{magnitude:.{digits}f}'} & "
++                     f"{tolerance[0]:.3f} & {tolerance[1]:.3f} \\\\")
++    lines += [r'\bottomrule', r'\end{tabular}']
++    caption = (f"Changes of the exit-plane quantities of the {summary['settings']} re-tracked settings. ``Fine vs\n"
++               "production'' is the signed change at the fixed-source fine level relative to production, median\n"
++               "and range over settings; ``$|$Fine vs medium$|$'' is the median magnitude of the fixed-source\n"
++               "fine-to-medium change. Entries are percentages, except for mean energy (\\si{\\mega\\electronvolt})\n"
++               "and transmission (absolute). The last two columns give the fraction of settings whose fine-to-medium\n"
++               "change meets the declared tolerance for the fixed-source and combined levels.")
++    return float_table('\n'.join(lines)+'\n', caption, 'tab:retracking_values')
++
++
++def scaling_table(summary):
++    paired = {row['endpoint']: row for row in summary['paired']}
++    shares = summary['post_init_category_shares']
++    lines = [r'\begin{tabular}{lrrrrrrr}', r'\toprule',
++             r'Arm & All attempts & After init. & Transverse & Energy & Multiple & $\sigma_z$ only & Time [h] \\', r'\midrule']
++    for arm, name in [('raw', 'Raw'), ('normalized', 'Normalized')]:
++        data = summary['arms'][arm]
++        lines.append(f"{name} & {data['feasible_fraction']['mean']:.3f} & {data['post_init_feasible_fraction']['mean']:.3f} & "
++                     f"{shares[arm]['transverse_only']:.3f} & {shares[arm]['energy_only']:.3f} & "
++                     f"{shares[arm]['multiple_groups']:.3f} & {shares[arm]['other_only']:.3f} & {data['elapsed_h']['mean']:.2f} \\\\")
++    difference = summary['post_init_share_difference_normalized_minus_raw']
++    lines.append(r'\midrule')
++    bounds = [f"[{signed(paired[k]['ci_lower_conditional'], 3)}, {signed(paired[k]['ci_upper_conditional'], 3)}]"
++              for k in ['feasible_fraction', 'post_init_feasible_fraction']]
++    lines.append(f"Difference & {signed(paired['feasible_fraction']['mean_difference'], 3)} & "
++                 f"{signed(paired['post_init_feasible_fraction']['mean_difference'], 3)} & "
++                 + ' & '.join(signed(difference[k], 3, True) for k in ['transverse_only', 'energy_only', 'multiple_groups', 'other_only'])
++                 + f" & {signed(paired['elapsed_wall_time_s']['mean_difference']/3600, 2, True)} \\\\")
++    lines.append(f"\\quad 95\\% interval & {bounds[0]} & {bounds[1]} & & & & & \\\\")
++    lines += [r'\bottomrule', r'\end{tabular}']
++    caption = ('Matched raw- and normalized-residual campaigns, ten groups of 160 evaluations per arm.\n'
++               'Feasible fractions over all evaluations and after the 16 initial ones are means over groups; the\n'
++               'category columns give the shares of post-initialization evaluations that violate only the\n'
++               'transverse limits, only the energy band, more than one group, or only the bunch-length limit\n'
++               '(transmission was never violated). The difference row gives normalized minus raw, with\n'
++               '\\SI{95}{\\percent} paired bootstrap intervals for the feasible fractions, and the mean paired\n'
++               'difference in campaign time.')
++    return float_table('\n'.join(lines)+'\n', caption, 'tab:scaling', 'footnotesize', '4pt')
++
++
++def write(evidence=EVIDENCE):
++    resolution, scaling = summarize_resolution(evidence), summarize_scaling(evidence)
++    inputs = sorted(set(sum(COPIED.values(), []))|{'r6_scaling_proposals.csv'})
++    for name, data in [('r6_resolution_summary.json', resolution), ('r6_scaling_summary.json', scaling)]:
++        data['inputs_sha256'] = {n: sha(evidence/n) for n in inputs if (evidence/n).exists() and n.split('_')[1] in name}
++        (evidence/name).write_text(json.dumps(data, indent=2, sort_keys=True)+'\n')
++    (evidence/'r6_resolution_table.tex').write_text(resolution_table(resolution))
++    (evidence/'r6_numerical_table.tex').write_text(numerical_table(resolution))
++    (evidence/'r6_scaling_table.tex').write_text(scaling_table(scaling))
++
++
++def main(argv=None):
++    parser = argparse.ArgumentParser(description=__doc__)
++    parser.add_argument('--collect', action='store_true', help='copy verified analysis outputs from results/ first')
++    parser.add_argument('--evidence-dir', type=Path, default=EVIDENCE)
++    args = parser.parse_args(argv)
++    if args.collect:
++        collect(out=args.evidence_dir)
++    write(args.evidence_dir)
++
++
++if __name__ == '__main__':
++    main()
+diff --git a/src/mobo_linac/acquisition/mobo.py b/src/mobo_linac/acquisition/mobo.py
+index dbb3e36..05dada5 100644
+--- a/src/mobo_linac/acquisition/mobo.py
++++ b/src/mobo_linac/acquisition/mobo.py
+@@ -65,6 +65,7 @@ def build_acquisition_function(
+     sampler: Optional[Any] = None,
+     constraints: Optional[List[Any]] = None,
+     objective: Optional[Any] = None,
++    constraint_temperature: Optional[float] = None,
+ ) -> Any:
+     """
+     Constructs a multi-objective acquisition function (qLogNEHVI, qLogEHVI, qEHVI, or qNEHVI).
+@@ -79,6 +80,7 @@ def build_acquisition_function(
+         sampler: Optional Monte Carlo sampler.
+         constraints: Optional list of BoTorch tensor constraint functions c_i(Y) <= 0.
+         objective: Optional MCMultiOutputObjective for slicing model outputs.
++        constraint_temperature: Optional positive residual smoothing scale; None retains BoTorch defaults.
+ 
+     Returns:
+         Instantiated acquisition function.
+@@ -100,6 +102,8 @@ def build_acquisition_function(
+     kw_args = {}
+     if constraints is not None:
+         kw_args["constraints"] = constraints
++        if constraint_temperature is not None:
++            kw_args["eta"] = constraint_temperature
+     if objective is not None:
+         kw_args["objective"] = objective
+ 
+diff --git a/src/mobo_linac/campaigns/runner.py b/src/mobo_linac/campaigns/runner.py
+index 60f0518..1a70af0 100644
+--- a/src/mobo_linac/campaigns/runner.py
++++ b/src/mobo_linac/campaigns/runner.py
+@@ -493,13 +493,16 @@ class CampaignLoop:
+         training = get_training_observations(self.results, exclude_invalid=True,
+                                              require_diagnostics=self.runner.constrained, config=self.config)
+         if training.train_X.shape[0] < 2:
+-            start = self.sobol.num_generated
+-            samples = self.sobol.draw(batch_size).to(dtype=torch.double)
++            group = self.config.execution.acquisition_stream_group
++            engine = (torch.quasirandom.SobolEngine(self.bounds.shape[1], scramble=True,
++                      seed=200000 + 1000 * group + iteration) if group is not None else self.sobol)
++            start = engine.num_generated
++            samples = engine.draw(batch_size).to(dtype=torch.double)
+             lower, upper = self.bounds[0], self.bounds[1]
+             return (lower + (upper - lower) * samples).tolist(), {
+                 "method": "low_data_sobol", "device": "cpu", "attempts": [],
+                 "fallback_reason": "fewer than two observed training rows",
+-                "sobol": {"seed": self.runner.seed, "start": start, "end": self.sobol.num_generated}}
++                "sobol": {"seed": engine.seed, "start": start, "end": engine.num_generated}}
+         return self.strategy.propose(training, iteration, batch_size, self.sobol)
+ 
+     def evaluate(self, candidates: List[List[float]], batch_idx: int, metadata=None) -> List[EvaluationResult]:
+diff --git a/src/mobo_linac/campaigns/strategies.py b/src/mobo_linac/campaigns/strategies.py
+index 8bb517e..2cf8dfa 100644
+--- a/src/mobo_linac/campaigns/strategies.py
++++ b/src/mobo_linac/campaigns/strategies.py
+@@ -4,16 +4,18 @@ A strategy turns the identity-ordered training observations of a campaign into t
+ batch of candidates (physical units) plus the proposal metadata recorded with it.
+ """
+ 
++from contextlib import contextmanager
+ from dataclasses import dataclass
+ from typing import Any, Callable, Dict, List, Optional, Protocol, Tuple
+ 
+ import torch
+ from botorch.acquisition.logei import qLogNoisyExpectedImprovement
+ from botorch.models import ModelListGP
++from botorch.sampling.normal import SobolQMCNormalSampler
+ 
+ from mobo_linac.acquisition.mobo import FallbackPolicy, SliceObjective, build_acquisition_function, generate_next_candidates
+ from mobo_linac.config import ExecutionConfig, MoboConfig
+-from mobo_linac.constraints import get_botorch_constraint_functions
++from mobo_linac.constraints import get_botorch_constraint_functions, constraint_residual_metadata
+ from mobo_linac.metrics.hypervolume import compute_reference_point
+ from mobo_linac.models.gp import SurrogateSettings, build_output_gp, fit_gp_models
+ from mobo_linac.models.pipeline import SurrogatePipeline
+@@ -85,6 +87,21 @@ class ScalarizedProposal:
+                          device, sobol_engine)
+ 
+ 
++@contextmanager
++def proposal_random_stream(seed, device):
++    """Isolate optional experiment streams; default campaigns retain their RNG behavior."""
++    if seed is None:
++        yield
++        return
++    devices = [device.index if device.index is not None else torch.cuda.current_device()] if device.type == "cuda" else []
++    with torch.random.fork_rng(devices=devices):
++        torch.random.default_generator.manual_seed(seed)
++        if devices:
++            with torch.cuda.device(devices[0]):
++                torch.cuda.manual_seed(seed)
++        yield
++
++
+ @dataclass
+ class MultiObjectiveProposal:
+     """Independent objective GPs (and constraint GPs when constrained) with an EHVI-family acquisition."""
+@@ -111,22 +128,38 @@ class MultiObjectiveProposal:
+                 SliceObjective(num_objectives=count))
+ 
+     def propose(self, training, iteration, batch_size, sobol_engine) -> Proposal:
+-        pipeline, gp_model, constraints, objective = self._surrogate(training)
+-        self.persist_model(pipeline, iteration, training, pipeline=True)
+         execution = self.config.execution
++        group = execution.acquisition_stream_group
++        streams = ({"fit": 300000 + 1000 * group + iteration,
++                    "posterior": 100000 + 1000 * group + iteration,
++                    "proposal": 200000 + 1000 * group + iteration} if group is not None else {})
++        with proposal_random_stream(streams.get("fit"), self.device):
++            pipeline, gp_model, constraints, objective = self._surrogate(training)
++        self.persist_model(pipeline, iteration, training, pipeline=True)
+         basis_Y = training.train_Y
+         if execution.acquisition_reference_basis == "feasible" and bool(training.feasible.any()):
+             basis_Y = training.train_Y[training.feasible]
+         reference = compute_reference_point(basis_Y, offset_ratio=execution.acquisition_reference_offset,
+                                             config=self.config)
+-        acq_func = build_acquisition_function(
+-            model=gp_model, train_X=training.train_X, train_Y=training.train_Y, ref_point=reference,
+-            train_feas_mask=training.feasible, acq_type=self.acq_type, constraints=constraints, objective=objective,
+-        )
+-        candidates, metadata = _optimize(acq_func, self.bounds, batch_size,
+-                                         AcquisitionSettings.from_execution(execution), self.device, sobol_engine)
++        sampler = (SobolQMCNormalSampler(sample_shape=torch.Size([execution.acqf_mc_samples or 128]),
++                                        seed=streams.get("posterior"))
++                   if execution.acqf_mc_samples is not None or streams else None)
++        # Baseline pruning may also draw posterior samples during construction.
++        with proposal_random_stream(streams.get("posterior"), self.device):
++            acq_func = build_acquisition_function(
++                model=gp_model, train_X=training.train_X, train_Y=training.train_Y, ref_point=reference,
++                train_feas_mask=training.feasible, acq_type=self.acq_type, constraints=constraints, objective=objective,
++                sampler=sampler, constraint_temperature=execution.constraint_temperature,
++            )
++        fallback_engine = (torch.quasirandom.SobolEngine(self.bounds.shape[1], scramble=True,
++                                                       seed=streams["proposal"]) if streams else sobol_engine)
++        with proposal_random_stream(streams.get("proposal"), self.device):
++            candidates, metadata = _optimize(acq_func, self.bounds, batch_size,
++                                             AcquisitionSettings.from_execution(execution), self.device, fallback_engine)
+         if metadata is not None:
+-            metadata = dict(metadata, acquisition_reference={
++            metadata = dict(metadata, random_streams=streams,
++                            constraint_residuals=constraint_residual_metadata(self.config) if self.constrained else None,
++                            posterior_samples=execution.acqf_mc_samples, acquisition_reference={
+                 "point_model": reference.detach().cpu().tolist(),
+                 "offset": execution.acquisition_reference_offset,
+                 "basis": execution.acquisition_reference_basis})
+diff --git a/src/mobo_linac/config.py b/src/mobo_linac/config.py
+index d38dc2c..bd8335c 100644
+--- a/src/mobo_linac/config.py
++++ b/src/mobo_linac/config.py
+@@ -192,6 +192,11 @@ class ExecutionConfig:
+     reporting_reference_offset: float = 0.10
+     acquisition_reference_offset: float = 0.05
+     acquisition_reference_basis: str = "all_valid"
++    constraint_residual_mode: str = "raw"
++    constraint_temperature: float = 1.0e-3
++    # None preserves the historic default sampler/global RNG behavior.
++    acqf_mc_samples: Optional[int] = None
++    acquisition_stream_group: Optional[int] = None
+     # Simulation statuses that start a fresh attempt (bounded by ``retries``).
+     retry_statuses: List[str] = field(default_factory=lambda: list(DEFAULT_RETRY_STATUSES))
+ 
+@@ -435,6 +440,10 @@ FIELD_RULES = {
+         "retries": {"minimum": 0},
+         "reporting_reference_offset": {"minimum": 0}, "acquisition_reference_offset": {"minimum": 0},
+         "acquisition_reference_basis": {"enum": ["all_valid", "feasible"]},
++        "constraint_residual_mode": {"enum": ["raw", "normalized"]},
++        "constraint_temperature": {"exclusiveMinimum": 0},
++        "acqf_mc_samples": {"minimum": 1},
++        "acquisition_stream_group": {"minimum": 0},
+ 
+         "retry_statuses": {"uniqueItems": True, "items": {"type": "string", "enum": [
+             status.value for status in SimulationStatus if status is not SimulationStatus.SUCCESS]}},
+diff --git a/src/mobo_linac/constraints.py b/src/mobo_linac/constraints.py
+index c4af20f..7bc572d 100644
+--- a/src/mobo_linac/constraints.py
++++ b/src/mobo_linac/constraints.py
+@@ -68,6 +68,31 @@ class ConstraintEvaluator:
+         return violations
+ 
+ 
++def constraint_residual_metadata(config: MoboConfig) -> dict:
++    """Record the residual convention and physical smoothing scales in constraint order."""
++    config.execution.validate()
++    mode = config.execution.constraint_residual_mode
++    scales = []
++    for index, side, threshold, _ in constraint_sides(config.constraints):
++        channel = DIAGNOSTIC_CHANNELS[index]
++        lower, upper = channel.bounds(config.constraints)
++        if mode == "raw":
++            scale = 1.0
++        elif lower is not None and upper is not None:
++            scale = (upper - lower) / 2
++        elif channel.physical_maximum is not None and side == "lower":
++            scale = channel.physical_maximum - threshold
++        else:
++            scale = abs(threshold)
++        if scale <= 0:
++            raise ValueError("Normalized residuals require strictly positive physical scales.")
++        scales.append(scale)
++    temperature = config.execution.constraint_temperature
++    return {"mode": mode, "scales": scales, "temperature": temperature,
++            "physical_smoothing_scales": [scale * temperature for scale in scales],
++            "constraint_names": [name for _, _, _, name in constraint_sides(config.constraints)]}
++
++
+ def get_botorch_constraint_functions(
+     config: Union[ConstraintsConfig, MoboConfig],
+     num_objectives: Optional[int] = None,
+@@ -99,13 +124,15 @@ def get_botorch_constraint_functions(
+     if type(offset) is not int or offset < 1:
+         raise ValueError("num_objectives must be a positive integer.")
+ 
++    scales = constraint_residual_metadata(config)["scales"] if isinstance(config, MoboConfig) else [
++        1.0 for _ in constraint_sides(c_config)]
+     functions = []
+-    for index, side, threshold, _ in constraint_sides(c_config):
+-        def constraint(Y, index=index, side=side, threshold=threshold):
++    for (index, side, threshold, _), scale in zip(constraint_sides(c_config), scales):
++        def constraint(Y, index=index, side=side, threshold=threshold, scale=scale):
+             if Y.shape[-1] != offset + len(DIAGNOSTIC_CHANNELS):
+                 raise ValueError("Acquisition outcomes do not match objective/diagnostic layout.")
+             value = Y[..., offset + index]
+-            residual = threshold - value if side == "lower" else value - threshold
++            residual = (threshold - value if side == "lower" else value - threshold) / scale
+             return torch.where(torch.isfinite(value), residual, torch.full_like(value, float("inf")))
+         functions.append(constraint)
+     return functions
+diff --git a/tests/test_model_edge_cases.py b/tests/test_model_edge_cases.py
+index 7e30cf0..612d546 100644
+--- a/tests/test_model_edge_cases.py
++++ b/tests/test_model_edge_cases.py
+@@ -1,5 +1,6 @@
+ """Surrogate validation, prediction failures and failed tuning must remain explicit."""
+ 
++from contextlib import contextmanager, nullcontext
+ from types import SimpleNamespace
+ 
+ import pytest
+@@ -169,6 +170,56 @@ def test_nonfinite_tuning_score_is_not_a_winner(data, monkeypatch):
+         tuning.tune_gp_hyperparameters(x, y, b, candidate_covars=["rbf"], candidate_noise_modes=["inferred"])
+ 
+ 
++@pytest.mark.parametrize('device_name, expected_device', [('cuda:1', 1), ('cuda', 2)])
++@pytest.mark.parametrize('fail', [False, True])
++def test_proposal_cuda_stream_restores_rng_without_gpu(monkeypatch, device_name, expected_device, fail):
++    from mobo_linac.campaigns.strategies import proposal_random_stream
++
++    # Keep the real fork_rng context; emulate only CUDA state using CPU generators.
++    generators = {index: torch.Generator().manual_seed(70 + index) for index in range(3)}
++    active = [0]
++    entered = []
++
++    @contextmanager
++    def cuda_device(index):
++        entered.append(index)
++        previous = active[0]
++        active[0] = index
++        try:
++            yield
++        finally:
++            active[0] = previous
++
++    def seed_cuda(seed):
++        assert active[0] == expected_device
++        generators[active[0]].manual_seed(seed)
++
++    monkeypatch.setattr(torch.cuda, 'current_device', lambda: 2)
++    monkeypatch.setattr(torch.cuda, 'device', cuda_device)
++    monkeypatch.setattr(torch.cuda, 'get_rng_state', lambda index: generators[index].get_state())
++    monkeypatch.setattr(torch.cuda, 'set_rng_state', lambda state, index: generators[index].set_state(state))
++    monkeypatch.setattr(torch.cuda, 'manual_seed', seed_cuda)
++    cpu_before = torch.get_rng_state().clone()
++    cuda_before = {index: generator.get_state().clone() for index, generator in generators.items()}
++    draws = []
++    for _ in range(2):
++        with pytest.raises(RuntimeError, match='proposal failed') if fail else nullcontext():
++            with proposal_random_stream(101, torch.device(device_name)):
++                assert active[0] == 0
++                draws.append((torch.rand(4), torch.rand(4, generator=generators[expected_device])))
++                if fail:
++                    raise RuntimeError('proposal failed')
++        assert active[0] == 0
++        assert torch.equal(torch.get_rng_state(), cpu_before)
++        assert all(torch.equal(generator.get_state(), cuda_before[index])
++                   for index, generator in generators.items())
++    assert entered == [expected_device, expected_device]
++    expected = torch.rand(4, generator=torch.Generator().manual_seed(101))
++    for cpu_draw, cuda_draw in draws:
++        torch.testing.assert_close(cpu_draw, expected)
++        torch.testing.assert_close(cuda_draw, expected)
++
++
+ def test_strategy_feasible_reference_and_cuda_cleanup(sample_config, monkeypatch):
+     from mobo_linac.campaigns import strategies
+     from mobo_linac.io.results import TrainingObservations
+diff --git a/tests/test_normalized_constraints.py b/tests/test_normalized_constraints.py
+new file mode 100644
+index 0000000..f2792f1
+--- /dev/null
++++ b/tests/test_normalized_constraints.py
+@@ -0,0 +1,148 @@
++from copy import deepcopy
++from dataclasses import replace
++import json
++
++import pytest
++import torch
++from botorch.models import ModelListGP
++from botorch.sampling.normal import SobolQMCNormalSampler
++from mobo_linac.config import load_config
++from mobo_linac.constraints import get_botorch_constraint_functions, constraint_residual_metadata, ConstraintEvaluator
++from mobo_linac.campaigns.strategies import proposal_random_stream
++from mobo_linac.acquisition.mobo import SliceObjective, build_acquisition_function
++from mobo_linac.models.gp import build_gp_models
++
++
++def normalized():
++    config=load_config()
++    config.execution=replace(config.execution,constraint_residual_mode='normalized')
++    return config
++
++
++@pytest.mark.parametrize('device',['cpu','cuda:0'])
++def test_scaled_residuals_keep_boundaries_signs_and_units(device):
++    if device.startswith('cuda') and not torch.cuda.is_available():
++        pytest.skip('CUDA unavailable')
++    config=normalized()
++    values=torch.tensor([[0.,0.,0.]+[.0005]*5+[200e6,1.]],dtype=torch.double,device=device)
++    funcs=get_botorch_constraint_functions(config)
++    assert torch.stack([f(values) for f in funcs]).flatten().tolist()==pytest.approx([-.5]*5+[-1.,-1.,-1.])
++    changed=deepcopy(config)
++    for name in ['max_sigma_x_m','max_sigma_y_m','max_sigma_xp_rad','max_sigma_yp_rad','max_sigma_z_m']:
++        setattr(changed.constraints,name,getattr(changed.constraints,name)*1000)
++    changed.constraints.min_mean_kinetic_energy_eV/=1e6
++    changed.constraints.max_mean_kinetic_energy_eV/=1e6
++    converted=values.clone();converted[:,3:8]*=1000;converted[:,8]/=1e6
++    for a,b in zip(funcs,get_botorch_constraint_functions(changed)):
++        torch.testing.assert_close(a(values),b(converted))
++    for i in range(5):
++        boundary=values.clone();boundary[:,3+i]=.001
++        assert funcs[i](boundary).item()==0
++        boundary[:,3+i]=.0011
++        assert funcs[i](boundary).item()>0
++    for i,energy in [(5,195e6),(6,205e6)]:
++        boundary=values.clone();boundary[:,8]=energy
++        assert funcs[i](boundary).item()==0
++    boundary=values.clone();boundary[:,9]=.9
++    assert funcs[7](boundary).item()==0
++    diagnostics=dict(zip(['sigma_x_m','sigma_y_m','sigma_xp_rad','sigma_yp_rad','sigma_z_m',
++                         'mean_kinetic_energy_eV','transmission_fraction'],values[0,3:].tolist()))
++    assert ConstraintEvaluator(config.constraints).check_feasibility(diagnostics)
++    raw=load_config()
++    assert ConstraintEvaluator(raw.constraints).check_feasibility(diagnostics)
++    meta=constraint_residual_metadata(config)
++    assert meta['physical_smoothing_scales']==pytest.approx([1e-6]*5+[5000.,5000.,.0001])
++
++
++def test_degenerate_normalization_rejected_and_raw_compatible():
++    config=normalized();config.constraints.max_mean_kinetic_energy_eV=config.constraints.min_mean_kinetic_energy_eV
++    with pytest.raises(ValueError,match='positive physical scales'):
++        get_botorch_constraint_functions(config)
++    config.execution.constraint_residual_mode='raw'
++    assert constraint_residual_metadata(config)['scales']==[1.]*8
++
++
++@pytest.mark.parametrize('device',['cpu','cuda:0'])
++def test_optional_streams_are_repeatable_and_do_not_consume_outer_rng(device):
++    d=torch.device(device)
++    if d.type=='cuda' and not torch.cuda.is_available():
++        pytest.skip('CUDA unavailable')
++    torch.manual_seed(77)
++    before=torch.get_rng_state().clone()
++    with proposal_random_stream(101,d):
++        one=torch.rand(4,device=d)
++    with proposal_random_stream(101,d):
++        two=torch.rand(4,device=d)
++    torch.testing.assert_close(one,two)
++    assert torch.equal(before,torch.get_rng_state())
++    with proposal_random_stream(None,d):
++        torch.rand(4)
++    assert not torch.equal(before,torch.get_rng_state())
++
++
++@pytest.mark.parametrize('device',['cpu','cuda:0'])
++def test_normalized_q8_acquisition_with_pruning_has_finite_gradient(device):
++    if device.startswith('cuda') and not torch.cuda.is_available():
++        pytest.skip('CUDA unavailable')
++    config=normalized();d=torch.device(device)
++    torch.manual_seed(11)
++    x=torch.rand(8,6,dtype=torch.double,device=d)
++    y=-torch.rand(8,3,dtype=torch.double,device=d)
++    diag=torch.cat([(.0002+.0005*x[:,:5]),(197e6+4e6*x[:,5:6]),torch.ones(8,1,device=d,dtype=torch.double)],-1)
++    bounds=torch.stack([torch.zeros(6,device=d,dtype=torch.double),torch.ones(6,device=d,dtype=torch.double)])
++    gp=build_gp_models(x,torch.cat([y,diag],-1),bounds=bounds,device=d)
++    assert isinstance(gp,ModelListGP)
++    acq=build_acquisition_function(gp,x,y,torch.tensor([-2.,-2.,-2.],device=d),
++        constraints=get_botorch_constraint_functions(config),objective=SliceObjective(3),
++        sampler=SobolQMCNormalSampler(torch.Size([16]),seed=42),constraint_temperature=.001)
++    proposal=torch.rand(1,8,6,dtype=torch.double,device=d,requires_grad=True)
++    value=acq(proposal);value.sum().backward()
++    assert torch.isfinite(value).all() and torch.isfinite(proposal.grad).all()
++    assert all(t.device==d for t in acq.buffers())
++
++
++def test_normalized_campaign_checkpoint_restores_convention(tmp_path,monkeypatch):
++    from mobo_linac.campaigns.runner import MoboCampaignRunner
++    from mobo_linac.execution.mock import MockEvaluator
++    from mobo_linac.acquisition.mobo import ProposalResult
++    import mobo_linac.campaigns.strategies as strategies
++    config=normalized()
++    config.execution=replace(config.execution,acquisition_stream_group=42,acqf_mc_samples=16)
++    def propose(**kwargs):
++        assert kwargs['batch_size']==8
++        assert kwargs['sobol_engine'].seed==242001
++        assert kwargs['sobol_engine'].num_generated==0
++        return ProposalResult(kwargs['bounds'].mean(0).repeat(8,1),None,{'tier':'test_fallback'})
++    monkeypatch.setattr(strategies,'generate_next_candidates',propose)
++    out=tmp_path/'run'
++    runner=MoboCampaignRunner(config=config,output_dir=out,num_initial_samples=4,num_batches=1,batch_size=8,
++        constrained=True,seed=42,num_workers=2,device='cpu',evaluator=MockEvaluator(config=config),
++        export_plots=False,export_env_info=False)
++    runner.run()
++    saved=json.loads((out/'config.json').read_text())
++    assert saved['execution']['constraint_residual_mode']=='normalized'
++    history=json.loads((out/'proposal_history.json').read_text())
++    assert 'normalized' in json.dumps(history) and '142001' in json.dumps(history)
++    resumed=MoboCampaignRunner(output_dir=out,resume=True,device='cpu',evaluator=MockEvaluator(config=config),
++        export_plots=False,export_env_info=False)
++    resumed.run()
++    changed=deepcopy(config);changed.execution.constraint_residual_mode='raw'
++    with pytest.raises(ValueError,match='constraint_residual_mode'):
++        MoboCampaignRunner(config=changed,output_dir=out,resume=True,device='cpu',
++            evaluator=MockEvaluator(config=changed),export_plots=False).run()
++
++
++def test_low_data_proposals_do_not_consume_initial_sobol_stream(tmp_path):
++    from mobo_linac.campaigns.runner import MoboCampaignRunner
++    from mobo_linac.execution.mock import MockEvaluator
++    from mobo_linac.io.checkpoint import load_run_checkpoint
++    config=normalized()
++    config.execution=replace(config.execution,acquisition_stream_group=42,acqf_mc_samples=16)
++    out=tmp_path/'low_data'
++    MoboCampaignRunner(config=config,output_dir=out,num_initial_samples=1,num_batches=1,batch_size=8,
++        constrained=True,seed=42,num_workers=2,device='cpu',evaluator=MockEvaluator(config=config),
++        export_plots=False,export_env_info=False).run()
++    history=json.loads((out/'proposal_history.json').read_text())
++    assert '242001' in json.dumps(history) and 'low_data_sobol' in json.dumps(history)
++    state=load_run_checkpoint(out/'checkpoints/checkpoint.pt')
++    assert state.progress.sobol_state['num_generated']==1
+diff --git a/tests/test_revision_round6.py b/tests/test_revision_round6.py
+new file mode 100644
+index 0000000..06c3735
+--- /dev/null
++++ b/tests/test_revision_round6.py
+@@ -0,0 +1,316 @@
++"""Round 6 unit checks use synthetic evidence, never local production archives."""
++
++import copy
++import json
++import sys
++from pathlib import Path
++
++import pandas as pd
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'scripts'))
++import prepare_revision_round6 as prepare
++import evaluate_revision_round6_resolution as resolution
++
++
++def population():
++    rows=[]
++    for i in range(1,9):
++        rows.append(dict(arm='constrained_qlognehvi',seed=42,run='constrained_qlognehvi_seed_42',
++            evaluation_id=f'eval_{i:06d}',index_in_run=i,physically_feasible=True,
++            sigma_x_m=.0005,sigma_y_m=.0005,sigma_xp_rad=.0005,sigma_yp_rad=.0005,
++            sigma_z_m=.0005,mean_kinetic_energy_eV=200e6,transmission_fraction=1.,
++            **dict(zip(prepare.CONTROLS,[.2,1.,-2.,36.,-40.,310.]))))
++    return pd.DataFrame(rows)
++
++
++@pytest.fixture
++def frozen_inputs(tmp_path, monkeypatch):
++    """Create a self-contained archive beneath the test's temporary root."""
++    frame = population()
++    frame['setting_id'] = frame.run + '__' + frame.evaluation_id
++    quantities = dict(zip(resolution.QUANTITIES,
++                          [3e-6, 4e-6, 400000, .0005, .0005, .0005, .0005, .0005, 200e6, 1.]))
++    ledger = frame.assign(**quantities)
++    source = tmp_path / 'results/paper_production/04_primary/benchmark/per_seed' / frame.run.iloc[0] / 'evaluations.csv'
++    source.parent.mkdir(parents=True)
++    ledger.to_csv(source, index=False)
++    manifest = tmp_path / 'manifest.csv'
++    frame.to_csv(manifest, index=False)
++    spec = {
++        'sample_manifest_sha256': prepare.sha(manifest),
++        'input_sha256': {str(source.relative_to(tmp_path)): prepare.sha(source)},
++        'sample_size': len(frame),
++        'nominal_reproduction_rtol': 1e-9,
++        'nominal_reproduction_atol': 1e-12,
++    }
++    monkeypatch.setattr(resolution, 'ROOT', tmp_path)
++    return spec, manifest, frame, quantities, source
++
++
++def test_sample_is_reproducible_with_known_inclusion_probability():
++    first,strata=prepare.select(population())
++    second,_=prepare.select(population())
++    pd.testing.assert_frame_equal(first,second)
++    assert len(first)==2 and (first.inclusion_probability==.25).all()
++    assert strata.population.sum()==8 and (strata.population==0).any()
++    assert first.evaluation_id.nunique()==2
++
++
++def test_boundary_and_stage_cover_both_sides():
++    f=population()
++    f.loc[0,'sigma_x_m']=.00105
++    f.loc[1,'sigma_x_m']=.00095
++    f.loc[0,'index_in_run']=81
++    s=prepare.stratify(f)
++    assert s.loc[0,'boundary']==s.loc[1,'boundary']=='near'
++    assert s.loc[0,'min_signed_margin']<0<s.loc[1,'min_signed_margin']
++    assert s.loc[0,'stage']=='late'
++
++
++def test_durable_journal_rejects_tampering_and_duplicate_identity(tmp_path):
++    p=tmp_path/'journal.jsonl';value={'task_id':'a','simulation_valid':False}
++    resolution.append_record(p,value)
++    assert resolution.read_records(p)=={'a':value}
++    saved=p.read_text()
++    p.write_text(saved.replace('false','true'))
++    with pytest.raises(ValueError,match='checksum'):
++        resolution.read_records(p)
++    p.write_text(saved+saved)
++    with pytest.raises(ValueError,match='Duplicate'):
++        resolution.read_records(p)
++
++
++def test_task_levels_keep_fixed_source_and_controls():
++    spec=json.loads(resolution.SPEC.read_text())
++    f=pd.read_csv(resolution.MANIFEST).head(1)
++    tasks=resolution.make_tasks(f,spec,['production','fixed_medium','combined_fine'])
++    assert tasks[0].namelist_overrides is None
++    assert 'newrun:distribution' not in tasks[1].namelist_overrides
++    assert tasks[2].namelist_overrides['newrun:distribution']=='qr40k.ini'
++    assert all(t.parameters==tasks[0].parameters for t in tasks)
++    assert len({t.task_id for t in tasks})==3
++
++
++def test_mock_run_resume_and_identity_protection(tmp_path):
++    spec=copy.deepcopy(json.loads(resolution.SPEC.read_text()))
++    f=pd.read_csv(resolution.MANIFEST).head(2)
++    spec['minimum_free_disk_GiB']=0
++    out=tmp_path/'mock'
++    resolution.execute(out,spec,f,mock=True)
++    before=(out/'results.jsonl').read_bytes()
++    assert len(resolution.read_records(out/'results.jsonl'))==10
++    resolution.execute(out,spec,f,mock=True,resume=True)
++    assert before==(out/'results.jsonl').read_bytes()
++    with pytest.raises(ValueError,match='Output exists'):
++        resolution.execute(out,spec,f,mock=True)
++    with pytest.raises(ValueError,match='identity mismatch'):
++        resolution.execute(out,spec,f,mock=False,resume=True)
++    (out/'pending.json').write_text(json.dumps(['unrecorded_attempt']))
++    with pytest.raises(ValueError,match='Interrupted attempts'):
++        resolution.execute(out,spec,f,mock=True,resume=True)
++
++
++def test_frozen_inputs_and_controls(tmp_path, frozen_inputs):
++    spec, manifest, frame, _, source = frozen_inputs
++    assert len(resolution.validate_inputs(spec, manifest)) == len(frame)
++    original = source.read_bytes()
++    source.write_bytes(original + b'\n')
++    with pytest.raises(ValueError, match='Frozen input checksum'):
++        resolution.validate_inputs(spec, manifest)
++    source.write_bytes(original)
++    frame = frame.copy()
++    frame.loc[0,prepare.CONTROLS[0]]+=.1
++    changed=tmp_path/'changed.csv';frame.to_csv(changed,index=False)
++    with pytest.raises(ValueError,match='manifest checksum'):
++        resolution.validate_inputs(spec,changed)
++    spec['sample_manifest_sha256']=prepare.sha(changed)
++    with pytest.raises(ValueError,match='control mismatch'):
++        resolution.validate_inputs(spec,changed)
++
++
++def test_nominal_gate_rejects_invalid_or_changed_observation(frozen_inputs):
++    spec, _, frame, quantities, _ = frozen_inputs
++    frame=frame.head(1);row=frame.iloc[0]
++    key=row.setting_id+'__production'
++    result = {'simulation_valid': True, 'objectives': quantities.copy(), 'diagnostics': {}}
++    resolution.check_nominal(frame, {key: result}, spec)
++    with pytest.raises(ValueError,match='Invalid nominal'):
++        resolution.check_nominal(frame,{key:{'simulation_valid':False}},spec)
++    with pytest.raises(ValueError,match='Nominal reproduction mismatch'):
++        resolution.check_nominal(frame,{key:{'simulation_valid':True,'objectives':{},'diagnostics':{}}},spec)
++    result['objectives'][resolution.QUANTITIES[0]] *= 2
++    with pytest.raises(ValueError, match='Nominal reproduction mismatch'):
++        resolution.check_nominal(frame, {key: result}, spec)
++
++
++def test_scaling_plan_has_matched_budget_and_alternating_order():
++    import evaluate_revision_round6_scaling as scaling
++    spec=json.loads(resolution.SPEC.read_text())
++    allocation=list(scaling.order(spec))
++    assert len(allocation)==20
++    assert allocation[:4]==[('raw',42),('normalized',42),('normalized',43),('raw',43)]
++    raw=scaling.campaign_config(spec,'raw',42)
++    normalized=scaling.campaign_config(spec,'normalized',42)
++    assert raw.constraints==normalized.constraints
++    assert raw.execution.max_workers==normalized.execution.max_workers==22
++    assert raw.execution.acquisition_stream_group==normalized.execution.acquisition_stream_group==42
++    assert raw.execution.acqf_mc_samples==normalized.execution.acqf_mc_samples==128
++    assert raw.execution.acqf_maxiter==200
++    with pytest.raises(ValueError,match='frozen allocation'):
++        scaling.campaign_config(spec,'normalized',123)
++
++
++def test_weighted_numerical_estimator_accounts_for_strata_and_failures():
++    import analyze_revision_round6 as analysis
++    f=pd.DataFrame({'stratum':['a','a','b'],'population':[8,8,2],'selected':[2,2,1],
++                    'feasible':[True,False,True],'simulation_valid':[True,False,True]})
++    with pytest.raises(ValueError,match='singleton'):
++        analysis.weighted_fractions(f)
++    f.loc[2,'population']=1
++    result=analysis.weighted_fractions(f)
++    assert result['fraction']==pytest.approx(5/9)
++    assert result['unknown_fraction']==pytest.approx(4/9)
++    assert result['physical_upper_if_invalid_pass']==pytest.approx(1.)
++    assert result['design_variance']==pytest.approx((8/9)**2*.75*.5/2)
++    with pytest.raises(ValueError,match='Incomplete'):
++        analysis.weighted_fractions(f.iloc[[0,2]])
++
++
++def test_paired_summary_preserves_direction_and_group_unit():
++    import analyze_revision_round6 as analysis
++    wide=pd.DataFrame({'normalized':[.2,.3,.1],'raw':[.4,.4,.3]})
++    result=analysis.paired_summary(wide,'normalized','raw',{'analysis_seed':1,'bootstrap_resamples':1000})
++    assert result['mean_difference']==pytest.approx(-1/6)
++    assert result['positive_groups']==0 and result['ci_upper_conditional']<0
++
++
++def test_uncertainty_plot_keeps_endpoint_units_separate(tmp_path):
++    import analyze_revision_round6 as analysis
++    table=pd.DataFrame([
++        {'endpoint':'feasible_fraction','mean_difference':-.1,'ci_lower_conditional':-.2,'ci_upper_conditional':0.},
++        {'endpoint':'elapsed_wall_time_s','mean_difference':100,'ci_lower_conditional':50,'ci_upper_conditional':200}])
++    path=tmp_path/'uncertainty.pdf';analysis.uncertainty_plot(table,path)
++    assert path.read_bytes().startswith(b'%PDF')
++    table=table.iloc[:1].drop(columns='endpoint').assign(level='fixed_fine',second='scalarized_bo',design_se_conservative=.02)
++    analysis.uncertainty_plot(table,path)
++    assert path.stat().st_size>1000
++
++
++def test_numerical_analysis_uses_complete_identities_and_design_weights(tmp_path,monkeypatch):
++    import analyze_revision_round6 as analysis
++    spec=copy.deepcopy(json.loads(resolution.SPEC.read_text()))
++    levels=list(spec['levels']);rows=[]
++    for arm in ['constrained_qlognehvi','unconstrained_qlognehvi','scalarized_bo']:
++        for seed in [42,43]:
++            for i in [1,2]:
++                rows.append({'setting_id':f'{arm}_{seed}_{i}','run':f'{arm}_seed_{seed}',
++                    'evaluation_id':f'eval_{i:06d}','arm':arm,'seed':seed,'stratum':f'{arm}_{seed}',
++                    'population':160,'selected':2,'inclusion_probability':2/160,'physically_feasible':True})
++    manifest=pd.DataFrame(rows);manifest_path=tmp_path/'manifest.csv';manifest.to_csv(manifest_path,index=False)
++    monkeypatch.setattr(analysis,'MANIFEST',manifest_path)
++    records=tmp_path/'results.jsonl'
++    for row in rows:
++        for level in levels:
++            values=dict(zip(analysis.QUANTITIES,[3e-6,4e-6,400000,.0005,.0005,.0005,.0005,.0005,200e6,1.]))
++            if level=='fixed_fine':
++                values['norm_emit_x_m_rad']*=.9
++            resolution.append_record(records,{'task_id':row['setting_id']+'__'+level,'role':row['setting_id'],
++                'level':level,'simulation_valid':True,'physically_feasible':row['arm']=='constrained_qlognehvi',
++                'runtime_s':1.,'objectives':values,'diagnostics':{}})
++    spec['tracking_attempts']=len(rows)*len(levels)
++    (tmp_path/'complete.json').write_text(json.dumps({'tasks':spec['tracking_attempts'],'mock':False,
++        'spec_sha256':prepare.sha(analysis.SPEC),'results_sha256':prepare.sha(records)}))
++    tables=analysis.numerical(tmp_path,spec)
++    assert len(tables['resolution_fractions'])==3*2*5
++    assert (tables['resolution_paired'].mean_difference==1).all()
++    assert tables['resolution_classification'].margin_sigma_x_m.eq(.0005).all()
++    tolerances=tables['resolution_tolerances']
++    assert not tolerances[(tolerances.quantity=='norm_emit_x_m_rad') &
++                          (tolerances.comparison=='fixed_fine - fixed_medium')].within_tolerance.any()
++    marker=json.loads((tmp_path/'complete.json').read_text());marker['mock']=True
++    (tmp_path/'complete.json').write_text(json.dumps(marker))
++    with pytest.raises(ValueError,match='Invalid numerical'):
++        analysis.numerical(tmp_path,spec)
++
++
++def test_analysis_resume_requires_identical_inputs_and_outputs(tmp_path):
++    import analyze_revision_round6 as analysis
++    source=tmp_path/'source';source.mkdir()
++    (source/'complete.json').write_text('{}')
++    out=tmp_path/'analysis';out.mkdir()
++    data=out/'r6_scaling_runs.csv';data.write_text('arm,value\nraw,0.1\n')
++    receipt={'spec_sha256':prepare.sha(analysis.SPEC),
++        'completion_sha256':prepare.sha(source/'complete.json'),
++        'outputs_sha256':{data.name:prepare.sha(data)}}
++    (out/'r6_scaling_analysis.json').write_text(json.dumps(receipt))
++    args=['scaling','--input-dir',str(source),'--output-dir',str(out),'--resume']
++    analysis.main(args)
++    data.write_text('changed')
++    with pytest.raises(ValueError,match='output checksum'):
++        analysis.main(args)
++    (source/'complete.json').write_text('{"changed":true}')
++    with pytest.raises(ValueError,match='input identity'):
++        analysis.main(args)
++
++
++def test_stage_commit_preserves_unrelated_staged_files(tmp_path,monkeypatch):
++    import subprocess
++    import record_revision_round6_stage as stage
++    subprocess.run(['git','init','-b','main',str(tmp_path)],check=True,capture_output=True)
++    def git(*args):
++        return subprocess.check_output(['git',*args],cwd=tmp_path,text=True).strip()
++    git('config','user.email','test@example.invalid');git('config','user.name','Test')
++    folder=tmp_path/'docs/exec-plans/completed';folder.mkdir(parents=True)
++    (folder/'TASK_00001_fixture.md').write_text('fixture\n')
++    git('add','.');git('commit','-m','Initial fixture')
++    (tmp_path/'unrelated.txt').write_text('unrelated\n');git('add','unrelated.txt')
++    receipt=tmp_path/'receipt.json';receipt.write_text('{}')
++    monkeypatch.setattr(stage,'ROOT',tmp_path)
++    monkeypatch.setattr(stage,'stage_evidence',lambda name:(receipt,'Verified synthetic fixture stage.'))
++    stage.main(['validation'])
++    assert git('diff','--cached','--name-only')=='unrelated.txt'
++    assert git('show','--pretty=','--name-only','HEAD')=='docs/exec-plans/completed/TASK_00002_r6_validation_completed.md'
++    before=git('rev-parse','HEAD');stage.main(['validation'])
++    assert git('rev-parse','HEAD')==before
++    receipt.write_text('{"revalidated":true}')
++    stage.main(['validation'])
++    assert git('rev-parse','HEAD')!=before
++    assert (folder/'TASK_00002_r6_validation_completed.md').exists()
++    assert (folder/'TASK_00003_r6_validation_completed.md').exists()
++    assert git('diff','--cached','--name-only')=='unrelated.txt'
++
++
++def test_stage_validation_rejects_stale_receipt(tmp_path,monkeypatch):
++    import record_revision_round6_stage as stage
++    base=tmp_path/'results/revision_round6';base.mkdir(parents=True)
++    (base/'validation_complete.json').write_text(json.dumps({'status':'failed','coverage_required':100}))
++    monkeypatch.setattr(stage,'ROOT',tmp_path)
++    with pytest.raises(ValueError,match='invalid or stale'):
++        stage.stage_evidence('validation')
++
++
++def test_unavailable_failed_measurements_are_null_not_fabricated(tmp_path):
++    import numpy as np
++    path=tmp_path/'failed.jsonl'
++    resolution.append_record(path,{'task_id':'failed','simulation_valid':False,
++        'diagnostics':{'sigma_x_m':float('nan')},'values':[np.float64(float('inf'))]})
++    result=resolution.read_records(path)['failed']
++    assert result['diagnostics']['sigma_x_m'] is None
++    assert result['values']==[None] and result['simulation_valid'] is False
++
++
++@pytest.mark.parametrize("module_name", ["evaluate_revision_round6_resolution", "evaluate_revision_round6_scaling"])
++def test_user_pause_blocks_runner_before_input_or_output_access(tmp_path, monkeypatch, module_name):
++    import importlib
++    module = importlib.import_module(module_name)
++    monkeypatch.setattr(module, "ROOT", tmp_path)
++    marker = tmp_path / "results/revision_round6/PAUSED.json"
++    marker.parent.mkdir(parents=True)
++    marker.write_text('{"status":"paused_by_user"}')
++    monkeypatch.setattr(module, "SPEC", tmp_path / "nonexistent_specification.json")
++    output = tmp_path / "must_not_be_created"
++    with pytest.raises(SystemExit, match="paused by the user"):
++        module.main(["--output-dir", str(output), "--resume"])
++    assert not output.exists()
++    assert not (marker.parent / "worker.lock").exists()
+diff --git a/tests/test_revision_round6_recovery.py b/tests/test_revision_round6_recovery.py
+new file mode 100644
+index 0000000..9617af0
+--- /dev/null
++++ b/tests/test_revision_round6_recovery.py
+@@ -0,0 +1,96 @@
++import copy
++import json
++import shutil
++import sys
++from pathlib import Path
++
++import pandas as pd
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++import evaluate_revision_round6_resolution as resolution  # noqa: E402
++import recover_revision_round6 as recovery  # noqa: E402
++
++
++@pytest.fixture
++def paused(tmp_path):
++    spec = copy.deepcopy(json.loads(resolution.SPEC.read_text()))
++    spec["minimum_free_disk_GiB"] = 0
++    frame = pd.read_csv(resolution.MANIFEST).head(2)
++    study = tmp_path/"study"
++    resolution.execute(study, spec, frame, mock=True, stage="nominal")
++    records = resolution.read_records(study/"results.jsonl")
++    tasks = [t.task_id for t in resolution.make_tasks(frame, spec, list(spec["levels"]))]
++    pending = [t for t in tasks if t not in records]
++    (study/"pending.json").write_text(json.dumps(pending)+"\n")
++    interrupted = pending[:2]
++    run = study/"runs/round6_resolution"
++    for k, identity in enumerate(interrupted):
++        attempt = run/"work"/f"eval_{identity}/attempt_{k}"
++        attempt.mkdir(parents=True)
++        (attempt/"astra.in").write_text("deck")
++        (attempt/"astra.Xemit.001").write_text("1.0 0\n8.5 0\n")
++        provenance = run/"provenance"/f"eval_{identity}/attempt_{k}"
++        (provenance/"inputs").mkdir(parents=True)
++        (provenance/"inputs/astra.in").write_text("deck")
++        (provenance/"attempt_started.json").write_text(json.dumps({"attempt_id": f"attempt_{k}", "start_time": "t"}))
++    checkpoint = tmp_path/"checkpoint"
++    checkpoint.mkdir()
++    for name in recovery.FILES:
++        shutil.copy2(study/name, checkpoint/name)
++    (checkpoint/"pause_manifest.json").write_text(json.dumps({
++        "files_sha256": {name: recovery.sha(study/name) for name in recovery.FILES},
++        "completed_count": len(records), "interrupted_attempts": dict.fromkeys(interrupted, "work")}))
++    marker = tmp_path/"PAUSED.json"
++    marker.write_text("{}")
++    return study, checkpoint, marker, spec, frame, interrupted, len(pending)
++
++
++def test_recovery_retains_attempts_appends_records_and_allows_resume(paused):
++    study, checkpoint, marker, spec, frame, interrupted, pending = paused
++    original = {i: list((study/"runs/round6_resolution/work"/f"eval_{i}").iterdir()) for i in interrupted}
++    receipt = recovery.recover(study, checkpoint, marker, spec, frame, mock=True)
++    assert receipt["attempts_added"] == 2 and receipt["pending_never_started"] == pending-2
++    assert receipt["interrupted_attempts"][interrupted[0]]["last_z_m"] == 8.5
++    records = resolution.read_records(study/"results.jsonl")
++    assert records[interrupted[1]]["recovery_of_attempt"] == "attempt_1"
++    assert all(path.exists() for paths in original.values() for path in paths)
++    assert not marker.exists() and (study/"recovery_01/PAUSED_archived.json").exists()
++    assert not (study/"pending.json").exists() and (study/"recovery_01/pending_at_pause.json").exists()
++    resolution.execute(study, spec, frame, mock=True, resume=True)
++    assert len(resolution.read_records(study/"results.jsonl")) == len(frame)*len(spec["levels"])
++    assert resolution.read_records(study/"results.jsonl")[interrupted[0]]["recovery_of_attempt"] == "attempt_0"
++    with pytest.raises(ValueError, match="Recovery directory exists"):
++        recovery.recover(study, checkpoint, marker, spec, frame, mock=True)
++
++
++def test_changed_snapshot_blocks_recovery(paused):
++    study, checkpoint, marker, spec, frame, *_ = paused
++    with (study/"results.jsonl").open("a") as handle:
++        handle.write("\n")
++    with pytest.raises(ValueError, match="Pause snapshot checksum"):
++        recovery.recover(study, checkpoint, marker, spec, frame, mock=True)
++    assert marker.exists() and not (study/"recovery_01").exists()
++
++
++def test_unexpected_started_identity_or_finished_attempt_blocks_recovery(paused):
++    study, checkpoint, marker, spec, frame, interrupted, _ = paused
++    run = study/"runs/round6_resolution"
++    finished = run/"provenance"/f"eval_{interrupted[0]}/attempt_0/manifest.json"
++    finished.write_text("{}")
++    with pytest.raises(ValueError, match="unfinished start"):
++        recovery.recover(study, checkpoint, marker, spec, frame, mock=True)
++    finished.unlink()
++    pending = json.loads((study/"pending.json").read_text())
++    (run/"work"/f"eval_{pending[5]}").mkdir()
++    with pytest.raises(ValueError, match="Started pending identities"):
++        recovery.recover(study, checkpoint, marker, spec, frame, mock=True)
++    assert marker.exists()
++
++
++def test_attempt_that_reached_the_exit_is_not_treated_as_interrupted(paused):
++    study, _, _, _, _, interrupted, _ = paused
++    run = study/"runs/round6_resolution"
++    (run/"work"/f"eval_{interrupted[0]}/attempt_0/astra.Xemit.001").write_text("16.2 0\n")
++    with pytest.raises(ValueError, match="reached the exit"):
++        recovery.inspect_attempt(run, interrupted[0])
+diff --git a/tests/test_revision_round6_rf_phase.py b/tests/test_revision_round6_rf_phase.py
+new file mode 100644
+index 0000000..a3c79f1
+--- /dev/null
++++ b/tests/test_revision_round6_rf_phase.py
+@@ -0,0 +1,57 @@
++import json
++import sys
++from pathlib import Path
++
++import numpy as np
++import pandas as pd
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++import analyze_revision_round6_rf_phase as rf  # noqa: E402
++
++DECK = """C_pos(2) = 1.0\nC_pos(3)=2.0\nC_pos(4) = 3.0\nC_pos(5)=4.0
++phi(2) = -40.0\nphi(3) = -40.0\nphi(4) = 310.0\nphi(5) = 310.0\n"""
++
++
++def attempt(root):
++    root.mkdir(parents=True)
++    (root/"astra.in").write_text(DECK)
++    # energy gains of 10, 20, 30 and 40 MeV; the bunch length falls from 1.0 to 0.9 mm
++    z = np.array([[1.0, 0, 4, 1.0], [2.0, 0, 14, 0.975], [3.0, 0, 34, 0.95], [4.0, 0, 64, 0.925], [16.2, 0, 104, 0.9]])
++    np.savetxt(root/"astra.Zemit.001", z)
++
++
++def test_fit_crest_recovers_a_known_crest_from_a_narrow_window():
++    phase = np.linspace(-43.0, -35.0, 30)
++    fit = rf.fit_crest(phase, 47.0*np.cos(np.radians(phase+27.0)))
++    assert fit["crest_deg"] == pytest.approx(-27.0)
++    assert fit["amplitude_MeV"] == pytest.approx(47.0)
++    assert fit["residual_rms_MeV"] == pytest.approx(0.0, abs=1e-9)
++
++
++def test_setting_row_reads_gains_and_lengths_at_the_structure_edges(tmp_path):
++    attempt(tmp_path/"a")
++    row = rf.setting_row(tmp_path/"a")
++    assert row["injection_energy_MeV"] == 4 and row["exit_energy_MeV"] == 104
++    assert [row[f"{name}_gain_MeV"] for name in rf.STRUCTURES] == [10, 20, 30, 40]
++    assert row["ACC3_phase_deg"] == 310.0 and row["ACC4_end_length_mm"] == 0.9
++
++
++def test_analyze_wraps_the_offset_from_crest_and_gives_length_ratios():
++    phase = np.linspace(280.0, 340.0, 20)
++    frame = pd.DataFrame({"injection_energy_MeV": 4.0, "entry_length_mm": 1.0}, index=phase)
++    for name, crest in zip(rf.STRUCTURES, (-30.0, -40.0, -50.0, -60.0)):
++        frame[f"{name}_phase_deg"] = phase
++        frame[f"{name}_gain_MeV"] = 50*np.cos(np.radians(phase-crest))
++        frame[f"{name}_end_length_mm"] = 0.98
++    result = rf.analyze(frame, dict.fromkeys(rf.STRUCTURES, 310.0))
++    assert result["structures"]["ACC3"]["nominal_minus_crest_deg"] == pytest.approx(0.0)
++    assert result["length_ratio_to_entry"]["ACC2_end"]["median"] == pytest.approx(0.98)
++
++
++def test_main_writes_the_evidence(tmp_path, monkeypatch):
++    for k in (1, 2):
++        attempt(tmp_path/f"work/eval_x{k}__production/attempt_a")
++    output = tmp_path/"fit.json"
++    assert rf.main(["--work-dir", str(tmp_path/"work"), "--output", str(output)]) == 0
++    assert json.loads(output.read_text())["settings"] == 2
+diff --git a/tests/test_revision_round6_summary.py b/tests/test_revision_round6_summary.py
+new file mode 100644
+index 0000000..83cb041
+--- /dev/null
++++ b/tests/test_revision_round6_summary.py
+@@ -0,0 +1,163 @@
++"""Round6 evidence collection and summary tables from synthetic frozen-protocol outputs."""
++from __future__ import annotations
++import json
++import sys
++from pathlib import Path
++import pandas as pd
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1]/'scripts'))
++import summarize_revision_round6 as summary  # noqa: E402
++from prepare_revision_round6 import sha  # noqa: E402
++
++LEVELS = summary.LEVELS
++QUANTITIES = [name for name, _ in summary.QUANTITIES]
++
++
++def classification():
++    rows = []
++    for setting, arm, feasible in [('a', 'constrained_qlognehvi', [False, True, True, True, True]),
++                                   ('b', 'unconstrained_qlognehvi', [True]*5),
++                                   ('c', 'scalarized_bo', [False]*5)]:
++        for index, level in enumerate(LEVELS):
++            values = {q: 1.0 for q in QUANTITIES}
++            values['norm_emit_x_m_rad'] = 1.0-0.1*index
++            values['mean_kinetic_energy_eV'] = 2e8+1e4*index
++            rows.append({'setting_id': setting, 'level': level, 'simulation_valid': True, 'feasible': feasible[index],
++                         'runtime_s': 10.0*(index+1), 'arm': arm, 'nearest_channel': 'sigma_z_m',
++                         'min_signed_margin': -0.002, 'boundary': 'near', **values})
++    return pd.DataFrame(rows)
++
++
++def write_evidence(folder):
++    classification().to_csv(folder/'r6_resolution_classification.csv', index=False)
++    pd.DataFrame([{'arm': arm, 'seed': seed, 'level': level, 'fraction': 0.4 if arm.startswith('c') else 0.1,
++                   'design_variance': 0.0004, 'physical_upper_if_invalid_pass': 0.4, 'unknown_fraction': 0.0,
++                   'population': 160, 'sample': 4}
++                  for arm in summary.ARMS for seed in (42, 43) for level in LEVELS]).to_csv(
++        folder/'r6_resolution_fractions.csv', index=False)
++    pd.DataFrame([{'level': level, 'first': 'constrained_qlognehvi', 'second': second, 'groups': 2,
++                   'mean_difference': 0.3, 'ci_lower_conditional': -0.25, 'ci_upper_conditional': 0.35,
++                   'minimum_difference': 0.2, 'positive_groups': 2, 'design_se_conservative': 0.02}
++                  for level in LEVELS for second in summary.ARMS[1:]]).to_csv(folder/'r6_resolution_paired.csv', index=False)
++    pd.DataFrame([{'setting_id': 'a', 'comparison': f'{kind}_fine - {kind}_medium', 'quantity': q, 'delta': 0.0,
++                   'tolerance': 1.0, 'comparison_valid': True, 'within_tolerance': q != 'norm_emit_x_m_rad'}
++                  for kind in ['fixed', 'combined'] for q in QUANTITIES]).to_csv(folder/'r6_resolution_tolerances.csv', index=False)
++    pd.DataFrame([{'arm': arm, 'seed': seed, 'feasible_fraction': fraction, 'post_init_feasible_fraction': fraction+0.02,
++                   'invalid_attempts': 0, 'elapsed_wall_time_s': 7200.0 if arm == 'raw' else 3600.0}
++                  for seed in (42, 43) for arm, fraction in [('raw', 0.4), ('normalized', 0.3)]]).to_csv(
++        folder/'r6_scaling_runs.csv', index=False)
++    pd.DataFrame([{'endpoint': endpoint, 'first': 'normalized', 'second': 'raw', 'groups': 2, 'mean_difference': value,
++                   'ci_lower_conditional': value-0.01, 'ci_upper_conditional': value+0.01, 'minimum_difference': value,
++                   'positive_groups': 0}
++                  for endpoint, value in [('feasible_fraction', -0.1), ('post_init_feasible_fraction', -0.12),
++                                          ('elapsed_wall_time_s', -3600.0)]]).to_csv(folder/'r6_scaling_paired.csv', index=False)
++    pd.DataFrame([{'arm': arm, 'seed': seed, 'stage': stage, 'attempts': 10, 'invalid': 0, 'transverse_only': t,
++                   'energy_only': 0, 'multiple_groups': 2, 'other_only': 1, 'feasible': 10-t-3}
++                  for arm, t in [('raw', 1), ('normalized', 3)] for seed in (42, 43)
++                  for stage in ['initial', 'early_post', 'late']]).to_csv(folder/'r6_scaling_channels.csv', index=False)
++    pd.DataFrame([{'arm': arm, 'seed': 42, 'batches': 19, 'initial_sobol': 1, 'primary': 18, 'retry': 0, 'other': 0}
++                  for arm in ['raw', 'normalized']]).to_csv(folder/'r6_scaling_proposals.csv', index=False)
++
++
++def test_summaries_and_tables(tmp_path):
++    write_evidence(tmp_path)
++    summary.write(tmp_path)
++    resolution = json.loads((tmp_path/'r6_resolution_summary.json').read_text())
++    flips = resolution['flips']['fixed_fine vs production']
++    assert flips['changed'] == 1 and flips['infeasible_to_feasible'] == 1 and flips['feasible_to_infeasible'] == 0
++    assert flips['arms'] == {'constrained_qlognehvi': 1}
++    assert resolution['flips']['fixed_fine vs fixed_medium']['largest_absolute_margin'] is None
++    change = resolution['changes']['norm_emit_x_m_rad']['fixed_fine vs production']
++    assert change['median'] == pytest.approx(-20.0) and change['fraction_lower'] == 1.0
++    assert resolution['changes']['mean_kinetic_energy_eV']['fixed_fine vs production']['median'] == pytest.approx(0.02)
++    assert resolution['weighted_feasible_fraction']['production']['constrained_qlognehvi']['design_se'] == pytest.approx(0.0008**.5/2)
++    assert resolution['within_tolerance']['fixed_fine - fixed_medium|norm_emit_x_m_rad'] == 0.0
++    assert resolution['inputs_sha256']['r6_resolution_paired.csv'] == sha(tmp_path/'r6_resolution_paired.csv')
++    scaling = json.loads((tmp_path/'r6_scaling_summary.json').read_text())
++    assert scaling['group_differences'] == {'42': pytest.approx(-0.1), '43': pytest.approx(-0.1)}
++    assert scaling['post_init_share_difference_normalized_minus_raw']['transverse_only'] == pytest.approx(0.2)
++    assert scaling['arms']['raw']['elapsed_h']['mean'] == pytest.approx(2.0)
++    assert 'r6_scaling_proposals.csv' in scaling['inputs_sha256'] and 'r6_resolution_paired.csv' not in scaling['inputs_sha256']
++    table = (tmp_path/'r6_resolution_table.tex').read_text()
++    assert 'Fixed-source fine & 0.400 (0.014)' in table and '[$-0.250$, 0.350]' in table
++    assert table.startswith('\\begin{table}[htbp]') and table.rstrip().endswith('\\end{table}')
++    assert '\\label{tab:retracking}' in table and 'standard error is 0.020 at the medium and 0.020 at the fine' in table
++    assert '\\setlength{\\tabcolsep}{4pt}' in table
++    assert '\\label{tab:retracking_values}' in (tmp_path/'r6_numerical_table.tex').read_text()
++    assert '\\label{tab:scaling}' in (tmp_path/'r6_scaling_table.tex').read_text()
++    numerical = (tmp_path/'r6_numerical_table.tex').read_text()
++    assert '$-20.0$ [$-20.0$, $-20.0$]' in numerical
++    assert 'Transmission & 0 (all settings) & 0 &' in numerical
++    assert 'Difference & $-0.100$ & $-0.120$' in (tmp_path/'r6_scaling_table.tex').read_text()
++    assert '95\\% interval & [$-0.110$, $-0.090$]' in (tmp_path/'r6_scaling_table.tex').read_text()
++    assert '$+0.200$' in (tmp_path/'r6_scaling_table.tex').read_text()
++
++
++def test_signed_number_format():
++    assert summary.signed(0.25, 2) == '0.25'
++    assert summary.signed(-0.25, 2) == '$-0.25$'
++    assert summary.signed(0.25, 1, plus=True) == '$+0.2$'
++
++
++def receipt_results(tmp_path):
++    results = tmp_path/'results'
++    for study, names in summary.COPIED.items():
++        folder = results/f'analysis_{study}'
++        folder.mkdir(parents=True)
++        (results/study).mkdir()
++        (results/study/'complete.json').write_text('{}\n')
++        for name in names:
++            (folder/name).write_text(f'{name}\n')
++        (folder/f'r6_{study}_analysis.json').write_text(json.dumps({
++            'spec_sha256': sha(summary.EVIDENCE/'r6_specification.json'),
++            'completion_sha256': sha(results/study/'complete.json'),
++            'outputs_sha256': {name: sha(folder/name) for name in names}}))
++    campaign = results/'scaling'/'raw_seed_42'
++    campaign.mkdir()
++    (campaign/'proposal_history.json').write_text(json.dumps(
++        [{'metadata': {'method': m}} for m in ['initial_sobol', 'primary', 'retry', 'sobol_fallback']]))
++    return results
++
++
++def test_collect_copies_only_verified_outputs(tmp_path):
++    results, out = receipt_results(tmp_path), tmp_path/'evidence'
++    out.mkdir()
++    summary.collect(results, out)
++    assert (out/'r6_scaling_runs.csv').read_text() == 'r6_scaling_runs.csv\n'
++    tiers = pd.read_csv(out/'r6_scaling_proposals.csv').iloc[0]
++    assert (tiers.primary, tiers.retry, tiers.other, tiers.batches) == (1, 1, 1, 4)
++    collection = json.loads((out/'r6_collection.json').read_text())
++    assert collection['r6_scaling_runs.csv']['sha256'] == sha(out/'r6_scaling_runs.csv')
++    (results/'analysis_scaling'/'r6_scaling_runs.csv').write_text('changed\n')
++    with pytest.raises(ValueError, match='Analysis output changed'):
++        summary.collect(results, out)
++
++
++@pytest.mark.parametrize('field, message', [('spec_sha256', 'frozen specification'),
++                                            ('completion_sha256', 'completion record')])
++def test_collect_rejects_foreign_receipts(tmp_path, field, message):
++    results = receipt_results(tmp_path)
++    receipt = results/'analysis_resolution'/'r6_resolution_analysis.json'
++    data = json.loads(receipt.read_text())
++    data[field] = '0'*64
++    receipt.write_text(json.dumps(data))
++    with pytest.raises(ValueError, match=message):
++        summary.verified_outputs('resolution', results)
++
++
++def test_collect_requires_listed_outputs(tmp_path):
++    results = receipt_results(tmp_path)
++    receipt = results/'analysis_scaling'/'r6_scaling_analysis.json'
++    data = json.loads(receipt.read_text())
++    del data['outputs_sha256']['r6_scaling_runs.csv']
++    receipt.write_text(json.dumps(data))
++    (tmp_path/'evidence').mkdir()
++    with pytest.raises(ValueError, match='not a checksummed'):
++        summary.collect(results, tmp_path/'evidence')
++
++
++def test_main_rewrites_from_evidence(tmp_path):
++    write_evidence(tmp_path)
++    summary.main(['--evidence-dir', str(tmp_path)])
++    assert (tmp_path/'r6_scaling_table.tex').exists()
+diff --git a/tests/test_revision_round6_workers.py b/tests/test_revision_round6_workers.py
+new file mode 100644
+index 0000000..ce2008f
+--- /dev/null
++++ b/tests/test_revision_round6_workers.py
+@@ -0,0 +1,62 @@
++import json
++import sys
++from pathlib import Path
++
++import pandas as pd
++import pytest
++
++sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
++import check_revision_round6_workers as check  # noqa: E402
++import evaluate_revision_round6_resolution as resolution  # noqa: E402
++import evaluate_revision_round6_scaling as scaling  # noqa: E402
++import prepare_revision_round6 as prepare  # noqa: E402
++
++SPEC = {"nominal_reproduction_rtol": 1e-9, "nominal_reproduction_atol": 1e-12}
++
++
++def values(scale=1.0):
++    measured = {name: scale*(k+1.0) for k, name in enumerate(resolution.QUANTITIES)}
++    return {"task": {"objectives": measured, "diagnostics": {}, "runtime_s": 200.0*scale}}
++
++
++def test_amendment_raises_the_ceiling_without_changing_the_frozen_specification():
++    amendment = json.loads((prepare.EVIDENCE/"r6_execution_amendment_01.json").read_text())
++    spec = json.loads(resolution.SPEC.read_text())
++    assert spec["workers_total"] == amendment["superseded"]["workers_total"] == 2
++    assert prepare.execution_workers() == amendment["workers_total"] == 22
++    assert amendment["spec_sha256"] == prepare.sha(resolution.SPEC)
++    assert scaling.campaign_config(spec, "raw", 42).execution.retries == 0
++
++
++def test_amendment_for_another_specification_is_refused(tmp_path, monkeypatch):
++    (tmp_path/"r6_specification.json").write_text("{}")
++    (tmp_path/"r6_execution_amendment_01.json").write_text('{"spec_sha256": "other", "workers_total": 22}')
++    monkeypatch.setattr(prepare, "EVIDENCE", tmp_path)
++    with pytest.raises(ValueError, match="frozen specification"):
++        prepare.execution_workers()
++
++
++def test_subset_is_evenly_spaced_and_deterministic():
++    frame = pd.DataFrame({"setting_id": [f"s{k:03d}" for k in range(100, 0, -1)]})
++    chosen = check.subset(frame, 3)
++    assert chosen.setting_id.tolist() == ["s001", "s050", "s100"]
++    assert check.subset(frame, 3).equals(chosen)
++
++
++def test_compare_and_receipt_report_agreement_and_refuse_a_difference():
++    assert check.compare(values(), values(), SPEC) == 0.0
++    with pytest.raises(ValueError, match="Worker-count mismatch"):
++        check.compare(values(1.001), values(), SPEC)
++    result = check.receipt(values(), {"task": {"runtime_s": 100.0}}, 22, 0.0)
++    assert result["median_runtime_ratio"] == 2.0 and result["reproduced"] and result["workers"] == 22
++
++
++def test_execute_uses_all_workers_in_its_own_directory_and_is_not_resumed(tmp_path):
++    spec = json.loads(resolution.SPEC.read_text())
++    frame = pd.read_csv(resolution.MANIFEST)
++    study = tmp_path/"study"
++    (study/"template").mkdir(parents=True)
++    records = check.execute(tmp_path/"check", study, spec, frame, 2, mock=True)
++    assert len(records) == 2 and all(key.endswith("__production") for key in records)
++    with pytest.raises(ValueError, match="not resumed"):
++        check.execute(tmp_path/"check", study, spec, frame, 2, mock=True)
+diff --git a/tests/test_supplement_map.py b/tests/test_supplement_map.py
+index 521e841..571fdc8 100644
+--- a/tests/test_supplement_map.py
++++ b/tests/test_supplement_map.py
+@@ -22,7 +22,7 @@ def test_map_items_are_documented():
+         items = {row["item"] for row in csv.DictReader(handle)}
+     readme = (ROOT / "docs/paper/supplement/README.md").read_text()
+     assert all(f"| {item} |" in readme for item in items)
+-    assert items == {f"S1.{n}" for n in range(1, 16)}
++    assert items == {f"S1.{n}" for n in range(1, 17)}
+ 
+ 
+ def test_manifest_records_clean_production_commits():

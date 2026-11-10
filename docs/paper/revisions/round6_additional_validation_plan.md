@@ -41,6 +41,8 @@ Reviewer 1 requests: R6-01 = representative numerical validation; R6-02 = matche
 
 ## A6-01. Freeze the validation protocols and resource budgets
 
+**Status:** frozen before outcomes on 31 October 2026 (`evidence/r6_protocol.md`, `r6_specification.json`); worker ceiling amended to 22 on 4 November (amendment 01).
+
 Apply protocol sections only to adopted workstreams; record the other sections as not adopted. A6-08 and A6-09 require only the adopted branches and documented dispositions for the others.
 
 **Deliverables:** `evidence/r6_protocol.md`, `evidence/r6_sampling_manifest.csv`, and a machine-readable campaign/analysis specification. Save them before viewing new outcomes.
@@ -93,6 +95,8 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 ## A6-04. Implement and test the normalized-residual arm
 
+**Status:** implemented and tested before the campaigns (round6 overview, research preparation checks).
+
 **Starting points:** `src/mobo_linac/constraints.py` and the residual definitions in `scripts/analyze_revision_scaling.py`. The latter is an offline q=1 probe without production pruning; it is not a campaign implementation.
 
 - [ ] Make the comparison mode explicit and recorded. Preserve raw-residual defaults and saved-run compatibility. Keep physical diagnostic GP observations and observed feasibility unchanged; scale only the residuals and their declared smoothing temperatures.
@@ -134,6 +138,8 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 ## A6-07. Optional: constraint-aware scalarized comparator
 
+**Status:** not adopted (author decision, 31 October 2026); limitation retained.
+
 - [ ] Record explicit adoption or non-adoption before any additional runs. Declining this task does not leave either main validation task incomplete.
 - [ ] If adopted, specify a constrained scalarized acquisition and verify its behavior rather than changing the existing unconstrained scalarized arm by name alone.
 - [ ] Freeze weights, scales, constraint convention, initial designs, seeds, simulation budgets and statistical comparisons. Plan any additional multiplicity treatment before outcomes.
@@ -155,6 +161,8 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 **Done when:** every changed scientific statement has a precise evidence source and scope, and the new evidence is reproducible from its declared inputs.
 
 ## A6-09. Close the reviewer response and validation package
+
+**Status (2026-11-10):** completed in Task 00379; see the round6 overview for the responses, diffs, inventory and validation receipts.
 
 - [ ] Write `docs/paper/reviews/reviewer1_round6_response.md`, mapping R6-01–R6-05 to tasks, evidence and dispositions. Keep the Reviewer 2 response separately attributed; Task 00340 and the formal Reviewer 1 report are the same assessment.
 - [ ] Produce `round6_revision_overview.md`, manuscript/code diffs against the frozen round 6 baseline and a changed-file/hash inventory. Preserve earlier round packages.

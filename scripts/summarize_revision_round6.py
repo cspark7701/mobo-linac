@@ -173,6 +173,14 @@ def interval(row):
             f"{signed(row['ci_upper_conditional'], 3)}]")
 
 
+def float_table(body, caption, label, size='small', column_separation=None):
+    """A complete table float, set page-wide by the manuscript's ``\\inputwide``."""
+    head = [r'\begin{table}[htbp]', r'\centering', rf'\caption{{{caption}}}', rf'\label{{{label}}}', rf'\{size}']
+    if column_separation:
+        head.append(rf'\setlength{{\tabcolsep}}{{{column_separation}}}')
+    return '\n'.join(head)+'\n'+body+r'\end{table}'+'\n'
+
+
 def resolution_table(summary):
     paired = pd.DataFrame(summary['paired'])
     lines = [r'\begin{tabular}{lrrrrrr}', r'\toprule',
@@ -186,7 +194,15 @@ def resolution_table(summary):
                      f"{frac['unconstrained_qlognehvi']['mean']:.3f} & {frac['scalarized_bo']['mean']:.3f} & "
                      f"{interval(rows.loc['unconstrained_qlognehvi'])} & {interval(rows.loc['scalarized_bo'])} & {flip} \\\\")
     lines += [r'\bottomrule', r'\end{tabular}']
-    return '\n'.join(lines)+'\n'
+    se = paired.groupby('level').design_se_conservative.max()
+    caption = ('Weighted feasible fractions of the re-tracked stratified sample over all 160\n'
+               'evaluations of each run, mean over ten groups. The design standard error of the constraint-aware\n'
+               'fraction is in parentheses; the baseline fractions have zero design variance because none of\n'
+               'their sampled classifications changed. $\\Delta$ is the paired constraint-aware difference with a\n'
+               '\\SI{95}{\\percent} ten-group bootstrap interval conditional on the sampled observations; its\n'
+               f"design standard error is {se['fixed_medium']:.3f} at the medium and {se['fixed_fine']:.3f} at the fine levels. Flips count changed\n"
+               f"production-profile classifications among the {summary['settings']} settings relative to the production level.")
+    return float_table('\n'.join(lines)+'\n', caption, 'tab:retracking', 'footnotesize', '4pt')
 
 
 def change_cell(entry):
@@ -209,7 +225,13 @@ def numerical_table(summary):
                      f"{'0' if magnitude == 0 else f'{magnitude:.{digits}f}'} & "
                      f"{tolerance[0]:.3f} & {tolerance[1]:.3f} \\\\")
     lines += [r'\bottomrule', r'\end{tabular}']
-    return '\n'.join(lines)+'\n'
+    caption = (f"Changes of the exit-plane quantities of the {summary['settings']} re-tracked settings. ``Fine vs\n"
+               "production'' is the signed change at the fixed-source fine level relative to production, median\n"
+               "and range over settings; ``$|$Fine vs medium$|$'' is the median magnitude of the fixed-source\n"
+               "fine-to-medium change. Entries are percentages, except for mean energy (\\si{\\mega\\electronvolt})\n"
+               "and transmission (absolute). The last two columns give the fraction of settings whose fine-to-medium\n"
+               "change meets the declared tolerance for the fixed-source and combined levels.")
+    return float_table('\n'.join(lines)+'\n', caption, 'tab:retracking_values')
 
 
 def scaling_table(summary):
@@ -232,7 +254,14 @@ def scaling_table(summary):
                  + f" & {signed(paired['elapsed_wall_time_s']['mean_difference']/3600, 2, True)} \\\\")
     lines.append(f"\\quad 95\\% interval & {bounds[0]} & {bounds[1]} & & & & & \\\\")
     lines += [r'\bottomrule', r'\end{tabular}']
-    return '\n'.join(lines)+'\n'
+    caption = ('Matched raw- and normalized-residual campaigns, ten groups of 160 evaluations per arm.\n'
+               'Feasible fractions over all evaluations and after the 16 initial ones are means over groups; the\n'
+               'category columns give the shares of post-initialization evaluations that violate only the\n'
+               'transverse limits, only the energy band, more than one group, or only the bunch-length limit\n'
+               '(transmission was never violated). The difference row gives normalized minus raw, with\n'
+               '\\SI{95}{\\percent} paired bootstrap intervals for the feasible fractions, and the mean paired\n'
+               'difference in campaign time.')
+    return float_table('\n'.join(lines)+'\n', caption, 'tab:scaling', 'footnotesize', '4pt')
 
 
 def write(evidence=EVIDENCE):

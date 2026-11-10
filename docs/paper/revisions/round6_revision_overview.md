@@ -1,4 +1,4 @@
-# Round6 revision overview — studies complete, responses pending
+# Round6 revision overview
 
 > **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) remain. This note supersedes the restart and pause notes below.
 
@@ -7,6 +7,8 @@
 > **Execution status — 2026-11-02: PAUSED by user request.** The chain and its ASTRA workers are stopped. The checkpoint preserves 387 nominal and 44 fine-resolution results; two interrupted attempts require recovery inspection before any authorized restart. Scaling campaigns and final integration remain pending. See [the pause and restart record](round6_pause_status.md). This administrative update supersedes earlier running/queued status below; reviewer assessments and frozen scientific evidence remain unchanged.
 
 Reviewed manuscript baseline: `9fd076a`; execution baseline: `79cecb9`.
+
+> **Closure — 2026-11-10 (Task 00379):** every C6 item has a disposition; see [Closure](#closure--2026-11-10) at the end. The sections between here and there are dated execution records kept as written.
 
 ## Author disposition (C6-05)
 
@@ -71,3 +73,48 @@ Execution after the restart: full test gate (1,157 passed, 100 % coverage; commi
 | Residual scaling | Normalized − raw −0.118 [−0.136, −0.099] all attempts; −0.131 post-initialization; 0/10 groups positive | Adverse to the tested convention |
 
 Manuscript: new subsections "Prospective validation studies", "Re-tracked sample of primary evaluations" and "Constraint-residual scaling" with three generated tables; abstract (still number-free), contribution list, discussion, limitations, conclusions and the smoothing appendix updated accordingly. Remaining: separately attributed reviewer responses, final validation and packaging (C6-09/A6-09).
+
+## Closure — 2026-11-10
+
+### Responses and change inventory
+
+- [Reviewer 1 response](../reviews/reviewer1_round6_response.md): R6-01 and R6-02 adopted and completed (with their adverse findings), R6-03 retained, R6-04 not adopted, R6-05 closed.
+- [Reviewer 2 response](../reviews/reviewer2_round6_response.md): comments 1–4 adopted; comment 5 answered with the completed studies.
+- [Reviewer 3 response](../reviews/reviewer3_round6_response.md): comments 1, 3, 4 and 5 adopted; comment 2 in part (convention clarified, bunching statement not adopted); comment 6 answered with the completed re-tracking.
+- [Manuscript source diff](round6_manuscript.diff): `main.tex`, `main_twocolumn.tex` and the bibliography against `9fd076a`. The bibliography is unchanged.
+- [Analysis code diff](round6_analysis_code.diff): every change under `src/`, `scripts/`, `tests/` and `tools/` against `9fd076a`.
+- [Changed-file inventory](round6_changed_files.json): every file changed relative to the baseline, with its current SHA-256 hash. It excludes the packaging files and the closing task summary.
+- Supplement S1: the frozen protocol and execution records are in S1.15 and the study results in S1.16.
+
+### Dispositions
+
+| Item | Disposition | Sources |
+|---|---|---|
+| C6-01 | Scalarized cost defined in prose as a minimized weighted sum of scaled objectives | R2 1; R3 1 |
+| C6-02 | Appendix kernel hypothesis removed | R2 2; R3 3 |
+| C6-03 | "specified" restored; closing scope sentence; number-free abstract | R2 3; R3 4 |
+| C6-04 | Undercoverage paragraph rewrapped | R2 4; R3 5 |
+| C6-05 | Additional validation adopted; comparator declined | R1; R2 5 |
+| C6-06 | Re-tracking completed: classifications and comparison stable, emittances unconverged | R1 R6-01; R2 5; R3 6 |
+| C6-07 | Matched campaigns completed: tested normalized convention lowered feasible sampling | R1 R6-02 |
+| C6-08 | Not adopted; limitation retained | R1 R6-04 |
+| C6-09 | Responses, packaging and validation | R1 R6-03/R6-05; R2 V6; R3-7 |
+| C6-10 | RF phase convention clarified; bunching statement declined | R3 2 |
+
+### Residual scientific uncertainty
+
+- **Objective values.** The emittances are not converged at the finest tested level: fine and medium differ by a median 5.5–7.4 %. The protocol does not allow refinement chosen after seeing the outcome.
+- **Residual normalization.** Its effect alone is unknown, because the tested convention also changed the smoothing widths and no width-preserving arm was run.
+- **Comparator.** No constraint-aware scalarized comparator was run.
+- **Front quality.** The indicators remain exploratory and untested at a converged resolution.
+- **Reviewers.** Reviewer 1's recommendation is not represented as changed. Closing this queue is not journal acceptance.
+
+### Validation
+
+- Full non-integration suite: 1,164 passed, 2 deselected, 100.00 % package line coverage (24 min).
+- `ruff check src scripts tests`, `scripts/verify_docs_sync.py`, `scripts/build_supplement_manifest.py` and the documentation-link and supplement tests passed.
+- `main.tex`: 61 pages. `main_twocolumn.tex`: 34 pages (31 before this round's additions). Both have no undefined references or overfull boxes, and the new tables were inspected in the two-column PDF.
+- `scripts/build_prab_submission.py --compile` builds the flat upload folder; its manuscript compiles to 61 pages with no warnings of those kinds, and its bibliography check passes. The folder is local and was not uploaded.
+- Not run: integration tests (ASTRA end-to-end, deselected by design) and any remote GitHub Actions query.
+
+No push or upload was made. Funding and acknowledgments and `\finaltrue` remain author decisions.

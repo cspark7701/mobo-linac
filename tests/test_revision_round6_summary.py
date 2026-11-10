@@ -81,6 +81,11 @@ def test_summaries_and_tables(tmp_path):
     assert 'r6_scaling_proposals.csv' in scaling['inputs_sha256'] and 'r6_resolution_paired.csv' not in scaling['inputs_sha256']
     table = (tmp_path/'r6_resolution_table.tex').read_text()
     assert 'Fixed-source fine & 0.400 (0.014)' in table and '[$-0.250$, 0.350]' in table
+    assert table.startswith('\\begin{table}[htbp]') and table.rstrip().endswith('\\end{table}')
+    assert '\\label{tab:retracking}' in table and 'standard error is 0.020 at the medium and 0.020 at the fine' in table
+    assert '\\setlength{\\tabcolsep}{4pt}' in table
+    assert '\\label{tab:retracking_values}' in (tmp_path/'r6_numerical_table.tex').read_text()
+    assert '\\label{tab:scaling}' in (tmp_path/'r6_scaling_table.tex').read_text()
     numerical = (tmp_path/'r6_numerical_table.tex').read_text()
     assert '$-20.0$ [$-20.0$, $-20.0$]' in numerical
     assert 'Transmission & 0 (all settings) & 0 &' in numerical

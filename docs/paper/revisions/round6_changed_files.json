@@ -1,0 +1,576 @@
+{
+ "baseline": "9fd076a",
+ "note": "Round6 revision files relative to the reviewed manuscript baseline, with current SHA-256 hashes (none for deleted files; renames appear as a deletion and an addition). Excludes the packaging files (diffs, this inventory, the overview) and the closing task summary to avoid self-reference. Raw simulation outputs under results/revision_round6/ are not tracked; their analysis receipts are hashed in docs/paper/revisions/evidence/r6_collection.json.",
+ "counts": {
+  "A": 94,
+  "M": 16,
+  "D": 3
+ },
+ "files": [
+  {
+   "path": "AGENTS.md",
+   "status": "M",
+   "sha256": "08612b1b6c2521041a9573bd15258816e87a67bcacd7edf852740cf9569c6172"
+  },
+  {
+   "path": "README.md",
+   "status": "M",
+   "sha256": "11115332918405fdd7dabf43cf1c5ba2a4894f5c57ae5f162ed36f37b1546625"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00338_humanized_manuscript_review_fixes.md",
+   "status": "D",
+   "sha256": null
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00339_apply_requested_manuscript_review_edits.md",
+   "status": "D",
+   "sha256": null
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00339_humanized_manuscript_review_fixes.md",
+   "status": "A",
+   "sha256": "ec7b7696dbed6597b058860cff8c55034f8a6cc3cdc859cdb4743349b9693d5d"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00340_apply_requested_manuscript_review_edits.md",
+   "status": "A",
+   "sha256": "7994086271939c11d31a0ce8bdb258dbcf6cd5e5935029cb94545b1f88a588a8"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00340_manuscript_acceptance_assessment.md",
+   "status": "D",
+   "sha256": null
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00341_manuscript_acceptance_assessment.md",
+   "status": "A",
+   "sha256": "4c7d2716fc30d79088e3ff61efc6d01d9bd77e84bbc3e2cba5eb5f46c25d2a46"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00342_reviewer2_round6_report.md",
+   "status": "A",
+   "sha256": "78914253fa42fbaf75dc6e67f08a1267e7db567b751d784dab75498db748b59c"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00343_consolidate_round6_review_tasks.md",
+   "status": "A",
+   "sha256": "e8fc5e91965ca28d6f01ceace01c9069a89156434bfc6c43a95d3e05a11f7b0b"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00344_formalize_reviewer1_round6_and_consolidate.md",
+   "status": "A",
+   "sha256": "ea65349bbbe9f6e92338715875e0b9af2be491d6c8a8f76a90e494dfb70c78b6"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00345_allow_authorized_push.md",
+   "status": "A",
+   "sha256": "ba1bf8cabf969ad834e6693b82d3f00e5699b5e799fc34337bb93cce5fb8ef43"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00346_c6_01_scalarized_target.md",
+   "status": "A",
+   "sha256": "0ebb4466a72b7f947ba65f965d190a093c22146a7875a5e508fbf3fbef9de39a"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00347_c6_02_undercoverage_hypothesis.md",
+   "status": "A",
+   "sha256": "06828dddc66327b67c1b1d18d2caf7f5cf7e3a87685d20b97b92020a369ea0a0"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00348_c6_03_abstract_scope.md",
+   "status": "A",
+   "sha256": "d13a4515c68a5a9d34ea63f80cb2c82355cfc90cababbe60fd3bdee7650a367e"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00349_c6_04_source_wrapping.md",
+   "status": "A",
+   "sha256": "f381a8a36a06e45221c0b2e0b92332bbc9d5eabbf16c7582493851879110e1a9"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00350_c6_05_research_adoption.md",
+   "status": "A",
+   "sha256": "2b19539391e9510a1834ede71bb3d122820fdb4952d02e7b65ed348c3316f2c4"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00351_a6_01_frozen_protocol.md",
+   "status": "A",
+   "sha256": "497acf38d7aee0f854387cf1c20b08bee5d7c37d487e8d9d939723349b82ef2d"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00352_a6_02_resolution_runner.md",
+   "status": "A",
+   "sha256": "d477ad3f82060627102c8da875526e24161d78d125576fcbe061642956bed030"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00353_a6_04_normalized_acquisition.md",
+   "status": "A",
+   "sha256": "fa8898e9c97db1325d9bc27d599de642d2119815a8da50612b04280713546b21"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00354_a6_analysis_and_scaling_runner.md",
+   "status": "A",
+   "sha256": "b1fbbe4b2dec841611d5e4ba7b7befaa7940f0a37ac11e5deafa6b1abe44b919"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00355_c6_08_comparator_disposition.md",
+   "status": "A",
+   "sha256": "ef56ba4af4101baabde9f8eefae9a25b2c8e8d6d256bfdcb131a00e3da92872b"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00356_a6_04_independent_fallback_streams.md",
+   "status": "A",
+   "sha256": "7053ecf3f41032fa902e9652e17b556fea2fdbb187aab6ce2f34e8944e468708"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00357_a6_01_supplement_protocol_map.md",
+   "status": "A",
+   "sha256": "43d5086f6e849527e03528d74e585f0e359b40563dba88e71cbcf17c21cc5666"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00358_r6_chain_validation_and_stage_commits.md",
+   "status": "A",
+   "sha256": "9a62c8144f0bea4fa94f9fda6e756f9648b618e9a0f22c802ce3bd56a418fc37"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00359_r6_pruning_and_failed_measurements.md",
+   "status": "A",
+   "sha256": "556923fbbc1535081333e0dc1b2f7d2d88d4c3ee87608b40340435dea9228f18"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00360_r6_revalidation_receipts.md",
+   "status": "A",
+   "sha256": "39126f5ed3d331021ed8e48673f54935d2f9fd1900e39482e972748f09645a49"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00361_r6_execution_handoff.md",
+   "status": "A",
+   "sha256": "1caa50a4379238e7162ef0038eac29196b1f7288b5b5d014b69b1a92412991c3"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00362_r6_research_entrypoints.md",
+   "status": "A",
+   "sha256": "0c2b0760c2d09b3db597a5569ca25f0cff5b15ba7f9358b2eb61e6930feb6c9e"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00363_r6_validation_gate_recovery.md",
+   "status": "A",
+   "sha256": "76b2f7012f7b1ac4ca2a9bd9efe1c1b10d1b8f058a6db957002cb9eb764279ea"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00364_r6_validation_completed.md",
+   "status": "A",
+   "sha256": "52f17f2288301b9b8c9300a624a45acd81fda200b26c0daf53d1f975fa2766e1"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00365_reviewer3_round6_report_and_tasks.md",
+   "status": "A",
+   "sha256": "a765d1240aae3d13d44fafeddafd1c827c8ffcb3921a0a1313d6aabb9bc04563"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00366_rank_manuscript_journal_recommendations.md",
+   "status": "A",
+   "sha256": "cbaf23942de4dabe1e3230af0ae97481267ab6e234fc7af89bde00bb0716c88e"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00367_split_prab_manuscript_layouts.md",
+   "status": "A",
+   "sha256": "62a4c2a42aa787648f51859fd42ea6cb9b3b51fdba6b9b3f61ea4196f8835812"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00368_r6_user_pause_checkpoint.md",
+   "status": "A",
+   "sha256": "f4585f0e93a2a3b381f4fa9f3108ab49a4fa07539de9ad4a2727e4cc2e04961d"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00369_reconcile_pulled_manuscript_updates.md",
+   "status": "A",
+   "sha256": "fcaecdb9040d40e0bf8cfad0bd57d3183fc504d2239791ebd05e26b14189e838"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00370_isolate_round6_unit_test_inputs.md",
+   "status": "A",
+   "sha256": "ca7418c4bd617559088e5aa8c57961e27fbc2ba3fee3d32347e16ca8e3cdd984"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00371_cover_strategy_cuda_random_stream.md",
+   "status": "A",
+   "sha256": "86346b71bfcf3d9d63493616c0dbb0e4fa64fdcdcd000e8fd47b5784ad24952b"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00372_round6_worker_amendment.md",
+   "status": "A",
+   "sha256": "34772af3607b29a0d9f0d5014887669cca55820a94289c52bafa6cb0cd5838b2"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00373_c6_10_rf_phase_reference.md",
+   "status": "A",
+   "sha256": "d88e923ab5855225d9bbfdaa1d5b97c7e1232ac3cb4ec5b1461daa5057fe7a9e"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00374_round6_pause_recovery.md",
+   "status": "A",
+   "sha256": "61657b6a9b7c637d2282755630f227a97b18e4868d060e85b75957b161c15e7d"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00375_r6_validation_completed.md",
+   "status": "A",
+   "sha256": "5041bc9105222aad33d7d97900da2cdc38ee07f88d9900af724d07d22ce610de"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00376_r6_numerical_completed.md",
+   "status": "A",
+   "sha256": "f74ff40385864004b809584bf460a1635c026bab363a9e23db000b6c686c04f5"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00377_r6_scaling_completed.md",
+   "status": "A",
+   "sha256": "ce8ddfadc7f3f79044fbcf34cc5a7218e73c0312016ca6880a55d47496566721"
+  },
+  {
+   "path": "docs/exec-plans/completed/TASK_00378_r6_evidence_integration.md",
+   "status": "A",
+   "sha256": "e1abef6d4a1025ae3bcfe8b8ac4d1b755978440bb5017afb80bb33f7657377fe"
+  },
+  {
+   "path": "docs/exec-plans/task_filename_migration.csv",
+   "status": "M",
+   "sha256": "27d0b2344316141c9b99bfd28e5f4565828e26c5453b70ab9a34b1c1a92ab2fd"
+  },
+  {
+   "path": "docs/paper/README.md",
+   "status": "M",
+   "sha256": "649a72eebd7148d45e77e31255a1bc99dbda179f1935502582e6d189bbceea66"
+  },
+  {
+   "path": "docs/paper/journal_recommendations.md",
+   "status": "A",
+   "sha256": "226f1a7eaea5090cfc30cc4b753e03c87a065835888b65556d539395b2080fec"
+  },
+  {
+   "path": "docs/paper/main.tex",
+   "status": "M",
+   "sha256": "f235b26ec1c3f9d484b994e144ccc3bb6f33355444bf2fc1d53e445f7862faf5"
+  },
+  {
+   "path": "docs/paper/main_twocolumn.tex",
+   "status": "A",
+   "sha256": "c33fe37dd2578b969795a6baa1bd24590acc23bccbcfd328b17ce33159ebcef1"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer1_round6_report.md",
+   "status": "A",
+   "sha256": "fcb4927655fa691ae349c2f1534b6cf5b34a5fa259f577f524191b23ef945e74"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer1_round6_response.md",
+   "status": "A",
+   "sha256": "fcc07fd725d7231ab5f220c86aa2ea27178b76d9dc11fa85438e10e8bc270294"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer2_round6_report.md",
+   "status": "A",
+   "sha256": "1e8199a8e5d65777aadd24d7cdc50a3abc8807414c7f9df333f97f563b006f80"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer2_round6_response.md",
+   "status": "A",
+   "sha256": "f7ec1feffd1945b5eded38a02d520527a30d49cf645fb67728dc492414938268"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer3_round6_report.md",
+   "status": "A",
+   "sha256": "e05a91314706c31c9efcd1f3545025662b4a516a71bd3d8bdfb2bc304b40db45"
+  },
+  {
+   "path": "docs/paper/reviews/reviewer3_round6_response.md",
+   "status": "A",
+   "sha256": "5a05a1d27a6bfcbaa3a9a1d038a9089938aca97c28e73152e53fe015b8480cfe"
+  },
+  {
+   "path": "docs/paper/reviews/round6_review_synthesis.md",
+   "status": "A",
+   "sha256": "8b784703e7544b07bf322d315b01f307fa4b0ad10e2cad05252885c762ebc3ee"
+  },
+  {
+   "path": "docs/paper/revisions/consolidated_round6_revision_tasks.md",
+   "status": "A",
+   "sha256": "12ae72c856d0cda02f13ad8c55100a9b42291951872b5c209c8bc1cc63a1270b"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_collection.json",
+   "status": "A",
+   "sha256": "fdd9d61575e14e6ca9669ab17f555ce48605485f4f5355c9e2581628990a6979"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_execution_amendment_01.json",
+   "status": "A",
+   "sha256": "7386163c0c893d9ad87ed8ac5d8efb7ad7d0111d91f0f2e4d474ceca8ceeed14"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_numerical_table.tex",
+   "status": "A",
+   "sha256": "7390f3a55b71ec2865f6221a64be58b3d2fec27c3ba846730a6a13a59d11b325"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_protocol.md",
+   "status": "A",
+   "sha256": "29e23d4683b5839b1f3d98c870ddb40fb473c3e6e59a23576a8473e83ea82bd2"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_protocol_amendment_01.md",
+   "status": "A",
+   "sha256": "db6d096f1c76192ed0601b9c1e0ca9a35639f35b9ffab880f102915ab45ec562"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_recovery_01.json",
+   "status": "A",
+   "sha256": "5be73555304c643ad13e3bb8ac8653d90d0beda989412466edfdedba3be766c6"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_resolution_classification.csv",
+   "status": "A",
+   "sha256": "484dd0d17889a247c1891bf53e919a84aab7b2825b85fa83717252d95dd33b2d"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_resolution_fractions.csv",
+   "status": "A",
+   "sha256": "07d12a3ebe485e6d9b89c1eae4264b4923f82c2995eab065b9c91f5e5ccbbc96"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_resolution_paired.csv",
+   "status": "A",
+   "sha256": "eb5c9a5acb1dd0cf08a9dee8b32d777cdfefbac801d381fc1a5f308ec0af28d3"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_resolution_summary.json",
+   "status": "A",
+   "sha256": "efe438a444814266a523e5148e81fb82bf67127e5f6c5548bf180f829833a412"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_resolution_table.tex",
+   "status": "A",
+   "sha256": "0d96a1b7bcfb5ba4a779b6d025f7a9ddfb5dce4371e91fdeab52bfa8f4686ca2"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_resolution_tolerances.csv",
+   "status": "A",
+   "sha256": "c8ef55df7c3c1401ec4dcb2e698233c80471511aea557033ba04ed174d742917"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_rf_phase_fit.json",
+   "status": "A",
+   "sha256": "2909380794ed2003e7e92c3c316576ccbc1e0729c442d87b503d9c6a855ea5a9"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_sampling_manifest.csv",
+   "status": "A",
+   "sha256": "5f9d8cec76ec299c97669e6107b44c25631b726dec73fd73975e4f44d4d4d358"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_sampling_strata.csv",
+   "status": "A",
+   "sha256": "27074443d6a968276f615892a20bd445d65d6e53a1a2e24edfa97a466109c0d6"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_scaling_channels.csv",
+   "status": "A",
+   "sha256": "ca8602bcd71c90be4038e0e1428ca52c9701ae7b3c7a33a1bc68836fc84d456a"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_scaling_paired.csv",
+   "status": "A",
+   "sha256": "2a710bf72469dc7ca7d48577bf768dc8d49f4fce057e8acce172f717b5f4da96"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_scaling_proposals.csv",
+   "status": "A",
+   "sha256": "1d716e4dfdf04f5c3c2de3712eed93db7cd3a36a0c259ccdaae08ff322790393"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_scaling_runs.csv",
+   "status": "A",
+   "sha256": "e12fd491958d61a4c1414cc1708598328e2cfd3eadf18aa0e38cacdfe04de23d"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_scaling_summary.json",
+   "status": "A",
+   "sha256": "73e7e8382a0c272e56ae4f3673b74a6b4dcc25887dbeec09484769828711aba0"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_scaling_table.tex",
+   "status": "A",
+   "sha256": "98f82be23a162139bff3dc19795fb4d5968d871cf7c5f33b0a87c7f2c5409364"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_specification.json",
+   "status": "A",
+   "sha256": "8ae9a943726231ff70194ef20e6cfbf3be724978e0fdf19416b303c5cf406ecd"
+  },
+  {
+   "path": "docs/paper/revisions/evidence/r6_worker_check.json",
+   "status": "A",
+   "sha256": "b056ad6ccd7da0f7dec7fda5c884fd05a3efc509a91d31c143ff3f3c71584c96"
+  },
+  {
+   "path": "docs/paper/revisions/reviewer1_round6_revision_tasks.md",
+   "status": "A",
+   "sha256": "34f2ba0a9845685d08a26fc56a5ebc096229934aa57e5fa81b47f3d4b1a0c2a4"
+  },
+  {
+   "path": "docs/paper/revisions/reviewer2_round6_revision_tasks.md",
+   "status": "A",
+   "sha256": "777ee940d83e0a9efff6227c664141933426efefb5e3687807b64b73c0dd4238"
+  },
+  {
+   "path": "docs/paper/revisions/reviewer3_round6_revision_tasks.md",
+   "status": "A",
+   "sha256": "a502744137d14d38ce31f758ad872aad66b3c520363e6109e05a26bb5882ee17"
+  },
+  {
+   "path": "docs/paper/revisions/round6_additional_validation_plan.md",
+   "status": "A",
+   "sha256": "f7623fc62574e1c958c8955113c9c3cff8bf8f68f44abaddd4cbbd6ccdb6ffa7"
+  },
+  {
+   "path": "docs/paper/revisions/round6_pause_status.md",
+   "status": "A",
+   "sha256": "87d86693f2a382aedda3079366d9833935d58ab92ee1be24e5ab605ac599487d"
+  },
+  {
+   "path": "docs/paper/supplement/README.md",
+   "status": "M",
+   "sha256": "b86c2cbd5708f4f99fe65e90394a529fcf4bac0110d5973cfc8225d01ef34268"
+  },
+  {
+   "path": "docs/paper/supplement/evidence_map.csv",
+   "status": "M",
+   "sha256": "74a4cf76c241ac160df8c5d32e93ba6079bb598a1783f52549b418ed860a049e"
+  },
+  {
+   "path": "docs/paper/supplement/input_inventory.csv",
+   "status": "M",
+   "sha256": "869763eeb2e13f2c972045b962397c7f3ce3df9bd4694062894fb0108cf75317"
+  },
+  {
+   "path": "docs/simulation_guide.md",
+   "status": "M",
+   "sha256": "779192ca551df8ae8d2d25e969bb7863912320c0ca220d0514c34a66fef74849"
+  },
+  {
+   "path": "scripts/analyze_revision_round6.py",
+   "status": "A",
+   "sha256": "14d4959eb8ffd25c07f5764abad3489fc0fe933f379ed64f8980e48002f3b471"
+  },
+  {
+   "path": "scripts/analyze_revision_round6_rf_phase.py",
+   "status": "A",
+   "sha256": "1a5a0ab8f9728d5085b58871283d042a3e33b2870d34063953b9b477f7fd67e6"
+  },
+  {
+   "path": "scripts/check_revision_round6_workers.py",
+   "status": "A",
+   "sha256": "a9eb61070fa49e40037037fbb806a48dc507900a55920c979851b2e6f711036a"
+  },
+  {
+   "path": "scripts/evaluate_revision_round6_resolution.py",
+   "status": "A",
+   "sha256": "47e4747d51a1d363bfa70885a6a89f61529f5d93611772ac23dbbbfe52a16921"
+  },
+  {
+   "path": "scripts/evaluate_revision_round6_scaling.py",
+   "status": "A",
+   "sha256": "83a3e5e79e2a677b7ed4f9878c14f52c2092ff72550e5c216136bf612b46749a"
+  },
+  {
+   "path": "scripts/prepare_revision_round6.py",
+   "status": "A",
+   "sha256": "452b02d5265395ab18f25dade44da5461939dcdb8fe1d13205bd551f279a29ee"
+  },
+  {
+   "path": "scripts/record_revision_round6_stage.py",
+   "status": "A",
+   "sha256": "670a8df1fb5ab0333423c2e20bcf25dea358c693e4fd76b000991cfd6af3ac90"
+  },
+  {
+   "path": "scripts/recover_revision_round6.py",
+   "status": "A",
+   "sha256": "5108e6a23625e11a79abe5db547e8050a1074a0aeae0dbfa50db4b845dd8da86"
+  },
+  {
+   "path": "scripts/run_revision_round6_chain.sh",
+   "status": "A",
+   "sha256": "c12d171da0d08c58924a584238ba53226577f56833d63ca4e84092b69fa1732c"
+  },
+  {
+   "path": "scripts/summarize_revision_round6.py",
+   "status": "A",
+   "sha256": "7abf8c79c85ebae609823b07e7aae942be4c0b56f49e2443de329502a52cb2dc"
+  },
+  {
+   "path": "src/mobo_linac/acquisition/mobo.py",
+   "status": "M",
+   "sha256": "8396141d06b609fcd61aac6b86950aa6653c29704e5b3d6165da5cfc5d70a973"
+  },
+  {
+   "path": "src/mobo_linac/campaigns/runner.py",
+   "status": "M",
+   "sha256": "a40509ed98679e44404128f6455d67ab31f8eeaeb5614858a827b8129943377e"
+  },
+  {
+   "path": "src/mobo_linac/campaigns/strategies.py",
+   "status": "M",
+   "sha256": "f112aaa9f2089d1da524cde0fc7189ad21363f0092d524350d8c85c47ddcbddf"
+  },
+  {
+   "path": "src/mobo_linac/config.py",
+   "status": "M",
+   "sha256": "29d1d1ed628a0b47f9daeeaf929fe174a2479b406b74591048f27453161e016a"
+  },
+  {
+   "path": "src/mobo_linac/constraints.py",
+   "status": "M",
+   "sha256": "656086a6c40bdd935c1aea8f6c8437d3ae51211fe367dc7a52f6fada7d287ae8"
+  },
+  {
+   "path": "tests/test_model_edge_cases.py",
+   "status": "M",
+   "sha256": "8d645c6a9b27be5897b58dd9106031e367852831c7267f03b51447db91508979"
+  },
+  {
+   "path": "tests/test_normalized_constraints.py",
+   "status": "A",
+   "sha256": "c331747618db4014b792d64de8bf6599832efc2a4ba17888ca1a01e735ab42ce"
+  },
+  {
+   "path": "tests/test_revision_round6.py",
+   "status": "A",
+   "sha256": "eed172093d4f4de79bec6b7ee5d0ca225d163f661ab541676ceab3fd526b4ad1"
+  },
+  {
+   "path": "tests/test_revision_round6_recovery.py",
+   "status": "A",
+   "sha256": "1c2e3ef9ed57cf4267dd3b48900dbdfc3814403b43b5b4752ecf88ff438eca0c"
+  },
+  {
+   "path": "tests/test_revision_round6_rf_phase.py",
+   "status": "A",
+   "sha256": "9c26f8eb9fea2ece35412d9342c67c85a4eac4e611ae05502508ff3bbc31c8ee"
+  },
+  {
+   "path": "tests/test_revision_round6_summary.py",
+   "status": "A",
+   "sha256": "555a4d8d1fcd5c2ba5008570a4046f91f9cd7e4fa52cdce0304ef8cc538400b7"
+  },
+  {
+   "path": "tests/test_revision_round6_workers.py",
+   "status": "A",
+   "sha256": "965a371d5ba7cd861aa4981ffcdc7abab44dae78d3582496abe4b8c1258829a1"
+  },
+  {
+   "path": "tests/test_supplement_map.py",
+   "status": "M",
+   "sha256": "4ba4c43c09dc40c24fdc01e66f51328cb88686eb4400f1debbd0ac0d61a0f0ca"
+  }
+ ]
+}

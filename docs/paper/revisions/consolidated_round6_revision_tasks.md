@@ -1,5 +1,7 @@
 # Consolidated revision tasks: round 6
 
+> **Closure status — 2026-11-10:** every C6 item has a disposition (Task 00379). Responses: [Reviewer 1](../reviews/reviewer1_round6_response.md), [Reviewer 2](../reviews/reviewer2_round6_response.md), [Reviewer 3](../reviews/reviewer3_round6_response.md). Unresolved scientific items stay visible: objective convergence at the finest tested level, the effect of normalization alone, and the absent constrained-scalarized comparator. Closing this queue is not journal acceptance or reviewer agreement.
+
 > **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) remain. This note supersedes the restart and pause notes below.
 
 > **Restart status — 2026-11-04:** the author authorized the restart. Worker ceiling raised to 22 by [amendment 01](evidence/r6_protocol_amendment_01.md); the two interrupted attempts were retained and re-tracked in isolation (`evidence/r6_recovery_01.json`); the pause marker is archived. The journal holds 433 of 1,935 numerical results (387 production, 46 combined-fine). Remaining refinement and scaling have not started. This note supersedes the pause note below.
@@ -127,11 +129,11 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Sources:** Reviewer 1 R6-01–R6-05 and Reviewer 2 comment 5/V5.
 
-- [ ] Record whether the author retains the current nominal-model submission route or adopts additional validation before submission. Cite the earlier scope-based closure and both current recommendations accurately.
-- [ ] If retaining the current route, respond to the additional requests with the existing numerical/smoothing limitations and a reasoned scope explanation. Mark C6-06 and C6-07 “not adopted for this revision”, rather than falsely completed. Reviewer 1's major-revision recommendation remains on record unless explicitly reassessed; the response is not a finding that R6-01/R6-02 validation was completed.
-- [ ] If adopting additional research, select each workstream explicitly, freeze its protocol and resource budget, and identify the stronger claim it is intended to test before collecting outcomes. Do not treat this task list as authorization to start ASTRA.
-- [ ] Decide C6-08 separately. It is optional under both source records and is not a third mandatory scientific request.
-- [ ] Keep historical front-quality indicators exploratory, regardless of the route. No historical endpoint or feasibility label may be rewritten.
+- [x] Record whether the author retains the current nominal-model submission route or adopts additional validation before submission. Cite the earlier scope-based closure and both current recommendations accurately.
+- [ ] *(Not applicable: additional validation was adopted.)* If retaining the current route, respond to the additional requests with the existing numerical/smoothing limitations and a reasoned scope explanation. Mark C6-06 and C6-07 “not adopted for this revision”, rather than falsely completed. Reviewer 1's major-revision recommendation remains on record unless explicitly reassessed; the response is not a finding that R6-01/R6-02 validation was completed.
+- [x] If adopting additional research, select each workstream explicitly, freeze its protocol and resource budget, and identify the stronger claim it is intended to test before collecting outcomes. Do not treat this task list as authorization to start ASTRA.
+- [x] Decide C6-08 separately. It is optional under both source records and is not a third mandatory scientific request.
+- [x] Keep historical front-quality indicators exploratory, regardless of the route. No historical endpoint or feasibility label may be rewritten.
 
 **Deliverable:** a traceable disposition in the round 6 overview and response.
 
@@ -141,11 +143,11 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Adoption condition:** explicit selection in C6-05. **Detail:** A6-01 through A6-03 in the [additional validation plan](round6_additional_validation_plan.md).
 
-- [ ] Freeze a stratified sample across methods, matched groups, feasibility states, boundary channels and search stages before new outcomes. Retain inclusion probabilities and a precision/cost basis for sample size.
-- [ ] Re-track identical controls at declared levels in a fresh directory. Check nominal reproduction first and separate source changes from step/grid refinement.
-- [ ] Analyze diagnostic shifts, physical margins, feasibility flips and failed attempts by stratum. Use sampling-aware uncertainty for any population estimate; do not assume unsampled observations remain unchanged.
-- [ ] Separate a medium-level submission check suggested by Reviewer 2 from a demonstration of numerical convergence. A limited sample or unconverged refinement may leave Reviewer 1's broader request unresolved.
-- [ ] Report supportive, adverse or inconclusive findings with their limitations.
+- [x] Freeze a stratified sample across methods, matched groups, feasibility states, boundary channels and search stages before new outcomes. Retain inclusion probabilities and a precision/cost basis for sample size.
+- [x] Re-track identical controls at declared levels in a fresh directory. Check nominal reproduction first and separate source changes from step/grid refinement.
+- [x] Analyze diagnostic shifts, physical margins, feasibility flips and failed attempts by stratum. Use sampling-aware uncertainty for any population estimate; do not assume unsampled observations remain unchanged.
+- [x] Separate a medium-level submission check suggested by Reviewer 2 from a demonstration of numerical convergence. A limited sample or unconverged refinement may leave Reviewer 1's broader request unresolved.
+- [x] Report supportive, adverse or inconclusive findings with their limitations.
 
 **Deliverables:** frozen manifest/protocol, new run records, `r6_resolution_*` evidence and an analysis report.
 
@@ -157,11 +159,11 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Adoption condition:** explicit selection in C6-05. **Detail:** common protocol A6-01 and A6-04 through A6-06 in the [additional validation plan](round6_additional_validation_plan.md).
 
-- [ ] Freeze normalization scales, temperatures, their physical widths, endpoints, seeds, shared initial designs and budgets before looking at new optimization outcomes.
-- [ ] Implement an explicit recorded mode with tests of residual signs, unit transformations, all inequality sides, physical feasibility invariance, q=8/pruning behavior and checkpoint/resume. Preserve raw defaults and archived behavior.
-- [ ] Run contemporaneous matched raw-residual and normalized-residual arms only after the adopted protocol and readiness checks. Disclose that a common dimensionless temperature changes physical smoothing widths, so the experiment tests that convention rather than unit conversion alone.
-- [ ] Analyze paired feasible fractions, channel-group violations, failures and cost. Keep secondary front-quality analyses prospective or explicitly exploratory according to their reference construction.
-- [ ] Do not call normalized residuals a validated or superior method before results. Nominal-resolution scaling campaigns do not resolve tracking convergence.
+- [x] Freeze normalization scales, temperatures, their physical widths, endpoints, seeds, shared initial designs and budgets before looking at new optimization outcomes.
+- [x] Implement an explicit recorded mode with tests of residual signs, unit transformations, all inequality sides, physical feasibility invariance, q=8/pruning behavior and checkpoint/resume. Preserve raw defaults and archived behavior.
+- [x] Run contemporaneous matched raw-residual and normalized-residual arms only after the adopted protocol and readiness checks. Disclose that a common dimensionless temperature changes physical smoothing widths, so the experiment tests that convention rather than unit conversion alone.
+- [x] Analyze paired feasible fractions, channel-group violations, failures and cost. Keep secondary front-quality analyses prospective or explicitly exploratory according to their reference construction.
+- [x] Do not call normalized residuals a validated or superior method before results. Nominal-resolution scaling campaigns do not resolve tracking convergence.
 
 **Deliverables:** implementation/test records, new per-group campaigns and `r6_scaling_*` effects/metadata.
 
@@ -175,10 +177,10 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Source:** Reviewer 1 R6-04, distinct from R6-01 and R6-02. **Detail:** A6-07 in the [additional validation plan](round6_additional_validation_plan.md).
 
-- [ ] Record adoption/non-adoption separately from C6-06 and C6-07.
-- [ ] If adopted, define and test a genuine constraint-aware scalarized acquisition; freeze its weights, scaling, initial designs, budgets and comparisons before runs.
-- [ ] Separate the benefit of constraint information from the choice of vector-valued acquisition.
-- [ ] If declined, retain the explicit missing-comparator limitation. Do not infer a unique MOBO benefit over constraint-aware scalarization.
+- [x] Record adoption/non-adoption separately from C6-06 and C6-07.
+- [ ] *(Not adopted.)* If adopted, define and test a genuine constraint-aware scalarized acquisition; freeze its weights, scaling, initial designs, budgets and comparisons before runs.
+- [ ] *(Not adopted.)* Separate the benefit of constraint information from the choice of vector-valued acquisition.
+- [x] If declined, retain the explicit missing-comparator limitation. Do not infer a unique MOBO benefit over constraint-aware scalarization.
 
 **Done when:** the optional decision and any adopted experiment are documented. Omitting this comparator does not leave Reviewer 2's required correction open.
 
@@ -186,15 +188,17 @@ Priority: P1 addresses an explicit review requirement or a necessary disposition
 
 **Sources:** Reviewer 1 R6-03/R6-05 and Reviewer 2 V6, plus all dispositions. Use A6-08/A6-09 of the [additional plan](round6_additional_validation_plan.md) only if new evidence is produced.
 
-- [ ] Write `docs/paper/reviews/reviewer2_round6_response.md`, mapping comments 1–5 to exact changes or reasoned non-adoption. Write `docs/paper/reviews/reviewer1_round6_response.md`, mapping R6-01–R6-05 to evidence or reasoned dispositions. Its report formalizes Task 00340; do not count those two records as independent reviews.
-- [ ] Add `round6_revision_overview.md`, manuscript/code diffs against the declared baseline and a changed-file/hash inventory. Preserve earlier review packages.
-- [ ] Update supplement evidence mappings, input inventory and checksums if new analyses are adopted. Do not extend regeneration claims beyond the inputs actually checked.
-- [ ] For editorial-only work, build the two-column PRAB manuscript and check references, overfull boxes, changed passages and number-free abstract. Run the relevant manuscript, paper-output and documentation-link checks.
-- [ ] Regenerate and compile the local upload folder with `python scripts/build_prab_submission.py --compile`; verify that its bibliography is current. No upload is implied.
-- [ ] If code is changed, add meaningful tests and run the applicable local CI/coverage checks under the current resource constraints. State unrun checks accurately.
-- [ ] Save the next available five-digit completion summary and commit only related changes using the repository format. Do not push.
+- [x] Write `docs/paper/reviews/reviewer2_round6_response.md`, mapping comments 1–5 to exact changes or reasoned non-adoption. Write `docs/paper/reviews/reviewer1_round6_response.md`, mapping R6-01–R6-05 to evidence or reasoned dispositions. Its report formalizes Task 00340; do not count those two records as independent reviews.
+- [x] Add `round6_revision_overview.md`, manuscript/code diffs against the declared baseline and a changed-file/hash inventory. Preserve earlier review packages.
+- [x] Update supplement evidence mappings, input inventory and checksums if new analyses are adopted. Do not extend regeneration claims beyond the inputs actually checked.
+- [x] For editorial-only work, build the two-column PRAB manuscript and check references, overfull boxes, changed passages and number-free abstract. Run the relevant manuscript, paper-output and documentation-link checks.
+- [x] Regenerate and compile the local upload folder with `python scripts/build_prab_submission.py --compile`; verify that its bibliography is current. No upload is implied.
+- [x] If code is changed, add meaningful tests and run the applicable local CI/coverage checks under the current resource constraints. State unrun checks accurately.
+- [x] Save the next available five-digit completion summary and commit only related changes using the repository format. Do not push.
 
 **Done when:** every source comment has a disposition, all adopted work has evidence and validation receipts, non-adopted work is visible, and no task status is equated with journal acceptance.
+
+**Execution status (2026-11-10):** completed in Task 00379. Responses to all three reviewers, the round6 overview with manuscript/code diffs against `9fd076a` and a changed-file/hash inventory, S1.16 mapping, both PDF builds and the compiled upload folder, and the full non-integration suite with 100 % coverage. No push or upload.
 
 ## Suggested execution order
 
@@ -216,8 +220,8 @@ The report's 176-evaluation primary-budget statement is corrected by its dated n
 | R3-3: appendix hypothesis | Covered by completed C6-02. |
 | R3-4: abstract scope | Covered by completed C6-03; equivalent scope wording retained. |
 | R3-5: source wrapping | Covered by completed C6-04. |
-| R3-6: optional re-tracking | Overlaps adopted C6-06/A6-01–03. Retain the frozen protocol and pause; no extra sample commissioned. |
-| R3-7: response and validation | Part of C6-09, with a separately attributed Reviewer 3 response still pending. Local merge checks do not complete final integration. |
+| R3-6: optional re-tracking | Covered by completed C6-06 (387 stratified settings, five levels); answered in the Reviewer 3 response. |
+| R3-7: response and validation | Completed in C6-09 with a separately attributed Reviewer 3 response. |
 
 ### C6-10. Verify the RF phase clarification requested by Reviewer 3
 
