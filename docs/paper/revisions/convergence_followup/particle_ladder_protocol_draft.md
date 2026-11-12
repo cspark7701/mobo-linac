@@ -1,6 +1,8 @@
 # Particle-count convergence ladder — protocol draft
 
-**Status: DRAFT for author approval, 2026-11-12. Not frozen; no run is authorized by this document.** This is a new study after round 6, not a continuation of C6-06. The frozen round 6 protocol ([r6_protocol.md](evidence/r6_protocol.md)) is unchanged, and its results stand as reported. The protocol becomes binding only when the author approves it and the freeze step below is committed.
+**Status: SUPERSEDED, not adopted (2026-11-12).** The author chose the grid × particle matrix (`rm_protocol.md` in this folder) instead. Kept as a record of the earlier draft; it authorizes no run.
+
+**Earlier status: DRAFT for author approval, 2026-11-12.** This is a new study after round 6, not a continuation of C6-06. The frozen round 6 protocol ([r6_protocol.md](../evidence/r6_protocol.md)) is unchanged, and its results stand as reported. The protocol becomes binding only when the author approves it and the freeze step below is committed.
 
 ## Purpose and scope
 
