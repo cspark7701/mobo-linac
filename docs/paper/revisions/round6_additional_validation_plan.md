@@ -1,6 +1,8 @@
 # Additional validation plan for round 6
 
-> **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) remain. This note supersedes the restart and pause notes below.
+> **Closure status — 2026-11-12:** every task has a disposition. A6-01–A6-06, A6-08 and A6-09 are complete (Tasks 00378 and 00379), and A6-07 was not adopted. The checklists below are ticked, with notes where an item was met in a different form or did not apply. No further runs are planned under this protocol, which forbids refinement chosen after seeing outcomes. Two items stay open as limitations: objective convergence at the finest tested level, and the effect of normalization alone. Any further study would need a new protocol. Closing this plan is not journal acceptance.
+
+> **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) were completed the same day in Task 00379. This note supersedes the restart and pause notes below.
 
 > **Restart status — 2026-11-04:** the author authorized the restart. Worker ceiling raised to 22 by [amendment 01](evidence/r6_protocol_amendment_01.md); the two interrupted attempts were retained and re-tracked in isolation (`evidence/r6_recovery_01.json`); the pause marker is archived. The journal holds 433 of 1,935 numerical results (387 production, 46 combined-fine). Remaining refinement and scaling have not started. This note supersedes the pause note below.
 
@@ -47,17 +49,17 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Deliverables:** `evidence/r6_protocol.md`, `evidence/r6_sampling_manifest.csv`, and a machine-readable campaign/analysis specification. Save them before viewing new outcomes.
 
-- [ ] Inventory the original three-method, ten-group primary comparison and the existing refinement records. Identify missing local input files before scheduling work.
-- [ ] Define sampling strata across method, matched group, observed feasibility, signed diagnostic margin and search stage. Include baseline-method and rejected observations, near-boundary observations on both sides, and a random interior subset. Define signed margins and near-boundary bins explicitly.
-- [ ] Freeze deterministic sample selection, seed, stratum population sizes, inclusion probabilities, numbers per stratum and all inclusion/exclusion rules. Mark empty strata. Existing ten selected settings can supply continuity but cannot replace this sample.
-- [ ] Choose the sample size from the desired precision and available cost. Freeze the rule for expansion or stopping before new labels are available. Do not stop or expand according to whether the algorithm difference is positive.
-- [ ] Declare numerical levels, source-file handling and convergence tolerances. Existing production/medium/fine levels are starting points, not evidence that a chosen fine level is converged. Separate fixed-source step/grid changes from particle-count or regenerated-source changes.
-- [ ] Specify the target quantity: refined classifications of the sampled historical observations, and any sampling-weighted estimate for historical feasible fractions. Define uncertainty that accounts for both selection within strata and paired-group variation. Record when the design cannot support a population estimate.
-- [ ] Freeze the normalized-residual scales, dimensionless temperature(s), physical smoothing widths, seed set, initial designs, model/optimizer settings and equal per-run budget. Use a convention selected before campaign outcomes; the previous offline probe is exploratory context, not confirmatory evidence.
-- [ ] Plan contemporaneous raw and normalized control arms. Ten groups with two arms and 160 evaluations each would cost 3,200 ASTRA attempts, before pilots or extra comparators; this is a planning example, not an allocation. Freeze the actual group count and budget, and state the weaker inference if using fewer groups.
-- [ ] Specify independent random streams for initialization, posterior sampling and candidate proposals. Reuse standardized streams across matched arms where appropriate, recording their identities without promising bitwise reproduction of historical proposals.
-- [ ] Predeclare the feasible fraction as the main scaling endpoint, all-evaluation and post-initialization denominators, paired effect summaries and uncertainty. Predeclare any secondary indicators, reference construction, multiplicity treatment and limitations.
-- [ ] Estimate tracking cost, disk use, worker count and wall time for both workstreams using measured costs. Record resource limits, valid resumption and failure accounting. Mark resource-unavailable work as not run.
+- [x] Inventory the original three-method, ten-group primary comparison and the existing refinement records. Identify missing local input files before scheduling work.
+- [x] Define sampling strata across method, matched group, observed feasibility, signed diagnostic margin and search stage. Include baseline-method and rejected observations, near-boundary observations on both sides, and a random interior subset. Define signed margins and near-boundary bins explicitly.
+- [x] Freeze deterministic sample selection, seed, stratum population sizes, inclusion probabilities, numbers per stratum and all inclusion/exclusion rules. Mark empty strata. Existing ten selected settings can supply continuity but cannot replace this sample.
+- [x] Choose the sample size from the desired precision and available cost. Freeze the rule for expansion or stopping before new labels are available. Do not stop or expand according to whether the algorithm difference is positive.
+- [x] Declare numerical levels, source-file handling and convergence tolerances. Existing production/medium/fine levels are starting points, not evidence that a chosen fine level is converged. Separate fixed-source step/grid changes from particle-count or regenerated-source changes.
+- [x] Specify the target quantity: refined classifications of the sampled historical observations, and any sampling-weighted estimate for historical feasible fractions. Define uncertainty that accounts for both selection within strata and paired-group variation. Record when the design cannot support a population estimate.
+- [x] Freeze the normalized-residual scales, dimensionless temperature(s), physical smoothing widths, seed set, initial designs, model/optimizer settings and equal per-run budget. Use a convention selected before campaign outcomes; the previous offline probe is exploratory context, not confirmatory evidence.
+- [x] Plan contemporaneous raw and normalized control arms. Ten groups with two arms and 160 evaluations each would cost 3,200 ASTRA attempts, before pilots or extra comparators; this is a planning example, not an allocation. Freeze the actual group count and budget, and state the weaker inference if using fewer groups.
+- [x] Specify independent random streams for initialization, posterior sampling and candidate proposals. Reuse standardized streams across matched arms where appropriate, recording their identities without promising bitwise reproduction of historical proposals.
+- [x] Predeclare the feasible fraction as the main scaling endpoint, all-evaluation and post-initialization denominators, paired effect summaries and uncertainty. Predeclare any secondary indicators, reference construction, multiplicity treatment and limitations.
+- [x] Estimate tracking cost, disk use, worker count and wall time for both workstreams using measured costs. Record resource limits, valid resumption and failure accounting. Mark resource-unavailable work as not run.
 
 **Done when:** input inventory, selected identities, exact budgets, analysis choices, numerical tolerances and stopping rules are versioned and hashed before new evaluations. The protocol distinguishes validation failures, insufficient precision and scientific outcomes.
 
@@ -67,12 +69,12 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Starting points:** `scripts/evaluate_revision_convergence.py`, `scripts/analyze_revision_convergence.py`, and the `r2_convergence_*` evidence. The old driver hard-codes ten reported settings and output paths; do not run it unchanged and call its sample representative.
 
-- [ ] Add a separate driver or a backward-compatible manifest input and output-directory option. Keep old defaults and archived results reproducible.
-- [ ] Verify unique identities and exact control vectors against the original ledgers; fail on mismatched or missing source records.
-- [ ] Use meaningful mock tests for manifest selection, source/template overrides, resumption, duplicate/conflicting records and failed attempts. Check that archived directories cannot be overwritten.
-- [ ] Reproduce nominal-resolution observations first. Investigate discrepancies before attributing later changes to refinement.
-- [ ] Execute the frozen refinement plan in a fresh directory. Hold the actual source file fixed for the declared step/grid contrasts; identify source changes in other contrasts explicitly.
-- [ ] Preserve outputs, physical diagnostics, objective values, failures and checksums for every selected setting and level.
+- [x] Add a separate driver or a backward-compatible manifest input and output-directory option. Keep old defaults and archived results reproducible.
+- [x] Verify unique identities and exact control vectors against the original ledgers; fail on mismatched or missing source records.
+- [x] Use meaningful mock tests for manifest selection, source/template overrides, resumption, duplicate/conflicting records and failed attempts. Check that archived directories cannot be overwritten.
+- [x] Reproduce nominal-resolution observations first. Investigate discrepancies before attributing later changes to refinement.
+- [x] Execute the frozen refinement plan in a fresh directory. Hold the actual source file fixed for the declared step/grid contrasts; identify source changes in other contrasts explicitly.
+- [x] Preserve outputs, physical diagnostics, objective values, failures and checksums for every selected setting and level.
 
 **Deliverables:** new run directory, immutable plan, attempt records, completion marker and source/provenance manifests; new `r6_resolution_*` evidence inputs.
 
@@ -82,12 +84,12 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Status (2026-11-10):** completed by `scripts/analyze_revision_round6.py`; integrated evidence in S1.16. Objective convergence unresolved at the finest level.
 
-- [ ] Compute per-setting changes in all objectives and diagnostics between levels, signed physical margins, feasibility flips and failures. Separate discretization and source effects.
-- [ ] Report results by method, matched group, original classification, boundary channel and search stage. Include unresolved or failed observations.
-- [ ] Test the declared numerical tolerances; report where further refinement is needed. Stable classifications alone are not objective convergence.
-- [ ] Summarize sampled flip rates without presenting them as full-campaign fractions. If estimating historical population fractions, use the frozen inclusion probabilities and appropriate sampling/paired-group uncertainty.
-- [ ] Do not leave unobserved settings at their nominal labels and describe the resulting totals as measured refined totals. Do not infer actual refinement outcomes from a common multiplicative shift.
-- [ ] Compare the feasible-sampling effects under the declared analysis. Report support, reversal, or inconclusive uncertainty for each comparison. Keep the distinction between reclassified historical samples and campaigns optimized at a refined resolution.
+- [x] Compute per-setting changes in all objectives and diagnostics between levels, signed physical margins, feasibility flips and failures. Separate discretization and source effects.
+- [x] Report results by method, matched group, original classification, boundary channel and search stage. Include unresolved or failed observations.
+- [x] Test the declared numerical tolerances; report where further refinement is needed. Stable classifications alone are not objective convergence.
+- [x] Summarize sampled flip rates without presenting them as full-campaign fractions. If estimating historical population fractions, use the frozen inclusion probabilities and appropriate sampling/paired-group uncertainty.
+- [x] Do not leave unobserved settings at their nominal labels and describe the resulting totals as measured refined totals. Do not infer actual refinement outcomes from a common multiplicative shift.
+- [x] Compare the feasible-sampling effects under the declared analysis. Report support, reversal, or inconclusive uncertainty for each comparison. Keep the distinction between reclassified historical samples and campaigns optimized at a refined resolution.
 
 **Deliverables:** `r6_resolution_values.csv`, `r6_resolution_classification.csv`, stratified summaries, paired/weighted estimates where justified, metadata and a limitations report.
 
@@ -99,12 +101,12 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Starting points:** `src/mobo_linac/constraints.py` and the residual definitions in `scripts/analyze_revision_scaling.py`. The latter is an offline q=1 probe without production pruning; it is not a campaign implementation.
 
-- [ ] Make the comparison mode explicit and recorded. Preserve raw-residual defaults and saved-run compatibility. Keep physical diagnostic GP observations and observed feasibility unchanged; scale only the residuals and their declared smoothing temperatures.
-- [ ] Use the protocol's dimensionless residuals, for example upper/lower distances divided by the size/divergence/length thresholds, energy half-band, and allowed transmission loss. Record both energy sides separately.
-- [ ] State that a common dimensionless temperature changes relative physical widths. Report those widths. If isolating normalization from width changes is a target, include the protocol's width-preserving control; do not claim that this is the same contrast as changing to a common temperature.
-- [ ] Test residual signs, all inequality sides, threshold values and equivalence under consistent unit transformations, including scales and temperatures. Use common posterior samples for acquisition-value comparisons.
-- [ ] Check real production features: q=8 joint proposals, baseline pruning, dtype/device handling, checkpoint/resume and fallback metadata. A q=1 ranking check alone does not close this task.
-- [ ] Verify with mock campaigns that mode, scales, temperatures, effective widths and randomness are exported and restored, without changing the scientific constraint definitions.
+- [x] Make the comparison mode explicit and recorded. Preserve raw-residual defaults and saved-run compatibility. Keep physical diagnostic GP observations and observed feasibility unchanged; scale only the residuals and their declared smoothing temperatures.
+- [x] Use the protocol's dimensionless residuals, for example upper/lower distances divided by the size/divergence/length thresholds, energy half-band, and allowed transmission loss. Record both energy sides separately.
+- [x] *(No width-preserving arm was adopted; the widths are reported and no pure-normalization effect is claimed.)* State that a common dimensionless temperature changes relative physical widths. Report those widths. If isolating normalization from width changes is a target, include the protocol's width-preserving control; do not claim that this is the same contrast as changing to a common temperature.
+- [x] Test residual signs, all inequality sides, threshold values and equivalence under consistent unit transformations, including scales and temperatures. Use common posterior samples for acquisition-value comparisons.
+- [x] Check real production features: q=8 joint proposals, baseline pruning, dtype/device handling, checkpoint/resume and fallback metadata. A q=1 ranking check alone does not close this task.
+- [x] Verify with mock campaigns that mode, scales, temperatures, effective widths and randomness are exported and restored, without changing the scientific constraint definitions.
 
 **Done when:** mode selection and restart behavior are reproducible, physical feasibility is identical for identical diagnostics, raw compatibility is preserved and unit-consistency tests pass. No efficacy claim follows from these tests.
 
@@ -112,11 +114,11 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Status (2026-11-10):** completed; 20/20 campaigns, 3,200 valid attempts, completion record `results/revision_round6/scaling/complete.json`.
 
-- [ ] Run the declared readiness checks and a separately labelled infrastructure pilot. If the protocol changes after a pilot, version the new protocol and keep pilot outcomes outside the confirmatory set.
-- [ ] Start both arms from exactly the same initial controls in each group. Match simulation budget, source, numerical resolution, model family, fit settings, posterior sample count, optimizer budgets and hardware policy; vary only the declared residual/temperature convention.
-- [ ] Do not substitute old raw campaigns for contemporaneous controls without establishing all relevant execution equivalences; historical observations remain contextual. To compare new outcomes with unconstrained/scalarized arms as a new matched experiment, specify and validate those controls in advance as well.
-- [ ] Keep every invalid attempt in the budget, record all fallback and fitting outcomes, and retain elapsed cost. Do not select the best seed or temperature after seeing the results.
-- [ ] Check completion and artifact hashes for every scheduled arm/group before analysis.
+- [x] *(Readiness checks run; per the protocol, mock tests replaced a physical pilot, so no pilot outcomes exist.)* Run the declared readiness checks and a separately labelled infrastructure pilot. If the protocol changes after a pilot, version the new protocol and keep pilot outcomes outside the confirmatory set.
+- [x] Start both arms from exactly the same initial controls in each group. Match simulation budget, source, numerical resolution, model family, fit settings, posterior sample count, optimizer budgets and hardware policy; vary only the declared residual/temperature convention.
+- [x] Do not substitute old raw campaigns for contemporaneous controls without establishing all relevant execution equivalences; historical observations remain contextual. To compare new outcomes with unconstrained/scalarized arms as a new matched experiment, specify and validate those controls in advance as well.
+- [x] Keep every invalid attempt in the budget, record all fallback and fitting outcomes, and retain elapsed cost. Do not select the best seed or temperature after seeing the results.
+- [x] Check completion and artifact hashes for every scheduled arm/group before analysis.
 
 **Deliverables:** fresh per-group run directories, campaign manifest, complete ledgers, checkpoint/proposal histories and completion receipts.
 
@@ -126,11 +128,11 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Status (2026-11-10):** completed; normalized minus raw −0.118 (all attempts), negative in all ten groups. Front-quality was not added as an endpoint.
 
-- [ ] Compute raw-versus-normalized paired differences in all-evaluation and post-initialization feasible fractions using the frozen denominators. Include uncertainty across matched groups and failed evaluations.
-- [ ] Describe differences by violated channel group and search stage, plus computational cost. Do not infer a causal physical mechanism from violation counts alone.
-- [ ] Keep any secondary front-quality analysis separate. Use references fixed before outcomes or an explicit external/training-only construction; keep outcome-derived sensitivity analyses labelled post hoc.
-- [ ] State whether the result concerns the selected normalization-and-temperature convention, and whether the sample size supports a stable comparison. Do not label normalized residuals as calibrated machine reliability or assume that normalization improves performance.
-- [ ] Preserve the original failed hypervolume endpoint and the exploratory status of historical quality indicators.
+- [x] Compute raw-versus-normalized paired differences in all-evaluation and post-initialization feasible fractions using the frozen denominators. Include uncertainty across matched groups and failed evaluations.
+- [x] Describe differences by violated channel group and search stage, plus computational cost. Do not infer a causal physical mechanism from violation counts alone.
+- [x] *(No secondary front-quality analysis was run.)* Keep any secondary front-quality analysis separate. Use references fixed before outcomes or an explicit external/training-only construction; keep outcome-derived sensitivity analyses labelled post hoc.
+- [x] State whether the result concerns the selected normalization-and-temperature convention, and whether the sample size supports a stable comparison. Do not label normalized residuals as calibrated machine reliability or assume that normalization improves performance.
+- [x] Preserve the original failed hypervolume endpoint and the exploratory status of historical quality indicators.
 
 **Deliverables:** `r6_scaling_runs.csv`, paired-effect summaries, acquisition-convention metadata, uncertainty plots and a concise outcome report.
 
@@ -140,10 +142,10 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Status:** not adopted (author decision, 31 October 2026); limitation retained.
 
-- [ ] Record explicit adoption or non-adoption before any additional runs. Declining this task does not leave either main validation task incomplete.
-- [ ] If adopted, specify a constrained scalarized acquisition and verify its behavior rather than changing the existing unconstrained scalarized arm by name alone.
-- [ ] Freeze weights, scales, constraint convention, initial designs, seeds, simulation budgets and statistical comparisons. Plan any additional multiplicity treatment before outcomes.
-- [ ] Compare it with the relevant contemporaneous arms under matched conditions. Distinguish constraint-information effects from objective-representation effects.
+- [x] Record explicit adoption or non-adoption before any additional runs. Declining this task does not leave either main validation task incomplete.
+- [ ] *(Not adopted.)* If adopted, specify a constrained scalarized acquisition and verify its behavior rather than changing the existing unconstrained scalarized arm by name alone.
+- [ ] *(Not adopted.)* Freeze weights, scales, constraint convention, initial designs, seeds, simulation budgets and statistical comparisons. Plan any additional multiplicity treatment before outcomes.
+- [ ] *(Not adopted.)* Compare it with the relevant contemporaneous arms under matched conditions. Distinguish constraint-information effects from objective-representation effects.
 
 **Done when:** adoption is documented and, if adopted, the declared comparison is executed and analyzed; otherwise the manuscript retains the explicit missing-comparator limitation. This item must not silently become a condition of closing R6-01 or R6-02.
 
@@ -151,12 +153,12 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Status (2026-11-10):** completed in Task 00378 (manuscript Secs. on prospective studies, re-tracking and residual scaling; abstract, introduction, discussion, limitations and conclusions updated; S1.16 mapped).
 
-- [ ] Add a concise methods description and result for each completed validation workstream, with tables/figures linked to new evidence. Explain any unresolved or adverse findings.
-- [ ] Keep measured refined settings, weighted population estimates, common-shift scenarios and new optimization trajectories distinct.
-- [ ] Update the conclusion's numerical and normalization scope only where evidence warrants it. Do not infer converged global Pareto fronts, machine reliability or TDR engineering acceptance.
-- [ ] Keep historical quality indicators exploratory. Any new predeclared indicator belongs to its own prospective experiment, without retroactive endpoint replacement.
-- [ ] Preserve the author's prior prose dispositions, qualitative abstract convention, existing equations/data unless a specific change is justified, and deferred acknowledgments. Do not rerun broad humanization.
-- [ ] Map new evidence, generators, input classes and checksums in `docs/paper/supplement/README.md`, `input_inventory.csv` and the supplement manifest, following their actual reproducibility needs.
+- [x] Add a concise methods description and result for each completed validation workstream, with tables/figures linked to new evidence. Explain any unresolved or adverse findings.
+- [x] Keep measured refined settings, weighted population estimates, common-shift scenarios and new optimization trajectories distinct.
+- [x] Update the conclusion's numerical and normalization scope only where evidence warrants it. Do not infer converged global Pareto fronts, machine reliability or TDR engineering acceptance.
+- [x] Keep historical quality indicators exploratory. Any new predeclared indicator belongs to its own prospective experiment, without retroactive endpoint replacement.
+- [x] Preserve the author's prior prose dispositions, qualitative abstract convention, existing equations/data unless a specific change is justified, and deferred acknowledgments. Do not rerun broad humanization.
+- [x] Map new evidence, generators, input classes and checksums in `docs/paper/supplement/README.md`, `input_inventory.csv` and the supplement manifest, following their actual reproducibility needs.
 
 **Done when:** every changed scientific statement has a precise evidence source and scope, and the new evidence is reproducible from its declared inputs.
 
@@ -164,12 +166,12 @@ Apply protocol sections only to adopted workstreams; record the other sections a
 
 **Status (2026-11-10):** completed in Task 00379; see the round6 overview for the responses, diffs, inventory and validation receipts.
 
-- [ ] Write `docs/paper/reviews/reviewer1_round6_response.md`, mapping R6-01–R6-05 to tasks, evidence and dispositions. Keep the Reviewer 2 response separately attributed; Task 00340 and the formal Reviewer 1 report are the same assessment.
-- [ ] Produce `round6_revision_overview.md`, manuscript/code diffs against the frozen round 6 baseline and a changed-file/hash inventory. Preserve earlier round packages.
-- [ ] Run meaningful tests for new code and appropriate local CI checks, including the package's 100% line-coverage requirement where applicable. Follow current resource constraints; explicitly record unrun checks and leave incomplete validation visible.
-- [ ] Check documentation links, configuration/docs sync, supplement manifest and relevant regeneration paths. Existing regeneration claims must not be silently extended to analyses requiring new tracking or checkpoint records.
-- [ ] Compile the current PRAB manuscript and inspect changed pages, tables, figure references and citations. If a separate review layout is generated, keep it separate from the default source format.
-- [ ] Record each completed executed task using the next available five-digit summary filename and the required local commit format. Do not push or upload.
+- [x] Write `docs/paper/reviews/reviewer1_round6_response.md`, mapping R6-01–R6-05 to tasks, evidence and dispositions. Keep the Reviewer 2 response separately attributed; Task 00340 and the formal Reviewer 1 report are the same assessment.
+- [x] Produce `round6_revision_overview.md`, manuscript/code diffs against the frozen round 6 baseline and a changed-file/hash inventory. Preserve earlier round packages.
+- [x] Run meaningful tests for new code and appropriate local CI checks, including the package's 100% line-coverage requirement where applicable. Follow current resource constraints; explicitly record unrun checks and leave incomplete validation visible.
+- [x] Check documentation links, configuration/docs sync, supplement manifest and relevant regeneration paths. Existing regeneration claims must not be silently extended to analyses requiring new tracking or checkpoint records.
+- [x] Compile the current PRAB manuscript and inspect changed pages, tables, figure references and citations. If a separate review layout is generated, keep it separate from the default source format.
+- [x] *(Local commits only; the push awaits the author's confirmation.)* Record each completed executed task using the next available five-digit summary filename and the required local commit format. Do not push or upload.
 
 **Done when:** all required dispositions and validation receipts are traceable, optional A6-07 has a recorded decision, and the queue states any residual scientific uncertainty. Closing tasks is not journal acceptance and does not require a favourable experimental outcome.
 

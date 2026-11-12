@@ -1,6 +1,8 @@
 # Round6 revision overview
 
-> **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) remain. This note supersedes the restart and pause notes below.
+> **Closure status — 2026-11-12:** round 6 is complete and committed locally (Tasks 00378 and 00379). See [Closure](#closure--2026-11-10). The notes and sections before it are dated records. The push awaits the author's confirmation.
+
+> **Execution status — 2026-11-10:** both adopted studies are complete and integrated into the manuscript (A6-08, Task 00378). All 1,935 numerical and 3,200 scaling attempts were valid. Re-tracking changed 4 of 387 classifications (all infeasible to feasible, constraint-aware) and kept the feasible-sampling advantage positive in all ten groups, but the emittances still differ by a median 5.5–7.4 % between medium and fine levels (adverse: not converged). The normalized-residual convention lowered the feasible fraction by 0.118 (95 % interval 0.099–0.136), in all ten groups (adverse to the convention). Evidence: S1.16. Reviewer responses and final validation (C6-09/A6-09) were completed the same day in Task 00379. This note supersedes the restart and pause notes below.
 
 > **Restart status — 2026-11-04:** the author authorized the restart. Worker ceiling raised to 22 by [amendment 01](evidence/r6_protocol_amendment_01.md); the two interrupted attempts were retained and re-tracked in isolation (`evidence/r6_recovery_01.json`); the pause marker is archived. The journal holds 433 of 1,935 numerical results (387 production, 46 combined-fine). Remaining refinement and scaling have not started. This note supersedes the pause note below.
 
@@ -27,7 +29,7 @@ The author explicitly authorized a git push when the revision tasks are finished
 
 Focused manuscript/link checks: **4 passed**. The two-column manuscript builds successfully to **31 pages**. Further code, simulation, scientific integration and final packaging checks remain pending.
 
-## Remaining work
+## Remaining work (historical record, before execution)
 
 A6-01 is frozen (387 sampled settings, 1,935 numerical attempts, 3,200 scaling attempts). The numerical runner and normalized acquisition are implemented, with nominal reproduction running. The sequential campaign/analysis chain is queued behind the initial regression run. It performs a fresh complete validation on the final code, then waits for the numerical worker lock before continuing refinement and matched campaigns. Finish both research branches, analyze all outcomes, integrate supported findings, and complete separately attributed reviewer responses and C6-09 validation. Numerical validation does not establish scaling efficacy, and scaling campaigns do not establish tracking convergence. Optional constrained scalarization is not adopted; retain that limitation.
 
@@ -44,7 +46,7 @@ Completed as an explicit non-adoption decision, not as an executed comparison. T
 - Initial completed nominal observations reproduce their archived values. The full 387-setting gate is not yet complete; no claim about refined outcomes is made.
 - Measured level costs in the frozen protocol imply approximately three weeks (two-to-four-week planning range) at two workers, superseding the preliminary chat estimate.
 
-## Persistent execution and pending completion
+## Persistent execution and pending completion (historical record)
 
 Nominal runner PID at launch: `1743216`; queued continuation PID: `1783242`. These are launch records, not permanent process identities. The continuation waits for the initial regression process, then runs the full stable-code validation/100% coverage gate before further physical work. It shares the two-worker lock with the nominal stage, checks all nominal reproductions before refinement, and runs scaling only after numerical tracking and analysis finish.
 
@@ -72,7 +74,7 @@ Execution after the restart: full test gate (1,157 passed, 100 % coverage; commi
 | Re-tracking, objectives | Emittance fine vs production median −21 %/−29 %; fine vs medium median 5.5 %/7.4 %; 1 % tolerance met by 3–7 % of settings | Adverse: not converged at the finest tested level |
 | Residual scaling | Normalized − raw −0.118 [−0.136, −0.099] all attempts; −0.131 post-initialization; 0/10 groups positive | Adverse to the tested convention |
 
-Manuscript: new subsections "Prospective validation studies", "Re-tracked sample of primary evaluations" and "Constraint-residual scaling" with three generated tables; abstract (still number-free), contribution list, discussion, limitations, conclusions and the smoothing appendix updated accordingly. Remaining: separately attributed reviewer responses, final validation and packaging (C6-09/A6-09).
+Manuscript: new subsections "Prospective validation studies", "Re-tracked sample of primary evaluations" and "Constraint-residual scaling" with three generated tables; abstract (still number-free), contribution list, discussion, limitations, conclusions and the smoothing appendix updated accordingly. The separately attributed reviewer responses, final validation and packaging (C6-09/A6-09) were completed the same day in Task 00379 (see Closure).
 
 ## Closure — 2026-11-10
 
