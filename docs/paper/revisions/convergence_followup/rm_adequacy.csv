@@ -1,0 +1,10 @@
+point,refinements,min_share,status
+half_g32_n40k,particles;grid,0.2,not adequate
+half_g32_n160k,particles;grid,0.0666667,not adequate
+half_g32_n640k,grid,0.0666667,not adequate
+half_g48_n40k,particles;grid,0.2,not adequate
+half_g48_n160k,particles;grid,0.266667,not adequate
+half_g48_n640k,grid,0.2,not adequate
+half_g64_n40k,particles;step,0,not adequate
+half_g64_n160k,particles,0.733333,not adequate
+half_g64_n640k,step,0,terminal (step check not met)

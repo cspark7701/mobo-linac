@@ -1,0 +1,11 @@
+{
+  "results_sha256": "4ffd5b59dcb72561898c21e410aa1b49525c5520cece74850e23809b2bf52dd7",
+  "spec_sha256": "cb96300a45d4231db2d505d6179cdd61ec61926e37ed67e68b4e67c87d661692",
+  "outputs": {
+    "rm_changes.csv": "ee6125920d302a7f89ba55af64078b3e38ab9226fadae6b064a65c74de1bcfbb",
+    "rm_refinements.csv": "0b8ed7a80d199fd7838552f98dce36146e19ba0fa32228954d8361d4cf117406",
+    "rm_adequacy.csv": "9a28ed9d0d7c79c9147255da933c6694f62908e00577feda6cd633f76f1822b9",
+    "rm_particle_extrapolation.csv": "2e216bb1a26c8675369a01147996ad8557cfeea5bc88117cfa136066a1dc9cb2",
+    "rm_rank_agreement.csv": "ada5e3e5fc0abec081fd6a08c906923f7cf1d2e2c28778141c6c8b66f0246d51"
+  }
+}
