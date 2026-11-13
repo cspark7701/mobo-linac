@@ -8,7 +8,7 @@ This folder holds a follow-up to round 6, made at the author's request on 2026-1
 | `rm_protocol.md`, `rm_specification.json`, `rm_settings.csv` | Step 2: grid × particle matrix protocol and its frozen inputs (added at the freeze) |
 | `rm_changes.csv`, `rm_refinements.csv`, `rm_adequacy.csv`, `rm_particle_extrapolation.csv`, `rm_rank_agreement.csv`, `rm_analysis_receipt.json` | Step 2 results (from `scripts/analyze_convergence_matrix.py`) |
 | `rm_sensitivity_by_setting.csv`, `rm_sensitivity_correlations.csv`, `rm_sensitivity_strata.csv`, `rm_sensitivity_summary.json` | Post-hoc exploratory look at which settings drive the step 2 changes (from `scripts/explore_convergence_sensitivity.py`; not predeclared) |
-| `rq_protocol_draft.md` | Step 3a draft: step size versus space-charge update interval, at 64 cells and 160k (not frozen, not authorized) |
+| `rq_protocol.md`, `rq_specification.json` | Step 3a: step size versus space-charge update interval, at 64 cells and 160k. Frozen 2026-11-13; the run needs separate authorization |
 | `particle_ladder_protocol_draft.md` | Superseded particle-only draft, not adopted |
 
 ## Step 1 — rank stability from the existing round 6 runs
@@ -102,4 +102,4 @@ This analysis was not predeclared. It uses only the completed step 2 journal (`s
 - **The step change is not driven by the outliers.**
   - The nine feasible settings still drop by a median 2.1–2.4 % (ε_x) and 3.0–3.2 % (ε_y) from half to quarter step, with 0 of 9 within 1 %.
   - For particles, the feasible settings are much closer to converged: 160k → 640k at 64 cells keeps 8 of 9 within 1 %.
-- **Proposed next step.** The step 3a draft ([rq_protocol_draft.md](rq_protocol_draft.md)) tests whether the step change comes from the space-charge update interval (`Max_count=10`, `Max_scale=0.01` in the template) or from the integration step. It also estimates the order of step convergence.
+- **Next step.** Step 3a ([rq_protocol.md](rq_protocol.md)) tests whether the step change comes from the space-charge update interval (`Max_count=10`, `Max_scale=0.01` in the template) or from the integration step. It also estimates the order of step convergence.

@@ -1,0 +1,192 @@
+{
+  "adequacy_share": 0.8,
+  "bootstrap_resamples": 2000,
+  "bootstrap_seed": 20261113,
+  "feasible_at_reference": {
+    "constrained_qlognehvi_seed_42__eval_000144": true,
+    "constrained_qlognehvi_seed_47__eval_000066": true,
+    "constrained_qlognehvi_seed_50__eval_000107": true,
+    "constrained_qlognehvi_seed_51__eval_000156": true,
+    "constrained_qlognehvi_seed_51__eval_000157": false,
+    "scalarized_bo_seed_43__eval_000019": false,
+    "scalarized_bo_seed_43__eval_000033": true,
+    "scalarized_bo_seed_45__eval_000077": false,
+    "scalarized_bo_seed_47__eval_000020": false,
+    "scalarized_bo_seed_49__eval_000137": true,
+    "unconstrained_qlognehvi_seed_42__eval_000150": false,
+    "unconstrained_qlognehvi_seed_45__eval_000064": true,
+    "unconstrained_qlognehvi_seed_45__eval_000065": false,
+    "unconstrained_qlognehvi_seed_48__eval_000160": true,
+    "unconstrained_qlognehvi_seed_49__eval_000125": true
+  },
+  "gate_atol": 1e-12,
+  "gate_level": "half_mc10",
+  "gate_reference_level": "half_g64_n160k",
+  "gate_rtol": 1e-09,
+  "levels": {
+    "eighth_mc10": {
+      "charge:nlong_in": 64,
+      "charge:nrad": 64,
+      "charge:nxf": 64,
+      "charge:nyf": 64,
+      "charge:nzf": 64,
+      "newrun:distribution": "qr160k.ini",
+      "newrun:h_max": 0.00125,
+      "newrun:h_min": 0.000125
+    },
+    "half_mc1": {
+      "charge:max_count": 1,
+      "charge:nlong_in": 64,
+      "charge:nrad": 64,
+      "charge:nxf": 64,
+      "charge:nyf": 64,
+      "charge:nzf": 64,
+      "newrun:distribution": "qr160k.ini",
+      "newrun:h_max": 0.005,
+      "newrun:h_min": 0.0005
+    },
+    "half_mc10": {
+      "charge:nlong_in": 64,
+      "charge:nrad": 64,
+      "charge:nxf": 64,
+      "charge:nyf": 64,
+      "charge:nzf": 64,
+      "newrun:distribution": "qr160k.ini",
+      "newrun:h_max": 0.005,
+      "newrun:h_min": 0.0005
+    },
+    "half_mc10_rot1": {
+      "charge:nlong_in": 64,
+      "charge:nrad": 64,
+      "charge:nxf": 64,
+      "charge:nyf": 64,
+      "charge:nzf": 64,
+      "newrun:distribution": "qr160k_rot1.ini",
+      "newrun:h_max": 0.005,
+      "newrun:h_min": 0.0005
+    },
+    "half_mc10_rot2": {
+      "charge:nlong_in": 64,
+      "charge:nrad": 64,
+      "charge:nxf": 64,
+      "charge:nyf": 64,
+      "charge:nzf": 64,
+      "newrun:distribution": "qr160k_rot2.ini",
+      "newrun:h_max": 0.005,
+      "newrun:h_min": 0.0005
+    },
+    "half_mc10_rot3": {
+      "charge:nlong_in": 64,
+      "charge:nrad": 64,
+      "charge:nxf": 64,
+      "charge:nyf": 64,
+      "charge:nzf": 64,
+      "newrun:distribution": "qr160k_rot3.ini",
+      "newrun:h_max": 0.005,
+      "newrun:h_min": 0.0005
+    },
+    "quarter_mc1": {
+      "charge:max_count": 1,
+      "charge:nlong_in": 64,
+      "charge:nrad": 64,
+      "charge:nxf": 64,
+      "charge:nyf": 64,
+      "charge:nzf": 64,
+      "newrun:distribution": "qr160k.ini",
+      "newrun:h_max": 0.0025,
+      "newrun:h_min": 0.00025
+    },
+    "quarter_mc10": {
+      "charge:nlong_in": 64,
+      "charge:nrad": 64,
+      "charge:nxf": 64,
+      "charge:nyf": 64,
+      "charge:nzf": 64,
+      "newrun:distribution": "qr160k.ini",
+      "newrun:h_max": 0.0025,
+      "newrun:h_min": 0.00025
+    }
+  },
+  "mechanism_min_denominator_relative": 0.001,
+  "mechanism_step_threshold": 0.3,
+  "mechanism_update_threshold": 0.7,
+  "minimum_free_disk_GiB": 100,
+  "mock": false,
+  "noise_band_sd_multiple": 2.0,
+  "objective_tolerance_relative": 0.01,
+  "order_after_gate": [
+    "eighth_mc10",
+    "quarter_mc1",
+    "quarter_mc10",
+    "half_mc1",
+    "half_mc10_rot1",
+    "half_mc10_rot2",
+    "half_mc10_rot3"
+  ],
+  "reference_feasibility_level": "half_g64_n640k",
+  "rm_results_sha256": "4ffd5b59dcb72561898c21e410aa1b49525c5520cece74850e23809b2bf52dd7",
+  "rm_specification_sha256": "cb96300a45d4231db2d505d6179cdd61ec61926e37ed67e68b4e67c87d661692",
+  "rotation_angles_deg": {
+    "rot1": 40.0,
+    "rot2": 80.0,
+    "rot3": 160.0
+  },
+  "rotation_invariants": {
+    "qr160k_rot1.ini": {
+      "angle_deg": 40.0,
+      "charge": -0.9999562500000003,
+      "clock": 1.8759438000037418e-05,
+      "lz": -0.00025136189816485767,
+      "n": 159993.0,
+      "p2": 408819.5393754082,
+      "pz": -62646771.512906,
+      "r2": 4.6676139214974457e-07,
+      "rp": 4.8621748245807025e-08,
+      "z": 0.0
+    },
+    "qr160k_rot2.ini": {
+      "angle_deg": 80.0,
+      "charge": -0.9999562500000003,
+      "clock": 1.8759438000037418e-05,
+      "lz": -0.0002513618981531683,
+      "n": 159993.0,
+      "p2": 408819.5393753984,
+      "pz": -62646771.512906,
+      "r2": 4.667613921497323e-07,
+      "rp": 4.862175543570384e-08,
+      "z": 0.0
+    },
+    "qr160k_rot3.ini": {
+      "angle_deg": 160.0,
+      "charge": -0.9999562500000003,
+      "clock": 1.8759438000037418e-05,
+      "lz": -0.0002513618981428987,
+      "n": 159993.0,
+      "p2": 408819.5393753723,
+      "pz": -62646771.512906,
+      "r2": 4.6676139214973176e-07,
+      "rp": 4.862173883938619e-08,
+      "z": 0.0
+    }
+  },
+  "settings_file": "docs/paper/revisions/convergence_followup/rm_settings.csv",
+  "settings_sha256": "01f314d5c27046d55aecb79119fd1bf9c3b44df2f442b549a26cb6f2e9bd554c",
+  "systematic_interval_limit_relative": 0.02,
+  "template_sha256": {
+    "PAL_SOL_A.dat": "437908a008fc4ae492b0e018f2cac416450d54f36632f1d06a147db09d9d8e14",
+    "TWS_Sband.dat": "83268709c36365fbe96b9784cabce7d23eb522ea810d46b87de49f960c63dfaa",
+    "astra.in": "f1deda7db0f4bc45e48ddbdd28194db5a51a22d74111842472425098ac805f96",
+    "gun.dat": "8d90dcfdab0d5f8ec124c74029a73946aebf09691d60435e879eac5f0d5f5d0d",
+    "pal_photo2.ini": "0084449f47507d7db5cf3af781ec2d899e0ff63e5ebb83ea806d14ea80444734",
+    "qr160k.gen.in": "1bae7c56aa14436929758ec749dd26044e32e099da013166e9faedca508152e7",
+    "qr160k.ini": "ab3185acf2036de38acef284cc253e9bf3ebf9f95f7e65336c2230afd95378d3",
+    "qr160k_rot1.ini": "9ef035eb54d2a12650db5e14fb10fa557b3733225645bbbf1867d3a37c76eb2b",
+    "qr160k_rot2.ini": "340bc41289fc23b669bdaa2da2c5a6b842de50fdfd502d6e03af19bc6ed595ef",
+    "qr160k_rot3.ini": "dffdee58fa7e8a6dc4f1ac75abecb3ad35a14c08e4b5a1323e62f266b3073814"
+  },
+  "threads_per_process": 1,
+  "tracking_attempts": 120,
+  "tracking_timeout_s": 86400,
+  "version": 1,
+  "workers_total": 22
+}

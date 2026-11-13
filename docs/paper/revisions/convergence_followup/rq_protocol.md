@@ -1,6 +1,10 @@
-# Step 3a — step size and space-charge update test — protocol DRAFT
+# Step 3a — step size and space-charge update test — protocol
 
-**Status: DRAFT, not frozen, not authorized to run (2026-11-13).** The author asked for this draft after step 2. Nothing here runs until the author approves it. Freezing will add `rq_specification.json`, `rq_settings.csv`, the runner and the analysis code in one commit, as in step 2. The manuscript and supplement are not modified.
+**Status: FROZEN at the commit that adds this file together with `rq_specification.json` (2026-11-13).**
+- **Author decisions** (2026-11-13): use the recommended options (rotated quasi-random replicates, all 15 settings as the primary sample, eighth step kept), run the pre-freeze probe, then freeze.
+- **Not yet authorized:** launching the 120 attempts needs a separate go-ahead.
+- **Code:** the runner `scripts/evaluate_convergence_step_test.py` and the analysis `scripts/analyze_convergence_step_test.py` are committed with the freeze.
+- **Manuscript and supplement:** not modified.
 
 ## Why this study
 
@@ -23,7 +27,7 @@
 
 ## Sample
 
-- **Settings:** the same 15 settings as step 2 (`rm_settings.csv`), so every comparison is paired with the step 2 records.
+- **Settings:** the same 15 settings as step 2. `rm_settings.csv` is reused unchanged and checked by hash, so every comparison is paired with the step 2 records.
 - **Not a population sample.** The settings were chosen for coverage, not to represent the 387.
 - **Strata:**
   - Results are reported for all 15, and separately for feasible (9) and infeasible (6) at `half_g64_n640k`. Feasibility is constant across all step 2 levels.
@@ -43,17 +47,20 @@
 - **Other inputs.** Everything else is unchanged from step 2: template, field maps, binary, grid 64 (`nrad = nlong_in = nxf = nyf = nzf = 64`), and `Max_scale=0.01`.
 - **Why 160k particles.** From 160k to 640k, the median emittance change was at most 0.1 %, and 8 of 9 feasible settings stayed within 1 % at 64 cells. 640k would cost about 3.3× more per run.
 
-### Pre-freeze checks (not outcomes)
+### Pre-freeze checks (done 2026-11-13; not outcomes)
 
 1. **`Max_count` semantics.**
-   - Run a short probe (2 cm, 64 cells, 160k), as was done for the 640k probe in step 2.
-   - It must confirm, from the ASTRA log or timing, that `Max_count=1` raises the number of space-charge calculations per step.
-   - If it does not, the "full cadence" levels use `Max_scale=0` instead, and the draft is amended before the freeze.
-   - The probe also measures the cost of `Max_count=1`.
+   - **Probe:** 3 cm, 64 cells, 160k, using the step 2 template's default settings rather than a study setting; no physics output is used.
+   - **Variants:** `Max_count` 10 and 1 at half step, with the 2D solver and with `z_trans=0.01` to exercise the 3D solver; plus eighth step with `Max_count=10` in 3D.
+   - **Parsed:** ASTRA's echoed input shows `MAX_COUNT = 1` and `Z_TRANS = 0.01`.
+   - **Effect:** `Max_count=1` changed the 3 cm emittances (by 0.005 % in 2D and 0.02 % in 3D) and raised the CPU time by 18 % (2D) and 24 % (3D). That fits extra space-charge solves, so the fallback to `Max_scale=0` is not needed.
+   - **Not used for cost:** the first 3 cm is dominated by emission control (`Zemit`): every variant wrote 2,499 emittance lines, and the eighth step even ran faster than the half step. Eighth-step cost is therefore scaled from step 2, not from this probe.
 2. **Rotated sources.**
-   - The cathode source is round (`sig_x = sig_y`, both `2DGaussian`), so rotating each particle's (x, y) and (px, py) about z by a fixed angle gives a new sample with the same distribution and the same quasi-random noise character.
-   - Proposed angles: 40°, 80° and 160°, fixed at the freeze. The reference particle is unchanged.
-   - Each rotated file must differ from the original, keep the first and second transverse moments within 1e-12 relative, and be hashed in the specification.
+   - The cathode source is round (`sig_x = sig_y`, both `2DGaussian`), so rotating each ordinary particle's (x, y) and (px, py) about z by a fixed angle gives a new sample with the same distribution and the same quasi-random noise character.
+   - **Angles:** 40°, 80° and 160°. The reference particle, the six probe particles and every longitudinal column are unchanged.
+   - **Precision:** the files are written with 11 significant digits. The source file stores only 4, so its moments cannot be matched to 1e-12.
+   - **Check instead:** each rotated file must differ from the original and keep the rotation invariants to 1e-9 relative: ⟨x² + y²⟩, ⟨px² + py²⟩, ⟨x·px + y·py⟩, ⟨x·py − y·px⟩, total charge, and the z, pz and clock sums. The two correlation invariants are compared on the scale √(⟨r²⟩⟨p²⟩).
+   - **Result:** all three files pass. σ_x and σ_y stay within 1e-4 relative of each other, as expected for a round source. Their hashes and invariants are in `rq_specification.json`.
    - Pseudo-random sources were considered and set aside: they are noisier than quasi-random ones, so a noise band from them would be too wide.
 
 ## Execution
@@ -115,18 +122,16 @@ Settings where the denominator is below 0.1 % are excluded from R and counted.
 
 ## Budget (planning estimate)
 
-Costs are scaled from step 2 runs at 64 cells and 160k (half step: 1.27 h each under 22-worker load), with quarter ≈ 1.6× half as measured at 640k.
+Costs are scaled from step 2 runs at 64 cells and 160k (half step: 1.27 h each under 22-worker load):
+- quarter ≈ 1.6× half, as measured at 640k;
+- `Max_count=1` ≈ 1.25×, from the probe, allowing up to 2× for the 3D section after 5.25 m.
 
 | Levels | Runs | CPU-h |
 |---|---|---|
 | `half_mc10` gate + 3 replicates | 60 | ~76 |
 | `quarter_mc10` | 15 | ~31 |
 | `eighth_mc10` (≈ 2.6–3.3× half) | 15 | ~50–63 |
-| `half_mc1`, `quarter_mc1` | 30 | ~50–250 (the probe measures this) |
-| **Total** | **120** | **~210–420 CPU-h, about 10–20 h on 22 workers** |
+| `half_mc1`, `quarter_mc1` | 30 | ~63–100 |
+| **Total** | **120** | **~220–270 CPU-h, about 11–15 h on 22 workers** |
 
-## Open decisions for the author
-
-1. **Replicates:** use rotated quasi-random sources (proposed), use pseudo-random sources, or drop the noise band and keep the plain 1 % per-setting rule.
-2. **Primary sample:** all 15 settings (proposed), or the feasible 9 only, which is the region the optimizer targets but gives wider intervals.
-3. **Eighth step:** include it (proposed; it gives the order), or drop it to save about 50–63 CPU-h.
+Disk: up to about 35 GB at about 290 MB per run.
