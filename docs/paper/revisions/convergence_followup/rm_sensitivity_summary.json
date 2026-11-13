@@ -1,0 +1,14 @@
+{
+  "exploratory": true,
+  "results_sha256": "4ffd5b59dcb72561898c21e410aa1b49525c5520cece74850e23809b2bf52dd7",
+  "settings": 15,
+  "feasible": 9,
+  "median_all_feasible": 0.013851974666614586,
+  "median_all_infeasible": 0.04912563915582044,
+  "mann_whitney_p_unadjusted": 0.011988011988011988,
+  "outputs": {
+    "rm_sensitivity_by_setting.csv": "96a152c0c3bb5ddbd0a48840883d8b684b007c12b553b05c17c5817f4c084db9",
+    "rm_sensitivity_correlations.csv": "cfc59b49c2ea35af53f8c0bc2a3df593d8f0894386087950c507146b7058a1ef",
+    "rm_sensitivity_strata.csv": "d43db786f14ce457c094d14b2a7bbd638c17785f1683746ddd33663164f841f4"
+  }
+}

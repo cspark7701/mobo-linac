@@ -148,6 +148,22 @@ def test_invalid_runs_count_against_adequacy_and_extrapolation_is_geometric():
     assert np.allclose(ranks.spearman_vs_reference, 1)
 
 
+def test_sensitivity_exploration_ranks_settings_and_splits_feasibility():
+    import explore_convergence_sensitivity as ex
+    frame = _synthetic(particle=0.04)
+    frame[['sigma_x_m', 'sigma_y_m', 'sigma_xp_rad', 'sigma_yp_rad', 'sigma_z_m']] = 1e-3
+    frame['feasible'] = frame.setting_id < 's05'
+    # Make one setting step-sensitive only.
+    step = (frame.setting_id == 's14') & frame.level.str.startswith('quarter')
+    frame.loc[step, am.EMITTANCES] *= 1.2
+    table = ex.per_setting(frame, am.changes(frame))
+    assert table.index[0] == 's14' and np.isclose(table.loc['s14', 'max_step'], 0.2)
+    assert table.feasible.sum() == 5 and table.feasibility_constant_across_levels.all()
+    strata = ex.strata(am.changes(frame), table)
+    assert set(strata.feasible) == {True, False} and strata.n.sum() == 15 * len(am.refinements())
+    assert not ex.correlations(table).empty
+
+
 def test_analysis_rejects_incomplete_or_tampered_results(tmp_path):
     (tmp_path / 'results.jsonl').write_text('')
     (tmp_path / 'complete.json').write_text(json.dumps({'results_sha256': 'x'}))

@@ -7,6 +7,8 @@ This folder holds a follow-up to round 6, made at the author's request on 2026-1
 | `rs_rank_stability.csv`, `rs_rank_summary.json` | Step 1: rank stability of the round 6 re-tracked objectives (from `scripts/analyze_rank_stability.py`) |
 | `rm_protocol.md`, `rm_specification.json`, `rm_settings.csv` | Step 2: grid × particle matrix protocol and its frozen inputs (added at the freeze) |
 | `rm_changes.csv`, `rm_refinements.csv`, `rm_adequacy.csv`, `rm_particle_extrapolation.csv`, `rm_rank_agreement.csv`, `rm_analysis_receipt.json` | Step 2 results (from `scripts/analyze_convergence_matrix.py`) |
+| `rm_sensitivity_by_setting.csv`, `rm_sensitivity_correlations.csv`, `rm_sensitivity_strata.csv`, `rm_sensitivity_summary.json` | Post-hoc exploratory look at which settings drive the step 2 changes (from `scripts/explore_convergence_sensitivity.py`; not predeclared) |
+| `rq_protocol_draft.md` | Step 3a draft: step size versus space-charge update interval, at 64 cells and 160k (not frozen, not authorized) |
 | `particle_ladder_protocol_draft.md` | Superseded particle-only draft, not adopted |
 
 ## Step 1 — rank stability from the existing round 6 runs
@@ -81,3 +83,23 @@ The per-method correlations for production → combined fine are close to one an
 - **Grid 48 → 64** still lowers the median by about 0.5–1 % at every particle count, with per-setting changes up to about 16–18 %.
 - **Ranking is stable.** Spearman correlation with `half_g64_n640k` is 0.96–1.00 for every level, including both quarter-step levels (0.96–0.97). This is consistent with step 1.
 - **Not tested here:** whether a quarter-step grid/particle point, or a finer step than quarter, is 1 %-adequate. A follow-up on that would need a new frozen protocol and separate authorization.
+
+### Exploratory follow-up — which settings drive the changes (post hoc)
+
+This analysis was not predeclared. It uses only the completed step 2 journal (`scripts/explore_convergence_sensitivity.py`). With 15 settings and several measures, the p-values are unadjusted and the results only generate hypotheses.
+
+- **Sensitivity is a property of the setting.**
+  - The settings that change most with particles also change most with grid and with step: Spearman 0.65–0.81 among the largest particle, 160k → 640k, grid 48 → 64 and step changes.
+  - Large changes are concentrated but not confined to a few settings. Changes above 10 % appear in 29 of the 210 setting × refinement comparisons, spread over 9 of the 15 settings. Changes above 5 % appear in at least 5 of the 14 refinements for 7 settings, and in none for 3.
+- **Infeasible settings are more sensitive.**
+  - The six settings that are infeasible at `half_g64_n640k` all have a transverse rms size above 1 mm, and feasibility is the same at every level.
+  - Their median absolute change over all refinements is 4.9 %, against 1.4 % for the nine feasible settings (Mann–Whitney p = 0.012).
+  - The most sensitive single setting is feasible, however (σ_y′ 0.67 mrad).
+- **Exit-plane associations.**
+  - Sensitivity rises with the larger transverse size (ρ = 0.56) and with size × divergence (ρ = 0.61).
+  - It does not depend on the x/y aspect ratio (ρ ≈ 0) or on the emittance itself.
+  - Transmission is 1 for every setting, so aperture losses play no part.
+- **The step change is not driven by the outliers.**
+  - The nine feasible settings still drop by a median 2.1–2.4 % (ε_x) and 3.0–3.2 % (ε_y) from half to quarter step, with 0 of 9 within 1 %.
+  - For particles, the feasible settings are much closer to converged: 160k → 640k at 64 cells keeps 8 of 9 within 1 %.
+- **Proposed next step.** The step 3a draft ([rq_protocol_draft.md](rq_protocol_draft.md)) tests whether the step change comes from the space-charge update interval (`Max_count=10`, `Max_scale=0.01` in the template) or from the integration step. It also estimates the order of step convergence.
