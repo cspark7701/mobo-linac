@@ -1,0 +1,17 @@
+quantity,level,n,spearman_vs_eighth
+norm_emit_x_m_rad,eighth_mc10,15,1
+norm_emit_x_m_rad,half_mc1,15,0.967857
+norm_emit_x_m_rad,half_mc10,15,0.935714
+norm_emit_x_m_rad,half_mc10_rot1,15,0.95
+norm_emit_x_m_rad,half_mc10_rot2,15,0.935714
+norm_emit_x_m_rad,half_mc10_rot3,15,0.935714
+norm_emit_x_m_rad,quarter_mc1,15,0.996429
+norm_emit_x_m_rad,quarter_mc10,15,0.989286
+norm_emit_y_m_rad,eighth_mc10,15,1
+norm_emit_y_m_rad,half_mc1,15,0.946429
+norm_emit_y_m_rad,half_mc10,15,0.957143
+norm_emit_y_m_rad,half_mc10_rot1,15,0.960714
+norm_emit_y_m_rad,half_mc10_rot2,15,0.964286
+norm_emit_y_m_rad,half_mc10_rot3,15,0.960714
+norm_emit_y_m_rad,quarter_mc1,15,0.996429
+norm_emit_y_m_rad,quarter_mc10,15,0.996429

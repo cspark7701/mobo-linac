@@ -8,7 +8,8 @@ This folder holds a follow-up to round 6, made at the author's request on 2026-1
 | `rm_protocol.md`, `rm_specification.json`, `rm_settings.csv` | Step 2: grid × particle matrix protocol and its frozen inputs (added at the freeze) |
 | `rm_changes.csv`, `rm_refinements.csv`, `rm_adequacy.csv`, `rm_particle_extrapolation.csv`, `rm_rank_agreement.csv`, `rm_analysis_receipt.json` | Step 2 results (from `scripts/analyze_convergence_matrix.py`) |
 | `rm_sensitivity_by_setting.csv`, `rm_sensitivity_correlations.csv`, `rm_sensitivity_strata.csv`, `rm_sensitivity_summary.json` | Post-hoc exploratory look at which settings drive the step 2 changes (from `scripts/explore_convergence_sensitivity.py`; not predeclared) |
-| `rq_protocol.md`, `rq_specification.json` | Step 3a: step size versus space-charge update interval, at 64 cells and 160k. Frozen 2026-11-13; the run needs separate authorization |
+| `rq_protocol.md`, `rq_specification.json` | Step 3a: step size versus space-charge update interval, at 64 cells and 160k (frozen 2026-11-13) |
+| `rq_changes.csv`, `rq_pairs.csv`, `rq_adequacy.csv`, `rq_mechanism.csv`, `rq_mechanism_by_setting.csv`, `rq_order.csv`, `rq_noise_band.csv`, `rq_rank_agreement.csv`, `rq_cost.csv`, `rq_analysis_receipt.json` | Step 3a results (from `scripts/analyze_convergence_step_test.py`) |
 | `particle_ladder_protocol_draft.md` | Superseded particle-only draft, not adopted |
 
 ## Step 1 — rank stability from the existing round 6 runs
@@ -103,3 +104,51 @@ This analysis was not predeclared. It uses only the completed step 2 journal (`s
   - The nine feasible settings still drop by a median 2.1–2.4 % (ε_x) and 3.0–3.2 % (ε_y) from half to quarter step, with 0 of 9 within 1 %.
   - For particles, the feasible settings are much closer to converged: 160k → 640k at 64 cells keeps 8 of 9 within 1 %.
 - **Next step.** Step 3a ([rq_protocol.md](rq_protocol.md)) tests whether the step change comes from the space-charge update interval (`Max_count=10`, `Max_scale=0.01` in the template) or from the integration step. It also estimates the order of step convergence.
+
+## Step 3a — step size versus space-charge update interval
+
+**Run.** The run used the frozen protocol in [rq_protocol.md](rq_protocol.md), at commit `690aff8`.
+- **Time:** from 2026-11-13 17:07 to 2026-11-14 05:35 KST, using 254 CPU-h on 22 workers. Disk use is 35 GB under `results/convergence_step_test/`.
+- **Records:** all 120 attempts are valid, and the completion record was written (journal SHA-256 `caf4b91a…96c2`).
+- **Gate:** passed. All 15 `half_mc10` reruns reproduced step 2's `half_g64_n160k` within rtol 1e-9.
+- **Scope:** the summaries describe the 15 settings at 64 cells and 160k particles only.
+
+**Paired changes.** Each cell gives the median ε_x / ε_y change with its 95 % bootstrap interval, and the share of settings within the limit.
+
+| Pair | Median ε_x [95 %] | Median ε_y [95 %] | Within 1 % | Within max(1 %, noise band) |
+|---|---|---|---|---|
+| half → quarter (Max_count 10) | −2.7 % [−3.3, −1.3] | −3.1 % [−5.7, −2.7] | 0 % | 13 % |
+| quarter → eighth (Max_count 10) | −0.9 % [−1.9, −0.5] | −1.1 % [−3.4, −0.9] | 20 % | 33 % |
+| half: Max_count 10 → 1 | −0.7 % [−1.8, +0.9] | −1.7 % [−2.2, +1.0] | 7 % | 7 % |
+| half → quarter (Max_count 1) | −3.1 % [−4.4, −1.6] | −3.4 % [−5.1, −1.3] | 7 % | 7 % |
+
+**Primary 1, mechanism: mixed.**
+- The median ratio R is 0.32 (ε_x) and 0.42 (ε_y), between the 0.3 and 0.7 thresholds.
+- Per setting, R ranges from −7.9 to +8.4. The update-interval change takes both signs (10 of 15 settings lower), whereas halving the step lowers ε in 14–15 of 15 settings.
+- Halving the step changes ε by −3.1 / −3.4 % even when space charge is recomputed every step.
+- So the update interval accounts for part of the half → quarter change but does not remove the step dependence.
+- The infeasible stratum alone classifies as step dominated.
+
+**Primary 2, order and adequacy.**
+- **Observed order** from the medians: 1.56 (ε_x) and 1.47 (ε_y); the per-setting medians are 1.69 / 1.59. The feasible stratum gives 2.4 / 1.6.
+- **Richardson remainders** (median over settings): quarter step +1.4 % (ε_x) and +1.8 % (ε_y) above the extrapolated limit; eighth step +0.5 % and +0.6 %.
+- **Adequacy:** neither half nor quarter is 1 %-adequate. Neither the systematic rule (the 95 % interval goes beyond ±2 %) nor the per-setting rule (33 % against the required 80 %) is met for quarter → eighth.
+- **Eighth step:** it has no finer level, so it is assessed only through the extrapolated remainder of about 0.5 %.
+
+**Secondary.**
+- **Noise band:** twice the replicate SD from the four half-step sources has a median of 0.5 % (ε_x) and 0.6 % (ε_y). It exceeds 1 % in about a quarter of the settings, up to 11–13 % in the most sensitive one.
+- **Ranking:** Spearman correlation with `eighth_mc10` is 0.99–1.00 for both quarter levels and 0.94–0.97 for the half levels.
+- **Other quantities:** no setting changes feasibility class. σ_E changes by at most 0.6 % (median). Settings within the round 6 diagnostic tolerances: 60 % for half → quarter and 80 % for quarter → eighth.
+- **Cost per run:**
+  - eighth step 3.9 h and quarter 2.1 h;
+  - half 1.1–1.3 h under full load (the gate's 0.94 h ran on 15 workers);
+  - `Max_count=1` costs about 1.9× at both steps. The 3 cm probe's +24 % did not carry over to the full beamline.
+
+**Reading** (under the interpretation rules fixed at the freeze):
+- **Unresolved.** The mechanism is mixed and no step is 1 %-adequate, so absolute emittance convergence stays unresolved at this resolution, and no levels are added.
+- **Descriptive picture:**
+  - The emittance falls with step size at an observed order of about 1.5.
+  - The quarter step sits about 1.5 % and the eighth step about 0.5 % above the extrapolated limit, in the median.
+  - Recomputing space charge every step costs about 2× and does not remove the step dependence.
+  - The ordering of settings is already stable at the quarter step.
+- **Not assessed here:** grid convergence beyond 64 cells at the quarter or eighth step. A study of it would need a new protocol and authorization.

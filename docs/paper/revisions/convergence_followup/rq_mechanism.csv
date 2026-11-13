@@ -1,0 +1,4 @@
+stratum,median_R_norm_emit_x_m_rad,n_R_norm_emit_x_m_rad,excluded_small_denominator_norm_emit_x_m_rad,median_abs_step_at_mc1_norm_emit_x_m_rad,class_norm_emit_x_m_rad,median_R_norm_emit_y_m_rad,n_R_norm_emit_y_m_rad,excluded_small_denominator_norm_emit_y_m_rad,median_abs_step_at_mc1_norm_emit_y_m_rad,class_norm_emit_y_m_rad,class
+all,0.31989,15,0,0.0306587,mixed,0.417107,15,0,0.0339834,mixed,mixed
+feasible,0.31989,9,0,0.0163684,mixed,0.417107,9,0,0.0339834,mixed,mixed
+infeasible,-0.632171,6,0,0.114766,step dominated,0.000925849,6,0,0.0760425,step dominated,step dominated

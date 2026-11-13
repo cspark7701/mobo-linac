@@ -1,0 +1,16 @@
+setting_id,replicates_valid,band_norm_emit_x_m_rad,band_norm_emit_y_m_rad
+constrained_qlognehvi_seed_42__eval_000144,True,0.0101227,0.00687652
+constrained_qlognehvi_seed_47__eval_000066,True,0.00417187,0.00620982
+constrained_qlognehvi_seed_50__eval_000107,True,0.00257412,0.00407161
+constrained_qlognehvi_seed_51__eval_000156,True,0.00156089,0.00393738
+constrained_qlognehvi_seed_51__eval_000157,True,0.00142306,0.000862439
+scalarized_bo_seed_43__eval_000019,True,0.0523802,0.017095
+scalarized_bo_seed_43__eval_000033,True,0.00500423,0.00929445
+scalarized_bo_seed_45__eval_000077,True,0.073408,0.00198903
+scalarized_bo_seed_47__eval_000020,True,0.11498,0.0155475
+scalarized_bo_seed_49__eval_000137,True,0.012919,0.00487596
+unconstrained_qlognehvi_seed_42__eval_000150,True,0.00280543,0.00486487
+unconstrained_qlognehvi_seed_45__eval_000064,True,0.00479182,0.132248
+unconstrained_qlognehvi_seed_45__eval_000065,True,0.00177146,0.074441
+unconstrained_qlognehvi_seed_48__eval_000160,True,0.00372176,0.00224771
+unconstrained_qlognehvi_seed_49__eval_000125,True,0.0075695,0.00943444

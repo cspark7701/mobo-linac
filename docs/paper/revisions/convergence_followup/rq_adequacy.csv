@@ -1,0 +1,7 @@
+stratum,step,pair,systematic_met,per_setting_share,per_setting_met,status
+all,half,step_half_quarter,False,0.133333,False,not adequate
+all,quarter,step_quarter_eighth,False,0.333333,False,not adequate
+feasible,half,step_half_quarter,False,0,False,not adequate
+feasible,quarter,step_quarter_eighth,False,0.333333,False,not adequate
+infeasible,half,step_half_quarter,False,0.333333,False,not adequate
+infeasible,quarter,step_quarter_eighth,False,0.333333,False,not adequate

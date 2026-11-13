@@ -1,0 +1,7 @@
+stratum,quantity,order_from_medians,per_setting_order_median,per_setting_order_defined,settings,median_remainder_quarter,median_remainder_eighth
+all,norm_emit_x_m_rad,1.56491,1.68995,14,15,0.014088,0.00476172
+all,norm_emit_y_m_rad,1.4748,1.58936,14,15,0.0174673,0.00628445
+feasible,norm_emit_x_m_rad,2.43258,1.95813,8,9,0.00570848,0.0010574
+feasible,norm_emit_y_m_rad,1.56489,1.86815,8,9,0.0158447,0.00535558
+infeasible,norm_emit_x_m_rad,-0.773679,-1.03577,6,6,,
+infeasible,norm_emit_y_m_rad,0.213969,0.962119,6,6,0.356311,0.307198

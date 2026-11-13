@@ -1,0 +1,15 @@
+{
+  "results_sha256": "caf4b91a7daf2ef4e156fc6e2abf7fc4d17a6c8520ed2cf5b29e3e90529996c2",
+  "spec_sha256": "58ef9214fee6b10bb8db31976fe8e7fde20d8829194ef1dc729d9e7531d4e7c9",
+  "outputs": {
+    "rq_changes.csv": "9a95ef290e51fde3a390eb018eb4b3f08ea0af6ee99a991cbe6e4fa22f009319",
+    "rq_noise_band.csv": "0b1f1b66d56329b5997c78fc15fed7b488af6d046e68d41ccef5a202ba6d1c7a",
+    "rq_pairs.csv": "0799979d7d41cc6259feb69bb9fc11a126664526784ca263e916ec63cff0ca8f",
+    "rq_adequacy.csv": "ac1281312c6f48707b8fc8f209d74921974dfce3e2f9001ccbd71064395171f7",
+    "rq_mechanism.csv": "9cf994630f0c1e86e161bc38ef7af18d0fe8c83dec6e349323dc3180ca9bb94c",
+    "rq_mechanism_by_setting.csv": "5af42ceff3c9876c1f5fc6d9fafef09e918debd5946ff26ce036fe7f9da1f785",
+    "rq_order.csv": "a0118cf0d1229aee56839959a6a876ab415c435efccc9e5fae91601b6727c2d2",
+    "rq_rank_agreement.csv": "a903f9b7e32352fb7a6b6aacb735ac90acd8a92e77d4b5e06a9b51e1b6226247",
+    "rq_cost.csv": "b4417680481586205fb903e2bd88086af65370ee9480e0080b01176793bb3c9b"
+  }
+}
