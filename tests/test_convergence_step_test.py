@@ -57,6 +57,7 @@ def _mock_step2(tmp_path):
     shutil.copy2(ROOT / 'pal_photo2.ini', out / 'template' / 'qr160k.gen.in')  # mock deck placeholder
     rm = json.loads(spec.read_text())
     rm['template_sha256']['qr160k.gen.in'] = cm.sha(out / 'template' / 'qr160k.gen.in')
+    rm['minimum_free_disk_GiB'] = 0  # CI runners have far less than the production floor of free disk
     spec.write_text(json.dumps(rm, indent=2, sort_keys=True) + '\n')
     cm.execute(out, spec, settings, mock=True, r6_results=r6)
     return out, spec, settings
@@ -66,6 +67,9 @@ def test_mock_prepare_run_resume_and_analysis(tmp_path):
     rm_out, rm_spec, settings = _mock_step2(tmp_path)
     out, spec_path = tmp_path / 'rq', tmp_path / 'rq_spec.json'
     spec = st.prepare(out, spec_path, settings, rm_spec=rm_spec, rm_results=rm_out, mock=True)
+    rq = json.loads(spec_path.read_text())
+    rq['minimum_free_disk_GiB'] = 0
+    spec_path.write_text(json.dumps(rq, indent=2, sort_keys=True) + '\n')
     assert spec['tracking_attempts'] == 120 and len(spec['feasible_at_reference']) == 15
     assert {f'qr160k_{k}.ini' for k in st.ANGLES} <= set(spec['template_sha256'])
     with pytest.raises(ValueError, match='Output exists'):

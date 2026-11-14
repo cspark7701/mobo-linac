@@ -63,6 +63,13 @@ def test_gate_requires_exact_reproduction():
         cm.check_gate(settings, {}, old, spec)
 
 
+
+def no_disk_floor(spec_path):
+    spec = json.loads(spec_path.read_text())
+    spec['minimum_free_disk_GiB'] = 0
+    spec_path.write_text(json.dumps(spec, indent=2, sort_keys=True) + '\n')
+
+
 def test_mock_prepare_run_resume_and_analysis(tmp_path):
     r6 = tmp_path / 'r6'
     (r6 / 'template').mkdir(parents=True)
@@ -72,6 +79,7 @@ def test_mock_prepare_run_resume_and_analysis(tmp_path):
     out, spec_path, settings_path = tmp_path / 'out', tmp_path / 'spec.json', tmp_path / 'settings.csv'
     frame = pd.read_csv(MANIFEST)
     spec = cm.prepare(out, spec_path, settings_path, mock=True, frame=frame, r6_results=r6)
+    no_disk_floor(spec_path)  # CI runners have far less than the production floor of free disk
     assert spec['tracking_attempts'] == 165 and spec['template_sha256']['qr40k.ini'] == spec['r6_qr40k_sha256']
     with pytest.raises(ValueError, match='Output exists'):
         cm.prepare(out, spec_path, settings_path, mock=True, frame=frame, r6_results=r6)
