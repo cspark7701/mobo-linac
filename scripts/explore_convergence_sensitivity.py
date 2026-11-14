@@ -57,6 +57,9 @@ def correlations(table):
     for a in SENSITIVITIES:
         for b in SENSITIVITIES + measures:
             if a != b:
+                if table[a].nunique() < 2 or table[b].nunique() < 2:  # undefined; spearmanr would warn
+                    rows.append({'sensitivity': a, 'versus': b, 'spearman': np.nan, 'p_unadjusted': np.nan})
+                    continue
                 r = spearmanr(table[a], table[b])
                 rows.append({'sensitivity': a, 'versus': b, 'spearman': r.statistic, 'p_unadjusted': r.pvalue})
     return pd.DataFrame(rows)

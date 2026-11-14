@@ -15,7 +15,6 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
-from scipy.stats import rankdata
 
 import analyze_convergence_matrix as am
 from evaluate_convergence_step_test import FOLLOWUP, OUTPUT, SETTINGS, SPEC, ANGLES, GATE
@@ -211,8 +210,8 @@ def ranks_and_cost(frame):
         wide = frame.pivot(index='setting_id', columns='level', values=q)
         for level in wide.columns:
             pair = wide[[level, REFERENCE]].dropna()
-            rho = np.corrcoef(rankdata(pair[level]), rankdata(pair[REFERENCE]))[0, 1]
-            rows.append({'quantity': q, 'level': level, 'n': len(pair), 'spearman_vs_eighth': float(rho)})
+            rho = am.rank_correlation(pair[level], pair[REFERENCE])
+            rows.append({'quantity': q, 'level': level, 'n': len(pair), 'spearman_vs_eighth': rho})
     cost = frame.groupby('level').runtime_s.agg(['count', 'mean', 'max']).reset_index()
     return pd.DataFrame(rows), cost
 

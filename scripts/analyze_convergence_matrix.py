@@ -132,6 +132,15 @@ def particle_extrapolation(frame):
     return pd.DataFrame(rows)
 
 
+def rank_correlation(a, b):
+    """Spearman correlation as the Pearson correlation of ranks; NaN where it is undefined
+    (fewer than two pairs or a constant ranking), as np.corrcoef would return, without its warnings."""
+    ra, rb = rankdata(a), rankdata(b)
+    if len(ra) < 2 or np.ptp(ra) == 0 or np.ptp(rb) == 0:
+        return float('nan')
+    return float(np.corrcoef(ra, rb)[0, 1])
+
+
 def rank_agreement(frame):
     """Spearman correlation of each level with the half-step 64-cell 640k level."""
     out = []
@@ -139,8 +148,8 @@ def rank_agreement(frame):
         wide = frame.pivot(index='setting_id', columns='level', values=q)
         for level in wide.columns:
             pair = wide[[level, REFERENCE]].dropna()
-            rho = np.corrcoef(rankdata(pair[level]), rankdata(pair[REFERENCE]))[0, 1]
-            out.append({'quantity': q, 'level': level, 'n': len(pair), 'spearman_vs_reference': float(rho)})
+            rho = rank_correlation(pair[level], pair[REFERENCE])
+            out.append({'quantity': q, 'level': level, 'n': len(pair), 'spearman_vs_reference': rho})
     return pd.DataFrame(out)
 
 
