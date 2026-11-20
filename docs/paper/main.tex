@@ -80,7 +80,8 @@ unconstrained optimization, the difference arises mainly in the transverse limit
 weighted-sum optimization, it arises mainly in the energy band. All pipelines sample feasible
 settings more often than a budget-matched space-filling search. The weighted-sum implementation
 has the lowest computational overhead. Refinement checks show that the absolute emittances
-are not converged at the nominal resolution. The feasible-sampling advantage persists in the
+are not converged at the nominal resolution; at refined grids and particle counts they still
+fall with the integration step, whereas the ordering of settings is preserved. The feasible-sampling advantage persists in the
 tested diagnostic-shift scenarios and when a stratified sample of the primary evaluations is
 re-tracked at refined resolutions, whereas objective-quality comparisons depend on the indicator,
 the comparator and the fixed numerical model. In matched campaigns, threshold-normalized
@@ -230,7 +231,11 @@ The primary
   feasible-sampling comparison; the emittances still differ between the two finest levels. In
   post-hoc common-shift scenarios the feasible-sampling comparison is also preserved; the
   front-quality comparisons are not tested at a converged resolution
-  (Secs.~\ref{sec:problem}, \ref{sec:primary} and~\ref{sec:retracking}). These checks identify a
+  (Secs.~\ref{sec:problem}, \ref{sec:primary} and~\ref{sec:retracking}). A follow-up on 15 of
+  the sampled settings, at up to \num{640000} particles, 64-cell grids and an eighth of the
+  production step, finds the particle count converged in the median but the emittances still
+  decreasing with the step at an observed order of about 1.5, with the ordering of settings
+  preserved (Sec.~\ref{sec:convergence_followup}). These checks identify a
   limitation of the nominal model; they do not establish convergence.
 \item A matched test of one alternative constraint-residual convention. In ten paired
   constraint-aware campaigns, threshold-normalized residuals at a common dimensionless
@@ -318,7 +323,9 @@ limits change (Sec.~\ref{sec:tdr_reach}). These ten settings are feasible and co
 constraint-aware searches. They contain no rejected or baseline observation, so their stable
 classifications cannot establish stability across the primary evaluations.
 Section~\ref{sec:primary} examines this question using post-hoc common-shift scenarios, and
-Sec.~\ref{sec:retracking} by re-tracking a stratified sample of the primary evaluations. All
+Sec.~\ref{sec:retracking} by re-tracking a stratified sample of the primary evaluations;
+Sec.~\ref{sec:convergence_followup} separates the particle, grid, step and space-charge-update
+contributions at higher resolution. All
 objective values, feasibility classifications and margins refer to the nominal resolution. The
 absolute emittances exceed the refined values, and the method comparisons hold within this fixed
 numerical model. The fixed GP observation variance provides regularization and does not measure
@@ -1053,6 +1060,80 @@ not refined optimization trajectories. They extend the common-shift scenarios ab
 setting-dependent changes for every method and both feasibility states, but they do not test the
 front-quality indicators at a converged resolution.
 
+\subsection{Follow-up convergence study}
+\label{sec:convergence_followup}
+Because the two finest re-tracking levels still differ, three further checks examined
+where the emittance changes come from; the two that required new tracking were specified
+before they were run
+(Appendix~\ref{app:implementation}). First, without new tracking, the 387 re-tracked
+evaluations keep their ordering under refinement: from the production level to the combined
+fine level, the Spearman coefficients are 0.979 and 0.962 for the horizontal and vertical
+emittance (95\,\% cluster-bootstrap intervals 0.969--0.985 and 0.950--0.972) and 1.000 for the
+energy spread, and 92--\SI{94}{\percent} of setting pairs keep their order, although the
+emittances shift by a median $-23$ and \SI{-31}{\percent}. Second, 15 of those evaluations,
+one per method, production-feasibility state and boundary class plus one further per method,
+were re-tracked on a grid of 32, 48 and 64 cells in every dimension, \num{40000},
+\num{160000} and \num{640000} particles, and half and a quarter of the production steps.
+Third, at 64 cells and \num{160000} particles, the step was refined to an eighth, and the
+space-charge field was recomputed at every step instead of being reused for up to ten steps
+while the beam scale changes by less than \SI{1}{\percent}. Every first run reproduced the
+corresponding earlier record to floating-point precision, and all 285 attempts were valid.
+
+\begin{table}[htbp]
+\centering
+\caption{Median change of the exit emittances of the 15 follow-up settings per refinement,
+with the fraction of settings whose two emittances both change by at most \SI{1}{\percent}.
+Unless a row changes them, the grid has 64 cells, the source \num{160000} particles and the
+step is half the production step; k denotes \num{1000} particles. ``Update every step''
+recomputes the space-charge field at every step instead of reusing it for up to ten steps, and
+``each step'' marks a step refinement made with that update at both steps.}
+\label{tab:convergence_followup}
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrr}
+\toprule
+Refinement & $\Delta\enx$ [\%] & $\Delta\eny$ [\%] & $\le$\SI{1}{\percent} \\
+\midrule
+Particles 40k $\to$ 160k & $-0.3$ & $-1.2$ & 0.27 \\
+Particles 160k $\to$ 640k & $0.0$ & $-0.1$ & 0.73 \\
+Grid 48 $\to$ 64 cells & $-0.7$ & $-0.7$ & 0.27 \\
+Update every step & $-0.7$ & $-1.7$ & 0.07 \\
+Half $\to$ quarter & $-2.7$ & $-3.1$ & 0.00 \\
+Half $\to$ quarter, each step & $-3.1$ & $-3.4$ & 0.07 \\
+Quarter $\to$ eighth & $-0.9$ & $-1.1$ & 0.20 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The particle count is converged in the median at \num{160000} particles, although individual
+settings still move by several percent, in both directions, from \num{160000} to
+\num{640000} (Table~\ref{tab:convergence_followup}). The grid refinement from 48 to 64 cells
+still lowers the median by about \SI{0.7}{\percent}. The integration step dominates what remains.
+Halving it from half to a quarter of the production step lowers the emittances by a median
+\SIrange{2.7}{3.1}{\percent}, and by \SIrange{3.1}{3.4}{\percent} when the space-charge field
+is recomputed at every step; recomputing at every step changes the emittances by $-0.7$ and
+\SI{-1.7}{\percent} at half step, with signs that differ between settings, and nearly doubles the
+tracking time. The less frequent field update therefore accounts for part of the step
+dependence (a median ratio of 0.32 and 0.42) but does not explain it. From the half, quarter
+and eighth steps the observed order of convergence is about 1.5 (1.56 horizontally and 1.47
+vertically), and extrapolation places the quarter-step emittances a median
+\SIrange{1.4}{1.8}{\percent} and the eighth-step emittances \SIrange{0.5}{0.6}{\percent} above
+the zero-step limit. Under the predeclared rule that at least 80\,\% of settings change by at
+most \SI{1}{\percent}, or by their own source-replicate spread if larger, neither the half nor
+the quarter step is adequate; between the quarter and eighth steps one third of settings meet
+it. The spread over four rotated copies of the \num{160000}-particle source is a median
+\SIrange{0.5}{0.6}{\percent} but reaches \SIrange{11}{13}{\percent} for the most sensitive
+setting.
+
+No setting changes its production-profile classification in any of these refinements, and the
+energy spread changes by a median of at most \SI{0.6}{\percent}. The ordering of the 15 settings
+is stable at the finer steps: the Spearman coefficients with the eighth step are 0.99--1.00 at
+a quarter step and 0.94--0.97 at half step. Absolute emittance convergence therefore remains
+unresolved; the emittances fall with the step size at an order of about 1.5, with remainders of
+order one percent at the finest tested step. The grid beyond 64 cells was not refined at the
+quarter or eighth step. These 15 settings describe resolution behavior across methods and
+feasibility states; they are not a sample from which method comparisons are estimated.
+
 \subsection{Sources of the feasible-sampling difference}
 \label{sec:attribution}
 Two properties of the recorded setup could produce a feasible-sampling advantage without
@@ -1532,7 +1613,10 @@ the scenarios apply the same change to every evaluation and do not model setting
 channel-dependent refinement. The stratified re-tracking supplies setting-dependent changes for
 387 sampled evaluations and also preserves the comparison, but its two finest levels still
 differ in the emittances by several percent, so its weighted feasible fractions refer to the
-finest tested levels rather than to converged tracking. We have not tested whether the front-quality comparison persists
+finest tested levels rather than to converged tracking. The follow-up study of
+Sec.~\ref{sec:convergence_followup} locates most of the remaining change in the integration
+step, at an observed order of about 1.5, and finds the ordering of settings stable from a
+quarter of the production step. We have not tested whether the front-quality comparison persists
 at a converged resolution. Small margins in particular are not interpreted as numerically
 resolved: the two TDR-passing observations clear the horizontal-size limit by about 2.5 and
 \SI{8.9}{\micro\metre} and the bunch-length limit by about 8.2 and \SI{8.0}{\micro\metre}.
@@ -1608,7 +1692,10 @@ transmission and production-profile classifications are stable. Re-tracking a st
 of 387 primary evaluations at refined levels changes four classifications, all toward
 feasibility in the constraint-aware pipeline, and its feasible-sampling advantage remains
 positive in every matched group; the emittances still change by several percent between the two
-finest levels. Absolute emittances should therefore not be read as numerically converged
+finest levels. At 64-cell grids and \num{160000} particles the emittances still decrease with
+the integration step, at an observed order of about 1.5, and come within about
+\SI{0.5}{\percent} of the extrapolated limit only at an eighth of the production step, while the
+ordering of settings is stable. Absolute emittances should therefore not be read as numerically converged
 physical predictions. In the corresponding common-shift scenarios, the advantage also persists
 in every matched group. A threshold-normalized constraint-residual convention, tested in ten
 matched campaign pairs, sampled feasible settings less often than the raw residuals in every
@@ -1694,6 +1781,25 @@ both steps. The medium level combines the first refinement of each factor and th
 the second. One regenerated quasi-random and five independently seeded random sources of
 \num{10000} particles measure the source dependence. The reconstructed generator input
 reproduces the time, radius and momentum marginals of the production file.
+
+\paragraph{Follow-up convergence study.} The study of Sec.~\ref{sec:convergence_followup} used
+quasi-random sources of \num{40000}, \num{160000} and \num{640000} particles from the
+reconstructed generator input. Its matrix crossed three grids (32, 48 and 64 cells in every
+dimension of the cylindrical and Cartesian grids) with the three particle counts at half the
+production steps, and added a quarter step at 64 cells with \num{40000} and \num{640000}
+particles. The step test, at 64 cells and \num{160000} particles, used maximum steps of
+5, 2.5 and \SI{1.25}{\pico\second} with the minimum steps scaled alike, and a space-charge
+reuse limit (ASTRA's \texttt{Max\_count}) of 10, the production value, or 1; the scale
+threshold \texttt{Max\_scale} stayed at 0.01. Because the source is round and the quasi-random
+generator takes no seed, source replicates were formed by rotating the transverse coordinates
+and momenta of the \num{160000}-particle source by \ang{40}, \ang{80} and \ang{160} about the
+beam axis, which preserves its radial and longitudinal moments; the noise band of a setting is
+twice the standard deviation over the four sources at half step. Each stage began by
+reproducing earlier records (relative tolerance $10^{-9}$). The settings, levels, tolerances,
+adequacy rules and analysis code were committed before the runs. The observed order is
+$p=\log_2(\Delta_{1/2\to1/4}/\Delta_{1/4\to1/8})$ from the changes between successive steps,
+and the Richardson remainders follow from it. The two stages took 360 and 254 core-hours; one
+evaluation at an eighth of the production step takes about \SI{3.9}{\hour} on one core.
 
 \paragraph{Campaign time.} To avoid double-counting concurrent workers, the union of recorded
 evaluation start and end intervals was formed for each campaign. The remainder of campaign

@@ -1,6 +1,6 @@
 # Emittance-convergence follow-up (after round 6)
 
-This folder holds a follow-up to round 6, made at the author's request on 2026-11-12. It is not part of the round 6 package or the supplement. The manuscript and supplement are unchanged until the author decides to integrate any of it.
+This folder holds a follow-up to round 6, made at the author's request on 2026-11-12. It is not part of the round 6 package or the supplement. On 2026-11-20 the author asked for steps 1–3a to be added to the manuscript; they appear in `main.tex` as Sec. V D (`sec:convergence_followup`, Table `tab:convergence_followup`) and in the appendix paragraph "Follow-up convergence study". The supplement is unchanged.
 
 | File | Content |
 |---|---|
